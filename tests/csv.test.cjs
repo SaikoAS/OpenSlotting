@@ -153,3 +153,14 @@ test('analysis CSV export rounds decimal quantities', () => {
 
   assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;2;0\.3;2;0;1;/);
 });
+
+test('analysis CSV export protects spreadsheet formula text', () => {
+  const analysis = csv.analyzeRows([
+    { order_id: 'O1', article_id: '=SUM(1,2)', quantity: 1, order_date: '2026-09-01', customer_id: null, sales_value: null, location: '@ZONE' }
+  ]);
+
+  const exported = csv.exportAnalysisCsv(analysis.articles);
+
+  assert.match(exported, /'=SUM\(1,2\);/);
+  assert.match(exported, /;'@ZONE\r?\n/);
+});

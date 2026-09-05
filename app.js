@@ -70,6 +70,7 @@
       article_count: '{{count}} articles shown',
       no_matches: 'No matching articles found.',
       file_detected: '{{file}} · {{count}} data rows detected.',
+      reading_file: 'Reading {{file}}…',
       structure_hint: 'The file also contains CSV structure notes, which will appear after mapping.',
       error_prefix: 'Error: ',
       summary_valid: '{{file}}: {{valid}} of {{total}} data rows are valid.',
@@ -145,6 +146,7 @@
       article_count: '{{count}} Artikel angezeigt',
       no_matches: 'Keine passenden Artikel gefunden.',
       file_detected: '{{file}} · {{count}} Datenzeilen erkannt.',
+      reading_file: '{{file}} wird gelesen …',
       structure_hint: 'Die Datei enthält zusätzlich CSV-Strukturhinweise, die nach der Zuordnung angezeigt werden.',
       error_prefix: 'Fehler: ',
       summary_valid: '{{file}}: {{valid}} von {{total}} Datenzeilen sind gültig.',
@@ -227,6 +229,10 @@
       maximumFractionDigits: digits === undefined ? 2 : digits,
       minimumFractionDigits: 0
     }).format(value);
+  }
+
+  function formatQuantity(value) {
+    return formatNumber(value, 6);
   }
 
   function formatCurrency(value) {
@@ -319,12 +325,12 @@
   function renderMetrics(analysis) {
     const metrics = [
       [translate('metric_lines'), formatNumber(analysis.total_lines, 0), translate('metric_lines_detail')],
-      [translate('metric_quantity'), formatNumber(analysis.total_quantity), translate('metric_quantity_detail')],
+      [translate('metric_quantity'), formatQuantity(analysis.total_quantity), translate('metric_quantity_detail')],
       [translate('metric_orders'), formatNumber(analysis.distinct_orders, 0), translate('metric_orders_detail')],
       [translate('metric_customers'), formatNumber(analysis.distinct_customers, 0), translate('metric_customers_detail')],
       [translate('metric_days'), formatNumber(analysis.active_days, 0), translate('metric_days_detail')],
-      [translate('metric_average_line'), formatNumber(analysis.average_quantity_per_line), translate('metric_average_line_detail')],
-      [translate('metric_average_order'), formatNumber(analysis.average_quantity_per_order), translate('metric_average_order_detail')],
+      [translate('metric_average_line'), formatQuantity(analysis.average_quantity_per_line), translate('metric_average_line_detail')],
+      [translate('metric_average_order'), formatQuantity(analysis.average_quantity_per_order), translate('metric_average_order_detail')],
       [translate('metric_sales'), formatCurrency(analysis.total_sales), translate('metric_sales_detail', { count: analysis.sales_value_rows })]
     ];
 
@@ -400,7 +406,7 @@
       const row = document.createElement('tr');
       appendCell(row, article.article_id);
       appendCell(row, formatNumber(article.order_line_count, 0), 'number');
-      appendCell(row, formatNumber(article.total_quantity), 'number');
+      appendCell(row, formatQuantity(article.total_quantity), 'number');
       appendCell(row, formatNumber(article.distinct_orders, 0), 'number');
       appendCell(row, formatNumber(article.distinct_customers, 0), 'number');
       appendCell(row, formatNumber(article.active_days, 0), 'number');
@@ -461,11 +467,19 @@
     state.fileSelectionVersion = selectionVersion;
     state.result = null;
     state.analysis = null;
+    state.fileName = '';
+    state.text = '';
     state.headers = [];
     state.mapping = {};
     state.confirmedMapping = null;
     state.dataRowCount = 0;
     state.hasParseErrors = false;
+    elements.mappingGrid.replaceChildren();
+    elements.mappingPanel.classList.add('hidden');
+    elements.resultsPanel.classList.add('hidden');
+    elements.analyzeButton.disabled = true;
+    elements.exportButton.disabled = true;
+    setText(elements.sourceStatus, translate('reading_file', { file: file.name }));
     try {
       const fileText = await readFile(file);
       if (selectionVersion !== state.fileSelectionVersion) {
@@ -486,6 +500,7 @@
       setText(elements.sourceStatus, translate('file_detected', { file: file.name, count: Math.max(0, parsed.rows.length - 1) }));
       elements.mappingPanel.classList.remove('hidden');
       elements.resultsPanel.classList.add('hidden');
+      elements.analyzeButton.disabled = false;
     } catch (error) {
       if (selectionVersion !== state.fileSelectionVersion) {
         return;
@@ -493,6 +508,8 @@
       setText(elements.sourceStatus, translate('error_prefix') + error.message);
       elements.mappingPanel.classList.add('hidden');
       elements.resultsPanel.classList.add('hidden');
+      elements.analyzeButton.disabled = true;
+      elements.exportButton.disabled = true;
     }
   }
 

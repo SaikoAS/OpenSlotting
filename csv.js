@@ -621,6 +621,11 @@
     return text;
   }
 
+  function protectSpreadsheetText(value) {
+    const text = value === null || value === undefined ? '' : String(value);
+    return /^[\t\r\n ]*[=+\-@]/.test(text) ? "'" + text : text;
+  }
+
   function exportAnalysisCsv(articles, options) {
     const delimiter = options && options.delimiter ? options.delimiter : ';';
     const headers = [
@@ -643,7 +648,7 @@
 
     articles.forEach(function (article) {
       lines.push([
-        article.article_id,
+        protectSpreadsheetText(article.article_id),
         article.order_line_count,
         rounded(article.total_quantity, 6),
         article.distinct_orders,
@@ -652,7 +657,7 @@
         rounded(article.total_sales, 2),
         rounded(article.share_of_order_lines, 6),
         rounded(article.cumulative_share_of_order_lines, 6),
-        article.locations.join(', ')
+        protectSpreadsheetText(article.locations.join(', '))
       ].map(function (value) { return escapeCsvValue(value, delimiter); }).join(delimiter));
     });
 
