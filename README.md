@@ -180,6 +180,11 @@ Demo data may include fictional:
 
 No real operational or company data should be committed to the repository.
 
+The repository includes documented synthetic fixtures in
+[`test-data/README.md`](test-data/README.md). They cover standard imports,
+alternative column mappings, missing values, duplicates, invalid values,
+malformed rows, and CSV quoting.
+
 ## Technology
 
 The project is currently planned as a browser-based application using standard web technologies.

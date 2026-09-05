@@ -1,0 +1,4 @@
+order_id;article_id;quantity;order_date;customer_id;sales_value;location
+ORD-6101;SKU-910;1;2026-09-01;CUST-01;10.00;A-01-01
+ORD-6102;SKU-911;2;2026-09-02;CUST-02;20.00
+ORD-6103;SKU-912;1;2026-09-03;CUST-03;30.00;A-01-03;EXTRA-FIELD
