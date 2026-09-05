@@ -645,7 +645,7 @@
       lines.push([
         article.article_id,
         article.order_line_count,
-        article.total_quantity,
+        rounded(article.total_quantity, 6),
         article.distinct_orders,
         article.distinct_customers,
         article.active_days,

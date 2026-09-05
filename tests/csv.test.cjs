@@ -144,3 +144,12 @@ test('analysis CSV export rounds currency and share values', () => {
   assert.doesNotMatch(exported, /69\.929999/);
   assert.doesNotMatch(exported, /0\.749999/);
 });
+
+test('analysis CSV export rounds decimal quantities', () => {
+  const analysis = csv.analyzeRows([
+    { order_id: 'O1', article_id: 'A1', quantity: 0.1, order_date: '2026-09-01', customer_id: null, sales_value: null, location: null },
+    { order_id: 'O2', article_id: 'A1', quantity: 0.2, order_date: '2026-09-01', customer_id: null, sales_value: null, location: null }
+  ]);
+
+  assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;2;0\.3;2;0;1;/);
+});

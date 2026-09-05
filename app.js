@@ -161,6 +161,7 @@
     text: '',
     headers: [],
     mapping: {},
+    confirmedMapping: null,
     dataRowCount: 0,
     hasParseErrors: false,
     fileSelectionVersion: 0,
@@ -309,7 +310,8 @@
       showMappingMessage(state.hasParseErrors ? translate('structure_hint') : '');
     }
     if (state.result) {
-      state.result = core.importCsv(state.text, state.mapping, { locale: state.language });
+      const analyzedMapping = state.confirmedMapping || state.mapping;
+      state.result = core.importCsv(state.text, analyzedMapping, { locale: state.language });
       renderResults(state.result);
     }
   }
@@ -461,6 +463,7 @@
     state.analysis = null;
     state.headers = [];
     state.mapping = {};
+    state.confirmedMapping = null;
     state.dataRowCount = 0;
     state.hasParseErrors = false;
     try {
@@ -494,14 +497,16 @@
   }
 
   function analyze() {
-    state.mapping = currentMapping();
-    const mappingIssues = core.validateMapping(state.mapping, state.language);
+    const draftMapping = currentMapping();
+    const mappingIssues = core.validateMapping(draftMapping, state.language);
     if (mappingIssues.length > 0) {
       showMappingMessage(mappingIssues.map(function (issue) { return issue.message; }).join(' '));
       return;
     }
+    state.mapping = draftMapping;
+    state.confirmedMapping = Object.assign({}, draftMapping);
     showMappingMessage('');
-    renderResults(core.importCsv(state.text, state.mapping, { locale: state.language }));
+    renderResults(core.importCsv(state.text, state.confirmedMapping, { locale: state.language }));
   }
 
   function exportResults() {
@@ -523,6 +528,7 @@
     state.text = '';
     state.headers = [];
     state.mapping = {};
+    state.confirmedMapping = null;
     state.dataRowCount = 0;
     state.hasParseErrors = false;
     state.fileSelectionVersion += 1;
