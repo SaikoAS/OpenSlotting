@@ -4,7 +4,35 @@ OpenSlotting is an open-source, local-first web tool for analyzing warehouse ord
 
 The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. Future versions are planned to expand this foundation toward ABC/XYZ classification, configurable master data, slotting scores, and warehouse slotting recommendations.
 
-> **Project status:** Early development / planning phase.
+> **Project status:** V0.1 CSV import and order-line analysis foundation implemented.
+
+## Current V0.1 implementation
+
+OpenSlotting currently provides a browser-local first feature for importing and
+analyzing order-line CSV files. Open `index.html` directly in a supported
+browser, choose a CSV file, review the detected column mapping, and start the
+analysis.
+
+The current implementation includes:
+
+- semicolon-separated CSV parsing with quoted fields
+- automatic mapping for canonical and common German column names
+- ISO and German date normalization
+- decimal-point and decimal-comma number parsing
+- validation with source line and field information
+- preservation of raw field positions, including duplicate rows
+- article aggregation with quantity and order-line frequency kept separate
+- filtering, sorting, and analysis CSV export
+- English as the default interface language, with German available from the language selector
+
+The first implementation intentionally keeps data in memory for the current
+browser session. It does not upload files or require a server, backend,
+Node.js, Python, or an internet connection.
+
+The application interface is English by default. Users can switch the visible
+interface, validation messages, labels, and number formatting to German at any
+time. Internal field keys and exported column names remain stable in English so
+that imports and downstream analysis do not change with the selected language.
 
 ## Goals
 

@@ -1,0 +1,111 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const test = require('node:test');
+
+const csv = require('../csv.js');
+
+function fixture(name) {
+  return fs.readFileSync(path.join(__dirname, '..', 'test-data', name), 'utf8');
+}
+
+test('basic fixture matches its documented metrics', () => {
+  const result = csv.importCsv(fixture('basic-orders.csv'));
+  const analysis = csv.analyzeRows(result.rows);
+
+  assert.equal(result.validRows, 12);
+  assert.equal(result.invalidRows, 0);
+  assert.equal(analysis.total_quantity, 32);
+  assert.equal(analysis.distinct_orders, 11);
+  assert.equal(analysis.distinct_customers, 6);
+  assert.equal(analysis.active_days, 6);
+});
+
+test('German headers, dates and decimal commas are detected and normalized', () => {
+  const result = csv.importCsv(fixture('german-column-mapping.csv'));
+
+  assert.equal(result.validRows, 5);
+  assert.equal(result.invalidRows, 0);
+  assert.equal(result.rows[0].order_date, '2026-09-01');
+  assert.equal(result.rows[0].sales_value, 19.98);
+  assert.equal(result.rows[0].article_id, 'ART-001');
+});
+
+test('quoted semicolons remain inside their fields', () => {
+  const result = csv.importCsv(fixture('quoted-fields.csv'));
+
+  assert.equal(result.validRows, 2);
+  assert.equal(result.rows[0].customer_id, 'CUST;SPECIAL');
+  assert.equal(result.rows[0].location, 'ZONE;01');
+});
+
+test('duplicate lines are preserved and aggregated', () => {
+  const result = csv.importCsv(fixture('duplicate-lines.csv'));
+  const analysis = csv.analyzeRows(result.rows);
+  const article = analysis.articles.find((item) => item.article_id === 'SKU-801');
+
+  assert.equal(result.validRows, 5);
+  assert.equal(article.order_line_count, 3);
+  assert.equal(article.total_quantity, 4);
+});
+
+test('quantity and frequency remain separate metrics', () => {
+  const result = csv.importCsv(fixture('quantity-vs-frequency.csv'));
+  const analysis = csv.analyzeRows(result.rows);
+  const bulk = analysis.articles.find((item) => item.article_id === 'SKU-BULK');
+  const frequent = analysis.articles.find((item) => item.article_id === 'SKU-FREQUENT');
+
+  assert.equal(bulk.order_line_count, 1);
+  assert.equal(bulk.total_quantity, 500);
+  assert.equal(frequent.order_line_count, 8);
+  assert.equal(frequent.total_quantity, 8);
+});
+
+test('invalid values are reported with source lines and excluded from aggregation', () => {
+  const result = csv.importCsv(fixture('invalid-values.csv'));
+
+  assert.equal(result.validRows, 1);
+  assert.equal(result.invalidRows, 6);
+  assert.ok(result.issues.some((issue) => issue.sourceLine === 3 && issue.field === 'article_id'));
+  assert.ok(result.issues.some((issue) => issue.sourceLine === 7 && issue.field === 'order_date'));
+});
+
+test('malformed column counts are reported without dropping the evidence silently', () => {
+  const result = csv.importCsv(fixture('malformed-columns.csv'));
+
+  assert.equal(result.validRows, 1);
+  assert.equal(result.invalidRows, 2);
+  assert.equal(result.structuralRows, 2);
+  assert.ok(result.issues.some((issue) => issue.code === 'column_count_mismatch' && issue.sourceLine === 3));
+  assert.ok(result.issues.some((issue) => issue.code === 'column_count_mismatch' && issue.sourceLine === 4));
+});
+
+test('empty optional fields stay empty while required fields remain enforced', () => {
+  const result = csv.importCsv(fixture('optional-fields.csv'));
+
+  assert.equal(result.validRows, 4);
+  assert.equal(result.rows[0].sales_value, null);
+  assert.equal(result.rows[1].customer_id, null);
+  assert.equal(result.rows[1].location, null);
+});
+
+test('English is the default message language and German is selectable', () => {
+  const mapping = csv.detectMapping([
+    'order_id',
+    'article_id',
+    'quantity',
+    'order_date'
+  ]);
+  const english = csv.validateMapping({ ...mapping, order_date: null }, 'en');
+  const german = csv.validateMapping({ ...mapping, order_date: null }, 'de');
+
+  assert.match(english[0].message, /required field/i);
+  assert.match(german[0].message, /erforderliche Feld/i);
+  assert.equal(csv.getFieldLabel('article_id', 'en'), 'Article ID');
+  assert.equal(csv.getFieldLabel('article_id', 'de'), 'Artikel-ID');
+
+  const englishImport = csv.importCsv(fixture('invalid-values.csv'));
+  const germanImport = csv.importCsv(fixture('invalid-values.csv'), undefined, { locale: 'de' });
+  assert.match(englishImport.issues.find((issue) => issue.code === 'quantity_must_be_positive').message, /positive number/i);
+  assert.match(germanImport.issues.find((issue) => issue.code === 'quantity_must_be_positive').message, /positive Zahl/i);
+});

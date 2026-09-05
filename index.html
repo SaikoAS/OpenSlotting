@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OpenSlotting – CSV Analysis</title>
+    <link rel="stylesheet" href="app.css">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow" data-i18n="eyebrow">OpenSlotting · V0.1</p>
+        <h1 data-i18n="hero_title">Understand order lines</h1>
+        <p class="subtitle" data-i18n="hero_subtitle">Inspect CSV data locally, aggregate article movement, and build the foundation for slotting.</p>
+      </div>
+      <div class="header-actions">
+        <label class="language-picker">
+          <span data-i18n="language_label">Language</span>
+          <select id="language-select" aria-label="Language">
+            <option value="en" data-i18n="language_english">English</option>
+            <option value="de" data-i18n="language_german">Deutsch</option>
+          </select>
+        </label>
+        <span class="local-badge" data-i18n="local_badge">local · file:///</span>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="panel">
+        <div class="panel-heading">
+          <div>
+            <p class="step" data-i18n="step_1">Step 1</p>
+            <h2 data-i18n="select_file_title">Select a CSV file</h2>
+          </div>
+          <span class="hint" data-i18n="local_hint">No data leaves your browser.</span>
+        </div>
+        <label class="file-picker" for="file-input">
+          <span class="file-picker-title" data-i18n="open_csv">Open CSV file</span>
+          <span class="file-picker-copy" data-i18n="file_format_hint">UTF-8 or UTF-16 with semicolon delimiter</span>
+          <input id="file-input" type="file" accept=".csv,text/csv">
+        </label>
+        <p id="source-status" class="status-text" role="status" data-i18n="no_file_selected">No file selected yet.</p>
+      </section>
+
+      <section id="mapping-panel" class="panel hidden" aria-labelledby="mapping-title">
+        <div class="panel-heading">
+          <div>
+            <p class="step" data-i18n="step_2">Step 2</p>
+            <h2 id="mapping-title" data-i18n="mapping_title">Map source columns</h2>
+          </div>
+          <span class="hint" data-i18n="mapping_hint">Review and adjust the detected mappings.</span>
+        </div>
+        <div id="mapping-grid" class="mapping-grid"></div>
+        <div id="mapping-message" class="message hidden" role="alert"></div>
+        <button id="analyze-button" class="primary-button" type="button" data-i18n="analyze_button">Validate and analyze data</button>
+      </section>
+
+      <section id="results-panel" class="hidden" aria-labelledby="results-title">
+        <div class="results-heading">
+          <div>
+            <p class="step" data-i18n="step_3">Step 3</p>
+            <h2 id="results-title" data-i18n="analysis_title">Analysis</h2>
+          </div>
+          <button id="export-button" class="secondary-button" type="button" disabled data-i18n="export_button">Export analysis</button>
+        </div>
+
+        <div id="import-summary" class="import-summary" role="status"></div>
+        <div id="metric-grid" class="metric-grid"></div>
+
+        <section class="panel table-panel" aria-labelledby="article-title">
+          <div class="table-toolbar">
+            <div>
+              <h3 id="article-title" data-i18n="article_overview">Article overview</h3>
+              <p id="article-count" class="table-note"></p>
+            </div>
+            <label class="compact-field">
+              <span data-i18n="search_label">Search</span>
+              <input id="article-filter" type="search" placeholder="Article ID" data-i18n-placeholder="search_placeholder">
+            </label>
+            <label class="compact-field">
+              <span data-i18n="sort_label">Sort by</span>
+              <select id="article-sort">
+                <option value="lines" data-i18n="sort_lines">Order lines</option>
+                <option value="quantity" data-i18n="sort_quantity">Total quantity</option>
+                <option value="sales" data-i18n="sort_sales">Sales value</option>
+                <option value="article" data-i18n="sort_article">Article ID</option>
+              </select>
+            </label>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="column_article">Article</th>
+                  <th class="number" data-i18n="column_lines">Lines</th>
+                  <th class="number" data-i18n="column_quantity">Quantity</th>
+                  <th class="number" data-i18n="column_orders">Orders</th>
+                  <th class="number" data-i18n="column_customers">Customers</th>
+                  <th class="number" data-i18n="column_days">Days</th>
+                  <th class="number" data-i18n="column_share">Line share</th>
+                </tr>
+              </thead>
+              <tbody id="article-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="issues-panel" class="panel issues-panel hidden" aria-labelledby="issues-title">
+          <div class="table-toolbar">
+            <div>
+              <h3 id="issues-title" data-i18n="issues_title">Validation notes</h3>
+              <p class="table-note" data-i18n="issues_note">Invalid rows are not aggregated and remain traceable by source line.</p>
+            </div>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="issue_source_line">Source line</th>
+                  <th data-i18n="issue_field">Field</th>
+                  <th data-i18n="issue_code">Code</th>
+                  <th data-i18n="issue_message">Message</th>
+                </tr>
+              </thead>
+              <tbody id="issues-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="app-footer">
+      <span data-i18n="footer_local">OpenSlotting processes the selected file locally only.</span>
+      <button id="reset-button" class="text-button" type="button" data-i18n="reset_button">Reset</button>
+    </footer>
+
+    <script src="csv.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
