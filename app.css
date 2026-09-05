@@ -73,7 +73,7 @@ input[type="file"] { display: block; margin-top: 16px; width: 100%; color: var(-
 .mapping-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 24px 0; }
 .mapping-field, .compact-field { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: .78rem; font-weight: 700; }
 .mapping-field select, .compact-field input, .compact-field select { width: 100%; padding: 10px 11px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: #fff; font: inherit; font-weight: 500; }
-.mapping-field.required label::after { content: " · erforderlich"; color: var(--accent); font-weight: 500; }
+.required-marker { color: var(--accent); font-weight: 500; }
 button { font: inherit; cursor: pointer; }
 .primary-button, .secondary-button { padding: 11px 16px; border-radius: 9px; font-weight: 800; }
 .primary-button { border: 1px solid var(--accent); color: white; background: var(--accent); }

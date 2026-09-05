@@ -21,6 +21,7 @@
     en: {
       delimiter: 'The CSV delimiter must be exactly one character long.',
       requiredMapping: 'The required field “{{label}}” is not mapped to a source column.',
+      duplicateMapping: 'The source column mapped to “{{first}}” is also mapped to “{{second}}”. Each source column can be mapped only once.',
       requiredValue: 'A required value for “{{label}}” is missing.',
       positiveQuantity: 'Quantity must be a positive number.',
       invalidDate: 'The order date is invalid.',
@@ -33,6 +34,7 @@
     de: {
       delimiter: 'Der CSV-Trenner muss genau ein Zeichen lang sein.',
       requiredMapping: 'Das erforderliche Feld „{{label}}“ ist keiner Quellspalte zugeordnet.',
+      duplicateMapping: 'Die Quellspalte von „{{first}}“ ist auch „{{second}}“ zugeordnet. Jede Quellspalte darf nur einmal zugeordnet werden.',
       requiredValue: 'Erforderlicher Wert für „{{label}}“ fehlt.',
       positiveQuantity: 'Die Menge muss eine positive Zahl sein.',
       invalidDate: 'Das Auftragsdatum ist ungültig.',
@@ -93,8 +95,9 @@
 
   function parseCsv(text, options) {
     const delimiter = options && options.delimiter ? options.delimiter : ';';
+    const locale = normalizeLocale(options && options.locale);
     if (delimiter.length !== 1) {
-      throw new Error(message('en', 'delimiter'));
+      throw new Error(message(locale, 'delimiter'));
     }
 
     const source = String(text === undefined || text === null ? '' : text).replace(/^\uFEFF/, '');
@@ -163,7 +166,7 @@
           errors.push({
             sourceLine: recordStartLine,
             code: 'unexpected_character_after_quote',
-            message: message('en', 'unexpectedQuote')
+            message: message(locale, 'unexpectedQuote')
           });
           field += character;
           afterClosingQuote = false;
@@ -191,7 +194,7 @@
       errors.push({
         sourceLine: recordStartLine,
         code: 'unterminated_quote',
-        message: message('en', 'unterminatedQuote')
+        message: message(locale, 'unterminatedQuote')
       });
     }
 
@@ -227,7 +230,7 @@
   }
 
   function validateMapping(mapping, locale) {
-    return FIELD_DEFINITIONS
+    const issues = FIELD_DEFINITIONS
       .filter(function (definition) {
         return definition.required && !Number.isInteger(mapping[definition.key]);
       })
@@ -239,6 +242,30 @@
           message: message(locale, 'requiredMapping', { label: getFieldLabel(definition.key, locale) })
         };
       });
+
+    const mappedFields = new Map();
+    FIELD_DEFINITIONS.forEach(function (definition) {
+      const sourceIndex = mapping[definition.key];
+      if (!Number.isInteger(sourceIndex)) {
+        return;
+      }
+      if (mappedFields.has(sourceIndex)) {
+        const firstField = mappedFields.get(sourceIndex);
+        issues.push({
+          sourceLine: null,
+          field: definition.key,
+          code: 'source_column_reused',
+          message: message(locale, 'duplicateMapping', {
+            first: getFieldLabel(firstField, locale),
+            second: getFieldLabel(definition.key, locale)
+          })
+        });
+      } else {
+        mappedFields.set(sourceIndex, definition.key);
+      }
+    });
+
+    return issues;
   }
 
   function normalizeNumber(value) {
@@ -610,6 +637,10 @@
     ];
     const lines = [headers.join(delimiter)];
 
+    function rounded(value, decimals) {
+      return Number(Number(value).toFixed(decimals));
+    }
+
     articles.forEach(function (article) {
       lines.push([
         article.article_id,
@@ -618,9 +649,9 @@
         article.distinct_orders,
         article.distinct_customers,
         article.active_days,
-        article.total_sales,
-        article.share_of_order_lines,
-        article.cumulative_share_of_order_lines,
+        rounded(article.total_sales, 2),
+        rounded(article.share_of_order_lines, 6),
+        rounded(article.cumulative_share_of_order_lines, 6),
         article.locations.join(', ')
       ].map(function (value) { return escapeCsvValue(value, delimiter); }).join(delimiter));
     });

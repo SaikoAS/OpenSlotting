@@ -80,6 +80,22 @@ test('malformed column counts are reported without dropping the evidence silentl
   assert.ok(result.issues.some((issue) => issue.code === 'column_count_mismatch' && issue.sourceLine === 4));
 });
 
+test('reusing one source column for multiple fields is rejected', () => {
+  const mapping = {
+    order_id: 0,
+    article_id: 0,
+    quantity: 2,
+    order_date: 3,
+    customer_id: 4,
+    sales_value: 5,
+    location: 6
+  };
+  const result = csv.importCsv(fixture('basic-orders.csv'), mapping);
+
+  assert.equal(result.validRows, 0);
+  assert.ok(result.issues.some((issue) => issue.code === 'source_column_reused'));
+});
+
 test('empty optional fields stay empty while required fields remain enforced', () => {
   const result = csv.importCsv(fixture('optional-fields.csv'));
 
@@ -108,4 +124,23 @@ test('English is the default message language and German is selectable', () => {
   const germanImport = csv.importCsv(fixture('invalid-values.csv'), undefined, { locale: 'de' });
   assert.match(englishImport.issues.find((issue) => issue.code === 'quantity_must_be_positive').message, /positive number/i);
   assert.match(germanImport.issues.find((issue) => issue.code === 'quantity_must_be_positive').message, /positive Zahl/i);
+});
+
+test('CSV parser diagnostics follow the selected locale', () => {
+  const malformed = 'order_id;article_id;quantity;order_date\nO1;"A;1;2026-09-01\n';
+  const english = csv.importCsv(malformed);
+  const german = csv.importCsv(malformed, undefined, { locale: 'de' });
+
+  assert.match(english.issues.find((issue) => issue.code === 'unterminated_quote').message, /quote was not closed/i);
+  assert.match(german.issues.find((issue) => issue.code === 'unterminated_quote').message, /Anführungszeichen/i);
+});
+
+test('analysis CSV export rounds currency and share values', () => {
+  const result = csv.importCsv(fixture('basic-orders.csv'));
+  const analysis = csv.analyzeRows(result.rows);
+  const exported = csv.exportAnalysisCsv(analysis.articles);
+
+  assert.match(exported, /SKU-100;4;7;4;3;3;69\.93;0\.333333;0\.333333;/);
+  assert.doesNotMatch(exported, /69\.929999/);
+  assert.doesNotMatch(exported, /0\.749999/);
 });

@@ -49,6 +49,8 @@
       footer_local: 'OpenSlotting processes the selected file locally only.',
       reset_button: 'Reset',
       not_mapped: '— not mapped —',
+      empty_header: '(empty)',
+      required_marker: 'required',
       metric_lines: 'Order lines',
       metric_lines_detail: 'valid rows',
       metric_quantity: 'Total quantity',
@@ -122,6 +124,8 @@
       footer_local: 'OpenSlotting verarbeitet die ausgewählte Datei ausschließlich lokal.',
       reset_button: 'Zurücksetzen',
       not_mapped: '— nicht zugeordnet —',
+      empty_header: '(leer)',
+      required_marker: 'erforderlich',
       metric_lines: 'Auftragszeilen',
       metric_lines_detail: 'gültige Zeilen',
       metric_quantity: 'Gesamtmenge',
@@ -159,6 +163,7 @@
     mapping: {},
     dataRowCount: 0,
     hasParseErrors: false,
+    fileSelectionVersion: 0,
     result: null,
     analysis: null
   };
@@ -245,12 +250,18 @@
       const label = document.createElement('label');
       label.htmlFor = 'mapping-' + definition.key;
       label.textContent = core.getFieldLabel(definition.key, state.language);
+      if (definition.required) {
+        const requiredMarker = document.createElement('span');
+        requiredMarker.className = 'required-marker';
+        requiredMarker.textContent = ' · ' + translate('required_marker');
+        label.appendChild(requiredMarker);
+      }
       const select = document.createElement('select');
       select.id = 'mapping-' + definition.key;
       select.dataset.field = definition.key;
       addOption(select, '', translate('not_mapped'));
       state.headers.forEach(function (header, index) {
-        addOption(select, String(index), (index + 1) + ': ' + (header || '(empty)'));
+        addOption(select, String(index), (index + 1) + ': ' + (header || translate('empty_header')));
       });
       if (Number.isInteger(state.mapping[definition.key])) {
         select.value = String(state.mapping[definition.key]);
@@ -444,6 +455,8 @@
     if (!file) {
       return;
     }
+    const selectionVersion = state.fileSelectionVersion + 1;
+    state.fileSelectionVersion = selectionVersion;
     state.result = null;
     state.analysis = null;
     state.headers = [];
@@ -451,8 +464,12 @@
     state.dataRowCount = 0;
     state.hasParseErrors = false;
     try {
+      const fileText = await readFile(file);
+      if (selectionVersion !== state.fileSelectionVersion) {
+        return;
+      }
       state.fileName = file.name;
-      state.text = await readFile(file);
+      state.text = fileText;
       const parsed = core.parseCsv(state.text);
       if (parsed.rows.length === 0) {
         throw new Error(translate('no_file_selected'));
@@ -467,6 +484,9 @@
       elements.mappingPanel.classList.remove('hidden');
       elements.resultsPanel.classList.add('hidden');
     } catch (error) {
+      if (selectionVersion !== state.fileSelectionVersion) {
+        return;
+      }
       setText(elements.sourceStatus, translate('error_prefix') + error.message);
       elements.mappingPanel.classList.add('hidden');
       elements.resultsPanel.classList.add('hidden');
@@ -505,6 +525,7 @@
     state.mapping = {};
     state.dataRowCount = 0;
     state.hasParseErrors = false;
+    state.fileSelectionVersion += 1;
     state.result = null;
     state.analysis = null;
     elements.fileInput.value = '';
