@@ -204,7 +204,7 @@
       });
     }
 
-    if (field !== '' || fields.length > 0) {
+    if (field !== '' || fields.length > 0 || recordHasContent) {
       flushRow();
     }
 
@@ -632,6 +632,41 @@
     return /^[\t\r\n ]*[=+\-@]/.test(text) ? "'" + text : text;
   }
 
+  function expandExponential(value) {
+    const text = String(value);
+    if (!/[eE]/.test(text)) {
+      return text;
+    }
+
+    const parts = text.toLowerCase().split('e');
+    const coefficient = parts[0];
+    const exponent = Number(parts[1]);
+    const negative = coefficient[0] === '-';
+    const unsigned = coefficient.replace(/^[+-]/, '');
+    const coefficientParts = unsigned.split('.');
+    const digits = coefficientParts.join('');
+    const decimalPosition = coefficientParts[0].length + exponent;
+    let expanded;
+
+    if (decimalPosition <= 0) {
+      expanded = '0.' + '0'.repeat(-decimalPosition) + digits;
+    } else if (decimalPosition >= digits.length) {
+      expanded = digits + '0'.repeat(decimalPosition - digits.length);
+    } else {
+      expanded = digits.slice(0, decimalPosition) + '.' + digits.slice(decimalPosition);
+    }
+
+    return negative ? '-' + expanded : expanded;
+  }
+
+  function serializeQuantity(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) {
+      return '';
+    }
+    return expandExponential(Number(number.toPrecision(15)));
+  }
+
   function exportAnalysisCsv(articles, options) {
     const delimiter = options && options.delimiter ? options.delimiter : ';';
     const headers = [
@@ -642,6 +677,7 @@
       'distinct_customers',
       'active_days',
       'total_sales',
+      'sales_value_rows',
       'share_of_order_lines',
       'cumulative_share_of_order_lines',
       'locations'
@@ -656,11 +692,12 @@
       lines.push([
         protectSpreadsheetText(article.article_id),
         article.order_line_count,
-        rounded(article.total_quantity, 6),
+        serializeQuantity(article.total_quantity),
         article.distinct_orders,
         article.distinct_customers,
         article.active_days,
         rounded(article.total_sales, 2),
+        article.sales_value_rows,
         rounded(article.share_of_order_lines, 6),
         rounded(article.cumulative_share_of_order_lines, 6),
         protectSpreadsheetText(article.locations.join(', '))

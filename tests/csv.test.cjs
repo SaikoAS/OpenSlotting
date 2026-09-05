@@ -91,6 +91,16 @@ test('delimiter-only and quoted-empty records remain traceable', () => {
   assert.ok(result.issues.some((issue) => issue.sourceLine === 3 && issue.code === 'required_value_missing'));
 });
 
+test('quoted-empty record at EOF remains traceable without a newline', () => {
+  const text = 'order_id;article_id;quantity;order_date\n""';
+  const result = csv.importCsv(text);
+
+  assert.equal(result.totalRows, 1);
+  assert.equal(result.invalidRows, 1);
+  assert.equal(result.structuralRows, 1);
+  assert.ok(result.issues.some((issue) => issue.sourceLine === 2 && issue.code === 'column_count_mismatch'));
+});
+
 test('reusing one source column for multiple fields is rejected', () => {
   const mapping = {
     order_id: 0,
@@ -151,7 +161,7 @@ test('analysis CSV export rounds currency and share values', () => {
   const analysis = csv.analyzeRows(result.rows);
   const exported = csv.exportAnalysisCsv(analysis.articles);
 
-  assert.match(exported, /SKU-100;4;7;4;3;3;69\.93;0\.333333;0\.333333;/);
+  assert.match(exported, /SKU-100;4;7;4;3;3;69\.93;4;0\.333333;0\.333333;/);
   assert.doesNotMatch(exported, /69\.929999/);
   assert.doesNotMatch(exported, /0\.749999/);
 });
@@ -162,7 +172,27 @@ test('analysis CSV export rounds decimal quantities', () => {
     { order_id: 'O2', article_id: 'A1', quantity: 0.2, order_date: '2026-09-01', customer_id: null, sales_value: null, location: null }
   ]);
 
-  assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;2;0\.3;2;0;1;/);
+  assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;2;0\.3;2;0;1;0;0;1;1;/);
+});
+
+test('analysis CSV export preserves very small positive quantities', () => {
+  const analysis = csv.analyzeRows([
+    { order_id: 'O1', article_id: 'A1', quantity: 0.0000001, order_date: '2026-09-01', customer_id: null, sales_value: null, location: null }
+  ]);
+
+  assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;1;0\.0000001;1;0;1;0;0;1;1;\r?\n/);
+});
+
+test('analysis CSV export includes per-article sales-value coverage', () => {
+  const analysis = csv.analyzeRows([
+    { order_id: 'O1', article_id: 'A1', quantity: 1, order_date: '2026-09-01', customer_id: null, sales_value: 10, location: null },
+    { order_id: 'O2', article_id: 'A1', quantity: 1, order_date: '2026-09-02', customer_id: null, sales_value: null, location: null }
+  ]);
+
+  const exported = csv.exportAnalysisCsv(analysis.articles);
+
+  assert.match(exported, /total_sales;sales_value_rows;share_of_order_lines/);
+  assert.match(exported, /A1;2;2;2;0;2;10;1;1;1;/);
 });
 
 test('analysis CSV export protects spreadsheet formula text', () => {
