@@ -235,6 +235,14 @@
     return formatNumber(value, 6);
   }
 
+  function formatSharePercent(value) {
+    const percent = value * 100;
+    if (percent > 0 && percent < 0.01) {
+      return '<' + formatNumber(0.01, 2) + ' %';
+    }
+    return formatNumber(percent) + ' %';
+  }
+
   function formatCurrency(value) {
     return new Intl.NumberFormat(state.language === 'de' ? 'de-DE' : 'en-US', {
       style: 'currency',
@@ -410,7 +418,7 @@
       appendCell(row, formatNumber(article.distinct_orders, 0), 'number');
       appendCell(row, formatNumber(article.distinct_customers, 0), 'number');
       appendCell(row, formatNumber(article.active_days, 0), 'number');
-      appendCell(row, formatNumber(article.share_of_order_lines * 100) + ' %', 'number');
+      appendCell(row, formatSharePercent(article.share_of_order_lines), 'number');
       elements.articleTableBody.appendChild(row);
     });
   }

@@ -107,6 +107,7 @@
     let field = '';
     let inQuotes = false;
     let afterClosingQuote = false;
+    let recordHasContent = false;
     let line = 1;
     let recordStartLine = 1;
 
@@ -117,11 +118,12 @@
 
     function flushRow() {
       flushField();
-      if (fields.some(function (value) { return value !== ''; })) {
+      if (recordHasContent) {
         rows.push({ sourceLine: recordStartLine, values: fields });
       }
       fields = [];
       afterClosingQuote = false;
+      recordHasContent = false;
     }
 
     function finishLine() {
@@ -132,6 +134,10 @@
 
     for (let index = 0; index < source.length; index += 1) {
       const character = source[index];
+
+      if (character !== '\r' && character !== '\n') {
+        recordHasContent = true;
+      }
 
       if (inQuotes) {
         if (character === '"') {

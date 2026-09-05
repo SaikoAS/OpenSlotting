@@ -80,6 +80,17 @@ test('malformed column counts are reported without dropping the evidence silentl
   assert.ok(result.issues.some((issue) => issue.code === 'column_count_mismatch' && issue.sourceLine === 4));
 });
 
+test('delimiter-only and quoted-empty records remain traceable', () => {
+  const text = 'order_id;article_id;quantity;order_date\n;;;\n"";"";"";""\n';
+  const result = csv.importCsv(text);
+
+  assert.equal(result.totalRows, 2);
+  assert.equal(result.validRows, 0);
+  assert.equal(result.invalidRows, 2);
+  assert.ok(result.issues.some((issue) => issue.sourceLine === 2 && issue.code === 'required_value_missing'));
+  assert.ok(result.issues.some((issue) => issue.sourceLine === 3 && issue.code === 'required_value_missing'));
+});
+
 test('reusing one source column for multiple fields is rejected', () => {
   const mapping = {
     order_id: 0,
