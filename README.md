@@ -91,7 +91,17 @@ Users should be able to define the mapping once and later reuse it as an import 
 
 OpenSlotting is intended to process imported warehouse data locally in the user's browser.
 
-The long-term goal is to make the application usable without a dedicated application server.
+Direct local file execution is a core compatibility requirement. The application must remain usable by opening `index.html` directly from the local filesystem through a `file:///` URL in a supported browser.
+
+Normal use must not require:
+
+- A local web server or `localhost`
+- A backend service
+- Node.js, Python, or another runtime to start the application
+- An internet connection for core functionality
+- Administrator privileges or a system-wide installation
+
+GitHub Pages may be used for a public demo, but hosted deployment must remain optional and must not become a runtime requirement for the core application.
 
 This makes it possible to use the tool for local analysis while keeping imported operational data on the user's device.
 
@@ -195,10 +205,15 @@ Initial direction:
 - CSS
 - JavaScript
 - Client-side data processing
-- Local browser storage where required
-- GitHub Pages for a public demo
+- Direct `file:///` execution without a local web server
+- Local browser storage where compatible with `file:///`
+- No runtime backend requirement
+- No internet connection required for core functionality
+- GitHub Pages for an optional public demo
 
-The technical architecture may evolve as the project develops.
+Technology choices and dependencies must preserve direct local-file compatibility for normal use. Features that require HTTP-only browser APIs must not become mandatory for the core workflow unless a compatible local-file fallback is provided.
+
+The technical architecture may evolve as the project develops, but the direct `file:///` execution requirement should remain a core design constraint.
 
 ## Contributing
 
