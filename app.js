@@ -77,7 +77,8 @@
       summary_held_back: '{{count}} rows were held back',
       summary_structural: ' ({{count}} structural column errors)',
       structure_field: 'Structure',
-      file_read_error: 'The file could not be read.'
+      file_read_error: 'The file could not be read.',
+      invalid_encoding: 'The file encoding is not supported. Use UTF-8 or UTF-16.'
     },
     de: {
       page_title: 'OpenSlotting – CSV-Analyse',
@@ -153,7 +154,8 @@
       summary_held_back: '{{count}} Zeilen wurden zurückgestellt',
       summary_structural: ' ({{count}} strukturelle Spaltenfehler)',
       structure_field: 'Struktur',
-      file_read_error: 'Die Datei konnte nicht gelesen werden.'
+      file_read_error: 'Die Datei konnte nicht gelesen werden.',
+      invalid_encoding: 'Die Dateikodierung wird nicht unterstützt. Bitte UTF-8 oder UTF-16 verwenden.'
     }
   };
 
@@ -202,19 +204,29 @@
 
   function decodeBuffer(buffer) {
     const bytes = new Uint8Array(buffer);
+    let encoding = 'utf-8';
     if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
-      return new TextDecoder('utf-16le').decode(bytes);
+      encoding = 'utf-16le';
+    } else if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
+      encoding = 'utf-16be';
     }
-    if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
-      return new TextDecoder('utf-16be').decode(bytes);
+    try {
+      return new TextDecoder(encoding, { fatal: true }).decode(bytes);
+    } catch (error) {
+      throw new Error(translate('invalid_encoding'));
     }
-    return new TextDecoder('utf-8').decode(bytes);
   }
 
   function readFile(file) {
     return new Promise(function (resolve, reject) {
       const reader = new FileReader();
-      reader.onload = function () { resolve(decodeBuffer(reader.result)); };
+      reader.onload = function () {
+        try {
+          resolve(decodeBuffer(reader.result));
+        } catch (error) {
+          reject(error);
+        }
+      };
       reader.onerror = function () { reject(reader.error || new Error(translate('file_read_error'))); };
       reader.readAsArrayBuffer(file);
     });
@@ -243,11 +255,8 @@
     return formatNumber(percent) + ' %';
   }
 
-  function formatCurrency(value) {
-    return new Intl.NumberFormat(state.language === 'de' ? 'de-DE' : 'en-US', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(value);
+  function formatSalesValue(value) {
+    return formatNumber(value);
   }
 
   function addOption(select, value, label) {
@@ -339,7 +348,7 @@
       [translate('metric_days'), formatNumber(analysis.active_days, 0), translate('metric_days_detail')],
       [translate('metric_average_line'), formatQuantity(analysis.average_quantity_per_line), translate('metric_average_line_detail')],
       [translate('metric_average_order'), formatQuantity(analysis.average_quantity_per_order), translate('metric_average_order_detail')],
-      [translate('metric_sales'), formatCurrency(analysis.total_sales), translate('metric_sales_detail', { count: analysis.sales_value_rows })]
+      [translate('metric_sales'), formatSalesValue(analysis.total_sales), translate('metric_sales_detail', { count: analysis.sales_value_rows })]
     ];
 
     elements.metricGrid.replaceChildren();
