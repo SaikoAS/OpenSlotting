@@ -1,0 +1,5 @@
+order_id;article_id;quantity;order_date;customer_id;sales_value;location
+ORD-4001;SKU-701;3;2026-09-01;CUST-01;;A-01-01
+ORD-4002;SKU-702;1;2026-09-02;;15.00;
+ORD-4003;SKU-703;2;2026-09-03;CUST-02;18.00;
+ORD-4004;SKU-704;1;2026-09-04;;;B-01-01
