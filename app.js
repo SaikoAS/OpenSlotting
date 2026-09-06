@@ -78,6 +78,7 @@
       summary_structural: ' ({{count}} structural column errors)',
       structure_field: 'Structure',
       file_read_error: 'The file could not be read.',
+      empty_file: 'The selected CSV file is empty or has no header row.',
       invalid_encoding: 'The file encoding is not supported. Use UTF-8 or UTF-16.'
     },
     de: {
@@ -155,6 +156,7 @@
       summary_structural: ' ({{count}} strukturelle Spaltenfehler)',
       structure_field: 'Struktur',
       file_read_error: 'Die Datei konnte nicht gelesen werden.',
+      empty_file: 'Die ausgewählte CSV-Datei ist leer oder enthält keine Kopfzeile.',
       invalid_encoding: 'Die Dateikodierung wird nicht unterstützt. Bitte UTF-8 oder UTF-16 verwenden.'
     }
   };
@@ -508,7 +510,7 @@
       state.text = fileText;
       const parsed = core.parseCsv(state.text);
       if (parsed.rows.length === 0) {
-        throw new Error(translate('no_file_selected'));
+        throw new Error(translate('empty_file'));
       }
       state.headers = parsed.rows[0].values.map(function (header) { return String(header).trim(); });
       state.mapping = core.detectMapping(state.headers);
