@@ -172,7 +172,8 @@
     hasParseErrors: false,
     fileSelectionVersion: 0,
     result: null,
-    analysis: null
+    analysis: null,
+    sourceStatus: { key: 'no_file_selected', replacements: {}, error: false, text: '' }
   };
 
   const elements = {
@@ -204,6 +205,66 @@
     return value;
   }
 
+  function createTranslationError(key) {
+    const error = new Error(translate(key));
+    error.translationKey = key;
+    return error;
+  }
+
+  function renderSourceStatus() {
+    const status = state.sourceStatus;
+    const message = status.key ? translate(status.key, status.replacements) : status.text;
+    setText(elements.sourceStatus, status.error ? translate('error_prefix') + message : message);
+  }
+
+  function setSourceStatus(key, replacements) {
+    state.sourceStatus = { key: key, replacements: replacements || {}, error: false, text: '' };
+    renderSourceStatus();
+  }
+
+  function setSourceError(key, text) {
+    state.sourceStatus = { key: key || null, replacements: {}, error: true, text: text || '' };
+    renderSourceStatus();
+  }
+
+  function detectBomlessUtf16(bytes) {
+    const sampleLength = Math.min(bytes.length - (bytes.length % 2), 4096);
+    if (sampleLength < 4) {
+      return null;
+    }
+
+    let evenNulls = 0;
+    let oddNulls = 0;
+    let evenTextBytes = 0;
+    let oddTextBytes = 0;
+    for (let index = 0; index < sampleLength; index += 2) {
+      const evenByte = bytes[index];
+      const oddByte = bytes[index + 1];
+      if (evenByte === 0) {
+        evenNulls += 1;
+      }
+      if (oddByte === 0) {
+        oddNulls += 1;
+      }
+      if (evenByte >= 0x09 && evenByte <= 0x7E) {
+        evenTextBytes += 1;
+      }
+      if (oddByte >= 0x09 && oddByte <= 0x7E) {
+        oddTextBytes += 1;
+      }
+    }
+
+    const pairCount = sampleLength / 2;
+    const threshold = Math.max(2, Math.ceil(pairCount * 0.3));
+    if (oddNulls >= threshold && evenTextBytes >= threshold) {
+      return 'utf-16le';
+    }
+    if (evenNulls >= threshold && oddTextBytes >= threshold) {
+      return 'utf-16be';
+    }
+    return null;
+  }
+
   function decodeBuffer(buffer) {
     const bytes = new Uint8Array(buffer);
     let encoding = 'utf-8';
@@ -211,11 +272,17 @@
       encoding = 'utf-16le';
     } else if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
       encoding = 'utf-16be';
+    } else {
+      encoding = detectBomlessUtf16(bytes);
+      if (!encoding && bytes.some(function (byte) { return byte === 0; })) {
+        throw createTranslationError('invalid_encoding');
+      }
+      encoding = encoding || 'utf-8';
     }
     try {
       return new TextDecoder(encoding, { fatal: true }).decode(bytes);
     } catch (error) {
-      throw new Error(translate('invalid_encoding'));
+      throw createTranslationError('invalid_encoding');
     }
   }
 
@@ -229,7 +296,7 @@
           reject(error);
         }
       };
-      reader.onerror = function () { reject(reader.error || new Error(translate('file_read_error'))); };
+      reader.onerror = function () { reject(createTranslationError('file_read_error')); };
       reader.readAsArrayBuffer(file);
     });
   }
@@ -331,7 +398,6 @@
         state.mapping = currentMapping();
       }
       renderMapping();
-      setText(elements.sourceStatus, translate('file_detected', { file: state.fileName, count: state.dataRowCount }));
       showMappingMessage(state.hasParseErrors ? translate('structure_hint') : '');
     }
     if (state.result) {
@@ -339,6 +405,7 @@
       state.result = core.importCsv(state.text, analyzedMapping, { locale: state.language });
       renderResults(state.result);
     }
+    renderSourceStatus();
   }
 
   function renderMetrics(analysis) {
@@ -500,7 +567,7 @@
     elements.resultsPanel.classList.add('hidden');
     elements.analyzeButton.disabled = true;
     elements.exportButton.disabled = true;
-    setText(elements.sourceStatus, translate('reading_file', { file: file.name }));
+    setSourceStatus('reading_file', { file: file.name });
     try {
       const fileText = await readFile(file);
       if (selectionVersion !== state.fileSelectionVersion) {
@@ -510,7 +577,7 @@
       state.text = fileText;
       const parsed = core.parseCsv(state.text);
       if (parsed.rows.length === 0) {
-        throw new Error(translate('empty_file'));
+        throw createTranslationError('empty_file');
       }
       state.headers = parsed.rows[0].values.map(function (header) { return String(header).trim(); });
       state.mapping = core.detectMapping(state.headers);
@@ -518,7 +585,7 @@
       state.hasParseErrors = parsed.errors.length > 0;
       renderMapping();
       showMappingMessage(parsed.errors.length > 0 ? translate('structure_hint') : '');
-      setText(elements.sourceStatus, translate('file_detected', { file: file.name, count: Math.max(0, parsed.rows.length - 1) }));
+      setSourceStatus('file_detected', { file: file.name, count: Math.max(0, parsed.rows.length - 1) });
       elements.mappingPanel.classList.remove('hidden');
       elements.resultsPanel.classList.add('hidden');
       elements.analyzeButton.disabled = false;
@@ -526,7 +593,7 @@
       if (selectionVersion !== state.fileSelectionVersion) {
         return;
       }
-      setText(elements.sourceStatus, translate('error_prefix') + error.message);
+      setSourceError(error && error.translationKey, error && error.message);
       elements.mappingPanel.classList.add('hidden');
       elements.resultsPanel.classList.add('hidden');
       elements.analyzeButton.disabled = true;
@@ -573,7 +640,7 @@
     state.result = null;
     state.analysis = null;
     elements.fileInput.value = '';
-    setText(elements.sourceStatus, translate('no_file_selected'));
+    setSourceStatus('no_file_selected');
     elements.mappingGrid.replaceChildren();
     elements.mappingPanel.classList.add('hidden');
     elements.resultsPanel.classList.add('hidden');
