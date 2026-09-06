@@ -309,13 +309,13 @@
 
   function canonicalDecimalText(value) {
     const expanded = expandExponential(String(value));
-    const match = /^([+-]?)(\d+)(?:\.(\d+))?$/.exec(expanded);
+    const match = /^([+-]?)(?:(\d+)(?:\.(\d+))?|\.(\d+))$/.exec(expanded);
     if (!match) {
       return null;
     }
 
-    const integerPart = match[2].replace(/^0+(?=\d)/, '');
-    const fractionPart = (match[3] || '').replace(/0+$/, '');
+    const integerPart = (match[2] || '0').replace(/^0+(?=\d)/, '');
+    const fractionPart = (match[3] || match[4] || '').replace(/0+$/, '');
     const isZero = integerPart === '0' && fractionPart === '';
     return (isZero || match[1] !== '-' ? '' : '-') + integerPart + (fractionPart ? '.' + fractionPart : '');
   }

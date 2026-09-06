@@ -64,6 +64,14 @@ test('sales values outside the exact numeric range are rejected', () => {
   assert.ok(result.issues.some((issue) => issue.sourceLine === 3 && issue.field === 'sales_value' && issue.code === 'invalid_number'));
 });
 
+test('sales values accept a leading decimal separator', () => {
+  const text = 'order_id;article_id;quantity;order_date;sales_value\nO1;A1;1;2026-09-01;.5\nO2;A2;1;2026-09-01;-.5\nO3;A3;1;2026-09-01;,5\n';
+  const result = csv.importCsv(text);
+
+  assert.equal(result.validRows, 3);
+  assert.deepEqual(result.rows.map((row) => row.sales_value), [0.5, -0.5, 0.5]);
+});
+
 test('sales aggregation preserves exact totals beyond the safe numeric range', () => {
   const text = 'order_id;article_id;quantity;order_date;sales_value\nO1;A1;1;2026-09-01;9007199254740991\nO2;A1;1;2026-09-01;2\n';
   const result = csv.importCsv(text);
