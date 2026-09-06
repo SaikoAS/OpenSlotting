@@ -684,10 +684,10 @@
         };
       });
 
-    let cumulativeShare = 0;
+    let cumulativeLineCount = 0;
     articles.forEach(function (article) {
-      cumulativeShare += article.share_of_order_lines;
-      article.cumulative_share_of_order_lines = cumulativeShare;
+      cumulativeLineCount += article.order_line_count;
+      article.cumulative_share_of_order_lines = rows.length === 0 ? 0 : cumulativeLineCount / rows.length;
     });
 
     return {
@@ -759,6 +759,18 @@
     return expandExponential(number.toString());
   }
 
+  function serializeSalesValue(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) {
+      return '';
+    }
+    return new Intl.NumberFormat('en-US', {
+      useGrouping: false,
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 0
+    }).format(number);
+  }
+
   function exportAnalysisCsv(articles, options) {
     const delimiter = options && options.delimiter ? options.delimiter : ';';
     const headers = [
@@ -776,10 +788,6 @@
     ];
     const lines = [headers.join(delimiter)];
 
-    function rounded(value, decimals) {
-      return Number(Number(value).toFixed(decimals));
-    }
-
     articles.forEach(function (article) {
       lines.push([
         protectSpreadsheetText(article.article_id),
@@ -788,7 +796,7 @@
         article.distinct_orders,
         article.distinct_customers,
         article.active_days,
-        rounded(article.total_sales, 2),
+        serializeSalesValue(article.total_sales),
         article.sales_value_rows,
         serializeShare(article.share_of_order_lines),
         serializeShare(article.cumulative_share_of_order_lines),

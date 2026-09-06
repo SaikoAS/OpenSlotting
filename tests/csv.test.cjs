@@ -190,6 +190,24 @@ test('analysis CSV export preserves sales precision and share values', () => {
   assert.doesNotMatch(exported, /0\.749999;/);
 });
 
+test('analysis CSV export rounds half-cent sales like the UI', () => {
+  const exported = csv.exportAnalysisCsv([{
+    article_id: 'A1',
+    order_line_count: 1,
+    total_quantity: 10000000n,
+    distinct_orders: 1,
+    distinct_customers: 0,
+    active_days: 1,
+    total_sales: 1.005,
+    sales_value_rows: 1,
+    share_of_order_lines: 1,
+    cumulative_share_of_order_lines: 1,
+    locations: []
+  }]);
+
+  assert.match(exported, /A1;1;1;1;0;1;1\.01;1;1;1;\r?\n/);
+});
+
 test('analysis CSV export preserves very small shares adaptively', () => {
   const exported = csv.exportAnalysisCsv([{
     article_id: 'A1',
@@ -206,6 +224,23 @@ test('analysis CSV export preserves very small shares adaptively', () => {
   }]);
 
   assert.match(exported, /A1;1;1;1;0;1;0;0;0\.0000001;0\.0000001;\r?\n/);
+});
+
+test('cumulative shares use exact running line counts', () => {
+  const rows = Array.from({ length: 9 }, (_, index) => ({
+    order_id: 'O' + (index + 1),
+    article_id: 'A' + (index + 1),
+    quantity: 10000000n,
+    order_date: '2026-09-01',
+    customer_id: null,
+    sales_value: null,
+    location: null
+  }));
+  const analysis = csv.analyzeRows(rows);
+  const lastArticle = analysis.articles[analysis.articles.length - 1];
+
+  assert.equal(lastArticle.cumulative_share_of_order_lines, 1);
+  assert.match(csv.exportAnalysisCsv(analysis.articles), /A9;1;1;1;0;1;0;0;0\.1111111111111111;1;\r?\n/);
 });
 
 test('fixed-point aggregation avoids floating-point quantity artifacts', () => {
