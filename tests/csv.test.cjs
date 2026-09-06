@@ -55,6 +55,15 @@ test('numeric fields reject internal whitespace and ambiguous separators', () =>
   assert.ok(result.issues.some((issue) => issue.sourceLine === 3 && issue.code === 'invalid_number'));
 });
 
+test('sales values outside the exact numeric range are rejected', () => {
+  const text = 'order_id;article_id;quantity;order_date;sales_value\nO1;A1;1;2026-09-01;9007199254740991\nO2;A2;1;2026-09-01;9007199254740993\n';
+  const result = csv.importCsv(text);
+
+  assert.equal(result.validRows, 1);
+  assert.equal(result.rows[0].sales_value, Number.MAX_SAFE_INTEGER);
+  assert.ok(result.issues.some((issue) => issue.sourceLine === 3 && issue.field === 'sales_value' && issue.code === 'invalid_number'));
+});
+
 test('quoted CR-only newlines keep later source lines accurate', () => {
   const text = 'order_id;article_id;quantity;order_date\nO1;"A\rB";1;2026-09-01\rO2;;1;2026-09-01';
   const result = csv.importCsv(text);
@@ -305,6 +314,42 @@ test('analysis CSV export includes per-article sales-value coverage', () => {
   assert.match(exported, /A1;2;2;2;0;2;10;1;1;1;/);
 });
 
+test('analysis CSV export keeps location boundaries as JSON', () => {
+  const exported = csv.exportAnalysisCsv([
+    {
+      article_id: 'ONE',
+      order_line_count: 1,
+      total_quantity: 10000000n,
+      distinct_orders: 1,
+      distinct_customers: 0,
+      active_days: 1,
+      total_sales: 0,
+      sales_value_rows: 0,
+      share_of_order_lines: 0.5,
+      cumulative_share_of_order_lines: 0.5,
+      locations: ['A, B']
+    },
+    {
+      article_id: 'TWO',
+      order_line_count: 1,
+      total_quantity: 10000000n,
+      distinct_orders: 1,
+      distinct_customers: 0,
+      active_days: 1,
+      total_sales: 0,
+      sales_value_rows: 0,
+      share_of_order_lines: 0.5,
+      cumulative_share_of_order_lines: 1,
+      locations: ['A', 'B']
+    }
+  ]);
+  const parsed = csv.parseCsv(exported);
+  const locationsByArticle = Object.fromEntries(parsed.rows.map((row) => [row.values[0], row.values[10]]));
+
+  assert.deepEqual(JSON.parse(locationsByArticle.ONE), ['A, B']);
+  assert.deepEqual(JSON.parse(locationsByArticle.TWO), ['A', 'B']);
+});
+
 test('analysis CSV export protects spreadsheet formula text', () => {
   const analysis = csv.analyzeRows([
     { order_id: 'O1', article_id: '=SUM(1,2)', quantity: 10000000n, order_date: '2026-09-01', customer_id: null, sales_value: null, location: '@ZONE' }
@@ -313,5 +358,6 @@ test('analysis CSV export protects spreadsheet formula text', () => {
   const exported = csv.exportAnalysisCsv(analysis.articles);
 
   assert.match(exported, /'=SUM\(1,2\);/);
-  assert.match(exported, /;'@ZONE\r?\n/);
+  const parsed = csv.parseCsv(exported);
+  assert.deepEqual(JSON.parse(parsed.rows[1].values[10]), ["'@ZONE"]);
 });

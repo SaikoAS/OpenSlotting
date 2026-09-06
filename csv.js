@@ -307,6 +307,19 @@
     return normalized;
   }
 
+  function canonicalDecimalText(value) {
+    const expanded = expandExponential(String(value));
+    const match = /^([+-]?)(\d+)(?:\.(\d+))?$/.exec(expanded);
+    if (!match) {
+      return null;
+    }
+
+    const integerPart = match[2].replace(/^0+(?=\d)/, '');
+    const fractionPart = (match[3] || '').replace(/0+$/, '');
+    const isZero = integerPart === '0' && fractionPart === '';
+    return (isZero || match[1] !== '-' ? '' : '-') + integerPart + (fractionPart ? '.' + fractionPart : '');
+  }
+
   function normalizeNumber(value) {
     const normalized = normalizeNumericText(value);
     if (normalized === null) {
@@ -314,7 +327,11 @@
     }
 
     const number = Number(normalized);
-    return Number.isFinite(number) ? number : null;
+    if (!Number.isFinite(number) || Math.abs(number) > Number.MAX_SAFE_INTEGER) {
+      return null;
+    }
+
+    return canonicalDecimalText(normalized) === canonicalDecimalText(number.toString()) ? number : null;
   }
 
   function parseQuantity(value) {
@@ -788,6 +805,15 @@
     }).format(number);
   }
 
+  function serializeLocations(locations) {
+    if (!Array.isArray(locations) || locations.length === 0) {
+      return '';
+    }
+
+    const safeLocations = locations.map(protectSpreadsheetText);
+    return JSON.stringify(safeLocations);
+  }
+
   function exportAnalysisCsv(articles, options) {
     const delimiter = options && options.delimiter ? options.delimiter : ';';
     const headers = [
@@ -817,7 +843,7 @@
         article.sales_value_rows,
         serializeShare(article.share_of_order_lines),
         serializeShare(article.cumulative_share_of_order_lines),
-        protectSpreadsheetText(article.locations.join(', '))
+        serializeLocations(article.locations)
       ].map(function (value) { return escapeCsvValue(value, delimiter); }).join(delimiter));
     });
 
