@@ -4,6 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const csv = require('../csv.js');
+const QUANTITY_SCALE = csv.QUANTITY_SCALE;
 
 function fixture(name) {
   return fs.readFileSync(path.join(__dirname, '..', 'test-data', name), 'utf8');
@@ -15,7 +16,7 @@ test('basic fixture matches its documented metrics', () => {
 
   assert.equal(result.validRows, 12);
   assert.equal(result.invalidRows, 0);
-  assert.equal(analysis.total_quantity, 32);
+  assert.equal(analysis.total_quantity, 32n * QUANTITY_SCALE);
   assert.equal(analysis.distinct_orders, 11);
   assert.equal(analysis.distinct_customers, 6);
   assert.equal(analysis.active_days, 6);
@@ -38,8 +39,20 @@ test('quantity precision is explicit and enforced during import', () => {
   assert.equal(csv.QUANTITY_DECIMAL_PLACES, 7);
   assert.equal(result.validRows, 1);
   assert.equal(result.invalidRows, 1);
-  assert.equal(result.rows[0].quantity, 0.0000001);
+  assert.equal(result.rows[0].quantity, 1n);
+  assert.equal(csv.formatScaledQuantity(12345678n, 'en'), '1.2345678');
+  assert.equal(csv.formatScaledQuantity(12345678n, 'de'), '1,2345678');
   assert.ok(result.issues.some((issue) => issue.sourceLine === 3 && issue.code === 'quantity_precision_exceeded'));
+});
+
+test('numeric fields reject internal whitespace and ambiguous separators', () => {
+  const text = 'order_id;article_id;quantity;order_date;customer_id;sales_value;location\nO1;A1;1 2;2026-09-01;C1;10;A-01\nO2;A2;1;2026-09-01;C2;1.234,56;A-02\n';
+  const result = csv.importCsv(text);
+
+  assert.equal(result.validRows, 0);
+  assert.equal(result.invalidRows, 2);
+  assert.ok(result.issues.some((issue) => issue.sourceLine === 2 && issue.code === 'quantity_must_be_positive'));
+  assert.ok(result.issues.some((issue) => issue.sourceLine === 3 && issue.code === 'invalid_number'));
 });
 
 test('quoted semicolons remain inside their fields', () => {
@@ -57,7 +70,7 @@ test('duplicate lines are preserved and aggregated', () => {
 
   assert.equal(result.validRows, 5);
   assert.equal(article.order_line_count, 3);
-  assert.equal(article.total_quantity, 4);
+  assert.equal(article.total_quantity, 4n * QUANTITY_SCALE);
 });
 
 test('quantity and frequency remain separate metrics', () => {
@@ -67,9 +80,9 @@ test('quantity and frequency remain separate metrics', () => {
   const frequent = analysis.articles.find((item) => item.article_id === 'SKU-FREQUENT');
 
   assert.equal(bulk.order_line_count, 1);
-  assert.equal(bulk.total_quantity, 500);
+  assert.equal(bulk.total_quantity, 500n * QUANTITY_SCALE);
   assert.equal(frequent.order_line_count, 8);
-  assert.equal(frequent.total_quantity, 8);
+  assert.equal(frequent.total_quantity, 8n * QUANTITY_SCALE);
 });
 
 test('invalid values are reported with source lines and excluded from aggregation', () => {
@@ -167,45 +180,63 @@ test('CSV parser diagnostics follow the selected locale', () => {
   assert.match(german.issues.find((issue) => issue.code === 'unterminated_quote').message, /Anführungszeichen/i);
 });
 
-test('analysis CSV export rounds currency and share values', () => {
+test('analysis CSV export preserves sales precision and share values', () => {
   const result = csv.importCsv(fixture('basic-orders.csv'));
   const analysis = csv.analyzeRows(result.rows);
   const exported = csv.exportAnalysisCsv(analysis.articles);
 
-  assert.match(exported, /SKU-100;4;7;4;3;3;69\.93;4;0\.333333;0\.333333;/);
+  assert.match(exported, /SKU-100;4;7;4;3;3;69\.93;4;0\.3333333333333333;0\.3333333333333333;/);
   assert.doesNotMatch(exported, /69\.929999/);
-  assert.doesNotMatch(exported, /0\.749999/);
+  assert.doesNotMatch(exported, /0\.749999;/);
 });
 
-test('analysis CSV export rounds decimal quantities', () => {
-  const analysis = csv.analyzeRows([
-    { order_id: 'O1', article_id: 'A1', quantity: 0.1, order_date: '2026-09-01', customer_id: null, sales_value: null, location: null },
-    { order_id: 'O2', article_id: 'A1', quantity: 0.2, order_date: '2026-09-01', customer_id: null, sales_value: null, location: null }
-  ]);
+test('analysis CSV export preserves very small shares adaptively', () => {
+  const exported = csv.exportAnalysisCsv([{
+    article_id: 'A1',
+    order_line_count: 1,
+    total_quantity: 10000000n,
+    distinct_orders: 1,
+    distinct_customers: 0,
+    active_days: 1,
+    total_sales: 0,
+    sales_value_rows: 0,
+    share_of_order_lines: 0.0000001,
+    cumulative_share_of_order_lines: 0.0000001,
+    locations: []
+  }]);
 
+  assert.match(exported, /A1;1;1;1;0;1;0;0;0\.0000001;0\.0000001;\r?\n/);
+});
+
+test('fixed-point aggregation avoids floating-point quantity artifacts', () => {
+  const result = csv.importCsv('order_id;article_id;quantity;order_date\nO1;A1;0.1;2026-09-01\nO2;A1;0.2;2026-09-01\n');
+  const analysis = csv.analyzeRows(result.rows);
+
+  assert.equal(result.rows[0].quantity, 1000000n);
+  assert.equal(result.rows[1].quantity, 2000000n);
+  assert.equal(analysis.total_quantity, 3000000n);
   assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;2;0\.3;2;0;1;0;0;1;1;/);
 });
 
 test('analysis CSV export preserves very small positive quantities', () => {
-  const analysis = csv.analyzeRows([
-    { order_id: 'O1', article_id: 'A1', quantity: 0.0000001, order_date: '2026-09-01', customer_id: null, sales_value: null, location: null }
-  ]);
+  const result = csv.importCsv('order_id;article_id;quantity;order_date\nO1;A1;0.0000001;2026-09-01\n');
+  const analysis = csv.analyzeRows(result.rows);
 
+  assert.equal(result.rows[0].quantity, 1n);
   assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;1;0\.0000001;1;0;1;0;0;1;1;\r?\n/);
 });
 
 test('analysis CSV export preserves safe integer quantities exactly', () => {
-  const analysis = csv.analyzeRows([
-    { order_id: 'O1', article_id: 'A1', quantity: 1234567890123456, order_date: '2026-09-01', customer_id: null, sales_value: null, location: null }
-  ]);
+  const result = csv.importCsv('order_id;article_id;quantity;order_date\nO1;A1;1234567890123456;2026-09-01\n');
+  const analysis = csv.analyzeRows(result.rows);
 
   assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;1;1234567890123456;1;0;1;0;0;1;1;\r?\n/);
 });
 
 test('analysis CSV export includes per-article sales-value coverage', () => {
   const analysis = csv.analyzeRows([
-    { order_id: 'O1', article_id: 'A1', quantity: 1, order_date: '2026-09-01', customer_id: null, sales_value: 10, location: null },
-    { order_id: 'O2', article_id: 'A1', quantity: 1, order_date: '2026-09-02', customer_id: null, sales_value: null, location: null }
+    { order_id: 'O1', article_id: 'A1', quantity: 10000000n, order_date: '2026-09-01', customer_id: null, sales_value: 10, location: null },
+    { order_id: 'O2', article_id: 'A1', quantity: 10000000n, order_date: '2026-09-02', customer_id: null, sales_value: null, location: null }
   ]);
 
   const exported = csv.exportAnalysisCsv(analysis.articles);
@@ -216,7 +247,7 @@ test('analysis CSV export includes per-article sales-value coverage', () => {
 
 test('analysis CSV export protects spreadsheet formula text', () => {
   const analysis = csv.analyzeRows([
-    { order_id: 'O1', article_id: '=SUM(1,2)', quantity: 1, order_date: '2026-09-01', customer_id: null, sales_value: null, location: '@ZONE' }
+    { order_id: 'O1', article_id: '=SUM(1,2)', quantity: 10000000n, order_date: '2026-09-01', customer_id: null, sales_value: null, location: '@ZONE' }
   ]);
 
   const exported = csv.exportAnalysisCsv(analysis.articles);

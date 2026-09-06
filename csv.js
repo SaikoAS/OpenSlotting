@@ -8,6 +8,7 @@
   'use strict';
 
   const QUANTITY_DECIMAL_PLACES = 7;
+  const QUANTITY_SCALE = 10000000n;
 
   const FIELD_DEFINITIONS = Object.freeze([
     { key: 'order_id', label: 'Order ID', labels: { en: 'Order ID', de: 'Auftrags-ID' }, required: true },
@@ -283,16 +284,16 @@
       return null;
     }
 
-    let normalized = String(value).trim().replace(/\s/g, '');
+    let normalized = String(value).trim();
+    if (/\s/.test(normalized)) {
+      return null;
+    }
+
     const commaIndex = normalized.lastIndexOf(',');
     const dotIndex = normalized.lastIndexOf('.');
 
     if (commaIndex >= 0 && dotIndex >= 0) {
-      if (commaIndex > dotIndex) {
-        normalized = normalized.replace(/\./g, '').replace(',', '.');
-      } else {
-        normalized = normalized.replace(/,/g, '');
-      }
+      return null;
     } else if (commaIndex >= 0) {
       normalized = normalized.replace(',', '.');
     }
@@ -325,9 +326,14 @@
       return { value: null, precisionExceeded: true };
     }
 
-    const number = Number(normalized);
+    const negative = normalized[0] === '-';
+    const unsigned = normalized.replace(/^[+-]/, '');
+    const parts = unsigned.split('.');
+    const integerPart = parts[0] || '0';
+    const fractionPart = (parts[1] || '').padEnd(QUANTITY_DECIMAL_PLACES, '0');
+    const scaled = BigInt(integerPart + fractionPart) * (negative ? -1n : 1n);
     return {
-      value: Number.isFinite(number) ? number : null,
+      value: scaled,
       precisionExceeded: false
     };
   }
@@ -417,7 +423,7 @@
         rawValue: quantityRaw,
         message: message(locale, 'quantityPrecision', { digits: QUANTITY_DECIMAL_PLACES })
       });
-    } else if (quantity === null || quantity <= 0) {
+    } else if (quantity === null || quantity <= 0n) {
       issues.push({
         sourceLine: record.sourceLine,
         field: 'quantity',
@@ -566,16 +572,55 @@
     };
   }
 
+  function divideScaledQuantity(value, divisor) {
+    if (!divisor) {
+      return 0n;
+    }
+
+    const divisorBigInt = BigInt(divisor);
+    const negative = value < 0n;
+    const absoluteValue = negative ? -value : value;
+    let quotient = absoluteValue / divisorBigInt;
+    const remainder = absoluteValue % divisorBigInt;
+    if (remainder * 2n >= divisorBigInt) {
+      quotient += 1n;
+    }
+    return negative ? -quotient : quotient;
+  }
+
+  function scaledQuantityToText(value) {
+    const scaled = typeof value === 'bigint' ? value : BigInt(value);
+    const negative = scaled < 0n;
+    const absoluteValue = (negative ? -scaled : scaled).toString().padStart(QUANTITY_DECIMAL_PLACES + 1, '0');
+    const integerPart = absoluteValue.slice(0, -QUANTITY_DECIMAL_PLACES) || '0';
+    const fractionalPart = absoluteValue.slice(-QUANTITY_DECIMAL_PLACES).replace(/0+$/, '');
+    return (negative ? '-' : '') + integerPart + (fractionalPart ? '.' + fractionalPart : '');
+  }
+
+  function formatScaledQuantity(value, locale) {
+    const text = scaledQuantityToText(value);
+    const normalizedLocale = normalizeLocale(locale);
+    const negative = text[0] === '-';
+    const unsigned = negative ? text.slice(1) : text;
+    const parts = unsigned.split('.');
+    const integerPart = new Intl.NumberFormat(normalizedLocale === 'de' ? 'de-DE' : 'en-US').format(BigInt(parts[0]));
+    const decimalSeparator = normalizedLocale === 'de' ? ',' : '.';
+    return (negative ? '-' : '') + integerPart + (parts[1] ? decimalSeparator + parts[1] : '');
+  }
+
   function analyzeRows(rows) {
     const articleMap = new Map();
     const orderIds = new Set();
     const customerIds = new Set();
     const activeDays = new Set();
-    let totalQuantity = 0;
+    let totalQuantity = 0n;
     let totalSales = 0;
     let salesValueRows = 0;
 
     rows.forEach(function (row) {
+      if (typeof row.quantity !== 'bigint') {
+        throw new TypeError('Normalized rows must store quantity as a scaled integer.');
+      }
       orderIds.add(row.order_id);
       if (row.customer_id) {
         customerIds.add(row.customer_id);
@@ -591,7 +636,7 @@
         articleMap.set(row.article_id, {
           article_id: row.article_id,
           order_line_count: 0,
-          total_quantity: 0,
+          total_quantity: 0n,
           order_ids: new Set(),
           customer_ids: new Set(),
           active_days: new Set(),
@@ -621,7 +666,7 @@
     const articles = Array.from(articleMap.values())
       .sort(function (left, right) {
         return right.order_line_count - left.order_line_count ||
-          right.total_quantity - left.total_quantity ||
+          (right.total_quantity > left.total_quantity ? -1 : right.total_quantity < left.total_quantity ? 1 : 0) ||
           left.article_id.localeCompare(right.article_id);
       })
       .map(function (article) {
@@ -654,8 +699,8 @@
       active_days: activeDays.size,
       total_sales: totalSales,
       sales_value_rows: salesValueRows,
-      average_quantity_per_line: rows.length === 0 ? 0 : totalQuantity / rows.length,
-      average_quantity_per_order: orderIds.size === 0 ? 0 : totalQuantity / orderIds.size
+      average_quantity_per_line: divideScaledQuantity(totalQuantity, rows.length),
+      average_quantity_per_order: divideScaledQuantity(totalQuantity, orderIds.size)
     };
   }
 
@@ -673,11 +718,45 @@
   }
 
   function serializeQuantity(value) {
+    if (typeof value !== 'bigint') {
+      return '';
+    }
+    return scaledQuantityToText(value);
+  }
+
+  function expandExponential(value) {
+    const text = String(value);
+    if (!/[eE]/.test(text)) {
+      return text;
+    }
+
+    const parts = text.toLowerCase().split('e');
+    const coefficient = parts[0];
+    const exponent = Number(parts[1]);
+    const negative = coefficient[0] === '-';
+    const unsigned = coefficient.replace(/^[+-]/, '');
+    const coefficientParts = unsigned.split('.');
+    const digits = coefficientParts.join('');
+    const decimalPosition = coefficientParts[0].length + exponent;
+    let expanded;
+
+    if (decimalPosition <= 0) {
+      expanded = '0.' + '0'.repeat(-decimalPosition) + digits;
+    } else if (decimalPosition >= digits.length) {
+      expanded = digits + '0'.repeat(decimalPosition - digits.length);
+    } else {
+      expanded = digits.slice(0, decimalPosition) + '.' + digits.slice(decimalPosition);
+    }
+
+    return negative ? '-' + expanded : expanded;
+  }
+
+  function serializeShare(value) {
     const number = Number(value);
     if (!Number.isFinite(number)) {
       return '';
     }
-    return number.toFixed(QUANTITY_DECIMAL_PLACES).replace(/\.?0+$/, '');
+    return expandExponential(number.toString());
   }
 
   function exportAnalysisCsv(articles, options) {
@@ -711,8 +790,8 @@
         article.active_days,
         rounded(article.total_sales, 2),
         article.sales_value_rows,
-        rounded(article.share_of_order_lines, 6),
-        rounded(article.cumulative_share_of_order_lines, 6),
+        serializeShare(article.share_of_order_lines),
+        serializeShare(article.cumulative_share_of_order_lines),
         protectSpreadsheetText(article.locations.join(', '))
       ].map(function (value) { return escapeCsvValue(value, delimiter); }).join(delimiter));
     });
@@ -723,9 +802,11 @@
   return {
     FIELD_DEFINITIONS: FIELD_DEFINITIONS,
     QUANTITY_DECIMAL_PLACES: QUANTITY_DECIMAL_PLACES,
+    QUANTITY_SCALE: QUANTITY_SCALE,
     detectMapping: detectMapping,
     analyzeRows: analyzeRows,
     exportAnalysisCsv: exportAnalysisCsv,
+    formatScaledQuantity: formatScaledQuantity,
     getFieldLabel: getFieldLabel,
     importCsv: importCsv,
     normalizeDate: normalizeDate,

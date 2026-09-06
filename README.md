@@ -99,7 +99,9 @@ For slotting purposes, both perspectives can be relevant.
 
 ### Quantity precision
 
-Quantities support up to seven decimal places. Values with more decimal places are rejected during import. The same seven-decimal rule is used for aggregation display and CSV export; export formatting removes floating-point addition artifacts without reducing supported precision.
+Quantities support up to seven decimal places. Values with more decimal places are rejected during import. Normalized rows and aggregate quantities use an exact fixed-point integer with scale `10^7` (for example, `1.2345678` is stored as `12345678`). The same scale is used for aggregation, display, and CSV export, so floating-point addition cannot change a quantity.
+
+Numeric fields accept one decimal separator (`.` or `,`) and optional surrounding whitespace. Internal whitespace and mixed separators are rejected; thousands-grouped values such as `1.234,56` are not accepted.
 
 ## Configurable Data Mapping
 
