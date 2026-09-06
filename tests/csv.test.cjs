@@ -55,6 +55,14 @@ test('numeric fields reject internal whitespace and ambiguous separators', () =>
   assert.ok(result.issues.some((issue) => issue.sourceLine === 3 && issue.code === 'invalid_number'));
 });
 
+test('quoted CR-only newlines keep later source lines accurate', () => {
+  const text = 'order_id;article_id;quantity;order_date\nO1;"A\rB";1;2026-09-01\rO2;;1;2026-09-01';
+  const result = csv.importCsv(text);
+
+  assert.equal(result.validRows, 1);
+  assert.ok(result.issues.some((issue) => issue.sourceLine === 4 && issue.field === 'article_id'));
+});
+
 test('quoted semicolons remain inside their fields', () => {
   const result = csv.importCsv(fixture('quoted-fields.csv'));
 
@@ -206,6 +214,15 @@ test('analysis CSV export rounds half-cent sales like the UI', () => {
   }]);
 
   assert.match(exported, /A1;1;1;1;0;1;1\.01;1;1;1;\r?\n/);
+});
+
+test('sales sorting treats equal displayed totals as equal', () => {
+  assert.equal(csv.compareSalesValuesDescending(0.30000000000000004, 0.3), 0);
+});
+
+test('quantity sorting is descending for scaled integers', () => {
+  assert.equal(csv.compareScaledQuantitiesDescending(20000000n, 10000000n), -1);
+  assert.equal(csv.compareScaledQuantitiesDescending(10000000n, 20000000n), 1);
 });
 
 test('analysis CSV export preserves very small shares adaptively', () => {

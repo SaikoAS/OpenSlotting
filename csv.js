@@ -155,7 +155,9 @@
           }
         } else {
           field += character;
-          if (character === '\n') {
+          if (character === '\r' && source[index + 1] !== '\n') {
+            line += 1;
+          } else if (character === '\n') {
             line += 1;
           }
         }
@@ -608,6 +610,21 @@
     return (negative ? '-' : '') + integerPart + (parts[1] ? decimalSeparator + parts[1] : '');
   }
 
+  function compareScaledQuantitiesDescending(left, right) {
+    return left > right ? -1 : left < right ? 1 : 0;
+  }
+
+  function compareSalesValuesDescending(left, right) {
+    const formatter = new Intl.NumberFormat('en-US', {
+      useGrouping: false,
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2
+    });
+    const leftNormalized = Number(formatter.format(left));
+    const rightNormalized = Number(formatter.format(right));
+    return rightNormalized - leftNormalized;
+  }
+
   function analyzeRows(rows) {
     const articleMap = new Map();
     const orderIds = new Set();
@@ -813,6 +830,8 @@
     QUANTITY_SCALE: QUANTITY_SCALE,
     detectMapping: detectMapping,
     analyzeRows: analyzeRows,
+    compareSalesValuesDescending: compareSalesValuesDescending,
+    compareScaledQuantitiesDescending: compareScaledQuantitiesDescending,
     exportAnalysisCsv: exportAnalysisCsv,
     formatScaledQuantity: formatScaledQuantity,
     getFieldLabel: getFieldLabel,

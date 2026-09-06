@@ -383,16 +383,16 @@
     const sort = elements.articleSort.value;
     return articles.sort(function (left, right) {
       if (sort === 'quantity') {
-        return (right.total_quantity > left.total_quantity ? -1 : right.total_quantity < left.total_quantity ? 1 : 0) || left.article_id.localeCompare(right.article_id);
+        return core.compareScaledQuantitiesDescending(left.total_quantity, right.total_quantity) || left.article_id.localeCompare(right.article_id);
       }
       if (sort === 'sales') {
-        return right.total_sales - left.total_sales || left.article_id.localeCompare(right.article_id);
+        return core.compareSalesValuesDescending(left.total_sales, right.total_sales) || left.article_id.localeCompare(right.article_id);
       }
       if (sort === 'article') {
         return left.article_id.localeCompare(right.article_id);
       }
       return right.order_line_count - left.order_line_count ||
-        (right.total_quantity > left.total_quantity ? -1 : right.total_quantity < left.total_quantity ? 1 : 0) ||
+        core.compareScaledQuantitiesDescending(left.total_quantity, right.total_quantity) ||
         left.article_id.localeCompare(right.article_id);
     });
   }
