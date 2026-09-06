@@ -64,6 +64,17 @@ test('sales values outside the exact numeric range are rejected', () => {
   assert.ok(result.issues.some((issue) => issue.sourceLine === 3 && issue.field === 'sales_value' && issue.code === 'invalid_number'));
 });
 
+test('sales aggregation preserves exact totals beyond the safe numeric range', () => {
+  const text = 'order_id;article_id;quantity;order_date;sales_value\nO1;A1;1;2026-09-01;9007199254740991\nO2;A1;1;2026-09-01;2\n';
+  const result = csv.importCsv(text);
+  const analysis = csv.analyzeRows(result.rows);
+  const article = analysis.articles[0];
+
+  assert.equal(article.total_sales, '9007199254740993');
+  assert.equal(article.total_sales_exact, '9007199254740993');
+  assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;2;2;2;0;1;9007199254740993;2;/);
+});
+
 test('quoted CR-only newlines keep later source lines accurate', () => {
   const text = 'order_id;article_id;quantity;order_date\nO1;"A\rB";1;2026-09-01\rO2;;1;2026-09-01';
   const result = csv.importCsv(text);
@@ -359,5 +370,5 @@ test('analysis CSV export protects spreadsheet formula text', () => {
 
   assert.match(exported, /'=SUM\(1,2\);/);
   const parsed = csv.parseCsv(exported);
-  assert.deepEqual(JSON.parse(parsed.rows[1].values[10]), ["'@ZONE"]);
+  assert.deepEqual(JSON.parse(parsed.rows[1].values[10]), ['@ZONE']);
 });

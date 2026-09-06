@@ -320,7 +320,7 @@
     return (isZero || match[1] !== '-' ? '' : '-') + integerPart + (fractionPart ? '.' + fractionPart : '');
   }
 
-  function normalizeNumber(value) {
+  function parseExactNumber(value) {
     const normalized = normalizeNumericText(value);
     if (normalized === null) {
       return null;
@@ -331,7 +331,13 @@
       return null;
     }
 
-    return canonicalDecimalText(normalized) === canonicalDecimalText(number.toString()) ? number : null;
+    const exactText = canonicalDecimalText(normalized);
+    return exactText === canonicalDecimalText(number.toString()) ? { number: number, text: exactText } : null;
+  }
+
+  function normalizeNumber(value) {
+    const parsed = parseExactNumber(value);
+    return parsed ? parsed.number : null;
   }
 
   function parseQuantity(value) {
@@ -475,8 +481,9 @@
     const customerIdRaw = rawValue('customer_id');
     const salesValueRaw = rawValue('sales_value');
     const locationRaw = rawValue('location');
-    const salesValue = normalizeNumber(salesValueRaw);
-    if (salesValueRaw && salesValue === null) {
+    const salesValueResult = parseExactNumber(salesValueRaw);
+    const salesValue = salesValueResult ? salesValueResult.number : null;
+    if (salesValueRaw && salesValueResult === null) {
       issues.push({
         sourceLine: record.sourceLine,
         field: 'sales_value',
@@ -499,6 +506,7 @@
         order_date: orderDate,
         customer_id: customerIdRaw || null,
         sales_value: salesValue,
+        sales_value_exact: salesValueResult ? salesValueResult.text : null,
         location: locationRaw || null
       },
       issues: issues
@@ -627,19 +635,135 @@
     return (negative ? '-' : '') + integerPart + (parts[1] ? decimalSeparator + parts[1] : '');
   }
 
+  function normalizeDecimal(value) {
+    let coefficient = value.coefficient;
+    let scale = value.scale;
+    if (coefficient === 0n) {
+      return { coefficient: 0n, scale: 0 };
+    }
+    while (scale > 0 && coefficient % 10n === 0n) {
+      coefficient /= 10n;
+      scale -= 1;
+    }
+    return { coefficient: coefficient, scale: scale };
+  }
+
+  function decimalFromText(value) {
+    const text = canonicalDecimalText(value);
+    if (text === null) {
+      return null;
+    }
+
+    const negative = text[0] === '-';
+    const unsigned = negative ? text.slice(1) : text;
+    const parts = unsigned.split('.');
+    const fractionPart = parts[1] || '';
+    const digits = parts[0] + fractionPart;
+    return normalizeDecimal({
+      coefficient: BigInt(digits) * (negative ? -1n : 1n),
+      scale: fractionPart.length
+    });
+  }
+
+  function decimalFromValue(value) {
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'bigint') {
+      return decimalFromText(value);
+    }
+    return null;
+  }
+
+  function decimalZero() {
+    return { coefficient: 0n, scale: 0 };
+  }
+
+  function addDecimals(left, right) {
+    const scale = Math.max(left.scale, right.scale);
+    const factorForLeft = 10n ** BigInt(scale - left.scale);
+    const factorForRight = 10n ** BigInt(scale - right.scale);
+    return normalizeDecimal({
+      coefficient: left.coefficient * factorForLeft + right.coefficient * factorForRight,
+      scale: scale
+    });
+  }
+
+  function compareDecimals(left, right) {
+    const scale = Math.max(left.scale, right.scale);
+    const leftCoefficient = left.coefficient * (10n ** BigInt(scale - left.scale));
+    const rightCoefficient = right.coefficient * (10n ** BigInt(scale - right.scale));
+    return leftCoefficient > rightCoefficient ? 1 : leftCoefficient < rightCoefficient ? -1 : 0;
+  }
+
+  function roundDecimal(value, decimalPlaces) {
+    const decimal = normalizeDecimal(value);
+    if (decimal.scale <= decimalPlaces) {
+      return normalizeDecimal({
+        coefficient: decimal.coefficient * (10n ** BigInt(decimalPlaces - decimal.scale)),
+        scale: decimalPlaces
+      });
+    }
+
+    const divisor = 10n ** BigInt(decimal.scale - decimalPlaces);
+    const absoluteCoefficient = decimal.coefficient < 0n ? -decimal.coefficient : decimal.coefficient;
+    let quotient = absoluteCoefficient / divisor;
+    if ((absoluteCoefficient % divisor) * 2n >= divisor) {
+      quotient += 1n;
+    }
+    return normalizeDecimal({
+      coefficient: decimal.coefficient < 0n ? -quotient : quotient,
+      scale: decimalPlaces
+    });
+  }
+
+  function decimalToText(value) {
+    const decimal = normalizeDecimal(value);
+    const negative = decimal.coefficient < 0n;
+    const digits = (negative ? -decimal.coefficient : decimal.coefficient).toString();
+    if (decimal.scale === 0) {
+      return (negative ? '-' : '') + digits;
+    }
+
+    const padded = digits.padStart(decimal.scale + 1, '0');
+    const splitIndex = padded.length - decimal.scale;
+    const fractionPart = padded.slice(splitIndex).replace(/0+$/, '');
+    return (negative ? '-' : '') + padded.slice(0, splitIndex) + (fractionPart ? '.' + fractionPart : '');
+  }
+
+  function decimalToPublicValue(value) {
+    const text = decimalToText(value);
+    const number = Number(text);
+    return Number.isFinite(number) && Math.abs(number) <= Number.MAX_SAFE_INTEGER &&
+      canonicalDecimalText(number.toString()) === text ? number : text;
+  }
+
+  function formatSalesValue(value, locale) {
+    const decimal = decimalFromValue(value);
+    if (decimal === null) {
+      return '';
+    }
+
+    const text = decimalToText(roundDecimal(decimal, 2));
+    const normalizedLocale = normalizeLocale(locale);
+    const negative = text[0] === '-';
+    const unsigned = negative ? text.slice(1) : text;
+    const parts = unsigned.split('.');
+    const integerPart = new Intl.NumberFormat(normalizedLocale === 'de' ? 'de-DE' : 'en-US').format(BigInt(parts[0]));
+    const decimalSeparator = normalizedLocale === 'de' ? ',' : '.';
+    return (negative ? '-' : '') + integerPart + (parts[1] ? decimalSeparator + parts[1] : '');
+  }
+
   function compareScaledQuantitiesDescending(left, right) {
     return left > right ? -1 : left < right ? 1 : 0;
   }
 
   function compareSalesValuesDescending(left, right) {
-    const formatter = new Intl.NumberFormat('en-US', {
-      useGrouping: false,
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 2
-    });
-    const leftNormalized = Number(formatter.format(left));
-    const rightNormalized = Number(formatter.format(right));
-    return rightNormalized - leftNormalized;
+    const leftDecimal = decimalFromValue(left);
+    const rightDecimal = decimalFromValue(right);
+    if (leftDecimal === null || rightDecimal === null) {
+      return 0;
+    }
+
+    const comparison = compareDecimals(roundDecimal(leftDecimal, 2), roundDecimal(rightDecimal, 2));
+    return comparison === 0 ? 0 : -comparison;
   }
 
   function analyzeRows(rows) {
@@ -648,7 +772,7 @@
     const customerIds = new Set();
     const activeDays = new Set();
     let totalQuantity = 0n;
-    let totalSales = 0;
+    let totalSales = decimalZero();
     let salesValueRows = 0;
 
     rows.forEach(function (row) {
@@ -661,8 +785,11 @@
       }
       activeDays.add(row.order_date);
       totalQuantity += row.quantity;
-      if (row.sales_value !== null) {
-        totalSales += row.sales_value;
+      const rowSales = row.sales_value_exact !== null && row.sales_value_exact !== undefined
+        ? decimalFromText(row.sales_value_exact)
+        : decimalFromValue(row.sales_value);
+      if (rowSales !== null) {
+        totalSales = addDecimals(totalSales, rowSales);
         salesValueRows += 1;
       }
 
@@ -674,7 +801,7 @@
           order_ids: new Set(),
           customer_ids: new Set(),
           active_days: new Set(),
-          total_sales: 0,
+          total_sales: decimalZero(),
           sales_value_rows: 0,
           locations: new Set()
         });
@@ -688,8 +815,8 @@
         article.customer_ids.add(row.customer_id);
       }
       article.active_days.add(row.order_date);
-      if (row.sales_value !== null) {
-        article.total_sales += row.sales_value;
+      if (rowSales !== null) {
+        article.total_sales = addDecimals(article.total_sales, rowSales);
         article.sales_value_rows += 1;
       }
       if (row.location) {
@@ -704,6 +831,7 @@
           left.article_id.localeCompare(right.article_id);
       })
       .map(function (article) {
+        const totalSalesExact = decimalToText(article.total_sales);
         return {
           article_id: article.article_id,
           order_line_count: article.order_line_count,
@@ -711,7 +839,8 @@
           distinct_orders: article.order_ids.size,
           distinct_customers: article.customer_ids.size,
           active_days: article.active_days.size,
-          total_sales: article.total_sales,
+          total_sales: decimalToPublicValue(article.total_sales),
+          total_sales_exact: totalSalesExact,
           sales_value_rows: article.sales_value_rows,
           locations: Array.from(article.locations).sort(),
           share_of_order_lines: rows.length === 0 ? 0 : article.order_line_count / rows.length
@@ -731,7 +860,8 @@
       distinct_orders: orderIds.size,
       distinct_customers: customerIds.size,
       active_days: activeDays.size,
-      total_sales: totalSales,
+      total_sales: decimalToPublicValue(totalSales),
+      total_sales_exact: decimalToText(totalSales),
       sales_value_rows: salesValueRows,
       average_quantity_per_line: divideScaledQuantity(totalQuantity, rows.length),
       average_quantity_per_order: divideScaledQuantity(totalQuantity, orderIds.size)
@@ -793,16 +923,12 @@
     return expandExponential(number.toString());
   }
 
-  function serializeSalesValue(value) {
-    const number = Number(value);
-    if (!Number.isFinite(number)) {
+  function serializeSalesValue(value, exactValue) {
+    const decimal = decimalFromValue(exactValue === undefined || exactValue === null ? value : exactValue);
+    if (decimal === null) {
       return '';
     }
-    return new Intl.NumberFormat('en-US', {
-      useGrouping: false,
-      maximumFractionDigits: 2,
-      minimumFractionDigits: 0
-    }).format(number);
+    return decimalToText(roundDecimal(decimal, 2));
   }
 
   function serializeLocations(locations) {
@@ -810,8 +936,7 @@
       return '';
     }
 
-    const safeLocations = locations.map(protectSpreadsheetText);
-    return JSON.stringify(safeLocations);
+    return JSON.stringify(locations);
   }
 
   function exportAnalysisCsv(articles, options) {
@@ -839,7 +964,7 @@
         article.distinct_orders,
         article.distinct_customers,
         article.active_days,
-        serializeSalesValue(article.total_sales),
+        serializeSalesValue(article.total_sales, article.total_sales_exact),
         article.sales_value_rows,
         serializeShare(article.share_of_order_lines),
         serializeShare(article.cumulative_share_of_order_lines),
@@ -859,6 +984,7 @@
     compareSalesValuesDescending: compareSalesValuesDescending,
     compareScaledQuantitiesDescending: compareScaledQuantitiesDescending,
     exportAnalysisCsv: exportAnalysisCsv,
+    formatSalesValue: formatSalesValue,
     formatScaledQuantity: formatScaledQuantity,
     getFieldLabel: getFieldLabel,
     importCsv: importCsv,

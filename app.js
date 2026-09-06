@@ -255,8 +255,8 @@
     return formatNumber(percent) + ' %';
   }
 
-  function formatSalesValue(value) {
-    return formatNumber(value);
+  function formatSalesValue(value, exactValue) {
+    return core.formatSalesValue(exactValue === undefined ? value : exactValue, state.language);
   }
 
   function addOption(select, value, label) {
@@ -348,7 +348,7 @@
       [translate('metric_days'), formatNumber(analysis.active_days, 0), translate('metric_days_detail')],
       [translate('metric_average_line'), formatQuantity(analysis.average_quantity_per_line), translate('metric_average_line_detail')],
       [translate('metric_average_order'), formatQuantity(analysis.average_quantity_per_order), translate('metric_average_order_detail')],
-      [translate('metric_sales'), formatSalesValue(analysis.total_sales), translate('metric_sales_detail', { count: analysis.sales_value_rows })]
+      [translate('metric_sales'), formatSalesValue(analysis.total_sales, analysis.total_sales_exact), translate('metric_sales_detail', { count: analysis.sales_value_rows })]
     ];
 
     elements.metricGrid.replaceChildren();
@@ -386,7 +386,7 @@
         return core.compareScaledQuantitiesDescending(left.total_quantity, right.total_quantity) || left.article_id.localeCompare(right.article_id);
       }
       if (sort === 'sales') {
-        return core.compareSalesValuesDescending(left.total_sales, right.total_sales) || left.article_id.localeCompare(right.article_id);
+        return core.compareSalesValuesDescending(left.total_sales_exact || left.total_sales, right.total_sales_exact || right.total_sales) || left.article_id.localeCompare(right.article_id);
       }
       if (sort === 'article') {
         return left.article_id.localeCompare(right.article_id);

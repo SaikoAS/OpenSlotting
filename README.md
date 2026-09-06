@@ -103,7 +103,7 @@ Quantities support up to seven decimal places. Values with more decimal places a
 
 Numeric fields accept one decimal separator (`.` or `,`) and optional surrounding whitespace. Internal whitespace and mixed separators are rejected; thousands-grouped values such as `1.234,56` are not accepted.
 
-Sales values must also round-trip through the supported JavaScript numeric range without changing their decimal value; values outside the safe range or with lost decimal precision are rejected during import. Exported location collections use JSON arrays so commas inside a location remain unambiguous.
+Sales values must round-trip through the supported JavaScript numeric range without changing their decimal value; values outside the safe range or with lost decimal precision are rejected during import. Accepted sales values are aggregated as exact decimals, so totals remain correct even when their sum exceeds that range. Exported location collections use JSON arrays so commas inside a location remain unambiguous.
 
 ## Configurable Data Mapping
 
