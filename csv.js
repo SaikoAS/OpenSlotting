@@ -683,7 +683,7 @@
     const articles = Array.from(articleMap.values())
       .sort(function (left, right) {
         return right.order_line_count - left.order_line_count ||
-          (right.total_quantity > left.total_quantity ? -1 : right.total_quantity < left.total_quantity ? 1 : 0) ||
+          compareScaledQuantitiesDescending(left.total_quantity, right.total_quantity) ||
           left.article_id.localeCompare(right.article_id);
       })
       .map(function (article) {

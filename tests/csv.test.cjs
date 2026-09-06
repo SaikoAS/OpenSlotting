@@ -225,6 +225,14 @@ test('quantity sorting is descending for scaled integers', () => {
   assert.equal(csv.compareScaledQuantitiesDescending(10000000n, 20000000n), 1);
 });
 
+test('analysis sorts equal-frequency articles by quantity descending', () => {
+  const text = 'order_id;article_id;quantity;order_date\nO1;A1;2;2026-09-01\nO2;A2;10;2026-09-01\n';
+  const result = csv.importCsv(text);
+  const analysis = csv.analyzeRows(result.rows);
+
+  assert.deepEqual(analysis.articles.map((article) => article.article_id), ['A2', 'A1']);
+});
+
 test('analysis CSV export preserves very small shares adaptively', () => {
   const exported = csv.exportAnalysisCsv([{
     article_id: 'A1',
