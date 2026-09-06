@@ -233,34 +233,44 @@
       return null;
     }
 
-    let evenNulls = 0;
-    let oddNulls = 0;
-    let evenTextBytes = 0;
-    let oddTextBytes = 0;
-    for (let index = 0; index < sampleLength; index += 2) {
-      const evenByte = bytes[index];
-      const oddByte = bytes[index + 1];
-      if (evenByte === 0) {
-        evenNulls += 1;
-      }
-      if (oddByte === 0) {
-        oddNulls += 1;
-      }
-      if (evenByte >= 0x09 && evenByte <= 0x7E) {
-        evenTextBytes += 1;
-      }
-      if (oddByte >= 0x09 && oddByte <= 0x7E) {
-        oddTextBytes += 1;
-      }
-    }
-
     const pairCount = sampleLength / 2;
-    const threshold = Math.max(2, Math.ceil(pairCount * 0.3));
-    if (oddNulls >= threshold && evenTextBytes >= threshold) {
-      return 'utf-16le';
-    }
-    if (evenNulls >= threshold && oddTextBytes >= threshold) {
-      return 'utf-16be';
+    const candidates = [
+      { encoding: 'utf-16le', textIndex: 0, nullIndex: 1 },
+      { encoding: 'utf-16be', textIndex: 1, nullIndex: 0 }
+    ];
+    for (const candidate of candidates) {
+      let nullPairs = 0;
+      let asciiTextBytes = 0;
+      let structuralBytes = 0;
+      for (let index = 0; index < sampleLength; index += 2) {
+        const textByte = bytes[index + candidate.textIndex];
+        const nullByte = bytes[index + candidate.nullIndex];
+        if (nullByte === 0) {
+          nullPairs += 1;
+        }
+        if (textByte >= 0x09 && textByte <= 0x7E) {
+          asciiTextBytes += 1;
+        }
+        if (textByte === 0x0A || textByte === 0x0D || textByte === 0x3B) {
+          structuralBytes += 1;
+        }
+      }
+
+      const threshold = Math.max(2, Math.ceil(pairCount * 0.3));
+      const asciiPattern = nullPairs >= threshold && asciiTextBytes >= threshold;
+      const structuralPattern = nullPairs >= 2 && structuralBytes >= 2;
+      if (!asciiPattern && !structuralPattern) {
+        continue;
+      }
+
+      try {
+        const sample = new TextDecoder(candidate.encoding, { fatal: true }).decode(bytes.slice(0, sampleLength));
+        if (sample.indexOf('\u0000') === -1 && /[;\r\n]/.test(sample)) {
+          return candidate.encoding;
+        }
+      } catch (error) {
+        // Continue with the other byte order when the sample is not valid UTF-16.
+      }
     }
     return null;
   }
