@@ -244,7 +244,7 @@
   }
 
   function formatQuantity(value) {
-    return formatNumber(value, 6);
+    return formatNumber(value, core.QUANTITY_DECIMAL_PLACES);
   }
 
   function formatSharePercent(value) {

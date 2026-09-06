@@ -31,6 +31,17 @@ test('German headers, dates and decimal commas are detected and normalized', () 
   assert.equal(result.rows[0].article_id, 'ART-001');
 });
 
+test('quantity precision is explicit and enforced during import', () => {
+  const text = 'order_id;article_id;quantity;order_date\nO1;A1;0.0000001;2026-09-01\nO2;A2;0.00000001;2026-09-01\n';
+  const result = csv.importCsv(text);
+
+  assert.equal(csv.QUANTITY_DECIMAL_PLACES, 7);
+  assert.equal(result.validRows, 1);
+  assert.equal(result.invalidRows, 1);
+  assert.equal(result.rows[0].quantity, 0.0000001);
+  assert.ok(result.issues.some((issue) => issue.sourceLine === 3 && issue.code === 'quantity_precision_exceeded'));
+});
+
 test('quoted semicolons remain inside their fields', () => {
   const result = csv.importCsv(fixture('quoted-fields.csv'));
 
@@ -181,6 +192,14 @@ test('analysis CSV export preserves very small positive quantities', () => {
   ]);
 
   assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;1;0\.0000001;1;0;1;0;0;1;1;\r?\n/);
+});
+
+test('analysis CSV export preserves safe integer quantities exactly', () => {
+  const analysis = csv.analyzeRows([
+    { order_id: 'O1', article_id: 'A1', quantity: 1234567890123456, order_date: '2026-09-01', customer_id: null, sales_value: null, location: null }
+  ]);
+
+  assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;1;1234567890123456;1;0;1;0;0;1;1;\r?\n/);
 });
 
 test('analysis CSV export includes per-article sales-value coverage', () => {

@@ -7,6 +7,8 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
+  const QUANTITY_DECIMAL_PLACES = 7;
+
   const FIELD_DEFINITIONS = Object.freeze([
     { key: 'order_id', label: 'Order ID', labels: { en: 'Order ID', de: 'Auftrags-ID' }, required: true },
     { key: 'article_id', label: 'Article ID', labels: { en: 'Article ID', de: 'Artikel-ID' }, required: true },
@@ -24,6 +26,7 @@
       duplicateMapping: 'The source column mapped to “{{first}}” is also mapped to “{{second}}”. Each source column can be mapped only once.',
       requiredValue: 'A required value for “{{label}}” is missing.',
       positiveQuantity: 'Quantity must be a positive number.',
+      quantityPrecision: 'Quantity supports at most {{digits}} decimal places.',
       invalidDate: 'The order date is invalid.',
       invalidNumber: 'The sales value must be a valid number.',
       unexpectedQuote: 'An unexpected character was found after a closing quote.',
@@ -37,6 +40,7 @@
       duplicateMapping: 'Die Quellspalte von „{{first}}“ ist auch „{{second}}“ zugeordnet. Jede Quellspalte darf nur einmal zugeordnet werden.',
       requiredValue: 'Erforderlicher Wert für „{{label}}“ fehlt.',
       positiveQuantity: 'Die Menge muss eine positive Zahl sein.',
+      quantityPrecision: 'Die Menge darf höchstens {{digits}} Nachkommastellen haben.',
       invalidDate: 'Das Auftragsdatum ist ungültig.',
       invalidNumber: 'Der Umsatz muss eine gültige Zahl sein.',
       unexpectedQuote: 'Nach einem geschlossenen Anführungszeichen wurde ein unerwartetes Zeichen gefunden.',
@@ -274,7 +278,7 @@
     return issues;
   }
 
-  function normalizeNumber(value) {
+  function normalizeNumericText(value) {
     if (isBlank(value)) {
       return null;
     }
@@ -297,8 +301,35 @@
       return null;
     }
 
+    return normalized;
+  }
+
+  function normalizeNumber(value) {
+    const normalized = normalizeNumericText(value);
+    if (normalized === null) {
+      return null;
+    }
+
     const number = Number(normalized);
     return Number.isFinite(number) ? number : null;
+  }
+
+  function parseQuantity(value) {
+    const normalized = normalizeNumericText(value);
+    if (normalized === null) {
+      return { value: null, precisionExceeded: false };
+    }
+
+    const decimalPlaces = (normalized.split('.')[1] || '').length;
+    if (decimalPlaces > QUANTITY_DECIMAL_PLACES) {
+      return { value: null, precisionExceeded: true };
+    }
+
+    const number = Number(normalized);
+    return {
+      value: Number.isFinite(number) ? number : null,
+      precisionExceeded: false
+    };
   }
 
   function normalizeDate(value) {
@@ -368,7 +399,8 @@
     const orderId = requiredText('order_id', 'Auftrags-ID');
     const articleId = requiredText('article_id', 'Artikel-ID');
     const quantityRaw = rawValue('quantity');
-    const quantity = normalizeNumber(quantityRaw);
+    const quantityResult = parseQuantity(quantityRaw);
+    const quantity = quantityResult.value;
     if (!quantityRaw) {
       issues.push({
         sourceLine: record.sourceLine,
@@ -376,6 +408,14 @@
         code: 'required_value_missing',
         rawValue: quantityRaw,
         message: message(locale, 'requiredValue', { label: getFieldLabel('quantity', locale) })
+      });
+    } else if (quantityResult.precisionExceeded) {
+      issues.push({
+        sourceLine: record.sourceLine,
+        field: 'quantity',
+        code: 'quantity_precision_exceeded',
+        rawValue: quantityRaw,
+        message: message(locale, 'quantityPrecision', { digits: QUANTITY_DECIMAL_PLACES })
       });
     } else if (quantity === null || quantity <= 0) {
       issues.push({
@@ -632,39 +672,12 @@
     return /^[\t\r\n ]*[=+\-@]/.test(text) ? "'" + text : text;
   }
 
-  function expandExponential(value) {
-    const text = String(value);
-    if (!/[eE]/.test(text)) {
-      return text;
-    }
-
-    const parts = text.toLowerCase().split('e');
-    const coefficient = parts[0];
-    const exponent = Number(parts[1]);
-    const negative = coefficient[0] === '-';
-    const unsigned = coefficient.replace(/^[+-]/, '');
-    const coefficientParts = unsigned.split('.');
-    const digits = coefficientParts.join('');
-    const decimalPosition = coefficientParts[0].length + exponent;
-    let expanded;
-
-    if (decimalPosition <= 0) {
-      expanded = '0.' + '0'.repeat(-decimalPosition) + digits;
-    } else if (decimalPosition >= digits.length) {
-      expanded = digits + '0'.repeat(decimalPosition - digits.length);
-    } else {
-      expanded = digits.slice(0, decimalPosition) + '.' + digits.slice(decimalPosition);
-    }
-
-    return negative ? '-' + expanded : expanded;
-  }
-
   function serializeQuantity(value) {
     const number = Number(value);
     if (!Number.isFinite(number)) {
       return '';
     }
-    return expandExponential(Number(number.toPrecision(15)));
+    return number.toFixed(QUANTITY_DECIMAL_PLACES).replace(/\.?0+$/, '');
   }
 
   function exportAnalysisCsv(articles, options) {
@@ -709,6 +722,7 @@
 
   return {
     FIELD_DEFINITIONS: FIELD_DEFINITIONS,
+    QUANTITY_DECIMAL_PLACES: QUANTITY_DECIMAL_PLACES,
     detectMapping: detectMapping,
     analyzeRows: analyzeRows,
     exportAnalysisCsv: exportAnalysisCsv,

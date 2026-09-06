@@ -97,6 +97,10 @@ An article ordered once in a quantity of 500 may create less picking activity th
 
 For slotting purposes, both perspectives can be relevant.
 
+### Quantity precision
+
+Quantities support up to seven decimal places. Values with more decimal places are rejected during import. The same seven-decimal rule is used for aggregation display and CSV export; export formatting removes floating-point addition artifacts without reducing supported precision.
+
 ## Configurable Data Mapping
 
 OpenSlotting should not depend on specific ERP or WMS column names.
