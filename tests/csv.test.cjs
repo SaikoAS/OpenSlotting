@@ -72,6 +72,16 @@ test('sales values accept a leading decimal separator', () => {
   assert.deepEqual(result.rows.map((row) => row.sales_value), [0.5, -0.5, 0.5]);
 });
 
+test('sales values above the supported precision are rejected', () => {
+  const text = 'order_id;article_id;quantity;order_date;sales_value\nO1;A1;1;2026-09-01;0.001\n';
+  const result = csv.importCsv(text);
+
+  assert.equal(csv.SALES_DECIMAL_PLACES, 2);
+  assert.equal(result.validRows, 0);
+  assert.equal(result.invalidRows, 1);
+  assert.ok(result.issues.some((issue) => issue.code === 'sales_precision_exceeded'));
+});
+
 test('sales aggregation preserves exact totals beyond the safe numeric range', () => {
   const text = 'order_id;article_id;quantity;order_date;sales_value\nO1;A1;1;2026-09-01;9007199254740991\nO2;A1;1;2026-09-01;2\n';
   const result = csv.importCsv(text);

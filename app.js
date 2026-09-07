@@ -68,6 +68,9 @@
       metric_sales: 'Sales value',
       metric_sales_detail: '{{count}} rows with sales value',
       article_count: '{{count}} articles shown',
+      article_page: 'Page {{page}} of {{pages}} · {{count}} articles on this page',
+      previous_page: 'Previous',
+      next_page: 'Next',
       no_matches: 'No matching articles found.',
       file_detected: '{{file}} · {{count}} data rows detected.',
       reading_file: 'Reading {{file}}…',
@@ -146,6 +149,9 @@
       metric_sales: 'Umsatz',
       metric_sales_detail: '{{count}} Zeilen mit Umsatz',
       article_count: '{{count}} Artikel angezeigt',
+      article_page: 'Seite {{page}} von {{pages}} · {{count}} Artikel auf dieser Seite',
+      previous_page: 'Zurück',
+      next_page: 'Weiter',
       no_matches: 'Keine passenden Artikel gefunden.',
       file_detected: '{{file}} · {{count}} Datenzeilen erkannt.',
       reading_file: '{{file}} wird gelesen …',
@@ -173,8 +179,11 @@
     fileSelectionVersion: 0,
     result: null,
     analysis: null,
-    sourceStatus: { key: 'no_file_selected', replacements: {}, error: false, text: '' }
+    sourceStatus: { key: 'no_file_selected', replacements: {}, error: false, text: '' },
+    articlePage: 1
   };
+
+  const ARTICLE_PAGE_SIZE = 100;
 
   const elements = {
     fileInput: document.getElementById('file-input'),
@@ -192,6 +201,10 @@
     articleSort: document.getElementById('article-sort'),
     articleCount: document.getElementById('article-count'),
     articleTableBody: document.getElementById('article-table-body'),
+    articlePagination: document.getElementById('article-pagination'),
+    articlePrevious: document.getElementById('article-previous'),
+    articleNext: document.getElementById('article-next'),
+    articlePageStatus: document.getElementById('article-page-status'),
     issuesPanel: document.getElementById('issues-panel'),
     issuesTableBody: document.getElementById('issues-table-body'),
     resetButton: document.getElementById('reset-button')
@@ -486,10 +499,22 @@
   }
 
   function renderArticles() {
-    const articles = sortedArticles();
+    const allArticles = sortedArticles();
+    const pageCount = Math.max(1, Math.ceil(allArticles.length / ARTICLE_PAGE_SIZE));
+    state.articlePage = Math.min(Math.max(state.articlePage, 1), pageCount);
+    const pageStart = (state.articlePage - 1) * ARTICLE_PAGE_SIZE;
+    const articles = allArticles.slice(pageStart, pageStart + ARTICLE_PAGE_SIZE);
     elements.articleTableBody.replaceChildren();
-    setText(elements.articleCount, translate('article_count', { count: articles.length }));
-    if (articles.length === 0) {
+    setText(elements.articleCount, translate('article_count', { count: allArticles.length }));
+    elements.articlePagination.classList.toggle('hidden', allArticles.length <= ARTICLE_PAGE_SIZE);
+    elements.articlePrevious.disabled = state.articlePage <= 1;
+    elements.articleNext.disabled = state.articlePage >= pageCount;
+    setText(elements.articlePageStatus, translate('article_page', {
+      page: state.articlePage,
+      pages: pageCount,
+      count: articles.length
+    }));
+    if (allArticles.length === 0) {
       const row = document.createElement('tr');
       row.className = 'empty-row';
       const cell = document.createElement('td');
@@ -534,6 +559,7 @@
   function renderResults(result) {
     state.result = result;
     state.analysis = core.analyzeRows(result.rows);
+    state.articlePage = 1;
     const hasIssues = result.invalidRows > 0 || result.issues.some(function (issue) { return issue.sourceLine === null; });
     elements.importSummary.className = 'import-summary' + (hasIssues ? ' warning' : '');
     let summary = translate('summary_valid', {
@@ -572,6 +598,7 @@
     state.confirmedMapping = null;
     state.dataRowCount = 0;
     state.hasParseErrors = false;
+    state.articlePage = 1;
     elements.mappingGrid.replaceChildren();
     elements.mappingPanel.classList.add('hidden');
     elements.resultsPanel.classList.add('hidden');
@@ -649,6 +676,7 @@
     state.fileSelectionVersion += 1;
     state.result = null;
     state.analysis = null;
+    state.articlePage = 1;
     elements.fileInput.value = '';
     setSourceStatus('no_file_selected');
     elements.mappingGrid.replaceChildren();
@@ -663,8 +691,24 @@
   });
   elements.analyzeButton.addEventListener('click', analyze);
   elements.exportButton.addEventListener('click', exportResults);
-  elements.articleFilter.addEventListener('input', renderArticles);
-  elements.articleSort.addEventListener('change', renderArticles);
+  elements.articleFilter.addEventListener('input', function () {
+    state.articlePage = 1;
+    renderArticles();
+  });
+  elements.articleSort.addEventListener('change', function () {
+    state.articlePage = 1;
+    renderArticles();
+  });
+  elements.articlePrevious.addEventListener('click', function () {
+    if (state.articlePage > 1) {
+      state.articlePage -= 1;
+      renderArticles();
+    }
+  });
+  elements.articleNext.addEventListener('click', function () {
+    state.articlePage += 1;
+    renderArticles();
+  });
   elements.resetButton.addEventListener('click', reset);
 
   applyLanguage();

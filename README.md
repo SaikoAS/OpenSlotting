@@ -23,6 +23,7 @@ The current implementation includes:
 - preservation of raw field positions, including duplicate rows
 - article aggregation with quantity and order-line frequency kept separate
 - filtering, sorting, and analysis CSV export
+- paginated article rendering with 100 rows per page for large imports
 - English as the default interface language, with German available from the language selector
 
 The first implementation intentionally keeps data in memory for the current
@@ -103,7 +104,7 @@ Quantities support up to seven decimal places. Values with more decimal places a
 
 Numeric fields accept one decimal separator (`.` or `,`) and optional surrounding whitespace. Internal whitespace and mixed separators are rejected; thousands-grouped values such as `1.234,56` are not accepted.
 
-Sales values must round-trip through the supported JavaScript numeric range without changing their decimal value; values outside the safe range or with lost decimal precision are rejected during import. Accepted sales values are aggregated as exact decimals, so totals remain correct even when their sum exceeds that range. Exported location collections use JSON arrays so commas inside a location remain unambiguous.
+Sales values support up to two decimal places, matching the displayed and exported monetary precision. Values with more decimal places, values outside the safe range, or values with lost decimal precision are rejected during import. Accepted sales values are aggregated as exact decimals, so totals remain correct even when their sum exceeds the safe range. Exported location collections use JSON arrays so commas inside a location remain unambiguous.
 
 ## Configurable Data Mapping
 

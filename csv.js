@@ -9,6 +9,7 @@
 
   const QUANTITY_DECIMAL_PLACES = 7;
   const QUANTITY_SCALE = 10000000n;
+  const SALES_DECIMAL_PLACES = 2;
 
   const FIELD_DEFINITIONS = Object.freeze([
     { key: 'order_id', label: 'Order ID', labels: { en: 'Order ID', de: 'Auftrags-ID' }, required: true },
@@ -28,6 +29,7 @@
       requiredValue: 'A required value for “{{label}}” is missing.',
       positiveQuantity: 'Quantity must be a positive number.',
       quantityPrecision: 'Quantity supports at most {{digits}} decimal places.',
+      salesPrecision: 'Sales value supports at most {{digits}} decimal places.',
       invalidDate: 'The order date is invalid.',
       invalidNumber: 'The sales value must be a valid number.',
       unexpectedQuote: 'An unexpected character was found after a closing quote.',
@@ -42,6 +44,7 @@
       requiredValue: 'Erforderlicher Wert für „{{label}}“ fehlt.',
       positiveQuantity: 'Die Menge muss eine positive Zahl sein.',
       quantityPrecision: 'Die Menge darf höchstens {{digits}} Nachkommastellen haben.',
+      salesPrecision: 'Der Umsatz darf höchstens {{digits}} Nachkommastellen haben.',
       invalidDate: 'Das Auftragsdatum ist ungültig.',
       invalidNumber: 'Der Umsatz muss eine gültige Zahl sein.',
       unexpectedQuote: 'Nach einem geschlossenen Anführungszeichen wurde ein unerwartetes Zeichen gefunden.',
@@ -320,10 +323,15 @@
     return (isZero || match[1] !== '-' ? '' : '-') + integerPart + (fractionPart ? '.' + fractionPart : '');
   }
 
-  function parseExactNumber(value) {
+  function parseExactNumber(value, maxDecimalPlaces) {
     const normalized = normalizeNumericText(value);
     if (normalized === null) {
       return null;
+    }
+
+    const decimalPlaces = (normalized.split('.')[1] || '').length;
+    if (maxDecimalPlaces !== undefined && decimalPlaces > maxDecimalPlaces) {
+      return { precisionExceeded: true };
     }
 
     const number = Number(normalized);
@@ -481,8 +489,8 @@
     const customerIdRaw = rawValue('customer_id');
     const salesValueRaw = rawValue('sales_value');
     const locationRaw = rawValue('location');
-    const salesValueResult = parseExactNumber(salesValueRaw);
-    const salesValue = salesValueResult ? salesValueResult.number : null;
+    const salesValueResult = parseExactNumber(salesValueRaw, SALES_DECIMAL_PLACES);
+    const salesValue = salesValueResult && !salesValueResult.precisionExceeded ? salesValueResult.number : null;
     if (salesValueRaw && salesValueResult === null) {
       issues.push({
         sourceLine: record.sourceLine,
@@ -490,6 +498,14 @@
         code: 'invalid_number',
         rawValue: salesValueRaw,
         message: message(locale, 'invalidNumber')
+      });
+    } else if (salesValueRaw && salesValueResult.precisionExceeded) {
+      issues.push({
+        sourceLine: record.sourceLine,
+        field: 'sales_value',
+        code: 'sales_precision_exceeded',
+        rawValue: salesValueRaw,
+        message: message(locale, 'salesPrecision', { digits: SALES_DECIMAL_PLACES })
       });
     }
 
@@ -979,6 +995,7 @@
     FIELD_DEFINITIONS: FIELD_DEFINITIONS,
     QUANTITY_DECIMAL_PLACES: QUANTITY_DECIMAL_PLACES,
     QUANTITY_SCALE: QUANTITY_SCALE,
+    SALES_DECIMAL_PLACES: SALES_DECIMAL_PLACES,
     detectMapping: detectMapping,
     analyzeRows: analyzeRows,
     compareSalesValuesDescending: compareSalesValuesDescending,
