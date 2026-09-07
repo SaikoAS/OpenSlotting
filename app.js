@@ -36,6 +36,7 @@
       column_article: 'Article',
       column_lines: 'Lines',
       column_quantity: 'Quantity',
+      column_sales: 'Sales value',
       column_orders: 'Orders',
       column_customers: 'Customers',
       column_days: 'Days',
@@ -118,6 +119,7 @@
       column_article: 'Artikel',
       column_lines: 'Zeilen',
       column_quantity: 'Menge',
+      column_sales: 'Umsatz',
       column_orders: 'Aufträge',
       column_customers: 'Kunden',
       column_days: 'Tage',
@@ -536,7 +538,7 @@
       const row = document.createElement('tr');
       row.className = 'empty-row';
       const cell = document.createElement('td');
-      cell.colSpan = 7;
+      cell.colSpan = 8;
       setText(cell, translate('no_matches'));
       row.appendChild(cell);
       elements.articleTableBody.appendChild(row);
@@ -548,6 +550,9 @@
       appendCell(row, article.article_id);
       appendCell(row, formatNumber(article.order_line_count, 0), 'number');
       appendCell(row, formatQuantity(article.total_quantity), 'number');
+      appendCell(row, article.sales_value_rows > 0
+        ? formatSalesValue(article.total_sales, article.total_sales_exact)
+        : '—', 'number');
       appendCell(row, formatNumber(article.distinct_orders, 0), 'number');
       appendCell(row, formatNumber(article.distinct_customers, 0), 'number');
       appendCell(row, formatNumber(article.active_days, 0), 'number');
