@@ -23,7 +23,7 @@ The current implementation includes:
 - preservation of raw field positions, including duplicate rows
 - article aggregation with quantity and order-line frequency kept separate
 - filtering, sorting, and analysis CSV export
-- paginated article rendering with 100 rows per page for large imports
+- paginated article and validation-note rendering with 100 rows per page for large imports
 - English as the default interface language, with German available from the language selector
 
 The first implementation intentionally keeps data in memory for the current
