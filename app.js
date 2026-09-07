@@ -259,10 +259,21 @@
       { encoding: 'utf-16be', textIndex: 1, nullIndex: 0 }
     ];
     for (const candidate of candidates) {
+      let candidateSampleLength = sampleLength;
+      if (candidateSampleLength + 2 <= bytes.length) {
+        const lastCodeUnit = candidate.encoding === 'utf-16le'
+          ? bytes[candidateSampleLength - 2] | (bytes[candidateSampleLength - 1] << 8)
+          : (bytes[candidateSampleLength - 2] << 8) | bytes[candidateSampleLength - 1];
+        if (lastCodeUnit >= 0xD800 && lastCodeUnit <= 0xDBFF) {
+          candidateSampleLength += 2;
+        }
+      }
+
+      const pairCount = candidateSampleLength / 2;
       let nullPairs = 0;
       let asciiTextBytes = 0;
       let structuralBytes = 0;
-      for (let index = 0; index < sampleLength; index += 2) {
+      for (let index = 0; index < candidateSampleLength; index += 2) {
         const textByte = bytes[index + candidate.textIndex];
         const nullByte = bytes[index + candidate.nullIndex];
         if (nullByte === 0) {
@@ -284,7 +295,7 @@
       }
 
       try {
-        const sample = new TextDecoder(candidate.encoding, { fatal: true }).decode(bytes.slice(0, sampleLength));
+        const sample = new TextDecoder(candidate.encoding, { fatal: true }).decode(bytes.slice(0, candidateSampleLength));
         if (sample.indexOf('\u0000') === -1 && /[;\r\n]/.test(sample)) {
           return candidate.encoding;
         }
