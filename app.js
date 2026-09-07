@@ -36,7 +36,7 @@
       column_article: 'Article',
       column_lines: 'Lines',
       column_quantity: 'Quantity',
-      column_sales: 'Sales value',
+      column_sales: 'Sales value / coverage',
       column_orders: 'Orders',
       column_customers: 'Customers',
       column_days: 'Days',
@@ -71,6 +71,7 @@
       article_count: '{{count}} articles shown',
       article_page: 'Page {{page}} of {{pages}} · {{count}} articles on this page',
       issue_page: 'Page {{page}} of {{pages}} · {{count}} notes on this page',
+      sales_coverage: '{{value}} · {{rows}}/{{lines}} rows',
       previous_page: 'Previous',
       next_page: 'Next',
       no_matches: 'No matching articles found.',
@@ -119,7 +120,7 @@
       column_article: 'Artikel',
       column_lines: 'Zeilen',
       column_quantity: 'Menge',
-      column_sales: 'Umsatz',
+      column_sales: 'Umsatz / Abdeckung',
       column_orders: 'Aufträge',
       column_customers: 'Kunden',
       column_days: 'Tage',
@@ -154,6 +155,7 @@
       article_count: '{{count}} Artikel angezeigt',
       article_page: 'Seite {{page}} von {{pages}} · {{count}} Artikel auf dieser Seite',
       issue_page: 'Seite {{page}} von {{pages}} · {{count}} Hinweise auf dieser Seite',
+      sales_coverage: '{{value}} · {{rows}}/{{lines}} Zeilen',
       previous_page: 'Zurück',
       next_page: 'Weiter',
       no_matches: 'Keine passenden Artikel gefunden.',
@@ -371,6 +373,17 @@
     return core.formatSalesValue(exactValue === undefined ? value : exactValue, state.language);
   }
 
+  function formatArticleSales(article) {
+    const value = article.sales_value_rows > 0
+      ? formatSalesValue(article.total_sales, article.total_sales_exact)
+      : '—';
+    return translate('sales_coverage', {
+      value: value,
+      rows: article.sales_value_rows,
+      lines: article.order_line_count
+    });
+  }
+
   function addOption(select, value, label) {
     const option = document.createElement('option');
     option.value = value;
@@ -550,9 +563,7 @@
       appendCell(row, article.article_id);
       appendCell(row, formatNumber(article.order_line_count, 0), 'number');
       appendCell(row, formatQuantity(article.total_quantity), 'number');
-      appendCell(row, article.sales_value_rows > 0
-        ? formatSalesValue(article.total_sales, article.total_sales_exact)
-        : '—', 'number');
+      appendCell(row, formatArticleSales(article), 'number');
       appendCell(row, formatNumber(article.distinct_orders, 0), 'number');
       appendCell(row, formatNumber(article.distinct_customers, 0), 'number');
       appendCell(row, formatNumber(article.active_days, 0), 'number');
