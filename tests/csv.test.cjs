@@ -236,6 +236,15 @@ test('bare quotes in unquoted fields are rejected', () => {
   assert.ok(result.issues.some((issue) => issue.code === 'unexpected_quote_in_unquoted_field'));
 });
 
+test('parser errors on the header reject all data rows', () => {
+  const text = 'order_"id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
+  const result = csv.importCsv(text);
+
+  assert.equal(result.validRows, 0);
+  assert.equal(result.invalidRows, 1);
+  assert.ok(result.issues.some((issue) => issue.sourceLine === 1 && issue.code === 'unexpected_quote_in_unquoted_field'));
+});
+
 test('analysis CSV export preserves sales precision and share values', () => {
   const result = csv.importCsv(fixture('basic-orders.csv'));
   const analysis = csv.analyzeRows(result.rows);

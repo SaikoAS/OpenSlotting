@@ -579,6 +579,22 @@
 
     const headers = parsed.rows[0].values.map(function (header) { return String(header).trim(); });
     const dataRows = parsed.rows.slice(1);
+    const headerSourceLine = parsed.rows[0].sourceLine;
+    const headerHasParserError = parsed.errors.some(function (error) {
+      return error.sourceLine === headerSourceLine;
+    });
+    if (headerHasParserError) {
+      return {
+        headers: headers,
+        rows: [],
+        issues: parserIssues,
+        totalRows: dataRows.length,
+        validRows: 0,
+        invalidRows: dataRows.length,
+        structuralRows: 0,
+        mapping: mapping || {}
+      };
+    }
     const selectedMapping = mapping || detectMapping(headers);
     const mappingIssues = validateMapping(selectedMapping, locale);
     if (mappingIssues.length > 0) {
