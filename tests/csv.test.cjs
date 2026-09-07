@@ -220,7 +220,8 @@ test('English is the default message language and German is selectable', () => {
 test('CSV parser diagnostics follow the selected locale', () => {
   const malformed = 'order_id;article_id;quantity;order_date\nO1;"A;1;2026-09-01\n';
   const english = csv.importCsv(malformed);
-  const german = csv.importCsv(malformed, undefined, { locale: 'de' });
+  const parsed = csv.parseCsv(malformed);
+  const german = csv.importParsedCsv(parsed, undefined, { locale: 'de' });
 
   assert.match(english.issues.find((issue) => issue.code === 'unterminated_quote').message, /quote was not closed/i);
   assert.match(german.issues.find((issue) => issue.code === 'unterminated_quote').message, /Anführungszeichen/i);

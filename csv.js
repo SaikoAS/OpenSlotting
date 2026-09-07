@@ -54,6 +54,11 @@
     }
   });
 
+  const PARSER_ERROR_MESSAGE_KEYS = Object.freeze({
+    unexpected_character_after_quote: 'unexpectedQuote',
+    unterminated_quote: 'unterminatedQuote'
+  });
+
   const FIELD_ALIASES = Object.freeze({
     order_id: ['order_id', 'order id', 'ordernumber', 'order number', 'auftragsnr', 'auftragsnummer'],
     article_id: ['article_id', 'article id', 'sku', 'material', 'artnr', 'artikelnummer'],
@@ -529,15 +534,23 @@
     };
   }
 
+  function parserErrorMessage(error, locale) {
+    const key = PARSER_ERROR_MESSAGE_KEYS[error.code];
+    return key ? message(locale, key) : error.message;
+  }
+
   function importCsv(text, mapping, options) {
-    const parsed = parseCsv(text, options);
+    return importParsedCsv(parseCsv(text, options), mapping, options);
+  }
+
+  function importParsedCsv(parsed, mapping, options) {
     const locale = normalizeLocale(options && options.locale);
     const parserIssues = parsed.errors.map(function (error) {
       return {
         sourceLine: error.sourceLine,
         field: null,
         code: error.code,
-        message: error.message
+        message: parserErrorMessage(error, locale)
       };
     });
 
@@ -1005,6 +1018,7 @@
     formatScaledQuantity: formatScaledQuantity,
     getFieldLabel: getFieldLabel,
     importCsv: importCsv,
+    importParsedCsv: importParsedCsv,
     normalizeDate: normalizeDate,
     normalizeHeader: normalizeHeader,
     normalizeNumber: normalizeNumber,

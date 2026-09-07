@@ -176,7 +176,7 @@
   const state = {
     language: 'en',
     fileName: '',
-    text: '',
+    parsed: null,
     headers: [],
     mapping: {},
     confirmedMapping: null,
@@ -456,9 +456,9 @@
       renderMapping();
       showMappingMessage(state.hasParseErrors ? translate('structure_hint') : '');
     }
-    if (state.result) {
+    if (state.result && state.parsed) {
       const analyzedMapping = state.confirmedMapping || state.mapping;
-      state.result = core.importCsv(state.text, analyzedMapping, { locale: state.language });
+      state.result = core.importParsedCsv(state.parsed, analyzedMapping, { locale: state.language });
       renderResults(state.result);
     }
     renderSourceStatus();
@@ -511,6 +511,11 @@
         return core.compareScaledQuantitiesDescending(left.total_quantity, right.total_quantity) || left.article_id.localeCompare(right.article_id);
       }
       if (sort === 'sales') {
+        const leftHasSales = left.sales_value_rows > 0;
+        const rightHasSales = right.sales_value_rows > 0;
+        if (leftHasSales !== rightHasSales) {
+          return leftHasSales ? -1 : 1;
+        }
         return core.compareSalesValuesDescending(left.total_sales_exact || left.total_sales, right.total_sales_exact || right.total_sales) || left.article_id.localeCompare(right.article_id);
       }
       if (sort === 'article') {
@@ -640,7 +645,7 @@
     state.result = null;
     state.analysis = null;
     state.fileName = '';
-    state.text = '';
+    state.parsed = null;
     state.headers = [];
     state.mapping = {};
     state.confirmedMapping = null;
@@ -661,11 +666,11 @@
         return;
       }
       state.fileName = file.name;
-      state.text = fileText;
-      const parsed = core.parseCsv(state.text);
+      const parsed = core.parseCsv(fileText);
       if (parsed.rows.length === 0) {
         throw createTranslationError('empty_file');
       }
+      state.parsed = parsed;
       state.headers = parsed.rows[0].values.map(function (header) { return String(header).trim(); });
       state.mapping = core.detectMapping(state.headers);
       state.dataRowCount = Math.max(0, parsed.rows.length - 1);
@@ -680,6 +685,7 @@
       if (selectionVersion !== state.fileSelectionVersion) {
         return;
       }
+      state.parsed = null;
       setSourceError(error && error.translationKey, error && error.message);
       elements.mappingPanel.classList.add('hidden');
       elements.resultsPanel.classList.add('hidden');
@@ -689,6 +695,9 @@
   }
 
   function analyze() {
+    if (!state.parsed) {
+      return;
+    }
     const draftMapping = currentMapping();
     const mappingIssues = core.validateMapping(draftMapping, state.language);
     if (mappingIssues.length > 0) {
@@ -698,7 +707,7 @@
     state.mapping = draftMapping;
     state.confirmedMapping = Object.assign({}, draftMapping);
     showMappingMessage('');
-    renderResults(core.importCsv(state.text, state.confirmedMapping, { locale: state.language }));
+    renderResults(core.importParsedCsv(state.parsed, state.confirmedMapping, { locale: state.language }));
   }
 
   function exportResults() {
@@ -717,7 +726,7 @@
 
   function reset() {
     state.fileName = '';
-    state.text = '';
+    state.parsed = null;
     state.headers = [];
     state.mapping = {};
     state.confirmedMapping = null;
