@@ -728,6 +728,7 @@
     state.articlePage = 1;
     state.issuePage = 1;
     elements.fileInput.value = '';
+    elements.articleFilter.value = '';
     setSourceStatus('no_file_selected');
     elements.mappingGrid.replaceChildren();
     elements.mappingPanel.classList.add('hidden');
