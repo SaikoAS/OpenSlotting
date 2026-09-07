@@ -648,6 +648,7 @@
     state.hasParseErrors = false;
     state.articlePage = 1;
     state.issuePage = 1;
+    elements.articleFilter.value = '';
     elements.mappingGrid.replaceChildren();
     elements.mappingPanel.classList.add('hidden');
     elements.resultsPanel.classList.add('hidden');
