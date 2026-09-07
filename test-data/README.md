@@ -1,31 +1,30 @@
-# Synthetische Testdaten
+# Synthetic test data
 
-Diese Dateien enthalten ausschließlich erfundene Daten für die geplante V0.1.
-Sie sind UTF-8-kodiert und semikolon-getrennt. Die kanonischen Testdateien
-verwenden diese Spalten:
+These files contain fictional data for V0.1. They are UTF-8 encoded and
+semicolon-separated. The canonical fixtures use these columns:
 
 ```text
 order_id;article_id;quantity;order_date;customer_id;sales_value;location
 ```
 
-## Dateien
+## Fixtures
 
-| Datei | Zweck | Erwartete Prüfpunkte |
+| File | Purpose | Expected checks |
 | --- | --- | --- |
-| `basic-orders.csv` | Kleine vollständige Standardmenge | 12 Auftragszeilen, 11 Aufträge, 6 Kunden, 6 aktive Tage, Gesamtmenge 32 |
-| `quantity-vs-frequency.csv` | Mengen- und Zeilenhäufigkeit vergleichen | `SKU-BULK`: 1 Zeile/500 Stück; `SKU-FREQUENT`: 8 Zeilen/8 Stück |
-| `german-column-mapping.csv` | Alternative deutsche Spaltennamen und deutsche Zahlen-/Datumsformate | `AuftragsNr`, `ArtNr`, `Menge`, `Datum`, `KdNr`, `Umsatz`, `Stellplatz` müssen konfigurierbar zugeordnet werden |
-| `optional-fields.csv` | Fehlende Werte in vermutlich optionalen Feldern | Leere Kunden-, Umsatz- und Lagerplatzwerte bleiben als fehlende Werte sichtbar |
-| `duplicate-lines.csv` | Doppelte und wiederholte Auftragszeilen | 5 Zeilen, davon 2 exakte Duplikate; keine Zeile darf ohne definierte Regel stillschweigend verschwinden |
-| `invalid-values.csv` | Inhaltsvalidierung | Fehlender Artikel, fehlende Menge, Null- und Negativmenge, ungültiges Datum und ungültiger Umsatz |
-| `malformed-columns.csv` | Strukturelle CSV-Validierung | Eine Zeile hat zu wenige, eine zu viele Spalten |
-| `quoted-fields.csv` | CSV-Quoting | Semikolons innerhalb von Anführungszeichen gehören jeweils zu einem Feld |
+| `basic-orders.csv` | Small complete baseline | 12 order lines, 11 orders, 6 customers, 6 active days, total quantity 32 |
+| `quantity-vs-frequency.csv` | Compare quantity and line frequency | `SKU-BULK`: 1 line/500 units; `SKU-FREQUENT`: 8 lines/8 units |
+| `german-column-mapping.csv` | Alternative German headers and German number/date formats | `AuftragsNr`, `ArtNr`, `Menge`, `Datum`, `KdNr`, `Umsatz`, and `Stellplatz` must be configurable mappings |
+| `optional-fields.csv` | Missing values in likely optional fields | Empty customer, sales value, and location values remain visible as missing |
+| `duplicate-lines.csv` | Duplicate and repeated order lines | 5 lines, including 2 exact duplicates; no line may disappear silently without a defined rule |
+| `invalid-values.csv` | Content validation | Missing article, missing quantity, zero and negative quantity, invalid date, and invalid sales value |
+| `malformed-columns.csv` | Structural CSV validation | One row has too few and one has too many columns |
+| `quoted-fields.csv` | CSV quoting | Semicolons inside quotes belong to the quoted field |
 
-## Deutsche Spaltenzuordnung
+## German column mapping
 
-Die Zuordnung in `german-column-mapping.csv` lautet:
+The mapping in `german-column-mapping.csv` is:
 
-| Quellspalte | Internes Feld |
+| Source column | Internal field |
 | --- | --- |
 | `AuftragsNr` | `order_id` |
 | `ArtNr` | `article_id` |
@@ -35,14 +34,13 @@ Die Zuordnung in `german-column-mapping.csv` lautet:
 | `Umsatz` | `sales_value` |
 | `Stellplatz` | `location` |
 
-Die erwartete Normalisierung ist beispielhaft `01.09.2026` → `2026-09-01`
-und `19,98` → `19.98`. Diese Regeln sind Testannahmen und noch kein endgültiger
-Importvertrag der Anwendung.
+The expected normalization is, for example, `01.09.2026` → `2026-09-01`
+and `19,98` → `19.98`. These rules are test assumptions and are not yet the
+application's final import contract.
 
-## Validierungsannahmen
+## Validation assumptions
 
-`invalid-values.csv` und `malformed-columns.csv` sind absichtlich nicht
-vollständig gültige Importdateien. Sie dienen dazu, Fehlermeldungen mit
-Zeilennummer und Feldbezug zu prüfen. Die genaue Behandlung von Nullmengen,
-Negativmengen und fehlenden optionalen Feldern muss im V0.1-Datenvertrag noch
-festgelegt werden.
+`invalid-values.csv` and `malformed-columns.csv` are intentionally not fully
+valid import files. They verify messages with source line and field references.
+The exact treatment of zero quantities, negative quantities, and missing
+optional fields must be defined in the V0.1 data contract.
