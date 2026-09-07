@@ -384,6 +384,12 @@
     });
   }
 
+  function formatTotalSales(analysis) {
+    return analysis.sales_value_rows > 0
+      ? formatSalesValue(analysis.total_sales, analysis.total_sales_exact)
+      : '—';
+  }
+
   function addOption(select, value, label) {
     const option = document.createElement('option');
     option.value = value;
@@ -473,7 +479,7 @@
       [translate('metric_days'), formatNumber(analysis.active_days, 0), translate('metric_days_detail')],
       [translate('metric_average_line'), formatQuantity(analysis.average_quantity_per_line), translate('metric_average_line_detail')],
       [translate('metric_average_order'), formatQuantity(analysis.average_quantity_per_order), translate('metric_average_order_detail')],
-      [translate('metric_sales'), formatSalesValue(analysis.total_sales, analysis.total_sales_exact), translate('metric_sales_detail', { count: analysis.sales_value_rows })]
+      [translate('metric_sales'), formatTotalSales(analysis), translate('metric_sales_detail', { count: analysis.sales_value_rows })]
     ];
 
     elements.metricGrid.replaceChildren();

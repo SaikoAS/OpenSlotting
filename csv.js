@@ -32,6 +32,7 @@
       salesPrecision: 'Sales value supports at most {{digits}} decimal places.',
       invalidDate: 'The order date is invalid.',
       invalidNumber: 'The sales value must be a valid number.',
+      bareQuote: 'A quote in an unquoted field is not allowed.',
       unexpectedQuote: 'An unexpected character was found after a closing quote.',
       unterminatedQuote: 'A quote was not closed.',
       headerMissing: 'The CSV file does not contain a header row.',
@@ -47,6 +48,7 @@
       salesPrecision: 'Der Umsatz darf höchstens {{digits}} Nachkommastellen haben.',
       invalidDate: 'Das Auftragsdatum ist ungültig.',
       invalidNumber: 'Der Umsatz muss eine gültige Zahl sein.',
+      bareQuote: 'Ein Anführungszeichen in einem unquotierten Feld ist nicht zulässig.',
       unexpectedQuote: 'Nach einem geschlossenen Anführungszeichen wurde ein unerwartetes Zeichen gefunden.',
       unterminatedQuote: 'Ein Anführungszeichen wurde nicht geschlossen.',
       headerMissing: 'Die CSV-Datei enthält keine Kopfzeile.',
@@ -55,6 +57,7 @@
   });
 
   const PARSER_ERROR_MESSAGE_KEYS = Object.freeze({
+    unexpected_quote_in_unquoted_field: 'bareQuote',
     unexpected_character_after_quote: 'unexpectedQuote',
     unterminated_quote: 'unterminatedQuote'
   });
@@ -199,6 +202,13 @@
         flushField();
       } else if (character === '"' && field === '') {
         inQuotes = true;
+      } else if (character === '"') {
+        errors.push({
+          sourceLine: recordStartLine,
+          code: 'unexpected_quote_in_unquoted_field',
+          message: message(locale, 'bareQuote')
+        });
+        field += character;
       } else if (character === '\r') {
         if (source[index + 1] === '\n') {
           index += 1;

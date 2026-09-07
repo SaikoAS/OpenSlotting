@@ -227,6 +227,15 @@ test('CSV parser diagnostics follow the selected locale', () => {
   assert.match(german.issues.find((issue) => issue.code === 'unterminated_quote').message, /Anführungszeichen/i);
 });
 
+test('bare quotes in unquoted fields are rejected', () => {
+  const text = 'order_id;article_id;quantity;order_date\nO1;A"BROKEN;1;2026-09-01\n';
+  const result = csv.importCsv(text);
+
+  assert.equal(result.validRows, 0);
+  assert.equal(result.invalidRows, 1);
+  assert.ok(result.issues.some((issue) => issue.code === 'unexpected_quote_in_unquoted_field'));
+});
+
 test('analysis CSV export preserves sales precision and share values', () => {
   const result = csv.importCsv(fixture('basic-orders.csv'));
   const analysis = csv.analyzeRows(result.rows);
