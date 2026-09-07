@@ -21,7 +21,7 @@ Please do not publicly disclose security vulnerabilities before they have been r
 
 If GitHub private vulnerability reporting is available for this repository, use the **Report a vulnerability** option in the repository's Security section.
 
-If private vulnerability reporting is not available, contact the maintainer privately using the contact information associated with the GitHub repository or maintainer profile.
+If private vulnerability reporting is not available, report the issue privately by email to **mail@cbahl.de**.
 
 When reporting a vulnerability, please include:
 
@@ -57,11 +57,11 @@ This includes, but is not limited to:
 - API keys
 - passwords or authentication tokens
 
-Test fixtures, examples, screenshots, documentation, and bug reports must use synthetic or sufficiently anonymized data.
+Test fixtures, examples, screenshots, documentation, and bug reports must use fully synthetic data. Anonymized, pseudonymized, redacted, or otherwise modified real operational datasets must not be committed to the public repository.
 
-Removing sensitive data in a later commit is not sufficient because the original content may remain accessible through Git history.
+Removing sensitive data in a later commit is not sufficient because the original content may remain accessible through Git history, forks, clones, caches, or other copies.
 
-If sensitive data is accidentally committed, treat it as a security incident and remove it from the repository history where necessary.
+If sensitive data is accidentally committed, treat it as a security incident and remove it from the repository history where necessary. If the exposed data includes an access credential, API key, password, authentication token, or other secret, revoke or rotate that credential immediately before or alongside history cleanup. History cleanup alone must never be treated as sufficient remediation for an exposed credential.
 
 ## Local-First Security Model
 
@@ -144,7 +144,7 @@ OpenSlotting should follow these principles:
 2. Collect no telemetry by default.
 3. Transmit no imported operational data by default.
 4. Store no real company data in the public repository.
-5. Prefer synthetic test data.
+5. Use fully synthetic test data only.
 6. Keep security-relevant behavior explicit and reviewable.
 7. Avoid unnecessary external dependencies.
 
