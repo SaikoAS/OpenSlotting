@@ -125,6 +125,7 @@ test('article search matches IDs and descriptions', () => {
 
   assert.equal(csv.articleMatchesQuery(article, 'sku-alpha', 'en'), true);
   assert.equal(csv.articleMatchesQuery(article, 'citrus juice', 'en'), true);
+  assert.equal(csv.articleMatchesQuery(article, 'Special', 'en'), true);
   assert.equal(csv.articleMatchesQuery(article, '  CITRUS  ', 'en'), true);
   assert.equal(csv.articleMatchesQuery(article, 'steel', 'en'), false);
   assert.equal(csv.articleMatchesQuery(article, '', 'de'), true);

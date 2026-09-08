@@ -834,7 +834,13 @@
       return true;
     }
 
-    return [article && article.article_id, article && article.article_name].some(function (value) {
+    const descriptionVariants = article && Array.isArray(article.article_name_variants)
+      ? article.article_name_variants
+      : [];
+    const searchableValues = [article && article.article_id, article && article.article_name]
+      .concat(descriptionVariants);
+
+    return searchableValues.some(function (value) {
       return String(value === undefined || value === null ? '' : value)
         .toLocaleLowerCase(languageTag)
         .indexOf(normalizedQuery) >= 0;
