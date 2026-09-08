@@ -82,6 +82,7 @@ button { font: inherit; cursor: pointer; }
 .secondary-button:hover:not(:disabled) { background: var(--accent-soft); }
 button:disabled { cursor: not-allowed; opacity: .5; }
 .message { margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; color: var(--danger); background: var(--danger-soft); }
+.warning-message { color: #6f4d16; background: var(--warning-soft); }
 
 .results-heading { margin: 40px 0 18px; }
 .import-summary { margin-bottom: 18px; padding: 14px 16px; border-left: 4px solid var(--accent); border-radius: 10px; color: #31534e; background: var(--accent-soft); }
@@ -93,6 +94,9 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .metric-detail { margin-top: 4px; color: var(--muted); font-size: .76rem; }
 .table-panel { margin-bottom: 22px; box-shadow: none; }
 .table-toolbar { margin-bottom: 18px; align-items: end; }
+.detail-heading { margin-bottom: 18px; }
+.detail-back { margin-bottom: 12px; }
+.detail-metric-grid { margin-top: 18px; }
 .compact-field { min-width: 150px; }
 .table-scroll { overflow-x: auto; }
 .table-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
@@ -101,6 +105,11 @@ table { width: 100%; border-collapse: collapse; font-size: .9rem; }
 th, td { padding: 12px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
 th { color: var(--muted); font-size: .74rem; letter-spacing: .04em; text-transform: uppercase; }
 td:first-child { color: var(--accent-dark); font-weight: 800; }
+.article-detail-link { padding: 0; border: 0; color: var(--accent-dark); background: none; font-weight: 800; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px; }
+.article-detail-link:hover, .article-detail-link:focus-visible { text-decoration-color: currentColor; }
+.article-detail-link:focus-visible, .text-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.article-name-cell, .location-cell { max-width: 24rem; white-space: normal; }
+.description-warning { display: inline-flex; align-items: center; justify-content: center; width: 1.25rem; height: 1.25rem; margin-left: 8px; border-radius: 50%; color: #fff; background: var(--warning); font-size: .75rem; font-weight: 900; vertical-align: middle; }
 .number { text-align: right; }
 .empty-row td { padding: 28px 10px; color: var(--muted); text-align: center; }
 .issues-panel { box-shadow: none; }

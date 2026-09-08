@@ -27,20 +27,35 @@
       export_button: 'Export analysis',
       article_overview: 'Article overview',
       search_label: 'Search',
-      search_placeholder: 'Article ID',
+      search_placeholder: 'Article ID or description',
       sort_label: 'Sort by',
       sort_lines: 'Order lines',
       sort_quantity: 'Total quantity',
       sort_sales: 'Sales value',
       sort_article: 'Article ID',
-      column_article: 'Article',
+      column_article_id: 'Article ID',
+      column_article_name: 'Article description',
       column_lines: 'Lines',
       column_quantity: 'Quantity',
       column_sales: 'Sales value / coverage',
       column_orders: 'Orders',
       column_customers: 'Customers',
       column_days: 'Days',
+      column_locations: 'Locations',
       column_share: 'Line share',
+      article_detail: 'Article details',
+      detail_back: 'Back to article overview',
+      detail_open: 'Open details for {{article}}',
+      detail_conflict: 'Multiple article descriptions were found: {{variants}}',
+      detail_page: 'Page {{page}} of {{pages}} · {{count}} order lines on this page',
+      detail_source_line: 'Source line',
+      detail_order_id: 'Order ID',
+      detail_order_date: 'Order date',
+      detail_customer_id: 'Customer ID',
+      detail_sales_value: 'Sales value',
+      detail_location: 'Location',
+      no_detail_rows: 'No normalized order lines are available for this article.',
+      empty_value: '—',
       issues_title: 'Validation notes',
       issues_note: 'Invalid rows are not aggregated and remain traceable by source line.',
       issue_source_line: 'Source line',
@@ -111,20 +126,35 @@
       export_button: 'Analyse exportieren',
       article_overview: 'Artikelübersicht',
       search_label: 'Suche',
-      search_placeholder: 'Artikel-ID',
+      search_placeholder: 'Artikel-ID oder Artikelbezeichnung',
       sort_label: 'Sortierung',
       sort_lines: 'Auftragszeilen',
       sort_quantity: 'Gesamtmenge',
       sort_sales: 'Umsatz',
       sort_article: 'Artikel-ID',
-      column_article: 'Artikel',
+      column_article_id: 'Artikel-ID',
+      column_article_name: 'Artikelbezeichnung',
       column_lines: 'Zeilen',
       column_quantity: 'Menge',
       column_sales: 'Umsatz / Abdeckung',
       column_orders: 'Aufträge',
       column_customers: 'Kunden',
       column_days: 'Tage',
+      column_locations: 'Stellplätze',
       column_share: 'Anteil Zeilen',
+      article_detail: 'Artikeldetails',
+      detail_back: 'Zurück zur Artikelübersicht',
+      detail_open: 'Details für {{article}} öffnen',
+      detail_conflict: 'Es wurden mehrere Artikelbezeichnungen gefunden: {{variants}}',
+      detail_page: 'Seite {{page}} von {{pages}} · {{count}} Auftragszeilen auf dieser Seite',
+      detail_source_line: 'Quellzeile',
+      detail_order_id: 'Auftrags-ID',
+      detail_order_date: 'Auftragsdatum',
+      detail_customer_id: 'Kunden-ID',
+      detail_sales_value: 'Umsatz',
+      detail_location: 'Stellplatz',
+      no_detail_rows: 'Für diesen Artikel sind keine normalisierten Auftragszeilen verfügbar.',
+      empty_value: '—',
       issues_title: 'Prüfhinweise',
       issues_note: 'Fehlerhafte Zeilen werden nicht aggregiert und bleiben über die Quellzeile nachvollziehbar.',
       issue_source_line: 'Quellzeile',
@@ -187,6 +217,8 @@
     analysis: null,
     sourceStatus: { key: 'no_file_selected', replacements: {}, error: false, text: '' },
     articlePage: 1,
+    selectedArticleId: null,
+    detailPage: 1,
     issuePage: 1
   };
 
@@ -204,6 +236,7 @@
     importSummary: document.getElementById('import-summary'),
     metricGrid: document.getElementById('metric-grid'),
     exportButton: document.getElementById('export-button'),
+    articleOverviewPanel: document.getElementById('article-overview-panel'),
     articleFilter: document.getElementById('article-filter'),
     articleSort: document.getElementById('article-sort'),
     articleCount: document.getElementById('article-count'),
@@ -212,6 +245,17 @@
     articlePrevious: document.getElementById('article-previous'),
     articleNext: document.getElementById('article-next'),
     articlePageStatus: document.getElementById('article-page-status'),
+    articleDetailPanel: document.getElementById('article-detail-panel'),
+    articleDetailBack: document.getElementById('article-detail-back'),
+    articleDetailTitle: document.getElementById('article-detail-title'),
+    articleDetailHeading: document.getElementById('article-detail-heading'),
+    articleDetailWarning: document.getElementById('article-detail-warning'),
+    articleDetailMetrics: document.getElementById('article-detail-metrics'),
+    articleDetailTableBody: document.getElementById('article-detail-table-body'),
+    articleDetailPagination: document.getElementById('article-detail-pagination'),
+    articleDetailPrevious: document.getElementById('article-detail-previous'),
+    articleDetailNext: document.getElementById('article-detail-next'),
+    articleDetailPageStatus: document.getElementById('article-detail-page-status'),
     issuesPanel: document.getElementById('issues-panel'),
     issuesTableBody: document.getElementById('issues-table-body'),
     issuePagination: document.getElementById('issue-pagination'),
@@ -465,24 +509,13 @@
     if (state.result && state.parsed) {
       const analyzedMapping = state.confirmedMapping || state.mapping;
       state.result = core.importParsedCsv(state.parsed, analyzedMapping, { locale: state.language });
-      renderResults(state.result);
+      renderResults(state.result, { preserveView: true });
     }
     renderSourceStatus();
   }
 
-  function renderMetrics(analysis) {
-    const metrics = [
-      [translate('metric_lines'), formatNumber(analysis.total_lines, 0), translate('metric_lines_detail')],
-      [translate('metric_quantity'), formatQuantity(analysis.total_quantity), translate('metric_quantity_detail')],
-      [translate('metric_orders'), formatNumber(analysis.distinct_orders, 0), translate('metric_orders_detail')],
-      [translate('metric_customers'), formatNumber(analysis.distinct_customers, 0), translate('metric_customers_detail')],
-      [translate('metric_days'), formatNumber(analysis.active_days, 0), translate('metric_days_detail')],
-      [translate('metric_average_line'), formatQuantity(analysis.average_quantity_per_line), translate('metric_average_line_detail')],
-      [translate('metric_average_order'), formatQuantity(analysis.average_quantity_per_order), translate('metric_average_order_detail')],
-      [translate('metric_sales'), formatTotalSales(analysis), translate('metric_sales_detail', { count: analysis.sales_value_rows })]
-    ];
-
-    elements.metricGrid.replaceChildren();
+  function renderMetricCards(container, metrics) {
+    container.replaceChildren();
     metrics.forEach(function (metric) {
       const card = document.createElement('div');
       card.className = 'metric';
@@ -498,18 +531,30 @@
       card.appendChild(label);
       card.appendChild(value);
       card.appendChild(detail);
-      elements.metricGrid.appendChild(card);
+      container.appendChild(card);
     });
+  }
+
+  function renderMetrics(analysis) {
+    renderMetricCards(elements.metricGrid, [
+      [translate('metric_lines'), formatNumber(analysis.total_lines, 0), translate('metric_lines_detail')],
+      [translate('metric_quantity'), formatQuantity(analysis.total_quantity), translate('metric_quantity_detail')],
+      [translate('metric_orders'), formatNumber(analysis.distinct_orders, 0), translate('metric_orders_detail')],
+      [translate('metric_customers'), formatNumber(analysis.distinct_customers, 0), translate('metric_customers_detail')],
+      [translate('metric_days'), formatNumber(analysis.active_days, 0), translate('metric_days_detail')],
+      [translate('metric_average_line'), formatQuantity(analysis.average_quantity_per_line), translate('metric_average_line_detail')],
+      [translate('metric_average_order'), formatQuantity(analysis.average_quantity_per_order), translate('metric_average_order_detail')],
+      [translate('metric_sales'), formatTotalSales(analysis), translate('metric_sales_detail', { count: analysis.sales_value_rows })]
+    ]);
   }
 
   function sortedArticles() {
     if (!state.analysis) {
       return [];
     }
-    const locale = state.language === 'de' ? 'de-DE' : 'en-US';
-    const query = elements.articleFilter.value.trim().toLocaleLowerCase(locale);
+    const query = elements.articleFilter.value;
     const articles = state.analysis.articles.filter(function (article) {
-      return !query || article.article_id.toLocaleLowerCase(locale).indexOf(query) >= 0;
+      return core.articleMatchesQuery(article, query, state.language);
     });
     const sort = elements.articleSort.value;
     return articles.sort(function (left, right) {
@@ -542,6 +587,156 @@
     row.appendChild(cell);
   }
 
+  function optionalText(value) {
+    return value === null || value === undefined || String(value) === ''
+      ? translate('empty_value')
+      : String(value);
+  }
+
+  function formatLocations(locations) {
+    return Array.isArray(locations) && locations.length > 0
+      ? locations.join(', ')
+      : translate('empty_value');
+  }
+
+  function appendArticleIdCell(row, article) {
+    const cell = document.createElement('td');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'article-detail-link';
+    button.dataset.articleId = article.article_id;
+    button.textContent = article.article_id;
+    button.setAttribute('aria-label', translate('detail_open', { article: article.article_id }));
+    cell.appendChild(button);
+    row.appendChild(cell);
+  }
+
+  function appendArticleNameCell(row, article) {
+    const cell = document.createElement('td');
+    cell.className = 'article-name-cell';
+    const name = document.createElement('span');
+    setText(name, optionalText(article.article_name));
+    cell.appendChild(name);
+    if (article.article_name_conflict) {
+      const warning = document.createElement('span');
+      warning.className = 'description-warning';
+      warning.textContent = '!';
+      warning.title = translate('detail_conflict', { variants: article.article_name_variants.join(' · ') });
+      warning.setAttribute('role', 'img');
+      warning.setAttribute('aria-label', warning.title);
+      cell.appendChild(warning);
+    }
+    row.appendChild(cell);
+  }
+
+  function selectedArticle() {
+    if (!state.analysis || !state.selectedArticleId) {
+      return null;
+    }
+    return state.analysis.articles.find(function (article) {
+      return article.article_id === state.selectedArticleId;
+    }) || null;
+  }
+
+  function renderArticleDetailMetrics(article) {
+    renderMetricCards(elements.articleDetailMetrics, [
+      [translate('column_article_id'), article.article_id, ''],
+      [translate('column_article_name'), optionalText(article.article_name), ''],
+      [translate('metric_lines'), formatNumber(article.order_line_count, 0), translate('metric_lines_detail')],
+      [translate('metric_quantity'), formatQuantity(article.total_quantity), translate('metric_quantity_detail')],
+      [translate('metric_orders'), formatNumber(article.distinct_orders, 0), translate('metric_orders_detail')],
+      [translate('metric_customers'), formatNumber(article.distinct_customers, 0), translate('metric_customers_detail')],
+      [translate('metric_days'), formatNumber(article.active_days, 0), translate('metric_days_detail')],
+      [translate('metric_sales'), formatArticleSales(article), translate('metric_sales_detail', { count: article.sales_value_rows })],
+      [translate('column_locations'), formatLocations(article.locations), '']
+    ]);
+  }
+
+  function renderArticleDetail() {
+    const article = selectedArticle();
+    if (!article) {
+      showArticleOverview();
+      return;
+    }
+
+    const lines = Array.isArray(article.order_lines) ? article.order_lines : [];
+    const pageCount = Math.max(1, Math.ceil(lines.length / TABLE_PAGE_SIZE));
+    state.detailPage = Math.min(Math.max(state.detailPage, 1), pageCount);
+    const pageStart = (state.detailPage - 1) * TABLE_PAGE_SIZE;
+    const visibleLines = lines.slice(pageStart, pageStart + TABLE_PAGE_SIZE);
+
+    setText(elements.articleDetailHeading, article.article_id + ' · ' + optionalText(article.article_name));
+    if (article.article_name_conflict) {
+      setText(elements.articleDetailWarning, translate('detail_conflict', {
+        variants: article.article_name_variants.join(' · ')
+      }));
+      elements.articleDetailWarning.classList.remove('hidden');
+    } else {
+      setText(elements.articleDetailWarning, '');
+      elements.articleDetailWarning.classList.add('hidden');
+    }
+    renderArticleDetailMetrics(article);
+
+    elements.articleDetailTableBody.replaceChildren();
+    if (visibleLines.length === 0) {
+      const emptyRow = document.createElement('tr');
+      emptyRow.className = 'empty-row';
+      const emptyCell = document.createElement('td');
+      emptyCell.colSpan = 8;
+      setText(emptyCell, translate('no_detail_rows'));
+      emptyRow.appendChild(emptyCell);
+      elements.articleDetailTableBody.appendChild(emptyRow);
+    } else {
+      visibleLines.forEach(function (line) {
+        const row = document.createElement('tr');
+        appendCell(row, String(line.source_line), 'number');
+        appendCell(row, line.order_id);
+        appendCell(row, line.order_date);
+        appendCell(row, formatQuantity(line.quantity), 'number');
+        appendCell(row, optionalText(line.customer_id));
+        appendCell(row, line.sales_value === null ? translate('empty_value') : formatSalesValue(line.sales_value, line.sales_value_exact), 'number');
+        appendCell(row, optionalText(line.location), 'location-cell');
+        appendCell(row, optionalText(line.article_name), 'article-name-cell');
+        elements.articleDetailTableBody.appendChild(row);
+      });
+    }
+
+    elements.articleDetailPagination.classList.toggle('hidden', lines.length <= TABLE_PAGE_SIZE);
+    elements.articleDetailPrevious.disabled = state.detailPage <= 1;
+    elements.articleDetailNext.disabled = state.detailPage >= pageCount;
+    setText(elements.articleDetailPageStatus, translate('detail_page', {
+      page: state.detailPage,
+      pages: pageCount,
+      count: visibleLines.length
+    }));
+    elements.articleOverviewPanel.classList.add('hidden');
+    elements.articleDetailPanel.classList.remove('hidden');
+  }
+
+  function showArticleOverview(focusArticleId) {
+    state.selectedArticleId = null;
+    state.detailPage = 1;
+    elements.articleDetailPanel.classList.add('hidden');
+    elements.articleOverviewPanel.classList.remove('hidden');
+    if (focusArticleId) {
+      const matchingButton = Array.from(elements.articleTableBody.querySelectorAll('button[data-article-id]'))
+        .find(function (button) { return button.dataset.articleId === focusArticleId; });
+      if (matchingButton) {
+        matchingButton.focus();
+      }
+    }
+  }
+
+  function openArticleDetail(articleId) {
+    if (!state.analysis || !state.analysis.articles.some(function (article) { return article.article_id === articleId; })) {
+      return;
+    }
+    state.selectedArticleId = articleId;
+    state.detailPage = 1;
+    renderArticleDetail();
+    elements.articleDetailTitle.focus();
+  }
+
   function renderArticles() {
     const allArticles = sortedArticles();
     const pageCount = Math.max(1, Math.ceil(allArticles.length / TABLE_PAGE_SIZE));
@@ -562,7 +757,7 @@
       const row = document.createElement('tr');
       row.className = 'empty-row';
       const cell = document.createElement('td');
-      cell.colSpan = 8;
+      cell.colSpan = 10;
       setText(cell, translate('no_matches'));
       row.appendChild(cell);
       elements.articleTableBody.appendChild(row);
@@ -571,13 +766,15 @@
 
     articles.forEach(function (article) {
       const row = document.createElement('tr');
-      appendCell(row, article.article_id);
+      appendArticleIdCell(row, article);
+      appendArticleNameCell(row, article);
       appendCell(row, formatNumber(article.order_line_count, 0), 'number');
       appendCell(row, formatQuantity(article.total_quantity), 'number');
       appendCell(row, formatArticleSales(article), 'number');
       appendCell(row, formatNumber(article.distinct_orders, 0), 'number');
       appendCell(row, formatNumber(article.distinct_customers, 0), 'number');
       appendCell(row, formatNumber(article.active_days, 0), 'number');
+      appendCell(row, formatLocations(article.locations), 'location-cell');
       appendCell(row, formatSharePercent(article.share_of_order_lines), 'number');
       elements.articleTableBody.appendChild(row);
     });
@@ -614,11 +811,16 @@
     });
   }
 
-  function renderResults(result) {
+  function renderResults(result, options) {
+    const preserveView = Boolean(options && options.preserveView);
     state.result = result;
     state.analysis = core.analyzeRows(result.rows);
-    state.articlePage = 1;
-    state.issuePage = 1;
+    if (!preserveView) {
+      state.articlePage = 1;
+      state.selectedArticleId = null;
+      state.detailPage = 1;
+      state.issuePage = 1;
+    }
     const hasIssues = result.invalidRows > 0 || result.issues.some(function (issue) { return issue.sourceLine === null; });
     elements.importSummary.className = 'import-summary' + (hasIssues ? ' warning' : '');
     let summary = translate('summary_valid', {
@@ -636,6 +838,11 @@
     setText(elements.importSummary, summary);
     renderMetrics(state.analysis);
     renderArticles();
+    if (state.selectedArticleId && selectedArticle()) {
+      renderArticleDetail();
+    } else {
+      showArticleOverview();
+    }
     renderIssues(result.issues);
     elements.exportButton.disabled = result.validRows === 0;
     elements.resultsPanel.classList.remove('hidden');
@@ -658,6 +865,8 @@
     state.dataRowCount = 0;
     state.hasParseErrors = false;
     state.articlePage = 1;
+    state.selectedArticleId = null;
+    state.detailPage = 1;
     state.issuePage = 1;
     elements.articleFilter.value = '';
     elements.mappingGrid.replaceChildren();
@@ -742,6 +951,8 @@
     state.result = null;
     state.analysis = null;
     state.articlePage = 1;
+    state.selectedArticleId = null;
+    state.detailPage = 1;
     state.issuePage = 1;
     elements.fileInput.value = '';
     elements.articleFilter.value = '';
@@ -775,6 +986,26 @@
   elements.articleNext.addEventListener('click', function () {
     state.articlePage += 1;
     renderArticles();
+  });
+  elements.articleTableBody.addEventListener('click', function (event) {
+    const button = event.target.closest('button[data-article-id]');
+    if (button && elements.articleTableBody.contains(button)) {
+      openArticleDetail(button.dataset.articleId);
+    }
+  });
+  elements.articleDetailBack.addEventListener('click', function () {
+    const articleId = state.selectedArticleId;
+    showArticleOverview(articleId);
+  });
+  elements.articleDetailPrevious.addEventListener('click', function () {
+    if (state.detailPage > 1) {
+      state.detailPage -= 1;
+      renderArticleDetail();
+    }
+  });
+  elements.articleDetailNext.addEventListener('click', function () {
+    state.detailPage += 1;
+    renderArticleDetail();
   });
   elements.issuePrevious.addEventListener('click', function () {
     if (state.issuePage > 1) {

@@ -67,7 +67,7 @@
         <div id="import-summary" class="import-summary" role="status"></div>
         <div id="metric-grid" class="metric-grid"></div>
 
-        <section class="panel table-panel" aria-labelledby="article-title">
+        <section id="article-overview-panel" class="panel table-panel" aria-labelledby="article-title">
           <div class="table-toolbar">
             <div>
               <h3 id="article-title" data-i18n="article_overview">Article overview</h3>
@@ -75,7 +75,7 @@
             </div>
             <label class="compact-field">
               <span data-i18n="search_label">Search</span>
-              <input id="article-filter" type="search" placeholder="Article ID" data-i18n-placeholder="search_placeholder">
+              <input id="article-filter" type="search" placeholder="Article ID or description" data-i18n-placeholder="search_placeholder">
             </label>
             <label class="compact-field">
               <span data-i18n="sort_label">Sort by</span>
@@ -91,13 +91,15 @@
             <table>
               <thead>
                 <tr>
-                  <th data-i18n="column_article">Article</th>
+                  <th data-i18n="column_article_id">Article ID</th>
+                  <th data-i18n="column_article_name">Article description</th>
                   <th class="number" data-i18n="column_lines">Lines</th>
                   <th class="number" data-i18n="column_quantity">Quantity</th>
                   <th class="number" data-i18n="column_sales">Sales value / coverage</th>
                   <th class="number" data-i18n="column_orders">Orders</th>
                   <th class="number" data-i18n="column_customers">Customers</th>
                   <th class="number" data-i18n="column_days">Days</th>
+                  <th data-i18n="column_locations">Locations</th>
                   <th class="number" data-i18n="column_share">Line share</th>
                 </tr>
               </thead>
@@ -108,6 +110,40 @@
             <button id="article-previous" class="secondary-button" type="button" disabled data-i18n="previous_page">Previous</button>
             <span id="article-page-status" class="table-note"></span>
             <button id="article-next" class="secondary-button" type="button" disabled data-i18n="next_page">Next</button>
+          </div>
+        </section>
+
+        <section id="article-detail-panel" class="panel table-panel hidden" aria-labelledby="article-detail-title">
+          <div class="detail-heading">
+            <div>
+              <button id="article-detail-back" class="text-button detail-back" type="button" data-i18n="detail_back">Back to article overview</button>
+              <h3 id="article-detail-title" tabindex="-1" data-i18n="article_detail">Article details</h3>
+              <p id="article-detail-heading" class="table-note"></p>
+            </div>
+          </div>
+          <div id="article-detail-warning" class="message warning-message hidden" role="status"></div>
+          <div id="article-detail-metrics" class="metric-grid detail-metric-grid"></div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th class="number" data-i18n="detail_source_line">Source line</th>
+                  <th data-i18n="detail_order_id">Order ID</th>
+                  <th data-i18n="detail_order_date">Order date</th>
+                  <th class="number" data-i18n="column_quantity">Quantity</th>
+                  <th data-i18n="detail_customer_id">Customer ID</th>
+                  <th class="number" data-i18n="detail_sales_value">Sales value</th>
+                  <th data-i18n="detail_location">Location</th>
+                  <th data-i18n="column_article_name">Article description</th>
+                </tr>
+              </thead>
+              <tbody id="article-detail-table-body"></tbody>
+            </table>
+          </div>
+          <div id="article-detail-pagination" class="table-pagination hidden" aria-live="polite">
+            <button id="article-detail-previous" class="secondary-button" type="button" disabled data-i18n="previous_page">Previous</button>
+            <span id="article-detail-page-status" class="table-note"></span>
+            <button id="article-detail-next" class="secondary-button" type="button" disabled data-i18n="next_page">Next</button>
           </div>
         </section>
 

@@ -4,7 +4,7 @@ OpenSlotting is an open-source, local-first web tool for analyzing warehouse ord
 
 The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. Future versions are planned to expand this foundation toward ABC/XYZ classification, configurable master data, slotting scores, and warehouse slotting recommendations.
 
-> **Project status:** V0.1 CSV import and order-line analysis foundation implemented.
+> **Project status:** V0.1 CSV import, article overview, and traceable article details implemented.
 
 ## Current V0.1 implementation
 
@@ -21,9 +21,13 @@ The current implementation includes:
 - decimal-point and decimal-comma number parsing
 - validation with source line and field information
 - preservation of raw field positions, including duplicate rows
+- optional article descriptions with English and German column aliases
+- stable article grouping by ID with visible description-conflict detection
 - article aggregation with quantity and order-line frequency kept separate
-- filtering, sorting, and analysis CSV export
+- filtering by article ID or description, sorting, and analysis CSV export
+- article details with aggregate metrics and source-line traceability
 - paginated article and validation-note rendering with 100 rows per page for large imports
+- paginated detail rows with 100 rows per page
 - English as the default interface language, with German available from the language selector
 
 The first implementation intentionally keeps data in memory for the current
@@ -56,6 +60,7 @@ A typical order-line dataset may contain fields such as:
 
 - Order ID
 - Article / SKU ID
+- Article description
 - Quantity
 - Date
 - Customer ID
@@ -76,7 +81,8 @@ Different ERP, WMS, and CSV export formats should be supported through configura
 6. Aggregate order lines by article
 7. Calculate basic warehouse activity metrics
 8. Sort and filter the results
-9. Export analysis results
+9. Open an article to inspect its normalized source rows
+10. Export analysis results
 
 ## Planned Metrics
 
@@ -117,12 +123,26 @@ For example:
 | ArtNr | Article ID |
 | SKU | Article ID |
 | Material | Article ID |
+| Article Name | Article description |
+| Description | Article description |
+| Artikelbezeichnung | Article description |
+| Bezeichnung | Article description |
 | AuftragsNr | Order ID |
 | OrderNumber | Order ID |
 | Menge | Quantity |
 | Qty | Quantity |
 
 Users should be able to define the mapping once and later reuse it as an import profile.
+
+Article descriptions are optional display metadata. Articles are always grouped by
+`article_id`. If one article ID has multiple distinct non-empty descriptions,
+OpenSlotting keeps the first non-empty description as the primary value and exposes
+the variants as a conflict in the overview, detail view, and analysis export.
+
+The analysis export keeps stable English headers. It includes `article_name`,
+`article_name_conflict`, and the JSON-encoded `article_name_variants` directly after
+`article_id`. Imported description text is protected against spreadsheet formula
+injection in the same way as article IDs.
 
 ## Local-First
 
