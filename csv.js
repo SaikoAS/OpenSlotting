@@ -14,6 +14,7 @@
   const FIELD_DEFINITIONS = Object.freeze([
     { key: 'order_id', label: 'Order ID', labels: { en: 'Order ID', de: 'Auftrags-ID' }, required: true },
     { key: 'article_id', label: 'Article ID', labels: { en: 'Article ID', de: 'Artikel-ID' }, required: true },
+    { key: 'article_name', label: 'Article description', labels: { en: 'Article description', de: 'Artikelbezeichnung' }, required: false },
     { key: 'quantity', label: 'Quantity', labels: { en: 'Quantity', de: 'Menge' }, required: true },
     { key: 'order_date', label: 'Order date', labels: { en: 'Order date', de: 'Auftragsdatum' }, required: true },
     { key: 'customer_id', label: 'Customer ID', labels: { en: 'Customer ID', de: 'Kunden-ID' }, required: false },
@@ -65,6 +66,7 @@
   const FIELD_ALIASES = Object.freeze({
     order_id: ['order_id', 'order id', 'ordernumber', 'order number', 'auftragsnr', 'auftragsnummer'],
     article_id: ['article_id', 'article id', 'sku', 'material', 'artnr', 'artikelnummer'],
+    article_name: ['article_name', 'article name', 'description', 'product name', 'artikelbezeichnung', 'bezeichnung', 'artikeltext', 'kurztext'],
     quantity: ['quantity', 'qty', 'menge', 'anzahl', 'stück', 'stueck'],
     order_date: ['order_date', 'order date', 'date', 'datum', 'bestelldatum'],
     customer_id: ['customer_id', 'customer id', 'customer', 'kdnr', 'kundennummer'],
@@ -452,6 +454,7 @@
 
     const orderId = requiredText('order_id', 'Auftrags-ID');
     const articleId = requiredText('article_id', 'Artikel-ID');
+    const articleNameRaw = rawValue('article_name');
     const quantityRaw = rawValue('quantity');
     const quantityResult = parseQuantity(quantityRaw);
     const quantity = quantityResult.value;
@@ -533,6 +536,7 @@
         }),
         order_id: orderId,
         article_id: articleId,
+        article_name: articleNameRaw || null,
         quantity: quantity,
         order_date: orderDate,
         customer_id: customerIdRaw || null,
@@ -821,6 +825,22 @@
     return comparison === 0 ? 0 : -comparison;
   }
 
+  function articleMatchesQuery(article, query, locale) {
+    const languageTag = normalizeLocale(locale) === 'de' ? 'de-DE' : 'en-US';
+    const normalizedQuery = String(query === undefined || query === null ? '' : query)
+      .trim()
+      .toLocaleLowerCase(languageTag);
+    if (!normalizedQuery) {
+      return true;
+    }
+
+    return [article && article.article_id, article && article.article_name].some(function (value) {
+      return String(value === undefined || value === null ? '' : value)
+        .toLocaleLowerCase(languageTag)
+        .indexOf(normalizedQuery) >= 0;
+    });
+  }
+
   function analyzeRows(rows) {
     const articleMap = new Map();
     const orderIds = new Set();
@@ -851,6 +871,8 @@
       if (!articleMap.has(row.article_id)) {
         articleMap.set(row.article_id, {
           article_id: row.article_id,
+          article_name: null,
+          article_name_variants: new Set(),
           order_line_count: 0,
           total_quantity: 0n,
           order_ids: new Set(),
@@ -858,11 +880,18 @@
           active_days: new Set(),
           total_sales: decimalZero(),
           sales_value_rows: 0,
-          locations: new Set()
+          locations: new Set(),
+          order_lines: []
         });
       }
 
       const article = articleMap.get(row.article_id);
+      if (row.article_name) {
+        if (article.article_name === null) {
+          article.article_name = row.article_name;
+        }
+        article.article_name_variants.add(row.article_name);
+      }
       article.order_line_count += 1;
       article.total_quantity += row.quantity;
       article.order_ids.add(row.order_id);
@@ -877,6 +906,7 @@
       if (row.location) {
         article.locations.add(row.location);
       }
+      article.order_lines.push(row);
     });
 
     const articles = Array.from(articleMap.values())
@@ -889,6 +919,9 @@
         const totalSalesExact = decimalToText(article.total_sales);
         return {
           article_id: article.article_id,
+          article_name: article.article_name,
+          article_name_variants: Array.from(article.article_name_variants),
+          article_name_conflict: article.article_name_variants.size > 1,
           order_line_count: article.order_line_count,
           total_quantity: article.total_quantity,
           distinct_orders: article.order_ids.size,
@@ -898,6 +931,7 @@
           total_sales_exact: totalSalesExact,
           sales_value_rows: article.sales_value_rows,
           locations: Array.from(article.locations).sort(),
+          order_lines: article.order_lines,
           share_of_order_lines: rows.length === 0 ? 0 : article.order_line_count / rows.length
         };
       });
@@ -994,10 +1028,21 @@
     return JSON.stringify(locations);
   }
 
+  function serializeArticleNameVariants(variants) {
+    if (!Array.isArray(variants) || variants.length === 0) {
+      return '';
+    }
+
+    return JSON.stringify(variants);
+  }
+
   function exportAnalysisCsv(articles, options) {
     const delimiter = options && options.delimiter ? options.delimiter : ';';
     const headers = [
       'article_id',
+      'article_name',
+      'article_name_conflict',
+      'article_name_variants',
       'order_line_count',
       'total_quantity',
       'distinct_orders',
@@ -1014,6 +1059,9 @@
     articles.forEach(function (article) {
       lines.push([
         protectSpreadsheetText(article.article_id),
+        protectSpreadsheetText(article.article_name),
+        article.article_name_conflict ? 'true' : 'false',
+        protectSpreadsheetText(serializeArticleNameVariants(article.article_name_variants)),
         article.order_line_count,
         serializeQuantity(article.total_quantity),
         article.distinct_orders,
@@ -1037,6 +1085,7 @@
     SALES_DECIMAL_PLACES: SALES_DECIMAL_PLACES,
     detectMapping: detectMapping,
     analyzeRows: analyzeRows,
+    articleMatchesQuery: articleMatchesQuery,
     compareSalesValuesDescending: compareSalesValuesDescending,
     compareScaledQuantitiesDescending: compareScaledQuantitiesDescending,
     exportAnalysisCsv: exportAnalysisCsv,

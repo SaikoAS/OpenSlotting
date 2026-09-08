@@ -10,6 +10,18 @@ function fixture(name) {
   return fs.readFileSync(path.join(__dirname, '..', 'test-data', name), 'utf8');
 }
 
+function parseAnalysisExport(articles) {
+  const parsed = csv.parseCsv(csv.exportAnalysisCsv(articles));
+  assert.deepEqual(parsed.errors, []);
+  const headers = parsed.rows[0].values;
+  return {
+    headers,
+    rows: parsed.rows.slice(1).map((row) => Object.fromEntries(
+      headers.map((header, index) => [header, row.values[index]])
+    ))
+  };
+}
+
 test('basic fixture matches its documented metrics', () => {
   const result = csv.importCsv(fixture('basic-orders.csv'));
   const analysis = csv.analyzeRows(result.rows);
@@ -30,6 +42,113 @@ test('German headers, dates and decimal commas are detected and normalized', () 
   assert.equal(result.rows[0].order_date, '2026-09-01');
   assert.equal(result.rows[0].sales_value, 19.98);
   assert.equal(result.rows[0].article_id, 'ART-001');
+});
+
+test('article description aliases are detected in English and German', () => {
+  const aliases = [
+    'article_name',
+    'Article Name',
+    'Description',
+    'Product Name',
+    'Artikelbezeichnung',
+    'Bezeichnung',
+    'Artikeltext',
+    'Kurztext'
+  ];
+
+  aliases.forEach((alias) => {
+    const mapping = csv.detectMapping(['order_id', 'article_id', alias, 'quantity', 'order_date']);
+    assert.equal(mapping.article_name, 2, alias);
+  });
+  const germanImport = csv.importCsv('AuftragsNr;ArtNr;Artikelbezeichnung;Menge;Datum\nO-1;A-1;Synthetischer Artikel;1;01.09.2026\n');
+  assert.equal(germanImport.rows[0].article_name, 'Synthetischer Artikel');
+  assert.equal(csv.getFieldLabel('article_name', 'en'), 'Article description');
+  assert.equal(csv.getFieldLabel('article_name', 'de'), 'Artikelbezeichnung');
+});
+
+test('optional article descriptions import without invalidating empty values', () => {
+  const result = csv.importCsv(fixture('article-descriptions.csv'));
+
+  assert.equal(result.validRows, 8);
+  assert.equal(result.invalidRows, 0);
+  assert.equal(result.rows[0].article_name, 'Citrus Juice 1L');
+  assert.equal(result.rows[2].article_name, 'Citrus Juice; "Special" 1 L');
+  assert.equal(result.rows[3].article_name, null);
+  assert.equal(result.rows[4].article_name, null);
+});
+
+test('manual mapping supports article descriptions', () => {
+  const text = 'Order;SKU;Readable text;Qty;Date\nO1;A1;Synthetic widget;1;2026-09-01\n';
+  const mapping = {
+    order_id: 0,
+    article_id: 1,
+    article_name: 2,
+    quantity: 3,
+    order_date: 4,
+    customer_id: null,
+    sales_value: null,
+    location: null
+  };
+  const result = csv.importCsv(text, mapping);
+
+  assert.equal(result.validRows, 1);
+  assert.equal(result.rows[0].article_name, 'Synthetic widget');
+});
+
+test('article descriptions remain metadata while conflicts and source rows stay traceable', () => {
+  const result = csv.importCsv(fixture('article-descriptions.csv'));
+  const analysis = csv.analyzeRows(result.rows);
+  const conflicting = analysis.articles.find((article) => article.article_id === 'SKU-ALPHA');
+  const stable = analysis.articles.find((article) => article.article_id === 'SKU-STABLE');
+  const empty = analysis.articles.find((article) => article.article_id === 'SKU-EMPTY');
+
+  assert.equal(conflicting.order_line_count, 4);
+  assert.equal(conflicting.article_name, 'Citrus Juice 1L');
+  assert.deepEqual(conflicting.article_name_variants, ['Citrus Juice 1L', 'Citrus Juice; "Special" 1 L']);
+  assert.equal(conflicting.article_name_conflict, true);
+  assert.deepEqual(conflicting.order_lines.map((row) => row.source_line), [2, 3, 4, 5]);
+  assert.ok(conflicting.order_lines.every((row) => row.article_id === 'SKU-ALPHA'));
+  assert.equal(conflicting.order_lines[0], result.rows[0]);
+
+  assert.equal(stable.article_name, 'Steel Bottle');
+  assert.deepEqual(stable.article_name_variants, ['Steel Bottle']);
+  assert.equal(stable.article_name_conflict, false);
+
+  assert.equal(empty.article_name, null);
+  assert.deepEqual(empty.article_name_variants, []);
+  assert.equal(empty.article_name_conflict, false);
+});
+
+test('article search matches IDs and descriptions', () => {
+  const analysis = csv.analyzeRows(csv.importCsv(fixture('article-descriptions.csv')).rows);
+  const article = analysis.articles.find((item) => item.article_id === 'SKU-ALPHA');
+
+  assert.equal(csv.articleMatchesQuery(article, 'sku-alpha', 'en'), true);
+  assert.equal(csv.articleMatchesQuery(article, 'citrus juice', 'en'), true);
+  assert.equal(csv.articleMatchesQuery(article, '  CITRUS  ', 'en'), true);
+  assert.equal(csv.articleMatchesQuery(article, 'steel', 'en'), false);
+  assert.equal(csv.articleMatchesQuery(article, '', 'de'), true);
+});
+
+test('analysis export includes protected article descriptions and conflict metadata', () => {
+  const analysis = csv.analyzeRows(csv.importCsv(fixture('article-descriptions.csv')).rows);
+  const exported = parseAnalysisExport(analysis.articles);
+  const conflicting = exported.rows.find((row) => row.article_id === 'SKU-ALPHA');
+  const empty = exported.rows.find((row) => row.article_id === 'SKU-EMPTY');
+  const formula = exported.rows.find((row) => row.article_id === 'SKU-FORMULA');
+
+  assert.deepEqual(exported.headers.slice(0, 4), [
+    'article_id',
+    'article_name',
+    'article_name_conflict',
+    'article_name_variants'
+  ]);
+  assert.equal(conflicting.article_name, 'Citrus Juice 1L');
+  assert.equal(conflicting.article_name_conflict, 'true');
+  assert.deepEqual(JSON.parse(conflicting.article_name_variants), ['Citrus Juice 1L', 'Citrus Juice; "Special" 1 L']);
+  assert.equal(empty.article_name, '');
+  assert.equal(empty.article_name_conflict, 'false');
+  assert.equal(formula.article_name, "'=2+2");
 });
 
 test('quantity precision is explicit and enforced during import', () => {
@@ -87,10 +206,12 @@ test('sales aggregation preserves exact totals beyond the safe numeric range', (
   const result = csv.importCsv(text);
   const analysis = csv.analyzeRows(result.rows);
   const article = analysis.articles[0];
+  const exportedArticle = parseAnalysisExport(analysis.articles).rows[0];
 
   assert.equal(article.total_sales, '9007199254740993');
   assert.equal(article.total_sales_exact, '9007199254740993');
-  assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;2;2;2;0;1;9007199254740993;2;/);
+  assert.equal(exportedArticle.total_sales, '9007199254740993');
+  assert.equal(exportedArticle.sales_value_rows, '2');
 });
 
 test('quoted CR-only newlines keep later source lines accurate', () => {
@@ -249,14 +370,19 @@ test('analysis CSV export preserves sales precision and share values', () => {
   const result = csv.importCsv(fixture('basic-orders.csv'));
   const analysis = csv.analyzeRows(result.rows);
   const exported = csv.exportAnalysisCsv(analysis.articles);
+  const exportedArticle = parseAnalysisExport(analysis.articles).rows.find((row) => row.article_id === 'SKU-100');
 
-  assert.match(exported, /SKU-100;4;7;4;3;3;69\.93;4;0\.3333333333333333;0\.3333333333333333;/);
+  assert.equal(exportedArticle.order_line_count, '4');
+  assert.equal(exportedArticle.total_quantity, '7');
+  assert.equal(exportedArticle.total_sales, '69.93');
+  assert.equal(exportedArticle.share_of_order_lines, '0.3333333333333333');
+  assert.equal(exportedArticle.cumulative_share_of_order_lines, '0.3333333333333333');
   assert.doesNotMatch(exported, /69\.929999/);
   assert.doesNotMatch(exported, /0\.749999;/);
 });
 
 test('analysis CSV export rounds half-cent sales like the UI', () => {
-  const exported = csv.exportAnalysisCsv([{
+  const articles = [{
     article_id: 'A1',
     order_line_count: 1,
     total_quantity: 10000000n,
@@ -268,9 +394,9 @@ test('analysis CSV export rounds half-cent sales like the UI', () => {
     share_of_order_lines: 1,
     cumulative_share_of_order_lines: 1,
     locations: []
-  }]);
+  }];
 
-  assert.match(exported, /A1;1;1;1;0;1;1\.01;1;1;1;\r?\n/);
+  assert.equal(parseAnalysisExport(articles).rows[0].total_sales, '1.01');
 });
 
 test('sales sorting treats equal displayed totals as equal', () => {
@@ -291,7 +417,7 @@ test('analysis sorts equal-frequency articles by quantity descending', () => {
 });
 
 test('analysis CSV export preserves very small shares adaptively', () => {
-  const exported = csv.exportAnalysisCsv([{
+  const articles = [{
     article_id: 'A1',
     order_line_count: 1,
     total_quantity: 10000000n,
@@ -303,9 +429,11 @@ test('analysis CSV export preserves very small shares adaptively', () => {
     share_of_order_lines: 0.0000001,
     cumulative_share_of_order_lines: 0.0000001,
     locations: []
-  }]);
+  }];
 
-  assert.match(exported, /A1;1;1;1;0;1;0;0;0\.0000001;0\.0000001;\r?\n/);
+  const exportedArticle = parseAnalysisExport(articles).rows[0];
+  assert.equal(exportedArticle.share_of_order_lines, '0.0000001');
+  assert.equal(exportedArticle.cumulative_share_of_order_lines, '0.0000001');
 });
 
 test('cumulative shares use exact running line counts', () => {
@@ -320,9 +448,11 @@ test('cumulative shares use exact running line counts', () => {
   }));
   const analysis = csv.analyzeRows(rows);
   const lastArticle = analysis.articles[analysis.articles.length - 1];
+  const lastExportedArticle = parseAnalysisExport(analysis.articles).rows.find((row) => row.article_id === 'A9');
 
   assert.equal(lastArticle.cumulative_share_of_order_lines, 1);
-  assert.match(csv.exportAnalysisCsv(analysis.articles), /A9;1;1;1;0;1;0;0;0\.1111111111111111;1;\r?\n/);
+  assert.equal(lastExportedArticle.share_of_order_lines, '0.1111111111111111');
+  assert.equal(lastExportedArticle.cumulative_share_of_order_lines, '1');
 });
 
 test('fixed-point aggregation avoids floating-point quantity artifacts', () => {
@@ -332,7 +462,7 @@ test('fixed-point aggregation avoids floating-point quantity artifacts', () => {
   assert.equal(result.rows[0].quantity, 1000000n);
   assert.equal(result.rows[1].quantity, 2000000n);
   assert.equal(analysis.total_quantity, 3000000n);
-  assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;2;0\.3;2;0;1;0;0;1;1;/);
+  assert.equal(parseAnalysisExport(analysis.articles).rows[0].total_quantity, '0.3');
 });
 
 test('analysis CSV export preserves very small positive quantities', () => {
@@ -340,14 +470,14 @@ test('analysis CSV export preserves very small positive quantities', () => {
   const analysis = csv.analyzeRows(result.rows);
 
   assert.equal(result.rows[0].quantity, 1n);
-  assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;1;0\.0000001;1;0;1;0;0;1;1;\r?\n/);
+  assert.equal(parseAnalysisExport(analysis.articles).rows[0].total_quantity, '0.0000001');
 });
 
 test('analysis CSV export preserves safe integer quantities exactly', () => {
   const result = csv.importCsv('order_id;article_id;quantity;order_date\nO1;A1;1234567890123456;2026-09-01\n');
   const analysis = csv.analyzeRows(result.rows);
 
-  assert.match(csv.exportAnalysisCsv(analysis.articles), /A1;1;1234567890123456;1;0;1;0;0;1;1;\r?\n/);
+  assert.equal(parseAnalysisExport(analysis.articles).rows[0].total_quantity, '1234567890123456');
 });
 
 test('analysis CSV export includes per-article sales-value coverage', () => {
@@ -357,13 +487,15 @@ test('analysis CSV export includes per-article sales-value coverage', () => {
   ]);
 
   const exported = csv.exportAnalysisCsv(analysis.articles);
+  const exportedArticle = parseAnalysisExport(analysis.articles).rows[0];
 
   assert.match(exported, /total_sales;sales_value_rows;share_of_order_lines/);
-  assert.match(exported, /A1;2;2;2;0;2;10;1;1;1;/);
+  assert.equal(exportedArticle.total_sales, '10');
+  assert.equal(exportedArticle.sales_value_rows, '1');
 });
 
 test('analysis CSV export keeps location boundaries as JSON', () => {
-  const exported = csv.exportAnalysisCsv([
+  const articles = [
     {
       article_id: 'ONE',
       order_line_count: 1,
@@ -390,9 +522,9 @@ test('analysis CSV export keeps location boundaries as JSON', () => {
       cumulative_share_of_order_lines: 1,
       locations: ['A', 'B']
     }
-  ]);
-  const parsed = csv.parseCsv(exported);
-  const locationsByArticle = Object.fromEntries(parsed.rows.map((row) => [row.values[0], row.values[10]]));
+  ];
+  const exportedRows = parseAnalysisExport(articles).rows;
+  const locationsByArticle = Object.fromEntries(exportedRows.map((row) => [row.article_id, row.locations]));
 
   assert.deepEqual(JSON.parse(locationsByArticle.ONE), ['A, B']);
   assert.deepEqual(JSON.parse(locationsByArticle.TWO), ['A', 'B']);
@@ -406,6 +538,5 @@ test('analysis CSV export protects spreadsheet formula text', () => {
   const exported = csv.exportAnalysisCsv(analysis.articles);
 
   assert.match(exported, /'=SUM\(1,2\);/);
-  const parsed = csv.parseCsv(exported);
-  assert.deepEqual(JSON.parse(parsed.rows[1].values[10]), ['@ZONE']);
+  assert.deepEqual(JSON.parse(parseAnalysisExport(analysis.articles).rows[0].locations), ['@ZONE']);
 });

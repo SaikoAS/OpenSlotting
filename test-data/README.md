@@ -7,6 +7,9 @@ semicolon-separated. The canonical fixtures use these columns:
 order_id;article_id;quantity;order_date;customer_id;sales_value;location
 ```
 
+Fixtures that exercise optional descriptions add an `Article Name` or equivalent
+source column. The normalized key is always `article_name`.
+
 ## Fixtures
 
 | File | Purpose | Expected checks |
@@ -19,6 +22,7 @@ order_id;article_id;quantity;order_date;customer_id;sales_value;location
 | `invalid-values.csv` | Content validation | Missing article, missing quantity, zero and negative quantity, invalid date, and invalid sales value |
 | `malformed-columns.csv` | Structural CSV validation | One row has too few and one has too many columns |
 | `quoted-fields.csv` | CSV quoting | Semicolons inside quotes belong to the quoted field |
+| `article-descriptions.csv` | Optional article descriptions and detail traceability | English mapping, empty values, identical and conflicting descriptions, quoted punctuation, formula-like text, and stable source lines |
 
 ## German column mapping
 
