@@ -48,6 +48,7 @@ test('article description aliases are detected in English and German', () => {
   const aliases = [
     'article_name',
     'Article Name',
+    'Article description',
     'Description',
     'Product Name',
     'Artikelbezeichnung',

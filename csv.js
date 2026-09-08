@@ -66,7 +66,7 @@
   const FIELD_ALIASES = Object.freeze({
     order_id: ['order_id', 'order id', 'ordernumber', 'order number', 'auftragsnr', 'auftragsnummer'],
     article_id: ['article_id', 'article id', 'sku', 'material', 'artnr', 'artikelnummer'],
-    article_name: ['article_name', 'article name', 'description', 'product name', 'artikelbezeichnung', 'bezeichnung', 'artikeltext', 'kurztext'],
+    article_name: ['article_name', 'article name', 'article description', 'description', 'product name', 'artikelbezeichnung', 'bezeichnung', 'artikeltext', 'kurztext'],
     quantity: ['quantity', 'qty', 'menge', 'anzahl', 'stück', 'stueck'],
     order_date: ['order_date', 'order date', 'date', 'datum', 'bestelldatum'],
     customer_id: ['customer_id', 'customer id', 'customer', 'kdnr', 'kundennummer'],
