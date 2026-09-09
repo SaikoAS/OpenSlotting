@@ -23,6 +23,15 @@ test('runtime source has no mandatory network dependency', () => {
   });
 });
 
+test('release packaging reads files from an explicit Git commit', () => {
+  const packagingSource = fs.readFileSync(path.join(__dirname, '..', 'tools', 'package-release.ps1'), 'utf8');
+
+  assert.match(packagingSource, /\$CandidateCommit/);
+  assert.match(packagingSource, /git -C \$repositoryRoot @archiveArguments/);
+  assert.match(packagingSource, /Candidate commit:/);
+  assert.doesNotMatch(packagingSource, /Copy-Item/);
+});
+
 function fixture(name) {
   return fs.readFileSync(path.join(__dirname, '..', 'test-data', name), 'utf8');
 }

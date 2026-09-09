@@ -8,15 +8,24 @@ Use this checklist on the exact release candidate. Automated results do not repl
 | --- | --- |
 | Version | `0.1.0` |
 | Candidate branch | |
-| Candidate commit | |
+| PR candidate commit | |
+| Final `main` commit | |
 | Tester | |
 | Planned publication date | |
 | Acceptance date | |
 | Result | Pending |
 
-Before building the final candidate, replace `Unreleased` in `CHANGELOG.md` with the planned publication date recorded above. Complete the automated checks, packaging, ZIP extraction, and manual Edge acceptance only after that edit is part of the candidate commit.
+Before building the final PR candidate, replace `Unreleased` in `CHANGELOG.md` with the planned publication date recorded above. Complete the automated checks, packaging, ZIP extraction, and manual Edge acceptance only after that edit is part of the recorded PR candidate commit.
 
 Any later change to the publication date or another release-visible file invalidates the previous candidate. Commit the change, rebuild the ZIP, and repeat all automated and manual checks on the new exact candidate before tagging.
+
+The packaging script reads release files from the explicitly supplied Git commit, never from uncommitted working-tree content. Use the full hash recorded in this checklist:
+
+```text
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/package-release.ps1 -CandidateCommit <full-commit-hash>
+```
+
+Confirm that the commit printed by the script exactly matches the recorded candidate commit.
 
 ## Automated checks
 
@@ -27,7 +36,8 @@ Any later change to the publication date or another release-visible file invalid
 - [ ] `CHANGELOG.md` contains the planned publication date instead of `Unreleased`
 - [ ] Required GitHub Actions check `quality` passes on the exact final PR head
 - [ ] Runtime files contain no unexpected network, CDN, telemetry, backend, or localhost dependency
-- [ ] `powershell -NoProfile -ExecutionPolicy Bypass -File tools/package-release.ps1` creates `dist/OpenSlotting-v0.1.0.zip`
+- [ ] The full candidate commit hash is recorded above
+- [ ] `tools/package-release.ps1 -CandidateCommit <full-commit-hash>` reports that exact commit and creates `dist/OpenSlotting-v0.1.0.zip`
 - [ ] The ZIP contains only the documented user-facing files
 
 Expected ZIP contents:
@@ -82,11 +92,16 @@ Run these checks on Windows in Microsoft Edge Desktop with the network unavailab
 - [ ] Branch is current with `main`.
 - [ ] Codex review covers the exact final PR head and has no unresolved findings.
 - [ ] All review threads are resolved.
-- [ ] No release-visible file changed after the final package and acceptance run.
-- [ ] The candidate record above contains the final passing Edge result.
+- [ ] No release-visible file changed after the PR-head package and acceptance run.
+- [ ] The candidate record above contains the passing PR-head Edge result.
 - [ ] Release-preparation PR is squash-merged.
+- [ ] The resulting full `main` commit hash is recorded above.
 - [ ] CI succeeds on the resulting `main` commit.
-- [ ] Tag `v0.1.0` points to that exact accepted `main` commit.
+- [ ] The shipped-file tree on the resulting `main` commit matches the accepted PR head.
+- [ ] A fresh ZIP is built with `-CandidateCommit <final-main-commit>` and the script reports that exact commit.
+- [ ] All automated checks and all 25 manual Edge `file:///` checks pass again on the extracted ZIP from the final `main` commit.
+- [ ] No release-visible file changed after the final-`main` package and acceptance run.
+- [ ] Tag `v0.1.0` points to that exact accepted final `main` commit.
 - [ ] A normal, non-prerelease GitHub Release named `OpenSlotting v0.1.0 — Order-Line Analysis` is created from the tag.
 - [ ] `OpenSlotting-v0.1.0.zip` is attached to the release.
 - [ ] The attached ZIP is independently downloaded, extracted, and verified again through direct `file:///` execution.

@@ -1,19 +1,33 @@
 [CmdletBinding()]
 param(
-    [string]$OutputDirectory
+    [string]$OutputDirectory,
+    [string]$CandidateCommit = 'HEAD'
 )
 
 $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$versionSource = Join-Path $repositoryRoot 'csv.js'
+
+function Invoke-GitText {
+    param([string[]]$Arguments)
+
+    $commandOutput = & git -C $repositoryRoot @Arguments 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Git command failed: git $($Arguments -join ' ')`n$($commandOutput -join [Environment]::NewLine)"
+    }
+
+    return ($commandOutput -join [Environment]::NewLine).TrimEnd()
+}
+
+$resolvedCandidate = Invoke-GitText @('rev-parse', '--verify', "${CandidateCommit}^{commit}")
+$versionSource = Invoke-GitText @('show', "${resolvedCandidate}:csv.js")
 $versionMatch = [regex]::Match(
-    [System.IO.File]::ReadAllText($versionSource),
+    $versionSource,
     "const APP_VERSION = '([0-9]+\.[0-9]+\.[0-9]+)';"
 )
 
 if (-not $versionMatch.Success) {
-    throw 'Could not read APP_VERSION from csv.js.'
+    throw "Could not read APP_VERSION from csv.js at commit $resolvedCandidate."
 }
 
 $version = $versionMatch.Groups[1].Value
@@ -27,9 +41,6 @@ $outputRoot = [System.IO.Path]::GetFullPath($OutputDirectory)
 [System.IO.Directory]::CreateDirectory($outputRoot) | Out-Null
 $archivePath = Join-Path $outputRoot "$packageName.zip"
 
-$temporaryRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("openslotting-release-" + [guid]::NewGuid().ToString('N'))
-$packageRoot = Join-Path $temporaryRoot $packageName
-
 $releaseFiles = @(
     'index.html',
     'app.css',
@@ -40,37 +51,33 @@ $releaseFiles = @(
     'CHANGELOG.md',
     'CONTRIBUTING.md',
     'SECURITY.md',
-    'docs\data-format.md'
+    'docs/data-format.md'
 )
 
-try {
-    [System.IO.Directory]::CreateDirectory($packageRoot) | Out-Null
-
-    foreach ($relativePath in $releaseFiles) {
-        $sourcePath = Join-Path $repositoryRoot $relativePath
-        if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
-            throw "Required release file is missing: $relativePath"
-        }
-
-        $destinationPath = Join-Path $packageRoot $relativePath
-        [System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($destinationPath)) | Out-Null
-        Copy-Item -LiteralPath $sourcePath -Destination $destinationPath
-    }
-
-    if (Test-Path -LiteralPath $archivePath -PathType Leaf) {
-        Remove-Item -LiteralPath $archivePath
-    }
-
-    Compress-Archive -LiteralPath $packageRoot -DestinationPath $archivePath -CompressionLevel Optimal
-    Write-Output $archivePath
-}
-finally {
-    if (Test-Path -LiteralPath $temporaryRoot -PathType Container) {
-        $resolvedTemporaryRoot = [System.IO.Path]::GetFullPath($temporaryRoot)
-        $systemTemporaryRoot = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
-        if (-not $resolvedTemporaryRoot.StartsWith($systemTemporaryRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
-            throw "Refusing to remove an unexpected temporary path: $resolvedTemporaryRoot"
-        }
-        Remove-Item -LiteralPath $resolvedTemporaryRoot -Recurse -Force
+foreach ($relativePath in $releaseFiles) {
+    & git -C $repositoryRoot cat-file -e "${resolvedCandidate}:$relativePath" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Required release file is missing from commit ${resolvedCandidate}: $relativePath"
     }
 }
+
+if (Test-Path -LiteralPath $archivePath -PathType Leaf) {
+    Remove-Item -LiteralPath $archivePath
+}
+
+$archiveArguments = @(
+    'archive',
+    '--format=zip',
+    "--prefix=$packageName/",
+    "--output=$archivePath",
+    $resolvedCandidate,
+    '--'
+) + $releaseFiles
+
+$archiveOutput = & git -C $repositoryRoot @archiveArguments 2>&1
+if ($LASTEXITCODE -ne 0) {
+    throw "Release archive creation failed for commit $resolvedCandidate.`n$($archiveOutput -join [Environment]::NewLine)"
+}
+
+Write-Output "Candidate commit: $resolvedCandidate"
+Write-Output "Archive: $archivePath"
