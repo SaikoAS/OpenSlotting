@@ -81,7 +81,7 @@ Leading and trailing whitespace is ignored. Internal whitespace is rejected. An 
 - The value must be finite and within JavaScript's safe integer magnitude.
 - A value is rejected if conversion to a JavaScript number would lose its accepted decimal value.
 - Accepted values also retain an exact decimal representation, and totals are aggregated with exact decimal arithmetic.
-- The exported total is rounded to two decimal places.
+- The exported total is rounded to at most two decimal places and does not require trailing zeros.
 
 ## Dates
 
@@ -114,7 +114,7 @@ The analysis export uses semicolons and CRLF line endings by default. Its stable
 | `distinct_orders` | Number of distinct non-empty order IDs. |
 | `distinct_customers` | Number of distinct non-empty customer IDs. |
 | `active_days` | Number of distinct normalized order dates. |
-| `total_sales` | Exact accepted sales total, serialized to two decimal places; empty when no sales values exist. |
+| `total_sales` | Exact accepted sales total, rounded to at most two decimal places; `0` when no accepted sales values exist. |
 | `sales_value_rows` | Number of rows containing an accepted sales value. |
 | `share_of_order_lines` | Article line count divided by all valid order lines. |
 | `cumulative_share_of_order_lines` | Running line share in the current analysis order. |

@@ -511,15 +511,20 @@ test('analysis CSV export preserves safe integer quantities exactly', () => {
 test('analysis CSV export includes per-article sales-value coverage', () => {
   const analysis = csv.analyzeRows([
     { order_id: 'O1', article_id: 'A1', quantity: 10000000n, order_date: '2026-09-01', customer_id: null, sales_value: 10, location: null },
-    { order_id: 'O2', article_id: 'A1', quantity: 10000000n, order_date: '2026-09-02', customer_id: null, sales_value: null, location: null }
+    { order_id: 'O2', article_id: 'A1', quantity: 10000000n, order_date: '2026-09-02', customer_id: null, sales_value: null, location: null },
+    { order_id: 'O3', article_id: 'A2', quantity: 10000000n, order_date: '2026-09-02', customer_id: null, sales_value: null, location: null }
   ]);
 
   const exported = csv.exportAnalysisCsv(analysis.articles);
-  const exportedArticle = parseAnalysisExport(analysis.articles).rows[0];
+  const exportedArticles = parseAnalysisExport(analysis.articles).rows;
+  const coveredArticle = exportedArticles.find((article) => article.article_id === 'A1');
+  const uncoveredArticle = exportedArticles.find((article) => article.article_id === 'A2');
 
   assert.match(exported, /total_sales;sales_value_rows;share_of_order_lines/);
-  assert.equal(exportedArticle.total_sales, '10');
-  assert.equal(exportedArticle.sales_value_rows, '1');
+  assert.equal(coveredArticle.total_sales, '10');
+  assert.equal(coveredArticle.sales_value_rows, '1');
+  assert.equal(uncoveredArticle.total_sales, '0');
+  assert.equal(uncoveredArticle.sales_value_rows, '0');
 });
 
 test('analysis CSV export keeps location boundaries as JSON', () => {
