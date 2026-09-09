@@ -115,6 +115,7 @@ td:first-child { color: var(--accent-dark); font-weight: 800; }
 .issues-panel { box-shadow: none; }
 .issues-panel td:first-child, .issues-panel td:nth-child(3) { color: var(--danger); font-weight: 700; }
 .app-footer { display: flex; justify-content: space-between; gap: 16px; width: min(1180px, calc(100% - 48px)); margin: 0 auto 32px; color: var(--muted); font-size: .82rem; }
+.app-version { display: block; margin-top: 4px; font-weight: 800; }
 .text-button { padding: 0; border: 0; color: var(--accent); background: none; font-weight: 800; }
 .hidden { display: none !important; }
 

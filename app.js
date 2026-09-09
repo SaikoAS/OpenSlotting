@@ -262,6 +262,7 @@
     issuePrevious: document.getElementById('issue-previous'),
     issueNext: document.getElementById('issue-next'),
     issuePageStatus: document.getElementById('issue-page-status'),
+    appVersion: document.getElementById('app-version'),
     resetButton: document.getElementById('reset-button')
   };
 
@@ -492,6 +493,7 @@
   function applyLanguage() {
     document.documentElement.lang = state.language;
     document.title = translate('page_title');
+    setText(elements.appVersion, 'OpenSlotting v' + core.APP_VERSION);
     document.querySelectorAll('[data-i18n]').forEach(function (element) {
       setText(element, translate(element.dataset.i18n));
     });

@@ -30,6 +30,10 @@ The current implementation includes:
 - paginated detail rows with 100 rows per page
 - English as the default interface language, with German available from the language selector
 
+The complete implemented import, normalization, validation, and export contract is documented in [`docs/data-format.md`](docs/data-format.md).
+
+The official V0.1 acceptance target is Microsoft Edge Desktop on Windows with `index.html` opened directly through `file:///`. Other browsers may work, but are not part of the V0.1 compatibility claim unless they are tested separately.
+
 The first implementation intentionally keeps data in memory for the current
 browser session. It does not upload files or require a server, backend,
 Node.js, Python, or an internet connection.
@@ -52,9 +56,9 @@ The project is designed around a few core principles:
 - Modular architecture
 - Gradual evolution from order analysis toward slotting optimization
 
-## Initial Scope
+## V0.1 Scope
 
-The first version will focus exclusively on **order-line analysis**.
+V0.1 focuses exclusively on **order-line analysis**.
 
 A typical order-line dataset may contain fields such as:
 
@@ -67,11 +71,11 @@ A typical order-line dataset may contain fields such as:
 - Sales value
 - Current storage location
 
-Only a small subset of these fields should be required.
+Only order ID, article ID, quantity, and order date are required. The other listed fields are optional.
 
-Different ERP, WMS, and CSV export formats should be supported through configurable column mapping instead of hard-coded field names.
+Different ERP, WMS, and CSV export headers are supported through configurable column mapping instead of hard-coded field names.
 
-## Planned V0.1 Workflow
+## Current V0.1 Workflow
 
 1. Import a CSV file
 2. Detect available columns
@@ -84,9 +88,9 @@ Different ERP, WMS, and CSV export formats should be supported through configura
 9. Open an article to inspect its normalized source rows
 10. Export analysis results
 
-## Planned Metrics
+## Current Metrics
 
-The initial analysis is expected to include metrics such as:
+The current analysis includes metrics such as:
 
 - Number of order lines
 - Total quantity
@@ -132,7 +136,7 @@ For example:
 | Menge | Quantity |
 | Qty | Quantity |
 
-Users should be able to define the mapping once and later reuse it as an import profile.
+Users can review and change the mapping for the current import. Reusable persisted import profiles are not included in V0.1 and remain planned for V0.3.
 
 Article descriptions are optional display metadata. Articles are always grouped by
 `article_id`. If one article ID has multiple distinct non-empty descriptions,
@@ -173,6 +177,10 @@ The public project and demo data must not contain real company, customer, articl
 - Data validation
 - Article aggregation
 - Basic metrics
+- Optional article descriptions and conflict detection
+- Article search by ID and every retained description variant
+- Article detail view with source-line traceability
+- Pagination for large result and validation tables
 - Filtering and sorting
 - CSV export
 
@@ -247,16 +255,15 @@ Demo data may include fictional:
 
 No real operational or company data should be committed to the repository.
 
-The repository includes documented synthetic fixtures in
-[`test-data/README.md`](test-data/README.md). They cover standard imports,
+The repository's `test-data` directory contains documented synthetic fixtures. They cover standard imports,
 alternative column mappings, missing values, duplicates, invalid values,
 malformed rows, and CSV quoting.
 
 ## Technology
 
-The project is currently planned as a browser-based application using standard web technologies.
+V0.1 is implemented as a browser-based application using standard web technologies.
 
-Initial direction:
+Current implementation:
 
 - HTML
 - CSS
@@ -274,11 +281,7 @@ The technical architecture may evolve as the project develops, but the direct `f
 
 ## Contributing
 
-OpenSlotting is in an early stage.
-
-Ideas, discussions, bug reports, feature proposals, and contributions are welcome as the project develops.
-
-Before implementing large features, opening an issue to discuss the intended behavior and data model is recommended.
+Ideas, discussions, bug reports, feature proposals, and contributions are welcome. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the branch, pull-request, quality, local-file, and synthetic-data requirements.
 
 ## License
 
