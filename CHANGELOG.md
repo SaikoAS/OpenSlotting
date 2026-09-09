@@ -2,9 +2,7 @@
 
 All notable changes to OpenSlotting are documented in this file.
 
-## 0.1.0 - Unreleased
-
-Before the final release archive is built, replace `Unreleased` with the publication date selected for that candidate. The changelog date must equal the actual GitHub release date. If the date or any other release-visible file changes afterward, build a new candidate and repeat its automated and Microsoft Edge `file:///` acceptance checks before tagging.
+## 0.1.0 - 2026-09-09
 
 ### Added
 
