@@ -6,6 +6,32 @@ const test = require('node:test');
 const csv = require('../csv.js');
 const QUANTITY_SCALE = csv.QUANTITY_SCALE;
 
+test('release version is defined centrally for the UI and package', () => {
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+
+  assert.equal(csv.APP_VERSION, '0.1.0');
+  assert.match(appSource, /core\.APP_VERSION/);
+});
+
+test('runtime source has no mandatory network dependency', () => {
+  const runtimeFiles = ['index.html', 'app.css', 'app.js', 'csv.js'];
+  const forbiddenPattern = /https?:\/\/|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\blocalhost\b|127\.0\.0\.1/;
+
+  runtimeFiles.forEach((fileName) => {
+    const source = fs.readFileSync(path.join(__dirname, '..', fileName), 'utf8');
+    assert.doesNotMatch(source, forbiddenPattern, fileName);
+  });
+});
+
+test('release packaging reads files from an explicit Git commit', () => {
+  const packagingSource = fs.readFileSync(path.join(__dirname, '..', 'tools', 'package-release.ps1'), 'utf8');
+
+  assert.match(packagingSource, /\$CandidateCommit/);
+  assert.match(packagingSource, /git -C \$repositoryRoot @archiveArguments/);
+  assert.match(packagingSource, /Candidate commit:/);
+  assert.doesNotMatch(packagingSource, /Copy-Item/);
+});
+
 function fixture(name) {
   return fs.readFileSync(path.join(__dirname, '..', 'test-data', name), 'utf8');
 }
@@ -485,15 +511,20 @@ test('analysis CSV export preserves safe integer quantities exactly', () => {
 test('analysis CSV export includes per-article sales-value coverage', () => {
   const analysis = csv.analyzeRows([
     { order_id: 'O1', article_id: 'A1', quantity: 10000000n, order_date: '2026-09-01', customer_id: null, sales_value: 10, location: null },
-    { order_id: 'O2', article_id: 'A1', quantity: 10000000n, order_date: '2026-09-02', customer_id: null, sales_value: null, location: null }
+    { order_id: 'O2', article_id: 'A1', quantity: 10000000n, order_date: '2026-09-02', customer_id: null, sales_value: null, location: null },
+    { order_id: 'O3', article_id: 'A2', quantity: 10000000n, order_date: '2026-09-02', customer_id: null, sales_value: null, location: null }
   ]);
 
   const exported = csv.exportAnalysisCsv(analysis.articles);
-  const exportedArticle = parseAnalysisExport(analysis.articles).rows[0];
+  const exportedArticles = parseAnalysisExport(analysis.articles).rows;
+  const coveredArticle = exportedArticles.find((article) => article.article_id === 'A1');
+  const uncoveredArticle = exportedArticles.find((article) => article.article_id === 'A2');
 
   assert.match(exported, /total_sales;sales_value_rows;share_of_order_lines/);
-  assert.equal(exportedArticle.total_sales, '10');
-  assert.equal(exportedArticle.sales_value_rows, '1');
+  assert.equal(coveredArticle.total_sales, '10');
+  assert.equal(coveredArticle.sales_value_rows, '1');
+  assert.equal(uncoveredArticle.total_sales, '0');
+  assert.equal(uncoveredArticle.sales_value_rows, '0');
 });
 
 test('analysis CSV export keeps location boundaries as JSON', () => {

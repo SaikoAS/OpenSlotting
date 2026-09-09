@@ -7,6 +7,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
+  const APP_VERSION = '0.1.0';
   const QUANTITY_DECIMAL_PLACES = 7;
   const QUANTITY_SCALE = 10000000n;
   const SALES_DECIMAL_PLACES = 2;
@@ -1085,6 +1086,7 @@
   }
 
   return {
+    APP_VERSION: APP_VERSION,
     FIELD_DEFINITIONS: FIELD_DEFINITIONS,
     QUANTITY_DECIMAL_PLACES: QUANTITY_DECIMAL_PLACES,
     QUANTITY_SCALE: QUANTITY_SCALE,

@@ -1,0 +1,83 @@
+[CmdletBinding()]
+param(
+    [string]$OutputDirectory,
+    [string]$CandidateCommit = 'HEAD'
+)
+
+$ErrorActionPreference = 'Stop'
+
+$repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+
+function Invoke-GitText {
+    param([string[]]$Arguments)
+
+    $commandOutput = & git -C $repositoryRoot @Arguments 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Git command failed: git $($Arguments -join ' ')`n$($commandOutput -join [Environment]::NewLine)"
+    }
+
+    return ($commandOutput -join [Environment]::NewLine).TrimEnd()
+}
+
+$resolvedCandidate = Invoke-GitText @('rev-parse', '--verify', "${CandidateCommit}^{commit}")
+$versionSource = Invoke-GitText @('show', "${resolvedCandidate}:csv.js")
+$versionMatch = [regex]::Match(
+    $versionSource,
+    "const APP_VERSION = '([0-9]+\.[0-9]+\.[0-9]+)';"
+)
+
+if (-not $versionMatch.Success) {
+    throw "Could not read APP_VERSION from csv.js at commit $resolvedCandidate."
+}
+
+$version = $versionMatch.Groups[1].Value
+$packageName = "OpenSlotting-v$version"
+
+if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
+    $OutputDirectory = Join-Path $repositoryRoot 'dist'
+}
+
+$outputRoot = [System.IO.Path]::GetFullPath($OutputDirectory)
+[System.IO.Directory]::CreateDirectory($outputRoot) | Out-Null
+$archivePath = Join-Path $outputRoot "$packageName.zip"
+
+$releaseFiles = @(
+    'index.html',
+    'app.css',
+    'app.js',
+    'csv.js',
+    'README.md',
+    'LICENSE',
+    'CHANGELOG.md',
+    'CONTRIBUTING.md',
+    'SECURITY.md',
+    'docs/data-format.md'
+)
+
+foreach ($relativePath in $releaseFiles) {
+    & git -C $repositoryRoot cat-file -e "${resolvedCandidate}:$relativePath" 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        throw "Required release file is missing from commit ${resolvedCandidate}: $relativePath"
+    }
+}
+
+if (Test-Path -LiteralPath $archivePath -PathType Leaf) {
+    Remove-Item -LiteralPath $archivePath
+}
+
+$archiveArguments = @(
+    'archive',
+    '--format=zip',
+    "--prefix=$packageName/",
+    "--output=$archivePath",
+    $resolvedCandidate,
+    '--'
+) + $releaseFiles
+
+$archiveOutput = & git -C $repositoryRoot @archiveArguments 2>&1
+if ($LASTEXITCODE -ne 0) {
+    throw "Release archive creation failed for commit $resolvedCandidate.`n$($archiveOutput -join [Environment]::NewLine)"
+}
+
+Write-Output "Candidate commit: $resolvedCandidate"
+Write-Output "Archive: $archivePath"
