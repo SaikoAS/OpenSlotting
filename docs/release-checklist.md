@@ -10,10 +10,13 @@ Use this checklist on the exact release candidate. Automated results do not repl
 | Candidate branch | |
 | Candidate commit | |
 | Tester | |
+| Planned publication date | |
 | Acceptance date | |
 | Result | Pending |
 
-Before tagging, replace `Unreleased` in `CHANGELOG.md` with the actual acceptance/release date.
+Before building the final candidate, replace `Unreleased` in `CHANGELOG.md` with the planned publication date recorded above. Complete the automated checks, packaging, ZIP extraction, and manual Edge acceptance only after that edit is part of the candidate commit.
+
+Any later change to the publication date or another release-visible file invalidates the previous candidate. Commit the change, rebuild the ZIP, and repeat all automated and manual checks on the new exact candidate before tagging.
 
 ## Automated checks
 
@@ -21,6 +24,7 @@ Before tagging, replace `Unreleased` in `CHANGELOG.md` with the actual acceptanc
 - [ ] `node --check app.js`
 - [ ] `node --test tests/csv.test.cjs`
 - [ ] `git diff --check` reports no whitespace errors
+- [ ] `CHANGELOG.md` contains the planned publication date instead of `Unreleased`
 - [ ] Required GitHub Actions check `quality` passes on the exact final PR head
 - [ ] Runtime files contain no unexpected network, CDN, telemetry, backend, or localhost dependency
 - [ ] `powershell -NoProfile -ExecutionPolicy Bypass -File tools/package-release.ps1` creates `dist/OpenSlotting-v0.1.0.zip`
@@ -78,6 +82,7 @@ Run these checks on Windows in Microsoft Edge Desktop with the network unavailab
 - [ ] Branch is current with `main`.
 - [ ] Codex review covers the exact final PR head and has no unresolved findings.
 - [ ] All review threads are resolved.
+- [ ] No release-visible file changed after the final package and acceptance run.
 - [ ] The candidate record above contains the final passing Edge result.
 - [ ] Release-preparation PR is squash-merged.
 - [ ] CI succeeds on the resulting `main` commit.
