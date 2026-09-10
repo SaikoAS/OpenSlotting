@@ -91,7 +91,7 @@ test('high-confidence German warehouse aliases map to their intended fields', ()
 });
 
 test('compact German warehouse headers import automatically without ambiguous aliases', () => {
-  const bytes = fs.readFileSync(path.join(__dirname, '..', 'test-data', 'compact-german-windows-1252.csv'));
+  const bytes = Buffer.from(fs.readFileSync(path.join(__dirname, '..', 'test-data', 'compact-german-windows-1252.csv.hex'), 'ascii').replace(/\s/g, ''), 'hex');
   const result = csv.importCsv(encoding.decodeBuffer(bytes));
 
   assert.equal(result.validRows, 1);

@@ -24,7 +24,7 @@ source column. The normalized key is always `article_name`.
 | `malformed-columns.csv` | Structural CSV validation | One row has too few and one has too many columns |
 | `quoted-fields.csv` | CSV quoting | Semicolons inside quotes belong to the quoted field |
 | `article-descriptions.csv` | Optional article descriptions and detail traceability | English mapping, empty values, identical and conflicting descriptions, quoted punctuation, formula-like text, and stable source lines |
-| `compact-german-windows-1252.csv` | Compact German warehouse headers and Windows-1252 decoding | Automatic mapping of `AuftrNr`, `ArtNr`, `Bezeichnung`, `GMenge`, `LfDat`, `KdNr`, `VkWert`, and `LgPl`; German characters survive decoding |
+| `compact-german-windows-1252.csv.hex` | Hex-encoded Windows-1252 bytes for compact German warehouse headers | Automatic mapping of `AuftrNr`, `ArtNr`, `Bezeichnung`, `GMenge`, `LfDat`, `KdNr`, `VkWert`, and `LgPl`; German characters survive decoding; the ASCII hex representation keeps the non-UTF-8 fixture byte-exact across Git and patch tooling |
 
 ## German column mapping
 

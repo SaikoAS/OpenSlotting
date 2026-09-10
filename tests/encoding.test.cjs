@@ -37,7 +37,7 @@ test('decodes BOM-aware and BOM-less UTF-16 in both byte orders', () => {
 });
 
 test('falls back to Windows-1252 when strict UTF-8 decoding fails', () => {
-  const bytes = fs.readFileSync(path.join(__dirname, '..', 'test-data', 'compact-german-windows-1252.csv'));
+  const bytes = Buffer.from(fs.readFileSync(path.join(__dirname, '..', 'test-data', 'compact-german-windows-1252.csv.hex'), 'ascii').replace(/\s/g, ''), 'hex');
   const text = encoding.decodeBuffer(bytes);
 
   assert.match(text, /Größe Ölbehälter/);
