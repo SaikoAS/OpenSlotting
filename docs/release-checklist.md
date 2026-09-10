@@ -47,6 +47,7 @@ OpenSlotting-v0.1.0/
 ├── index.html
 ├── app.css
 ├── app.js
+├── encoding.js
 ├── csv.js
 ├── README.md
 ├── LICENSE

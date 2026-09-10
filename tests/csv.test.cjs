@@ -4,6 +4,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const csv = require('../csv.js');
+const encoding = require('../encoding.js');
 const QUANTITY_SCALE = csv.QUANTITY_SCALE;
 
 test('release version is defined centrally for the UI and package', () => {
@@ -14,7 +15,7 @@ test('release version is defined centrally for the UI and package', () => {
 });
 
 test('runtime source has no mandatory network dependency', () => {
-  const runtimeFiles = ['index.html', 'app.css', 'app.js', 'csv.js'];
+  const runtimeFiles = ['index.html', 'app.css', 'app.js', 'encoding.js', 'csv.js'];
   const forbiddenPattern = /https?:\/\/|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\blocalhost\b|127\.0\.0\.1/;
 
   runtimeFiles.forEach((fileName) => {
@@ -68,6 +69,43 @@ test('German headers, dates and decimal commas are detected and normalized', () 
   assert.equal(result.rows[0].order_date, '2026-09-01');
   assert.equal(result.rows[0].sales_value, 19.98);
   assert.equal(result.rows[0].article_id, 'ART-001');
+});
+
+test('high-confidence German warehouse aliases map to their intended fields', () => {
+  const aliasesByField = {
+    order_id: ['AuftrNr', 'AuftragNr', 'AuftragsID', 'KundenauftragsNr', 'Kundenauftragsnummer'],
+    article_id: ['ArtikelNr', 'MaterialNr', 'Materialnummer', 'ProduktNr', 'Produktnummer', 'SKUNr'],
+    article_name: ['Artikelname', 'Produktbezeichnung', 'Materialbezeichnung', 'Warenbezeichnung', 'Produkttext', 'Langtext'],
+    quantity: ['GMenge', 'Gesamtmenge', 'MengeGesamt', 'Auftragsmenge', 'Kommissioniermenge', 'Pickmenge', 'Entnahmemenge'],
+    order_date: ['LfDat', 'Lieferdatum'],
+    customer_id: ['KundenID', 'Debitor', 'DebitorNr', 'DebitorenNr'],
+    sales_value: ['VkWert', 'Verkaufswert', 'Umsatzwert', 'Positionswert', 'Nettowert', 'Positionsnettowert'],
+    location: ['LgPl', 'Lagerfach', 'LagerfachNr', 'Kommissionierplatz', 'Pickplatz', 'Entnahmeplatz']
+  };
+
+  Object.entries(aliasesByField).forEach(([field, aliases]) => {
+    aliases.forEach((alias) => {
+      assert.equal(csv.detectMapping([alias])[field], 0, `${alias} should map to ${field}`);
+    });
+  });
+});
+
+test('compact German warehouse headers import automatically without ambiguous aliases', () => {
+  const bytes = fs.readFileSync(path.join(__dirname, '..', 'test-data', 'compact-german-windows-1252.csv'));
+  const result = csv.importCsv(encoding.decodeBuffer(bytes));
+
+  assert.equal(result.validRows, 1);
+  assert.equal(result.invalidRows, 0);
+  assert.equal(result.rows[0].article_name, 'Größe Ölbehälter');
+  assert.equal(result.rows[0].quantity, 25000000n);
+  assert.equal(result.rows[0].location, 'Fach-Ä1');
+
+  ['Nummer', 'Preis', 'Einzelpreis', 'EAN', 'GTIN', 'Colli', 'Gebinde', 'VE', 'Lagerort', 'Fach']
+    .forEach((header) => assert.deepEqual(
+      Object.values(csv.detectMapping([header])).filter(Number.isInteger),
+      [],
+      `${header} should remain unmapped`
+    ));
 });
 
 test('article description aliases are detected in English and German', () => {

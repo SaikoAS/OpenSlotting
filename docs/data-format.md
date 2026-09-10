@@ -4,7 +4,7 @@ This document defines the import, normalization, and analysis-export contract im
 
 ## Input file
 
-The browser interface accepts CSV files encoded as UTF-8 or UTF-16. Windows-1252 and other legacy encodings are not supported in V0.1. The default delimiter is a semicolon (`;`). The first parsed record is required as the header row.
+The browser interface accepts CSV files encoded as UTF-8, UTF-16, or Windows-1252. Decoding first honors UTF-8 and UTF-16 byte-order marks, then detects plausible BOM-less UTF-16, attempts strict UTF-8, and finally falls back to Windows-1252 when UTF-8 decoding fails. Other legacy encodings are not supported. The default delimiter is a semicolon (`;`). The first parsed record is required as the header row.
 
 The CSV parser supports:
 
@@ -39,14 +39,14 @@ The following aliases are detected automatically:
 
 | OpenSlotting field | Accepted automatic aliases |
 | --- | --- |
-| `order_id` | `order_id`, `order id`, `ordernumber`, `order number`, `auftragsnr`, `auftragsnummer` |
-| `article_id` | `article_id`, `article id`, `sku`, `material`, `artnr`, `artikelnummer` |
-| `article_name` | `article_name`, `article name`, `article description`, `description`, `product name`, `artikelbezeichnung`, `bezeichnung`, `artikeltext`, `kurztext` |
-| `quantity` | `quantity`, `qty`, `menge`, `anzahl`, `stück`, `stueck` |
-| `order_date` | `order_date`, `order date`, `date`, `datum`, `bestelldatum` |
-| `customer_id` | `customer_id`, `customer id`, `customer`, `kdnr`, `kundennummer` |
-| `sales_value` | `sales_value`, `sales value`, `sales`, `revenue`, `umsatz`, `wert` |
-| `location` | `location`, `storage location`, `stellplatz`, `lagerplatz` |
+| `order_id` | `order_id`, `order id`, `ordernumber`, `order number`, `auftragsnr`, `auftragsnummer`, `auftrnr`, `auftragnr`, `auftragsid`, `kundenauftragsnr`, `kundenauftragsnummer` |
+| `article_id` | `article_id`, `article id`, `sku`, `material`, `artnr`, `artikelnummer`, `artikelnr`, `materialnr`, `materialnummer`, `produktnr`, `produktnummer`, `skunr` |
+| `article_name` | `article_name`, `article name`, `article description`, `description`, `product name`, `artikelbezeichnung`, `bezeichnung`, `artikeltext`, `kurztext`, `artikelname`, `produktbezeichnung`, `materialbezeichnung`, `warenbezeichnung`, `produkttext`, `langtext` |
+| `quantity` | `quantity`, `qty`, `menge`, `anzahl`, `stück`, `stueck`, `gmenge`, `gesamtmenge`, `mengegesamt`, `auftragsmenge`, `kommissioniermenge`, `pickmenge`, `entnahmemenge` |
+| `order_date` | `order_date`, `order date`, `date`, `datum`, `bestelldatum`, `lfdat`, `lieferdatum` |
+| `customer_id` | `customer_id`, `customer id`, `customer`, `kdnr`, `kundennummer`, `kundenid`, `debitor`, `debitornr`, `debitorennr` |
+| `sales_value` | `sales_value`, `sales value`, `sales`, `revenue`, `umsatz`, `wert`, `vkwert`, `verkaufswert`, `umsatzwert`, `positionswert`, `nettowert`, `positionsnettowert` |
+| `location` | `location`, `storage location`, `stellplatz`, `lagerplatz`, `lgpl`, `lagerfach`, `lagerfachnr`, `kommissionierplatz`, `pickplatz`, `entnahmeplatz` |
 
 The mapping screen permits a manual source-column selection for the current import. V0.1 does not persist reusable import profiles. Automatic detection assigns the first unused matching source column. A source column cannot be mapped to more than one OpenSlotting field. A reused source column or a missing required mapping prevents row import until the mapping is corrected.
 

@@ -2,6 +2,13 @@
 
 All notable changes to OpenSlotting are documented in this file.
 
+## Unreleased
+
+### Added
+
+- Windows-1252 CSV decoding after strict UTF-8 detection
+- additional high-confidence German warehouse export aliases
+
 ## 0.1.0 - 2026-09-09
 
 ### Added
