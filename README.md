@@ -2,7 +2,7 @@
 
 OpenSlotting is an open-source, local-first web tool for analyzing warehouse order lines and building a data-driven foundation for warehouse slotting.
 
-The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. Future versions are planned to expand this foundation toward ABC/XYZ classification, configurable master data, slotting scores, and warehouse slotting recommendations.
+The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. Future versions are planned to expand this foundation through multi-export analysis, separate locally stored workspaces, period comparisons, ABC/XYZ classification, configurable master data, slotting scores, and warehouse slotting recommendations.
 
 > **Project status:** V0.1 CSV import, article overview, and traceable article details implemented.
 
@@ -136,7 +136,7 @@ For example:
 | Menge | Quantity |
 | Qty | Quantity |
 
-Users can review and change the mapping for the current import. Reusable persisted import profiles are not included in V0.1 and remain planned for V0.3.
+Users can review and change the mapping for the current import. Workspace-specific mappings are planned for V0.3; reusable mapping templates remain planned for V0.6.
 
 Article descriptions are optional display metadata. Articles are always grouped by
 `article_id`. If one article ID has multiple distinct non-empty descriptions,
@@ -184,7 +184,40 @@ The public project and demo data must not contain real company, customer, articl
 - Filtering and sorting
 - CSV export
 
-### V0.2 — ABC / XYZ Analysis
+### V0.1.1 — Import Compatibility
+
+- Windows-1252 CSV support
+- BOM-aware and BOM-less UTF-16 detection
+- Broader high-confidence German ERP and warehouse header aliases
+
+### V0.2 — Multi-Export Analysis
+
+- Select and import multiple CSV exports
+- Encoding detection, mapping, and validation per file
+- Combined analysis across all valid normalized order lines
+- Source-file and source-line traceability
+- Visible warnings for potentially overlapping exports
+- No automatic cross-file deduplication without a reliable source-row key
+
+### V0.3 — Local Workspaces
+
+- Create and reopen separate workspaces in browser-local storage
+- Keep normalized order lines, source metadata, mappings, and validation results isolated per workspace
+- Add or remove source exports only within the selected workspace
+- Export or restore exactly one complete workspace per backup file
+- Restore a backup as a new workspace or explicitly replace one existing workspace
+- Never merge or mix two workspaces during restore
+- Portable workspace backups for migration between browser profiles or `file:///` origins
+- No mandatory cloud storage, backend, account, or network connection
+
+### V0.4 — Period Comparison
+
+- Select and compare defined analysis periods
+- Show data coverage and missing-period warnings
+- Compare article activity between periods
+- Establish the time-series foundation required for XYZ analysis
+
+### V0.5 — ABC / XYZ Analysis
 
 - ABC classification
 - Configurable ABC thresholds
@@ -192,21 +225,21 @@ The public project and demo data must not contain real company, customer, articl
 - XYZ classification
 - Combined ABC/XYZ matrix
 
-### V0.3 — Article Master Data
+### V0.6 — Article Master Data
 
 - Configurable article master data
 - Additional article attributes
 - Custom fields
-- Import profiles
+- Reusable mapping templates
 
-### V0.4 — Existing Storage Locations
+### V0.7 — Existing Storage Locations
 
 - Current storage locations
 - Storage zones
 - Location attributes
 - Comparison of article activity and current location
 
-### V0.5 — Slotting Evaluation
+### V0.8 — Slotting Evaluation
 
 - Configurable slotting scores
 - Article prioritization
