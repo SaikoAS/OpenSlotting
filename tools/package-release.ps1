@@ -45,6 +45,7 @@ $releaseFiles = @(
     'index.html',
     'app.css',
     'app.js',
+    'encoding.js',
     'csv.js',
     'README.md',
     'LICENSE',

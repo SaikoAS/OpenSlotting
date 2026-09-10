@@ -36,7 +36,7 @@
         </div>
         <label class="file-picker" for="file-input">
           <span class="file-picker-title" data-i18n="open_csv">Open CSV file</span>
-          <span class="file-picker-copy" data-i18n="file_format_hint">UTF-8 or UTF-16 with semicolon delimiter</span>
+          <span class="file-picker-copy" data-i18n="file_format_hint">UTF-8, UTF-16, or Windows-1252 with semicolon delimiter</span>
           <input id="file-input" type="file" accept=".csv,text/csv">
         </label>
         <p id="source-status" class="status-text" role="status" data-i18n="no_file_selected">No file selected yet.</p>
@@ -184,6 +184,7 @@
       <button id="reset-button" class="text-button" type="button" data-i18n="reset_button">Reset</button>
     </footer>
 
+    <script src="encoding.js"></script>
     <script src="csv.js"></script>
     <script src="app.js"></script>
   </body>

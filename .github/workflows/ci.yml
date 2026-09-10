@@ -38,8 +38,11 @@ jobs:
       - name: Check app.js syntax
         run: node --check app.js
 
-      - name: Run CSV tests
-        run: node --test tests/csv.test.cjs
+      - name: Check encoding.js syntax
+        run: node --check encoding.js
+
+      - name: Run tests
+        run: node --test tests/*.test.cjs
 
       - name: Verify release packaging
         shell: pwsh

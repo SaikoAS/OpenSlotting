@@ -15,7 +15,7 @@ analysis.
 
 The current implementation includes:
 
-- semicolon-separated CSV parsing with quoted fields
+- semicolon-separated UTF-8, UTF-16, and Windows-1252 CSV parsing with quoted fields
 - automatic mapping for canonical and common German column names
 - ISO and German date normalization
 - decimal-point and decimal-comma number parsing

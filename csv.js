@@ -65,14 +65,14 @@
   });
 
   const FIELD_ALIASES = Object.freeze({
-    order_id: ['order_id', 'order id', 'ordernumber', 'order number', 'auftragsnr', 'auftragsnummer'],
-    article_id: ['article_id', 'article id', 'sku', 'material', 'artnr', 'artikelnummer'],
-    article_name: ['article_name', 'article name', 'article description', 'description', 'product name', 'artikelbezeichnung', 'bezeichnung', 'artikeltext', 'kurztext'],
-    quantity: ['quantity', 'qty', 'menge', 'anzahl', 'stück', 'stueck'],
-    order_date: ['order_date', 'order date', 'date', 'datum', 'bestelldatum'],
-    customer_id: ['customer_id', 'customer id', 'customer', 'kdnr', 'kundennummer'],
-    sales_value: ['sales_value', 'sales value', 'sales', 'revenue', 'umsatz', 'wert'],
-    location: ['location', 'storage location', 'stellplatz', 'lagerplatz']
+    order_id: ['order_id', 'order id', 'ordernumber', 'order number', 'auftragsnr', 'auftragsnummer', 'auftrnr', 'auftragnr', 'auftragsid', 'kundenauftragsnr', 'kundenauftragsnummer'],
+    article_id: ['article_id', 'article id', 'sku', 'material', 'artnr', 'artikelnummer', 'artikelnr', 'materialnr', 'materialnummer', 'produktnr', 'produktnummer', 'skunr'],
+    article_name: ['article_name', 'article name', 'article description', 'description', 'product name', 'artikelbezeichnung', 'bezeichnung', 'artikeltext', 'kurztext', 'artikelname', 'produktbezeichnung', 'materialbezeichnung', 'warenbezeichnung', 'produkttext', 'langtext'],
+    quantity: ['quantity', 'qty', 'menge', 'anzahl', 'stück', 'stueck', 'gmenge', 'gesamtmenge', 'mengegesamt', 'auftragsmenge', 'kommissioniermenge', 'pickmenge', 'entnahmemenge'],
+    order_date: ['order_date', 'order date', 'date', 'datum', 'bestelldatum', 'lfdat', 'lieferdatum'],
+    customer_id: ['customer_id', 'customer id', 'customer', 'kdnr', 'kundennummer', 'kundenid', 'debitor', 'debitornr', 'debitorennr'],
+    sales_value: ['sales_value', 'sales value', 'sales', 'revenue', 'umsatz', 'wert', 'vkwert', 'verkaufswert', 'umsatzwert', 'positionswert', 'nettowert', 'positionsnettowert'],
+    location: ['location', 'storage location', 'stellplatz', 'lagerplatz', 'lgpl', 'lagerfach', 'lagerfachnr', 'kommissionierplatz', 'pickplatz', 'entnahmeplatz']
   });
 
   function isBlank(value) {

@@ -18,7 +18,8 @@ Run the repository checks before requesting review:
 ```text
 node --check csv.js
 node --check app.js
-node --test tests/csv.test.cjs
+node --check encoding.js
+node --test tests/*.test.cjs
 ```
 
 Runtime or UI changes that may affect local execution also require a manual Microsoft Edge Desktop check on Windows by opening `index.html` directly through `file:///`. Compilation and automated tests do not replace this runtime acceptance.

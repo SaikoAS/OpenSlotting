@@ -2,6 +2,7 @@
   'use strict';
 
   const core = window.OpenSlottingCsv;
+  const encoding = window.OpenSlottingEncoding;
   const TRANSLATIONS = {
     en: {
       page_title: 'OpenSlotting – CSV Analysis',
@@ -16,7 +17,7 @@
       select_file_title: 'Select a CSV file',
       local_hint: 'No data leaves your browser.',
       open_csv: 'Open CSV file',
-      file_format_hint: 'UTF-8 or UTF-16 with semicolon delimiter',
+      file_format_hint: 'UTF-8, UTF-16, or Windows-1252 with semicolon delimiter',
       no_file_selected: 'No file selected yet.',
       step_2: 'Step 2',
       mapping_title: 'Map source columns',
@@ -100,7 +101,7 @@
       structure_field: 'Structure',
       file_read_error: 'The file could not be read.',
       empty_file: 'The selected CSV file is empty or has no header row.',
-      invalid_encoding: 'The file encoding is not supported. Use UTF-8 or UTF-16.'
+      invalid_encoding: 'The file encoding is not supported. Use UTF-8, UTF-16, or Windows-1252.'
     },
     de: {
       page_title: 'OpenSlotting – CSV-Analyse',
@@ -115,7 +116,7 @@
       select_file_title: 'CSV-Datei auswählen',
       local_hint: 'Keine Daten verlassen den Browser.',
       open_csv: 'CSV-Datei öffnen',
-      file_format_hint: 'UTF-8 oder UTF-16 mit Semikolon-Trenner',
+      file_format_hint: 'UTF-8, UTF-16 oder Windows-1252 mit Semikolon-Trenner',
       no_file_selected: 'Noch keine Datei ausgewählt.',
       step_2: 'Schritt 2',
       mapping_title: 'Quellspalten zuordnen',
@@ -199,7 +200,7 @@
       structure_field: 'Struktur',
       file_read_error: 'Die Datei konnte nicht gelesen werden.',
       empty_file: 'Die ausgewählte CSV-Datei ist leer oder enthält keine Kopfzeile.',
-      invalid_encoding: 'Die Dateikodierung wird nicht unterstützt. Bitte UTF-8 oder UTF-16 verwenden.'
+      invalid_encoding: 'Die Dateikodierung wird nicht unterstützt. Bitte UTF-8, UTF-16 oder Windows-1252 verwenden.'
     }
   };
 
@@ -296,94 +297,14 @@
     renderSourceStatus();
   }
 
-  function detectBomlessUtf16(bytes) {
-    const sampleLength = Math.min(bytes.length - (bytes.length % 2), 4096);
-    if (sampleLength < 4) {
-      return null;
-    }
-
-    const pairCount = sampleLength / 2;
-    const candidates = [
-      { encoding: 'utf-16le', textIndex: 0, nullIndex: 1 },
-      { encoding: 'utf-16be', textIndex: 1, nullIndex: 0 }
-    ];
-    for (const candidate of candidates) {
-      let candidateSampleLength = sampleLength;
-      if (candidateSampleLength + 2 <= bytes.length) {
-        const lastCodeUnit = candidate.encoding === 'utf-16le'
-          ? bytes[candidateSampleLength - 2] | (bytes[candidateSampleLength - 1] << 8)
-          : (bytes[candidateSampleLength - 2] << 8) | bytes[candidateSampleLength - 1];
-        if (lastCodeUnit >= 0xD800 && lastCodeUnit <= 0xDBFF) {
-          candidateSampleLength += 2;
-        }
-      }
-
-      const pairCount = candidateSampleLength / 2;
-      let nullPairs = 0;
-      let asciiTextBytes = 0;
-      let structuralBytes = 0;
-      for (let index = 0; index < candidateSampleLength; index += 2) {
-        const textByte = bytes[index + candidate.textIndex];
-        const nullByte = bytes[index + candidate.nullIndex];
-        if (nullByte === 0) {
-          nullPairs += 1;
-        }
-        if (textByte >= 0x09 && textByte <= 0x7E) {
-          asciiTextBytes += 1;
-        }
-        if (textByte === 0x0A || textByte === 0x0D || textByte === 0x3B) {
-          structuralBytes += 1;
-        }
-      }
-
-      const threshold = Math.max(2, Math.ceil(pairCount * 0.3));
-      const asciiPattern = nullPairs >= threshold && asciiTextBytes >= threshold;
-      const structuralPattern = nullPairs >= 2 && structuralBytes >= 2;
-      if (!asciiPattern && !structuralPattern) {
-        continue;
-      }
-
-      try {
-        const sample = new TextDecoder(candidate.encoding, { fatal: true }).decode(bytes.slice(0, candidateSampleLength));
-        if (sample.indexOf('\u0000') === -1 && /[;\r\n]/.test(sample)) {
-          return candidate.encoding;
-        }
-      } catch (error) {
-        // Continue with the other byte order when the sample is not valid UTF-16.
-      }
-    }
-    return null;
-  }
-
-  function decodeBuffer(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let encoding = 'utf-8';
-    if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
-      encoding = 'utf-16le';
-    } else if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
-      encoding = 'utf-16be';
-    } else {
-      encoding = detectBomlessUtf16(bytes);
-      if (!encoding && bytes.some(function (byte) { return byte === 0; })) {
-        throw createTranslationError('invalid_encoding');
-      }
-      encoding = encoding || 'utf-8';
-    }
-    try {
-      return new TextDecoder(encoding, { fatal: true }).decode(bytes);
-    } catch (error) {
-      throw createTranslationError('invalid_encoding');
-    }
-  }
-
   function readFile(file) {
     return new Promise(function (resolve, reject) {
       const reader = new FileReader();
       reader.onload = function () {
         try {
-          resolve(decodeBuffer(reader.result));
+          resolve(encoding.decodeBuffer(reader.result));
         } catch (error) {
-          reject(error);
+          reject(createTranslationError('invalid_encoding'));
         }
       };
       reader.onerror = function () { reject(createTranslationError('file_read_error')); };
