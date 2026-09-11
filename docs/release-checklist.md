@@ -75,6 +75,8 @@ OpenSlotting-v0.2.1/
 
 Run these checks on Windows in Microsoft Edge Desktop with the network unavailable. Extract the candidate ZIP into a new directory and open its `index.html` directly. Record failures with the candidate commit and source fixture; use only fully synthetic data. Complete the multi-export checks in `docs/acceptance-v0.2.md` and the launcher/shortcut checks in `docs/acceptance-v0.2.1.md` on this same candidate.
 
+The V0.2 and V0.2.1 source-tree acceptance checklists were confirmed by the user on 2026-09-11 for commit `ebb6d6ec8333e564e63079d1eec6a60f3ab52495`. Final acceptance of the dated release ZIP remains pending.
+
 1. [ ] `index.html` opens directly through `file:///` without a server.
 2. [ ] The application loads without blocking runtime errors.
 3. [ ] A synthetic CSV can be imported.
@@ -121,7 +123,7 @@ Run these checks on Windows in Microsoft Edge Desktop with the network unavailab
 - [ ] CI succeeds on the resulting `main` commit.
 - [ ] The shipped-file tree on the resulting `main` commit matches the accepted PR head.
 - [ ] A fresh ZIP is built with `-CandidateCommit <final-main-commit>` and the script reports that exact commit.
-- [ ] All automated checks and all 25 manual Edge `file:///` checks pass again on the extracted ZIP from the final `main` commit.
+- [ ] All automated checks and all required manual Edge `file:///` checks pass again on the extracted ZIP from the final `main` commit.
 - [ ] No release-visible file changed after the final-`main` package and acceptance run.
 - [ ] Tag `v0.2.1` points to that exact accepted final `main` commit.
 - [ ] A normal, non-prerelease GitHub Release named `OpenSlotting v0.2.1 — Optional Windows Edge Launcher` is created from the tag.
