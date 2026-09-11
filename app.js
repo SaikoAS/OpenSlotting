@@ -1397,7 +1397,15 @@
   elements.resetButton.addEventListener('click', reset);
 
   elements.workspaceSelect.addEventListener('change', function () {
-    try { openWorkspace(elements.workspaceSelect.value); } catch (error) { workspaceError(error); }
+    try {
+      openWorkspace(elements.workspaceSelect.value);
+    } catch (error) {
+      // openWorkspace updates state only after the selected workspace has been
+      // persisted. Keep the control aligned with that state if persistence
+      // fails so subsequent workspace actions cannot target a hidden selection.
+      elements.workspaceSelect.value = state.workspaceId || '';
+      workspaceError(error);
+    }
   });
   elements.workspaceCreate.addEventListener('click', createWorkspace);
   elements.workspaceRename.addEventListener('click', function () {

@@ -74,6 +74,15 @@ test('browser UI declares multi-file selection and bilingual source traceability
   });
 });
 
+test('workspace selector reverts to the active workspace when opening fails', () => {
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+
+  assert.match(
+    appSource,
+    /workspaceSelect\.addEventListener\('change',[\s\S]*?catch \(error\) \{[\s\S]*?workspaceSelect\.value = state\.workspaceId \|\| '';/
+  );
+});
+
 test('browser translation dictionaries cover every referenced UI key', () => {
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
   const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
