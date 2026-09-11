@@ -1027,6 +1027,7 @@
   function decodeFileEntry(file) {
     file.errorKey = null;
     file.content = null;
+    file.contentFingerprint = null;
     file.parsed = null;
     file.headers = [];
     file.mapping = {};
@@ -1042,6 +1043,7 @@
         throw createTranslationError('empty_file');
       }
       file.content = decoded.text;
+      file.contentFingerprint = core.contentFingerprint(decoded.text);
       file.activeEncoding = decoded.encoding;
       if (decoded.automatic) {
         file.detectedEncoding = decoded.encoding;
@@ -1092,6 +1094,7 @@
         activeEncoding: null,
         detectedEncoding: null,
         content: null,
+        contentFingerprint: null,
         parsed: null,
         headers: [],
         mapping: {},
@@ -1172,20 +1175,25 @@
     return {
       files: state.files.map(function (file) {
         const saved = Object.assign({}, file);
-        delete saved.browserFile; delete saved.buffer; delete saved.content; saved.reading = false;
+        // parsed is the canonical copy of the imported rows. Everything produced
+        // from it is rebuilt when the workspace is opened.
+        delete saved.browserFile; delete saved.buffer; delete saved.content; delete saved.result;
+        delete saved.headers; delete saved.dataRowCount; delete saved.hasParseErrors;
+        saved.reading = false;
         return saved;
       }),
-      result: state.result, analysis: state.analysis, sourceStatus: state.sourceStatus,
+      analyzed: Boolean(state.result), sourceStatus: state.sourceStatus,
       articleFilter: elements.articleFilter.value, articleSort: elements.articleSort.value
     };
   }
 
   function persistWorkspace() {
-    if (!workspaceRepository || !state.workspaceId) return;
+    if (!workspaceRepository || !state.workspaceId) return false;
     try {
       workspaceRepository.save(state.workspaceId, workspaceSnapshot());
       elements.workspaceMessage.classList.add('hidden');
-    } catch (error) { workspaceError(error); }
+      return true;
+    } catch (error) { workspaceError(error); return false; }
   }
 
   function renderWorkspaceList() {
@@ -1203,13 +1211,26 @@
     if (!workspace) throw new Error('WORKSPACE_NOT_FOUND');
     workspaceRepository.select(workspaceId); state.workspaceId = workspaceId;
     const data = workspace.data || {};
-    state.files = data.files || []; state.result = data.result || null; state.analysis = data.analysis || null;
+    state.files = (data.files || []).map(function (savedFile) {
+      const file = Object.assign({}, savedFile, {
+        browserFile: null, buffer: null, content: null, reading: false, result: null
+      });
+      file.headers = file.parsed && file.parsed.rows.length
+        ? file.parsed.rows[0].values.map(function (header) { return String(header).trim(); }) : [];
+      file.dataRowCount = file.parsed ? Math.max(0, file.parsed.rows.length - 1) : 0;
+      file.hasParseErrors = Boolean(file.parsed && file.parsed.errors.length);
+      return file;
+    });
+    state.result = null; state.analysis = null;
     state.sourceStatus = data.sourceStatus || { key: 'no_file_selected', replacements: {}, error: false, text: '' };
     state.fileSelectionVersion += 1; state.articlePage = 1; state.selectedArticleId = null; state.detailPage = 1; state.issuePage = 1;
     elements.articleFilter.value = data.articleFilter || ''; elements.articleSort.value = data.articleSort || 'lines'; elements.fileInput.value = '';
     if (state.files.length) { elements.mappingPanel.classList.remove('hidden'); renderMapping(); elements.analyzeButton.disabled = !state.files.some(function (file) { return file.parsed; }); }
     else { elements.mappingPanel.classList.add('hidden'); elements.mappingGrid.replaceChildren(); }
-    if (state.result && state.analysis) renderResults(state.result, { preserveView: false }); else elements.resultsPanel.classList.add('hidden');
+    // `result` indicates an analyzed legacy snapshot; new snapshots use the
+    // explicit marker and regenerate all derived rows and article aggregates.
+    if ((data.analyzed || data.result) && state.files.length) refreshAnalyzedResults(false);
+    else elements.resultsPanel.classList.add('hidden');
     renderSourceStatus(); renderWorkspaceList();
   }
 
@@ -1221,7 +1242,9 @@
 
   function downloadWorkspace() {
     try {
-      persistWorkspace(); const text = workspaceRepository.export(state.workspaceId);
+      // Never download a stale stored copy after (for example) a quota failure.
+      if (!persistWorkspace()) return;
+      const text = workspaceRepository.export(state.workspaceId);
       const blob = new Blob([text], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a');
       link.href = url; link.download = 'openslotting-workspace.json'; link.click(); URL.revokeObjectURL(url);
     } catch (error) { workspaceError(error); }

@@ -262,6 +262,20 @@ test('batch warnings do not deduplicate identical files or duplicate rows', () =
   assert.ok(batch.warnings.some((warning) => warning.code === 'overlapping_date_ranges'));
 });
 
+test('batch warnings retain identical-content detection from persisted fingerprints', () => {
+  const text = 'order_id;article_id;quantity\nO1;A1;1\n';
+  const fingerprint = csv.contentFingerprint(text);
+  const result = csv.importCsv(text);
+  const warnings = csv.combineImportResults([
+    { id: 'source-1', name: 'first.csv', contentFingerprint: fingerprint, result },
+    { id: 'source-2', name: 'second.csv', contentFingerprint: fingerprint, result }
+  ]).warnings;
+
+  assert.match(fingerprint, /^[a-z0-9]+-[a-f0-9]{16}$/);
+  assert.ok(warnings.some((warning) => warning.code === 'identical_file_content'));
+  assert.notEqual(csv.contentFingerprint(text), csv.contentFingerprint(text + '\n'));
+});
+
 test('matching file metadata warns without treating different content as identical', () => {
   const firstText = 'order_id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
   const secondText = 'order_id;article_id;quantity;order_date\nO2;A2;1;2026-10-01\n';

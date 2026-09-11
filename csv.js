@@ -945,8 +945,10 @@
         const rightLabel = right.label || right.name || '';
         const sameContent = typeof left.content === 'string' && typeof right.content === 'string' &&
           left.content === right.content;
+        const sameFingerprint = typeof left.contentFingerprint === 'string' && left.contentFingerprint.length > 0 &&
+          left.contentFingerprint === right.contentFingerprint;
 
-        if (sameContent) {
+        if (sameContent || sameFingerprint) {
           warnings.push({
             code: 'identical_file_content',
             sourceFileIds: [left.id, right.id],
@@ -986,6 +988,22 @@
     }
 
     return warnings;
+  }
+
+  // A compact, deterministic content identity that can be retained after the decoded
+  // source text is discarded from a persisted workspace. Two independently mixed
+  // 32-bit values and the UTF-16 length make accidental collisions vanishingly rare.
+  function contentFingerprint(content) {
+    const text = String(content);
+    let first = 0x811c9dc5;
+    let second = 0x9e3779b9;
+    for (let index = 0; index < text.length; index += 1) {
+      const code = text.charCodeAt(index);
+      first = Math.imul(first ^ code, 0x01000193) >>> 0;
+      second = Math.imul(second ^ code, 0x85ebca6b) >>> 0;
+      second = ((second << 13) | (second >>> 19)) >>> 0;
+    }
+    return text.length.toString(36) + '-' + first.toString(16).padStart(8, '0') + second.toString(16).padStart(8, '0');
   }
 
   function combineImportResults(files) {
@@ -1358,6 +1376,7 @@
     assignSourceFileLabels: assignSourceFileLabels,
     detectMapping: detectMapping,
     combineImportResults: combineImportResults,
+    contentFingerprint: contentFingerprint,
     detectBatchWarnings: detectBatchWarnings,
     analyzeRows: analyzeRows,
     articleMatchesQuery: articleMatchesQuery,
