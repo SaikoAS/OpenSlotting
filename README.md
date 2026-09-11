@@ -4,9 +4,9 @@ OpenSlotting is an open-source, local-first web tool for analyzing warehouse ord
 
 The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. Future versions are planned to expand this foundation through multi-export analysis, separate locally stored workspaces, period comparisons, ABC/XYZ classification, configurable master data, slotting scores, and warehouse slotting recommendations.
 
-> **Project status:** V0.2 multi-export analysis with per-file validation and source traceability implemented.
+> **Project status:** V0.2.1 development with multi-export analysis and an optional Windows Edge app-mode launcher.
 
-## Current V0.2 implementation
+## Current V0.2.1 implementation
 
 OpenSlotting currently provides a browser-local first feature for importing and
 analyzing order-line CSV files. Open `index.html` directly in a supported
@@ -36,6 +36,7 @@ The current implementation includes:
 - warnings for overlapping date ranges, identical decoded content, and matching file metadata
 - no automatic cross-file deduplication
 - source-file coverage in the analysis export
+- optional Windows launch, current-user shortcut setup, and safe shortcut removal for Microsoft Edge app mode
 
 The complete implemented import, normalization, validation, and export contract is documented in [`docs/data-format.md`](docs/data-format.md).
 
@@ -44,6 +45,40 @@ The published V0.1 release was accepted in Microsoft Edge Desktop on Windows wit
 The current implementation intentionally keeps data in memory for the current
 browser session. It does not upload files or require a server, backend,
 Node.js, Python, or an internet connection.
+
+## Optional Windows launcher
+
+Directly opening `index.html` remains the core and fully independent way to run
+OpenSlotting. The V0.2.1 release files also provide an optional convenience path
+for Windows users:
+
+1. Extract the complete release ZIP into a user-writable folder.
+2. Double-click `Start-OpenSlotting.cmd` to open that copy directly in Microsoft
+   Edge app mode without installing a shortcut.
+3. Double-click `Install-OpenSlotting.cmd` to create a current-user Start menu
+   shortcut, Desktop shortcut, or both. The Start menu is the default choice.
+4. Double-click `Remove-OpenSlotting.cmd` to remove only shortcuts previously
+   created and marked as managed by OpenSlotting.
+
+The scripts locate `index.html` relative to their own extracted folder and look
+for Microsoft Edge in common per-machine and per-user installation locations.
+They require neither administrator rights nor a system `PATH` entry, backend,
+localhost server, account, telemetry, package manager, or network connection.
+The installed shortcut targets Edge directly, so it does not leave a console
+window open while OpenSlotting is running.
+
+If an `OpenSlotting.ico` file is present beside the scripts, setup uses it for
+the shortcut. Otherwise the local Edge icon is used. Moving or deleting the
+extracted OpenSlotting folder invalidates shortcuts pointing to that copy; run
+setup again from the new location. Setup refuses to overwrite, and removal
+refuses to delete, a same-named shortcut that is not marked as managed by
+OpenSlotting.
+
+Taskbar pinning remains a Windows user action. After creating the Start menu
+shortcut, open Start, search for `OpenSlotting`, right-click it, and choose
+**Pin to taskbar** if that option is allowed by the device policy. Setup prints
+this reminder but does not modify taskbar policy or attempt unsupported shell
+automation.
 
 The application interface is English by default. Users can switch the visible
 interface, validation messages, labels, and number formatting to German at any
@@ -227,6 +262,14 @@ The public project and demo data must not contain real company, customer, articl
 - Source-file and source-line traceability
 - Visible warnings for potentially overlapping exports
 - No automatic cross-file deduplication without a reliable source-row key
+
+### V0.2.1 — Optional Windows Edge Launcher
+
+- Start the extracted local application in Microsoft Edge app mode
+- Create current-user Start menu and/or Desktop shortcuts without administrator rights
+- Discover common Microsoft Edge installation locations automatically
+- Use an optional local icon and remove only OpenSlotting-managed shortcuts safely
+- Preserve direct `file:///` startup as the independent core runtime
 
 ### V0.3 — Local Workspaces
 

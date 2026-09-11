@@ -44,6 +44,10 @@ jobs:
       - name: Run tests
         run: node --test tests/*.test.cjs
 
+      - name: Test Windows launcher logic
+        shell: pwsh
+        run: ./tests/windows-launcher.test.ps1
+
       - name: Verify release packaging
         shell: pwsh
         env:

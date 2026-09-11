@@ -1,4 +1,4 @@
-# OpenSlotting V0.1 Release Checklist
+# OpenSlotting V0.2.1 Release Checklist
 
 Use this checklist on the exact release candidate. Automated results do not replace the manual Microsoft Edge acceptance run.
 
@@ -6,7 +6,7 @@ Use this checklist on the exact release candidate. Automated results do not repl
 
 | Item | Value |
 | --- | --- |
-| Version | `0.1.0` |
+| Version | `0.2.1` |
 | Candidate branch | |
 | PR candidate commit | |
 | Final `main` commit | |
@@ -31,36 +31,49 @@ Confirm that the commit printed by the script exactly matches the recorded candi
 
 - [ ] `node --check csv.js`
 - [ ] `node --check app.js`
-- [ ] `node --test tests/csv.test.cjs`
+- [ ] `node --check encoding.js`
+- [ ] `node --test tests/*.test.cjs`
+- [ ] `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows-launcher.test.ps1`
+- [ ] `pwsh -NoProfile -File tests/windows-launcher.test.ps1`
 - [ ] `git diff --check` reports no whitespace errors
 - [ ] `CHANGELOG.md` contains the planned publication date instead of `Unreleased`
 - [ ] Required GitHub Actions check `quality` passes on the exact final PR head
 - [ ] Runtime files contain no unexpected network, CDN, telemetry, backend, or localhost dependency
 - [ ] The full candidate commit hash is recorded above
-- [ ] `tools/package-release.ps1 -CandidateCommit <full-commit-hash>` reports that exact commit and creates `dist/OpenSlotting-v0.1.0.zip`
+- [ ] `tools/package-release.ps1 -CandidateCommit <full-commit-hash>` reports that exact commit and creates `dist/OpenSlotting-v0.2.1.zip`
 - [ ] The ZIP contains only the documented user-facing files
 
 Expected ZIP contents:
 
 ```text
-OpenSlotting-v0.1.0/
+OpenSlotting-v0.2.1/
 ├── index.html
 ├── app.css
 ├── app.js
 ├── encoding.js
 ├── csv.js
+├── OpenSlotting.Windows.psm1
+├── Start-OpenSlotting.cmd
+├── Start-OpenSlotting.ps1
+├── Install-OpenSlotting.cmd
+├── Install-OpenSlotting.ps1
+├── Remove-OpenSlotting.cmd
+├── Remove-OpenSlotting.ps1
+├── OpenSlotting.ico (optional)
 ├── README.md
 ├── LICENSE
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
 ├── SECURITY.md
 └── docs/
-    └── data-format.md
+    ├── data-format.md
+    ├── acceptance-v0.2.md
+    └── acceptance-v0.2.1.md
 ```
 
 ## Manual Microsoft Edge Desktop acceptance
 
-Run these checks on Windows in Microsoft Edge Desktop with the network unavailable. Extract the candidate ZIP into a new directory and open its `index.html` directly. Record failures with the candidate commit and source fixture; use only fully synthetic data.
+Run these checks on Windows in Microsoft Edge Desktop with the network unavailable. Extract the candidate ZIP into a new directory and open its `index.html` directly. Record failures with the candidate commit and source fixture; use only fully synthetic data. Complete the multi-export checks in `docs/acceptance-v0.2.md` and the launcher/shortcut checks in `docs/acceptance-v0.2.1.md` on this same candidate.
 
 1. [ ] `index.html` opens directly through `file:///` without a server.
 2. [ ] The application loads without blocking runtime errors.
@@ -87,6 +100,14 @@ Run these checks on Windows in Microsoft Edge Desktop with the network unavailab
 23. [ ] Exported text remains protected against spreadsheet formula injection.
 24. [ ] The core workflow remains usable with the network unavailable.
 25. [ ] No localhost, backend, Node.js, or Python runtime is required.
+26. [ ] `Start-OpenSlotting.cmd` opens this extracted copy in Edge app mode.
+27. [ ] Start menu and Desktop shortcut setup work without administrator rights.
+28. [ ] Generated shortcuts target Edge directly and leave no console window open.
+29. [ ] A path containing spaces is encoded correctly in the local file URL.
+30. [ ] Missing optional `OpenSlotting.ico` does not block setup.
+31. [ ] Removal deletes only OpenSlotting-managed shortcuts.
+32. [ ] Direct `index.html` startup remains independent of setup and shortcuts.
+33. [ ] Setup leaves taskbar pinning to the user and does not change taskbar policy.
 
 ## Pull request and release
 
@@ -102,7 +123,7 @@ Run these checks on Windows in Microsoft Edge Desktop with the network unavailab
 - [ ] A fresh ZIP is built with `-CandidateCommit <final-main-commit>` and the script reports that exact commit.
 - [ ] All automated checks and all 25 manual Edge `file:///` checks pass again on the extracted ZIP from the final `main` commit.
 - [ ] No release-visible file changed after the final-`main` package and acceptance run.
-- [ ] Tag `v0.1.0` points to that exact accepted final `main` commit.
-- [ ] A normal, non-prerelease GitHub Release named `OpenSlotting v0.1.0 — Order-Line Analysis` is created from the tag.
-- [ ] `OpenSlotting-v0.1.0.zip` is attached to the release.
+- [ ] Tag `v0.2.1` points to that exact accepted final `main` commit.
+- [ ] A normal, non-prerelease GitHub Release named `OpenSlotting v0.2.1 — Optional Windows Edge Launcher` is created from the tag.
+- [ ] `OpenSlotting-v0.2.1.zip` is attached to the release.
 - [ ] The attached ZIP is independently downloaded, extracted, and verified again through direct `file:///` execution.

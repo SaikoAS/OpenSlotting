@@ -20,9 +20,16 @@ node --check csv.js
 node --check app.js
 node --check encoding.js
 node --test tests/*.test.cjs
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows-launcher.test.ps1
+pwsh -NoProfile -File tests/windows-launcher.test.ps1
 ```
 
 Runtime or UI changes that may affect local execution also require a manual Microsoft Edge Desktop check on Windows by opening `index.html` directly through `file:///`. Compilation and automated tests do not replace this runtime acceptance.
+
+Windows launcher or shortcut changes additionally require the checks in
+[`docs/acceptance-v0.2.1.md`](docs/acceptance-v0.2.1.md). Use a temporary test
+copy and synthetic CSV data. Do not overwrite or remove unrelated user
+shortcuts during acceptance.
 
 ## Local-first compatibility
 
