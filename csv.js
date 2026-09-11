@@ -884,9 +884,12 @@
   function assignSourceFileLabels(files) {
     const counts = new Map();
     const occurrences = new Map();
+    const originalNames = new Set();
+    const usedLabels = new Set();
     (files || []).forEach(function (file) {
       const name = String(file && file.name !== undefined && file.name !== null ? file.name : '');
       counts.set(name, (counts.get(name) || 0) + 1);
+      originalNames.add(name);
     });
 
     return (files || []).map(function (file) {
@@ -894,9 +897,21 @@
       const name = String(copy.name === undefined || copy.name === null ? '' : copy.name);
       const occurrence = (occurrences.get(name) || 0) + 1;
       occurrences.set(name, occurrence);
-      copy.label = counts.get(name) > 1
-        ? name + ' (' + occurrence + '/' + counts.get(name) + ')'
-        : name;
+      if (counts.get(name) === 1) {
+        copy.label = name;
+        usedLabels.add(copy.label);
+        return copy;
+      }
+
+      const preferredLabel = name + ' (' + occurrence + '/' + counts.get(name) + ')';
+      let label = preferredLabel;
+      let suffix = 1;
+      while (originalNames.has(label) || usedLabels.has(label)) {
+        label = preferredLabel + ' [source ' + suffix + ']';
+        suffix += 1;
+      }
+      copy.label = label;
+      usedLabels.add(copy.label);
       return copy;
     });
   }
@@ -1070,7 +1085,7 @@
     const orderIds = new Set();
     const customerIds = new Set();
     const activeDays = new Set();
-    const sourceFiles = new Set();
+    const sourceFiles = new Map();
     let totalQuantity = 0n;
     let totalSales = decimalZero();
     let salesValueRows = 0;
@@ -1084,9 +1099,13 @@
         customerIds.add(row.customer_id);
       }
       activeDays.add(row.order_date);
-      const sourceFileLabel = row.source_file_label || row.source_file_name;
-      if (sourceFileLabel) {
-        sourceFiles.add(sourceFileLabel);
+      const sourceFileId = row.source_file_id === undefined || row.source_file_id === null
+        ? ''
+        : String(row.source_file_id);
+      const sourceFileLabel = row.source_file_label || row.source_file_name || sourceFileId;
+      const sourceFileKey = sourceFileId ? 'id:' + sourceFileId : (sourceFileLabel ? 'label:' + sourceFileLabel : '');
+      if (sourceFileKey) {
+        sourceFiles.set(sourceFileKey, sourceFileLabel);
       }
       totalQuantity += row.quantity;
       const rowSales = row.sales_value_exact !== null && row.sales_value_exact !== undefined
@@ -1110,7 +1129,7 @@
           total_sales: decimalZero(),
           sales_value_rows: 0,
           locations: new Set(),
-          source_files: new Set(),
+          source_files: new Map(),
           order_lines: []
         });
       }
@@ -1136,8 +1155,8 @@
       if (row.location) {
         article.locations.add(row.location);
       }
-      if (sourceFileLabel) {
-        article.source_files.add(sourceFileLabel);
+      if (sourceFileKey) {
+        article.source_files.set(sourceFileKey, sourceFileLabel);
       }
       article.order_lines.push(row);
     });
@@ -1165,7 +1184,7 @@
           sales_value_rows: article.sales_value_rows,
           locations: Array.from(article.locations).sort(),
           source_file_count: article.source_files.size,
-          source_files: Array.from(article.source_files),
+          source_files: Array.from(article.source_files.values()),
           order_lines: article.order_lines,
           share_of_order_lines: rows.length === 0 ? 0 : article.order_line_count / rows.length
         };
@@ -1185,7 +1204,7 @@
       distinct_customers: customerIds.size,
       active_days: activeDays.size,
       source_file_count: sourceFiles.size,
-      source_files: Array.from(sourceFiles),
+      source_files: Array.from(sourceFiles.values()),
       total_sales: decimalToPublicValue(totalSales),
       total_sales_exact: decimalToText(totalSales),
       sales_value_rows: salesValueRows,

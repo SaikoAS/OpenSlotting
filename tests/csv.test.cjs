@@ -115,6 +115,44 @@ test('duplicate source filenames receive stable batch labels', () => {
   ]);
 });
 
+test('generated source labels do not collide with original filenames', () => {
+  const labeled = csv.assignSourceFileLabels([
+    { id: 'source-1', name: 'orders.csv' },
+    { id: 'source-2', name: 'orders.csv' },
+    { id: 'source-3', name: 'orders.csv (1/2)' }
+  ]);
+
+  assert.deepEqual(labeled.map((file) => file.label), [
+    'orders.csv (1/2) [source 1]',
+    'orders.csv (2/2)',
+    'orders.csv (1/2)'
+  ]);
+  assert.equal(new Set(labeled.map((file) => file.label)).size, 3);
+});
+
+test('source coverage is counted by stable file ID instead of display label', () => {
+  const text = 'order_id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
+  const sources = ['source-1', 'source-2', 'source-3'].map((id) => ({
+    id,
+    name: 'orders.csv',
+    label: 'orders.csv'
+  }));
+  const batch = csv.combineImportResults(sources.map((source) => ({
+    ...source,
+    result: csv.importCsv(text, undefined, { sourceFile: source })
+  })));
+  const analysis = csv.analyzeRows(batch.rows);
+  const article = analysis.articles[0];
+  const exported = parseAnalysisExport(analysis.articles).rows[0];
+
+  assert.equal(article.order_line_count, 3);
+  assert.equal(analysis.source_file_count, 3);
+  assert.equal(article.source_file_count, 3);
+  assert.deepEqual(article.source_files, ['orders.csv', 'orders.csv', 'orders.csv']);
+  assert.equal(exported.source_file_count, '3');
+  assert.deepEqual(JSON.parse(exported.source_files), ['orders.csv', 'orders.csv', 'orders.csv']);
+});
+
 test('multiple imports combine exact values while preserving file and line provenance', () => {
   const sources = csv.assignSourceFileLabels([
     { id: 'source-1', name: 'orders-a.csv', size: 100, lastModified: 1 },
