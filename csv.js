@@ -1006,6 +1006,44 @@
     return text.length.toString(36) + '-' + first.toString(16).padStart(8, '0') + second.toString(16).padStart(8, '0');
   }
 
+  function restoreLegacyContentFingerprints(files, warnings) {
+    const entries = files || [];
+    const byId = new Map(entries.map(function (file) { return [String(file.id), file]; }));
+    const parent = new Map();
+
+    function root(id) {
+      if (!parent.has(id)) parent.set(id, id);
+      if (parent.get(id) !== id) parent.set(id, root(parent.get(id)));
+      return parent.get(id);
+    }
+
+    (warnings || []).forEach(function (warning) {
+      if (!warning || warning.code !== 'identical_file_content' || !Array.isArray(warning.sourceFileIds) ||
+          warning.sourceFileIds.length < 2) return;
+      const left = String(warning.sourceFileIds[0]);
+      const right = String(warning.sourceFileIds[1]);
+      if (!byId.has(left) || !byId.has(right)) return;
+      const leftRoot = root(left);
+      const rightRoot = root(right);
+      if (leftRoot !== rightRoot) parent.set(rightRoot, leftRoot);
+    });
+
+    const groups = new Map();
+    parent.forEach(function (_value, id) {
+      const group = root(id);
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group).push(id);
+    });
+    groups.forEach(function (ids) {
+      const existing = ids.map(function (id) { return byId.get(id).contentFingerprint; }).find(Boolean);
+      const fingerprint = existing || 'legacy-identical-' + ids.slice().sort().join('-');
+      ids.forEach(function (id) {
+        if (!byId.get(id).contentFingerprint) byId.get(id).contentFingerprint = fingerprint;
+      });
+    });
+    return entries;
+  }
+
   function combineImportResults(files) {
     const rows = [];
     const issues = [];
@@ -1377,6 +1415,7 @@
     detectMapping: detectMapping,
     combineImportResults: combineImportResults,
     contentFingerprint: contentFingerprint,
+    restoreLegacyContentFingerprints: restoreLegacyContentFingerprints,
     detectBatchWarnings: detectBatchWarnings,
     analyzeRows: analyzeRows,
     articleMatchesQuery: articleMatchesQuery,

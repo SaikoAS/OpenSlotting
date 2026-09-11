@@ -1222,6 +1222,9 @@
       return file;
     });
     state.result = null; state.analysis = null;
+    if (data.result && Array.isArray(data.result.warnings)) {
+      core.restoreLegacyContentFingerprints(state.files, data.result.warnings);
+    }
     state.sourceStatus = data.sourceStatus || { key: 'no_file_selected', replacements: {}, error: false, text: '' };
     state.fileSelectionVersion += 1; state.articlePage = 1; state.selectedArticleId = null; state.detailPage = 1; state.issuePage = 1;
     elements.articleFilter.value = data.articleFilter || ''; elements.articleSort.value = data.articleSort || 'lines'; elements.fileInput.value = '';

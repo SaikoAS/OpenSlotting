@@ -276,6 +276,18 @@ test('batch warnings retain identical-content detection from persisted fingerpri
   assert.notEqual(csv.contentFingerprint(text), csv.contentFingerprint(text + '\n'));
 });
 
+test('legacy identical-content warnings are retained when compact snapshots are first opened', () => {
+  const files = [{ id: 'one' }, { id: 'two' }, { id: 'three' }];
+  csv.restoreLegacyContentFingerprints(files, [
+    { code: 'identical_file_content', sourceFileIds: ['one', 'two'] },
+    { code: 'identical_file_content', sourceFileIds: ['two', 'three'] }
+  ]);
+
+  assert.ok(files[0].contentFingerprint);
+  assert.equal(files[0].contentFingerprint, files[1].contentFingerprint);
+  assert.equal(files[1].contentFingerprint, files[2].contentFingerprint);
+});
+
 test('matching file metadata warns without treating different content as identical', () => {
   const firstText = 'order_id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
   const secondText = 'order_id;article_id;quantity;order_date\nO2;A2;1;2026-10-01\n';
