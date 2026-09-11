@@ -10,7 +10,7 @@ const QUANTITY_SCALE = csv.QUANTITY_SCALE;
 test('release version is defined centrally for the UI and package', () => {
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
-  assert.equal(csv.APP_VERSION, '0.2.0');
+  assert.equal(csv.APP_VERSION, '0.2.1');
   assert.match(appSource, /core\.APP_VERSION/);
 });
 
@@ -31,6 +31,28 @@ test('release packaging reads files from an explicit Git commit', () => {
   assert.match(packagingSource, /git -C \$repositoryRoot @archiveArguments/);
   assert.match(packagingSource, /Candidate commit:/);
   assert.doesNotMatch(packagingSource, /Copy-Item/);
+});
+
+test('release packaging includes the optional Windows launcher and setup', () => {
+  const packagingSource = fs.readFileSync(path.join(__dirname, '..', 'tools', 'package-release.ps1'), 'utf8');
+  const requiredLauncherFiles = [
+    'OpenSlotting.Windows.psm1',
+    'Start-OpenSlotting.cmd',
+    'Start-OpenSlotting.ps1',
+    'Install-OpenSlotting.cmd',
+    'Install-OpenSlotting.ps1',
+    'Remove-OpenSlotting.cmd',
+    'Remove-OpenSlotting.ps1'
+  ];
+
+  requiredLauncherFiles.forEach((fileName) => {
+    assert.match(packagingSource, new RegExp("'" + fileName.replaceAll('.', '\\.') + "'"), fileName);
+  });
+  assert.match(packagingSource, /'OpenSlotting\.ico'/);
+
+  const installerSource = fs.readFileSync(path.join(__dirname, '..', 'Install-OpenSlotting.ps1'), 'utf8');
+  assert.match(installerSource, /Optional taskbar pin:/);
+  assert.doesNotMatch(installerSource, /taskbarpin|Import-StartLayout/i);
 });
 
 test('browser UI declares multi-file selection and bilingual source traceability', () => {

@@ -2,6 +2,22 @@
 
 All notable changes to OpenSlotting are documented in this file.
 
+## 0.2.1 - Unreleased
+
+### Added
+
+- optional Windows launch command for opening the local application in Microsoft Edge app mode
+- current-user Start menu and Desktop shortcut setup without administrator rights
+- safe shortcut removal that leaves unrelated shortcuts, application files, and browser-local data untouched
+- automatic discovery of common per-machine and per-user Microsoft Edge installations
+- optional local `OpenSlotting.ico` support with a local Edge icon fallback
+- cross-platform launcher logic tests and Windows COM shortcut tests
+- a post-install reminder for optional user-controlled taskbar pinning
+
+### Changed
+
+- release packages now include the optional Windows launcher and shortcut-management files
+
 ## 0.2.0 - Unreleased
 
 ### Added

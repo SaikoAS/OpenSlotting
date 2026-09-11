@@ -86,6 +86,19 @@ file:///.../index.html
 
 Changes that introduce network communication, remote storage, telemetry, external APIs, or other data transmission must be clearly documented and reviewed before becoming part of the core workflow.
 
+## Optional Windows Launcher
+
+The optional Windows launcher and shortcut setup only resolve the adjacent local
+`index.html`, locate a local Microsoft Edge installation, and start Edge with a
+local `file:///` URL. They do not read imported CSV files, transmit data, install
+system-wide components, modify Edge settings, or require administrator rights.
+
+Shortcut setup operates only in the current user's Start menu and Desktop. It
+marks generated shortcuts with an OpenSlotting ownership description. Setup must
+not overwrite, and removal must not delete, a same-named shortcut without that
+marker. Removing shortcuts must not delete application files or browser-local
+data.
+
 ## External Resources and Dependencies
 
 Runtime dependencies should be kept to a minimum.

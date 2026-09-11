@@ -47,18 +47,38 @@ $releaseFiles = @(
     'app.js',
     'encoding.js',
     'csv.js',
+    'OpenSlotting.Windows.psm1',
+    'Start-OpenSlotting.cmd',
+    'Start-OpenSlotting.ps1',
+    'Install-OpenSlotting.cmd',
+    'Install-OpenSlotting.ps1',
+    'Remove-OpenSlotting.cmd',
+    'Remove-OpenSlotting.ps1',
     'README.md',
     'LICENSE',
     'CHANGELOG.md',
     'CONTRIBUTING.md',
     'SECURITY.md',
-    'docs/data-format.md'
+    'docs/data-format.md',
+    'docs/acceptance-v0.2.md',
+    'docs/acceptance-v0.2.1.md'
+)
+
+$optionalReleaseFiles = @(
+    'OpenSlotting.ico'
 )
 
 foreach ($relativePath in $releaseFiles) {
     & git -C $repositoryRoot cat-file -e "${resolvedCandidate}:$relativePath" 2>$null
     if ($LASTEXITCODE -ne 0) {
         throw "Required release file is missing from commit ${resolvedCandidate}: $relativePath"
+    }
+}
+
+foreach ($relativePath in $optionalReleaseFiles) {
+    & git -C $repositoryRoot cat-file -e "${resolvedCandidate}:$relativePath" 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        $releaseFiles += $relativePath
     }
 }
 
