@@ -2,12 +2,23 @@
 
 All notable changes to OpenSlotting are documented in this file.
 
-## Unreleased
+## 0.2.0 - Unreleased
 
 ### Added
 
 - Windows-1252 CSV decoding after strict UTF-8 detection
 - additional high-confidence German warehouse export aliases
+- selection and combined analysis of multiple CSV exports in one browser session
+- independent mapping, parsing, validation, and row counts per source file
+- visible per-file encoding detection with manual UTF-8, UTF-16, and Windows-1252 override
+- batch-local source-file identities and duplicate-filename display labels
+- source-file and source-line traceability in validation notes and article details
+- warnings for overlapping date ranges, identical decoded content, and matching file metadata
+- source-file counts and JSON-encoded source-file labels in the analysis export
+
+### Changed
+
+- article aggregation now combines all valid rows from included files without automatic cross-file deduplication
 
 ## 0.1.0 - 2026-09-09
 

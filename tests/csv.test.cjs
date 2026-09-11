@@ -10,7 +10,7 @@ const QUANTITY_SCALE = csv.QUANTITY_SCALE;
 test('release version is defined centrally for the UI and package', () => {
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
-  assert.equal(csv.APP_VERSION, '0.1.0');
+  assert.equal(csv.APP_VERSION, '0.2.0');
   assert.match(appSource, /core\.APP_VERSION/);
 });
 
@@ -31,6 +31,46 @@ test('release packaging reads files from an explicit Git commit', () => {
   assert.match(packagingSource, /git -C \$repositoryRoot @archiveArguments/);
   assert.match(packagingSource, /Candidate commit:/);
   assert.doesNotMatch(packagingSource, /Copy-Item/);
+});
+
+test('browser UI declares multi-file selection and bilingual source traceability', () => {
+  const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+
+  assert.match(indexSource, /id="file-input"[^>]*\bmultiple\b/);
+  assert.match(indexSource, /data-i18n="detail_source_file"/);
+  assert.match(indexSource, /data-i18n="issue_source_file"/);
+  assert.match(appSource, /encoding\.SUPPORTED_ENCODINGS/);
+  assert.match(appSource, /dataset\.encodingFileId/);
+  assert.match(appSource, /detail_source_file: 'Source file'/);
+  assert.match(appSource, /detail_source_file: 'Quelldatei'/);
+  assert.match(appSource, /warning_overlap:/);
+
+  const referencedIds = [...appSource.matchAll(/document\.getElementById\('([^']+)'\)/g)].map((match) => match[1]);
+  referencedIds.forEach((id) => {
+    assert.match(indexSource, new RegExp('id="' + id + '"'), id);
+  });
+});
+
+test('browser translation dictionaries cover every referenced UI key', () => {
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const dictionaryMatch = appSource.match(/const TRANSLATIONS = ({[\s\S]*?});\s+const state/);
+  assert.ok(dictionaryMatch);
+  const translations = Function('return ' + dictionaryMatch[1])();
+  const referencedKeys = [
+    ...[...appSource.matchAll(/translate\('([^']+)'/g)].map((match) => match[1]),
+    ...[...indexSource.matchAll(/data-i18n(?:-placeholder)?="([^"]+)"/g)].map((match) => match[1])
+  ];
+
+  for (const language of ['en', 'de']) {
+    assert.deepEqual(
+      [...new Set(referencedKeys.filter((key) => !(key in translations[language])))],
+      [],
+      language
+    );
+  }
+  assert.deepEqual(Object.keys(translations.en).sort(), Object.keys(translations.de).sort());
 });
 
 function fixture(name) {
@@ -59,6 +99,179 @@ test('basic fixture matches its documented metrics', () => {
   assert.equal(analysis.distinct_orders, 11);
   assert.equal(analysis.distinct_customers, 6);
   assert.equal(analysis.active_days, 6);
+});
+
+test('duplicate source filenames receive stable batch labels', () => {
+  const labeled = csv.assignSourceFileLabels([
+    { id: 'source-1', name: 'orders.csv' },
+    { id: 'source-2', name: 'other.csv' },
+    { id: 'source-3', name: 'orders.csv' }
+  ]);
+
+  assert.deepEqual(labeled.map((file) => file.label), [
+    'orders.csv (1/2)',
+    'other.csv',
+    'orders.csv (2/2)'
+  ]);
+});
+
+test('multiple imports combine exact values while preserving file and line provenance', () => {
+  const sources = csv.assignSourceFileLabels([
+    { id: 'source-1', name: 'orders-a.csv', size: 100, lastModified: 1 },
+    { id: 'source-2', name: 'orders-b.csv', size: 120, lastModified: 2 }
+  ]);
+  const firstText = 'order_id;article_id;article_name;quantity;order_date;sales_value\nO1;A1;Primary;0.1;2026-09-01;0.10\nO2;A1;Primary;1;2026-09-03;1.00\n';
+  const secondText = 'order_id;article_id;article_name;quantity;order_date;sales_value\nO1;A1;Special;0.2;2026-09-02;0.20\nO3;A2;Other;2;2026-09-04;2.00\n';
+  const files = sources.map((source, index) => {
+    const content = index === 0 ? firstText : secondText;
+    return {
+      ...source,
+      content,
+      result: csv.importCsv(content, undefined, { sourceFile: source })
+    };
+  });
+  const batch = csv.combineImportResults(files);
+  const analysis = csv.analyzeRows(batch.rows);
+  const article = analysis.articles.find((item) => item.article_id === 'A1');
+
+  assert.equal(batch.selectedFiles, 2);
+  assert.equal(batch.includedFiles, 2);
+  assert.equal(batch.validRows, 4);
+  assert.equal(article.order_line_count, 3);
+  assert.equal(article.total_quantity, 13000000n);
+  assert.equal(article.total_sales_exact, '1.3');
+  assert.deepEqual(article.article_name_variants, ['Primary', 'Special']);
+  assert.equal(article.source_file_count, 2);
+  assert.deepEqual(article.source_files, ['orders-a.csv', 'orders-b.csv']);
+  assert.deepEqual(article.order_lines.map((row) => [row.source_file_id, row.source_file_label, row.source_line]), [
+    ['source-1', 'orders-a.csv', 2],
+    ['source-1', 'orders-a.csv', 3],
+    ['source-2', 'orders-b.csv', 2]
+  ]);
+  assert.ok(batch.warnings.some((warning) =>
+    warning.code === 'overlapping_date_ranges' &&
+    warning.overlapStart === '2026-09-02' &&
+    warning.overlapEnd === '2026-09-03'
+  ));
+});
+
+test('documented multi-export fixtures produce the expected combined analysis', () => {
+  const sources = [
+    { id: 'source-1', name: 'multi-export-a.csv', label: 'multi-export-a.csv' },
+    { id: 'source-2', name: 'multi-export-b.csv', label: 'multi-export-b.csv' }
+  ];
+  const files = sources.map((source) => {
+    const content = fixture(source.name);
+    return { ...source, content, result: csv.importCsv(content, undefined, { sourceFile: source }) };
+  });
+  const batch = csv.combineImportResults(files);
+  const analysis = csv.analyzeRows(batch.rows);
+  const shared = analysis.articles.find((article) => article.article_id === 'SKU-MULTI');
+
+  assert.equal(batch.validRows, 4);
+  assert.equal(analysis.articles.length, 3);
+  assert.equal(analysis.total_quantity, 53000000n);
+  assert.equal(shared.total_quantity, 3000000n);
+  assert.equal(shared.source_file_count, 2);
+  assert.deepEqual(shared.article_name_variants, ['Widget Standard', 'Widget Special']);
+  assert.ok(batch.warnings.some((warning) => warning.code === 'overlapping_date_ranges'));
+
+  const blocked = csv.importCsv(fixture('multi-export-blocked.csv'), undefined, {
+    sourceFile: { id: 'source-3', name: 'multi-export-blocked.csv', label: 'multi-export-blocked.csv' }
+  });
+  assert.equal(blocked.blocking, true);
+  assert.ok(blocked.issues.some((issue) => issue.code === 'required_mapping_missing'));
+});
+
+test('batch warnings do not deduplicate identical files or duplicate rows', () => {
+  const text = 'order_id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
+  const sources = csv.assignSourceFileLabels([
+    { id: 'source-1', name: 'orders.csv', size: text.length, lastModified: 1 },
+    { id: 'source-2', name: 'orders.csv', size: text.length, lastModified: 1 }
+  ]);
+  const files = sources.map((source) => ({
+    ...source,
+    content: text,
+    result: csv.importCsv(text, undefined, { sourceFile: source })
+  }));
+  const batch = csv.combineImportResults(files);
+
+  assert.equal(batch.validRows, 2);
+  assert.equal(csv.analyzeRows(batch.rows).articles[0].order_line_count, 2);
+  assert.ok(batch.warnings.some((warning) => warning.code === 'identical_file_content'));
+  assert.ok(batch.warnings.some((warning) => warning.code === 'overlapping_date_ranges'));
+});
+
+test('matching file metadata warns without treating different content as identical', () => {
+  const firstText = 'order_id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
+  const secondText = 'order_id;article_id;quantity;order_date\nO2;A2;1;2026-10-01\n';
+  const sources = csv.assignSourceFileLabels([
+    { id: 'source-1', name: 'orders.csv', size: 100, lastModified: 123 },
+    { id: 'source-2', name: 'orders.csv', size: 100, lastModified: 123 }
+  ]);
+  const files = sources.map((source, index) => {
+    const content = index === 0 ? firstText : secondText;
+    return { ...source, content, result: csv.importCsv(content, undefined, { sourceFile: source }) };
+  });
+  const warnings = csv.combineImportResults(files).warnings;
+
+  assert.ok(warnings.some((warning) => warning.code === 'matching_file_metadata'));
+  assert.equal(warnings.some((warning) => warning.code === 'identical_file_content'), false);
+});
+
+test('blocking files are excluded without hiding their source-specific issues', () => {
+  const text = 'order_id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
+  const readySource = { id: 'source-1', name: 'ready.csv', label: 'ready.csv' };
+  const blockedSource = { id: 'source-2', name: 'blocked.csv', label: 'blocked.csv' };
+  const blockedMapping = csv.detectMapping(['order_id', 'article_id', 'quantity', 'order_date']);
+  blockedMapping.order_date = null;
+  const files = [
+    { ...readySource, content: text, result: csv.importCsv(text, undefined, { sourceFile: readySource }) },
+    { ...blockedSource, content: text, result: csv.importCsv(text, blockedMapping, { sourceFile: blockedSource }) }
+  ];
+  const batch = csv.combineImportResults(files);
+
+  assert.equal(files[1].result.blocking, true);
+  assert.equal(batch.includedFiles, 1);
+  assert.equal(batch.excludedFiles, 1);
+  assert.equal(batch.validRows, 1);
+  assert.ok(batch.issues.some((issue) =>
+    issue.code === 'required_mapping_missing' &&
+    issue.sourceFileId === 'source-2' &&
+    issue.sourceFileLabel === 'blocked.csv'
+  ));
+});
+
+test('row validation identifies both source file and source line', () => {
+  const source = { id: 'source-7', name: 'invalid.csv', label: 'invalid.csv' };
+  const result = csv.importCsv(
+    'order_id;article_id;quantity;order_date\nO1;;1;2026-09-01\n',
+    undefined,
+    { sourceFile: source }
+  );
+  const issue = result.issues.find((item) => item.code === 'required_value_missing');
+
+  assert.equal(issue.sourceFileId, 'source-7');
+  assert.equal(issue.sourceFileName, 'invalid.csv');
+  assert.equal(issue.sourceFileLabel, 'invalid.csv');
+  assert.equal(issue.sourceLine, 2);
+});
+
+test('combined export reports protected source-file coverage', () => {
+  const sources = [
+    { id: 'source-1', name: '=orders.csv', label: '=orders.csv' },
+    { id: 'source-2', name: 'orders-b.csv', label: 'orders-b.csv' }
+  ];
+  const text = 'order_id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
+  const batch = csv.combineImportResults(sources.map((source) => ({
+    ...source,
+    content: text + source.id,
+    result: csv.importCsv(text, undefined, { sourceFile: source })
+  })));
+  const article = parseAnalysisExport(csv.analyzeRows(batch.rows).articles).rows[0];
+
+  assert.equal(article.source_file_count, '2');
+  assert.deepEqual(JSON.parse(article.source_files), ["'=orders.csv", 'orders-b.csv']);
 });
 
 test('German headers, dates and decimal commas are detected and normalized', () => {

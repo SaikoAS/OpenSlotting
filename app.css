@@ -70,7 +70,15 @@ h3 { margin-bottom: 4px; font-size: 1.08rem; }
 input[type="file"] { display: block; margin-top: 16px; width: 100%; color: var(--muted); }
 .status-text { margin: 16px 0 0; }
 
-.mapping-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin: 24px 0; }
+.mapping-grid { display: grid; gap: 18px; margin: 24px 0; }
+.mapping-file { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fbfcfc; }
+.mapping-file.blocked { border-color: #e6b8b8; background: var(--danger-soft); }
+.mapping-file-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.mapping-file-title { margin-bottom: 3px; overflow-wrap: anywhere; }
+.mapping-file-meta { margin: 0; color: var(--muted); font-size: .8rem; }
+.encoding-field { max-width: 260px; margin-bottom: 16px; }
+.mapping-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.mapping-file-message { margin: 14px 0 0; }
 .mapping-field, .compact-field { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: .78rem; font-weight: 700; }
 .mapping-field select, .compact-field input, .compact-field select { width: 100%; padding: 10px 11px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); background: #fff; font: inherit; font-weight: 500; }
 .required-marker { color: var(--accent); font-weight: 500; }
@@ -83,10 +91,17 @@ button { font: inherit; cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .5; }
 .message { margin: 0 0 16px; padding: 12px 14px; border-radius: 10px; color: var(--danger); background: var(--danger-soft); }
 .warning-message { color: #6f4d16; background: var(--warning-soft); }
+.status-badge { display: inline-block; padding: 4px 8px; border-radius: 999px; color: var(--accent-dark); background: var(--accent-soft); font-size: .75rem; font-weight: 800; }
+.status-badge.excluded { color: var(--danger); background: var(--danger-soft); }
 
 .results-heading { margin: 40px 0 18px; }
 .import-summary { margin-bottom: 18px; padding: 14px 16px; border-left: 4px solid var(--accent); border-radius: 10px; color: #31534e; background: var(--accent-soft); }
 .import-summary.warning { border-left-color: var(--warning); color: #6f4d16; background: var(--warning-soft); }
+.source-files-panel { margin-bottom: 22px; box-shadow: none; }
+.batch-warnings { margin-bottom: 16px; padding: 14px 16px; border-left: 4px solid var(--warning); border-radius: 10px; color: #6f4d16; background: var(--warning-soft); }
+.batch-warnings strong { display: block; margin-bottom: 6px; }
+.batch-warnings ul { margin: 0; padding-left: 20px; }
+.batch-warnings li + li { margin-top: 5px; }
 .metric-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 22px; }
 .metric { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
 .metric-label { margin-bottom: 7px; color: var(--muted); font-size: .78rem; font-weight: 700; }
@@ -113,7 +128,7 @@ td:first-child { color: var(--accent-dark); font-weight: 800; }
 .number { text-align: right; }
 .empty-row td { padding: 28px 10px; color: var(--muted); text-align: center; }
 .issues-panel { box-shadow: none; }
-.issues-panel td:first-child, .issues-panel td:nth-child(3) { color: var(--danger); font-weight: 700; }
+.issues-panel td:nth-child(2), .issues-panel td:nth-child(4) { color: var(--danger); font-weight: 700; }
 .app-footer { display: flex; justify-content: space-between; gap: 16px; width: min(1180px, calc(100% - 48px)); margin: 0 auto 32px; color: var(--muted); font-size: .82rem; }
 .app-version { display: block; margin-top: 4px; font-weight: 800; }
 .text-button { padding: 0; border: 0; color: var(--accent); background: none; font-weight: 800; }
@@ -129,6 +144,8 @@ td:first-child { color: var(--accent-dark); font-weight: 800; }
   .hint { margin-top: 10px; text-align: left; }
   .table-toolbar .compact-field { margin-top: 12px; }
   .table-pagination { flex-wrap: wrap; }
+  .mapping-file-heading { display: block; }
+  .mapping-file-heading .text-button { margin-top: 10px; }
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
   .app-footer { width: min(100% - 28px, 1180px); }
   .app-footer .text-button { margin-top: 10px; }

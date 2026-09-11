@@ -6,22 +6,36 @@
   const TRANSLATIONS = {
     en: {
       page_title: 'OpenSlotting – CSV Analysis',
-      eyebrow: 'OpenSlotting · V0.1',
-      hero_title: 'Understand order lines',
-      hero_subtitle: 'Inspect CSV data locally, aggregate article movement, and build the foundation for slotting.',
+      eyebrow: 'OpenSlotting · V0.2',
+      hero_title: 'Analyze order lines across exports',
+      hero_subtitle: 'Combine multiple CSV exports locally while keeping every source file and line traceable.',
       language_label: 'Language',
       language_english: 'English',
       language_german: 'German',
       local_badge: 'local · file:///',
       step_1: 'Step 1',
-      select_file_title: 'Select a CSV file',
+      select_file_title: 'Select CSV files',
       local_hint: 'No data leaves your browser.',
-      open_csv: 'Open CSV file',
+      open_csv: 'Open CSV files',
       file_format_hint: 'UTF-8, UTF-16, or Windows-1252 with semicolon delimiter',
-      no_file_selected: 'No file selected yet.',
+      no_file_selected: 'No files selected yet.',
+      reading_files: 'Reading {{count}} files…',
+      files_detected: '{{files}} files selected · {{rows}} data rows detected.',
+      files_detected_with_errors: '{{files}} files selected · {{rows}} data rows detected · {{errors}} files could not be prepared.',
       step_2: 'Step 2',
-      mapping_title: 'Map source columns',
-      mapping_hint: 'Review and adjust the detected mappings.',
+      mapping_title: 'Map source columns per file',
+      mapping_hint: 'Review each file independently. Blocking files are excluded from the combined analysis.',
+      mapping_file_rows: '{{count}} detected data rows',
+      mapping_file_ready: 'Ready for validation',
+      mapping_file_included: 'Included',
+      mapping_file_excluded: 'Excluded',
+      mapping_file_reading: 'Reading…',
+      encoding_label: 'Encoding',
+      encoding_auto: 'Automatic',
+      encoding_auto_detected: 'Automatic (detected: {{encoding}})',
+      remove_file: 'Remove file',
+      remove_file_label: 'Remove {{file}}',
+      no_prepared_files: 'No readable CSV file is available for analysis.',
       analyze_button: 'Validate and analyze data',
       step_3: 'Step 3',
       analysis_title: 'Analysis',
@@ -50,6 +64,7 @@
       detail_conflict: 'Multiple article descriptions were found: {{variants}}',
       detail_page: 'Page {{page}} of {{pages}} · {{count}} order lines on this page',
       detail_source_line: 'Source line',
+      detail_source_file: 'Source file',
       detail_order_id: 'Order ID',
       detail_order_date: 'Order date',
       detail_customer_id: 'Customer ID',
@@ -58,12 +73,13 @@
       no_detail_rows: 'No normalized order lines are available for this article.',
       empty_value: '—',
       issues_title: 'Validation notes',
-      issues_note: 'Invalid rows are not aggregated and remain traceable by source line.',
+      issues_note: 'Blocking files and invalid rows are not aggregated and remain traceable by source file and line.',
+      issue_source_file: 'Source file',
       issue_source_line: 'Source line',
       issue_field: 'Field',
       issue_code: 'Code',
       issue_message: 'Message',
-      footer_local: 'OpenSlotting processes the selected file locally only.',
+      footer_local: 'OpenSlotting processes the selected files locally only.',
       reset_button: 'Reset',
       not_mapped: '— not mapped —',
       empty_header: '(empty)',
@@ -91,13 +107,23 @@
       previous_page: 'Previous',
       next_page: 'Next',
       no_matches: 'No matching articles found.',
-      file_detected: '{{file}} · {{count}} data rows detected.',
-      reading_file: 'Reading {{file}}…',
       structure_hint: 'The file also contains CSV structure notes, which will appear after mapping.',
       error_prefix: 'Error: ',
-      summary_valid: '{{file}}: {{valid}} of {{total}} data rows are valid.',
+      summary_valid: '{{included}} of {{selected}} files included · {{valid}} of {{total}} data rows are valid.',
       summary_held_back: '{{count}} rows were held back',
       summary_structural: ' ({{count}} structural column errors)',
+      summary_excluded: '{{count}} files were excluded because of blocking errors.',
+      source_files_title: 'Source files',
+      source_files_note: 'Rows are combined without automatic cross-file deduplication.',
+      source_file_column: 'Source file',
+      status_column: 'Status',
+      total_rows_column: 'Rows',
+      valid_rows_column: 'Valid',
+      invalid_rows_column: 'Invalid',
+      warning_title: 'Overlap and duplicate-risk warnings',
+      warning_overlap: '{{left}} and {{right}} overlap from {{start}} to {{end}}. Rows are preserved and may double-count activity.',
+      warning_identical: '{{left}} and {{right}} have identical decoded content. No rows are removed automatically.',
+      warning_metadata: '{{left}} and {{right}} have matching filename, size, and modification time. Review them before analysis.',
       structure_field: 'Structure',
       file_read_error: 'The file could not be read.',
       empty_file: 'The selected CSV file is empty or has no header row.',
@@ -105,22 +131,36 @@
     },
     de: {
       page_title: 'OpenSlotting – CSV-Analyse',
-      eyebrow: 'OpenSlotting · V0.1',
-      hero_title: 'Auftragszeilen verstehen',
-      hero_subtitle: 'CSV lokal prüfen, Artikelbewegungen aggregieren und die Grundlage für Slotting schaffen.',
+      eyebrow: 'OpenSlotting · V0.2',
+      hero_title: 'Auftragszeilen über Exporte analysieren',
+      hero_subtitle: 'Mehrere CSV-Exporte lokal zusammenführen und jede Quelldatei und -zeile nachvollziehbar halten.',
       language_label: 'Sprache',
       language_english: 'Englisch',
       language_german: 'Deutsch',
       local_badge: 'lokal · file:///',
       step_1: 'Schritt 1',
-      select_file_title: 'CSV-Datei auswählen',
+      select_file_title: 'CSV-Dateien auswählen',
       local_hint: 'Keine Daten verlassen den Browser.',
-      open_csv: 'CSV-Datei öffnen',
+      open_csv: 'CSV-Dateien öffnen',
       file_format_hint: 'UTF-8, UTF-16 oder Windows-1252 mit Semikolon-Trenner',
-      no_file_selected: 'Noch keine Datei ausgewählt.',
+      no_file_selected: 'Noch keine Dateien ausgewählt.',
+      reading_files: '{{count}} Dateien werden gelesen …',
+      files_detected: '{{files}} Dateien ausgewählt · {{rows}} Datenzeilen erkannt.',
+      files_detected_with_errors: '{{files}} Dateien ausgewählt · {{rows}} Datenzeilen erkannt · {{errors}} Dateien konnten nicht vorbereitet werden.',
       step_2: 'Schritt 2',
-      mapping_title: 'Quellspalten zuordnen',
-      mapping_hint: 'Erkannte Zuordnungen können angepasst werden.',
+      mapping_title: 'Quellspalten je Datei zuordnen',
+      mapping_hint: 'Jede Datei wird unabhängig geprüft. Blockierte Dateien werden von der gemeinsamen Analyse ausgeschlossen.',
+      mapping_file_rows: '{{count}} erkannte Datenzeilen',
+      mapping_file_ready: 'Bereit zur Prüfung',
+      mapping_file_included: 'Einbezogen',
+      mapping_file_excluded: 'Ausgeschlossen',
+      mapping_file_reading: 'Wird gelesen …',
+      encoding_label: 'Kodierung',
+      encoding_auto: 'Automatisch',
+      encoding_auto_detected: 'Automatisch (erkannt: {{encoding}})',
+      remove_file: 'Datei entfernen',
+      remove_file_label: '{{file}} entfernen',
+      no_prepared_files: 'Für die Analyse ist keine lesbare CSV-Datei verfügbar.',
       analyze_button: 'Daten prüfen und analysieren',
       step_3: 'Schritt 3',
       analysis_title: 'Analyse',
@@ -149,6 +189,7 @@
       detail_conflict: 'Es wurden mehrere Artikelbezeichnungen gefunden: {{variants}}',
       detail_page: 'Seite {{page}} von {{pages}} · {{count}} Auftragszeilen auf dieser Seite',
       detail_source_line: 'Quellzeile',
+      detail_source_file: 'Quelldatei',
       detail_order_id: 'Auftrags-ID',
       detail_order_date: 'Auftragsdatum',
       detail_customer_id: 'Kunden-ID',
@@ -157,12 +198,13 @@
       no_detail_rows: 'Für diesen Artikel sind keine normalisierten Auftragszeilen verfügbar.',
       empty_value: '—',
       issues_title: 'Prüfhinweise',
-      issues_note: 'Fehlerhafte Zeilen werden nicht aggregiert und bleiben über die Quellzeile nachvollziehbar.',
+      issues_note: 'Blockierte Dateien und fehlerhafte Zeilen werden nicht aggregiert und bleiben über Quelldatei und Quellzeile nachvollziehbar.',
+      issue_source_file: 'Quelldatei',
       issue_source_line: 'Quellzeile',
       issue_field: 'Feld',
       issue_code: 'Code',
       issue_message: 'Hinweis',
-      footer_local: 'OpenSlotting verarbeitet die ausgewählte Datei ausschließlich lokal.',
+      footer_local: 'OpenSlotting verarbeitet die ausgewählten Dateien ausschließlich lokal.',
       reset_button: 'Zurücksetzen',
       not_mapped: '— nicht zugeordnet —',
       empty_header: '(leer)',
@@ -190,13 +232,23 @@
       previous_page: 'Zurück',
       next_page: 'Weiter',
       no_matches: 'Keine passenden Artikel gefunden.',
-      file_detected: '{{file}} · {{count}} Datenzeilen erkannt.',
-      reading_file: '{{file}} wird gelesen …',
       structure_hint: 'Die Datei enthält zusätzlich CSV-Strukturhinweise, die nach der Zuordnung angezeigt werden.',
       error_prefix: 'Fehler: ',
-      summary_valid: '{{file}}: {{valid}} von {{total}} Datenzeilen sind gültig.',
+      summary_valid: '{{included}} von {{selected}} Dateien einbezogen · {{valid}} von {{total}} Datenzeilen sind gültig.',
       summary_held_back: '{{count}} Zeilen wurden zurückgestellt',
       summary_structural: ' ({{count}} strukturelle Spaltenfehler)',
+      summary_excluded: '{{count}} Dateien wurden wegen blockierender Fehler ausgeschlossen.',
+      source_files_title: 'Quelldateien',
+      source_files_note: 'Zeilen werden ohne automatische dateiübergreifende Deduplizierung zusammengeführt.',
+      source_file_column: 'Quelldatei',
+      status_column: 'Status',
+      total_rows_column: 'Zeilen',
+      valid_rows_column: 'Gültig',
+      invalid_rows_column: 'Fehlerhaft',
+      warning_title: 'Warnungen zu Überschneidungen und Dublettenrisiken',
+      warning_overlap: '{{left}} und {{right}} überschneiden sich vom {{start}} bis {{end}}. Die Zeilen bleiben erhalten und können Aktivitäten doppelt zählen.',
+      warning_identical: '{{left}} und {{right}} haben identische dekodierte Inhalte. Es werden keine Zeilen automatisch entfernt.',
+      warning_metadata: '{{left}} und {{right}} haben gleichen Dateinamen, gleiche Größe und gleiche Änderungszeit. Bitte vor der Analyse prüfen.',
       structure_field: 'Struktur',
       file_read_error: 'Die Datei konnte nicht gelesen werden.',
       empty_file: 'Die ausgewählte CSV-Datei ist leer oder enthält keine Kopfzeile.',
@@ -206,13 +258,7 @@
 
   const state = {
     language: 'en',
-    fileName: '',
-    parsed: null,
-    headers: [],
-    mapping: {},
-    confirmedMapping: null,
-    dataRowCount: 0,
-    hasParseErrors: false,
+    files: [],
     fileSelectionVersion: 0,
     result: null,
     analysis: null,
@@ -235,6 +281,8 @@
     analyzeButton: document.getElementById('analyze-button'),
     resultsPanel: document.getElementById('results-panel'),
     importSummary: document.getElementById('import-summary'),
+    sourceFilesTableBody: document.getElementById('source-files-table-body'),
+    batchWarnings: document.getElementById('batch-warnings'),
     metricGrid: document.getElementById('metric-grid'),
     exportButton: document.getElementById('export-button'),
     articleOverviewPanel: document.getElementById('article-overview-panel'),
@@ -292,20 +340,11 @@
     renderSourceStatus();
   }
 
-  function setSourceError(key, text) {
-    state.sourceStatus = { key: key || null, replacements: {}, error: true, text: text || '' };
-    renderSourceStatus();
-  }
-
-  function readFile(file) {
+  function readFileBuffer(file) {
     return new Promise(function (resolve, reject) {
       const reader = new FileReader();
       reader.onload = function () {
-        try {
-          resolve(encoding.decodeBuffer(reader.result));
-        } catch (error) {
-          reject(createTranslationError('invalid_encoding'));
-        }
+        resolve(reader.result);
       };
       reader.onerror = function () { reject(createTranslationError('file_read_error')); };
       reader.readAsArrayBuffer(file);
@@ -363,42 +402,140 @@
     select.appendChild(option);
   }
 
-  function renderMapping() {
-    elements.mappingGrid.replaceChildren();
-    core.FIELD_DEFINITIONS.forEach(function (definition) {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'mapping-field' + (definition.required ? ' required' : '');
-      const label = document.createElement('label');
-      label.htmlFor = 'mapping-' + definition.key;
-      label.textContent = core.getFieldLabel(definition.key, state.language);
-      if (definition.required) {
-        const requiredMarker = document.createElement('span');
-        requiredMarker.className = 'required-marker';
-        requiredMarker.textContent = ' · ' + translate('required_marker');
-        label.appendChild(requiredMarker);
-      }
-      const select = document.createElement('select');
-      select.id = 'mapping-' + definition.key;
-      select.dataset.field = definition.key;
-      addOption(select, '', translate('not_mapped'));
-      state.headers.forEach(function (header, index) {
-        addOption(select, String(index), (index + 1) + ': ' + (header || translate('empty_header')));
-      });
-      if (Number.isInteger(state.mapping[definition.key])) {
-        select.value = String(state.mapping[definition.key]);
-      }
-      wrapper.appendChild(label);
-      wrapper.appendChild(select);
-      elements.mappingGrid.appendChild(wrapper);
-    });
+  function mappingStatusKey(file) {
+    if (file.reading) {
+      return 'mapping_file_reading';
+    }
+    if (file.errorKey || (file.result && file.result.blocking)) {
+      return 'mapping_file_excluded';
+    }
+    if (file.result) {
+      return 'mapping_file_included';
+    }
+    return 'mapping_file_ready';
   }
 
-  function currentMapping() {
-    const mapping = {};
-    elements.mappingGrid.querySelectorAll('select[data-field]').forEach(function (select) {
-      mapping[select.dataset.field] = select.value === '' ? null : Number(select.value);
+  function formatEncodingName(value) {
+    const names = {
+      'utf-8': 'UTF-8',
+      'utf-16le': 'UTF-16 LE',
+      'utf-16be': 'UTF-16 BE',
+      'windows-1252': 'Windows-1252'
+    };
+    return names[value] || String(value || '');
+  }
+
+  function renderMapping() {
+    elements.mappingGrid.replaceChildren();
+    state.files.forEach(function (file) {
+      const section = document.createElement('section');
+      section.className = 'mapping-file' + (file.errorKey || (file.result && file.result.blocking) ? ' blocked' : '');
+      section.dataset.fileId = file.id;
+
+      const heading = document.createElement('div');
+      heading.className = 'mapping-file-heading';
+      const headingCopy = document.createElement('div');
+      const title = document.createElement('h3');
+      title.className = 'mapping-file-title';
+      setText(title, file.label);
+      const meta = document.createElement('p');
+      meta.className = 'mapping-file-meta';
+      setText(meta, file.parsed
+        ? translate('mapping_file_rows', { count: file.dataRowCount }) + ' · ' + translate(mappingStatusKey(file))
+        : translate(mappingStatusKey(file)));
+      headingCopy.appendChild(title);
+      headingCopy.appendChild(meta);
+
+      const removeButton = document.createElement('button');
+      removeButton.type = 'button';
+      removeButton.className = 'text-button';
+      removeButton.dataset.removeFileId = file.id;
+      removeButton.disabled = file.reading;
+      setText(removeButton, translate('remove_file'));
+      removeButton.setAttribute('aria-label', translate('remove_file_label', { file: file.label }));
+      heading.appendChild(headingCopy);
+      heading.appendChild(removeButton);
+      section.appendChild(heading);
+
+      const encodingField = document.createElement('label');
+      encodingField.className = 'compact-field encoding-field';
+      const encodingLabel = document.createElement('span');
+      setText(encodingLabel, translate('encoding_label'));
+      const encodingSelect = document.createElement('select');
+      encodingSelect.dataset.encodingFileId = file.id;
+      encodingSelect.disabled = file.reading || !file.buffer;
+      addOption(
+        encodingSelect,
+        'auto',
+        file.detectedEncoding
+          ? translate('encoding_auto_detected', { encoding: formatEncodingName(file.detectedEncoding) })
+          : translate('encoding_auto')
+      );
+      encoding.SUPPORTED_ENCODINGS.forEach(function (encodingName) {
+        addOption(encodingSelect, encodingName, formatEncodingName(encodingName));
+      });
+      encodingSelect.value = file.encodingMode || 'auto';
+      encodingField.appendChild(encodingLabel);
+      encodingField.appendChild(encodingSelect);
+      section.appendChild(encodingField);
+
+      if (file.errorKey) {
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'message mapping-file-message';
+        setText(errorMessage, translate(file.errorKey));
+        section.appendChild(errorMessage);
+        elements.mappingGrid.appendChild(section);
+        return;
+      }
+
+      if (file.parsed) {
+        const fields = document.createElement('div');
+        fields.className = 'mapping-fields';
+        core.FIELD_DEFINITIONS.forEach(function (definition) {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'mapping-field' + (definition.required ? ' required' : '');
+          const label = document.createElement('label');
+          const selectId = 'mapping-' + file.id + '-' + definition.key;
+          label.htmlFor = selectId;
+          label.textContent = core.getFieldLabel(definition.key, state.language);
+          if (definition.required) {
+            const requiredMarker = document.createElement('span');
+            requiredMarker.className = 'required-marker';
+            requiredMarker.textContent = ' · ' + translate('required_marker');
+            label.appendChild(requiredMarker);
+          }
+          const select = document.createElement('select');
+          select.id = selectId;
+          select.dataset.field = definition.key;
+          select.dataset.fileId = file.id;
+          addOption(select, '', translate('not_mapped'));
+          file.headers.forEach(function (header, index) {
+            addOption(select, String(index), (index + 1) + ': ' + (header || translate('empty_header')));
+          });
+          if (Number.isInteger(file.mapping[definition.key])) {
+            select.value = String(file.mapping[definition.key]);
+          }
+          wrapper.appendChild(label);
+          wrapper.appendChild(select);
+          fields.appendChild(wrapper);
+        });
+        section.appendChild(fields);
+      }
+
+      if (file.result && file.result.blocking && file.result.issues.length > 0) {
+        const blockingMessage = document.createElement('div');
+        blockingMessage.className = 'message mapping-file-message';
+        setText(blockingMessage, file.result.issues.map(function (issue) { return issue.message; }).join(' '));
+        section.appendChild(blockingMessage);
+      } else if (file.hasParseErrors) {
+        const structureMessage = document.createElement('div');
+        structureMessage.className = 'message warning-message mapping-file-message';
+        setText(structureMessage, translate('structure_hint'));
+        section.appendChild(structureMessage);
+      }
+
+      elements.mappingGrid.appendChild(section);
     });
-    return mapping;
   }
 
   function showMappingMessage(message) {
@@ -422,17 +559,11 @@
       element.setAttribute('placeholder', translate(element.dataset.i18nPlaceholder));
     });
     elements.languageSelect.setAttribute('aria-label', translate('language_label'));
-    if (state.headers.length > 0) {
-      if (elements.mappingGrid.querySelector('select[data-field]')) {
-        state.mapping = currentMapping();
-      }
+    if (state.files.length > 0) {
       renderMapping();
-      showMappingMessage(state.hasParseErrors ? translate('structure_hint') : '');
     }
-    if (state.result && state.parsed) {
-      const analyzedMapping = state.confirmedMapping || state.mapping;
-      state.result = core.importParsedCsv(state.parsed, analyzedMapping, { locale: state.language });
-      renderResults(state.result, { preserveView: true });
+    if (state.result) {
+      refreshAnalyzedResults(true);
     }
     renderSourceStatus();
   }
@@ -605,13 +736,14 @@
       const emptyRow = document.createElement('tr');
       emptyRow.className = 'empty-row';
       const emptyCell = document.createElement('td');
-      emptyCell.colSpan = 8;
+      emptyCell.colSpan = 9;
       setText(emptyCell, translate('no_detail_rows'));
       emptyRow.appendChild(emptyCell);
       elements.articleDetailTableBody.appendChild(emptyRow);
     } else {
       visibleLines.forEach(function (line) {
         const row = document.createElement('tr');
+        appendCell(row, optionalText(line.source_file_label || line.source_file_name));
         appendCell(row, String(line.source_line), 'number');
         appendCell(row, line.order_id);
         appendCell(row, line.order_date);
@@ -704,7 +836,7 @@
   }
 
   function renderIssues(issues) {
-    const rowIssues = issues.filter(function (issue) { return issue.sourceLine !== null; });
+    const rowIssues = issues.slice();
     const pageCount = Math.max(1, Math.ceil(rowIssues.length / TABLE_PAGE_SIZE));
     state.issuePage = Math.min(Math.max(state.issuePage, 1), pageCount);
     const pageStart = (state.issuePage - 1) * TABLE_PAGE_SIZE;
@@ -726,12 +858,62 @@
     }));
     visibleIssues.forEach(function (issue) {
       const row = document.createElement('tr');
-      appendCell(row, String(issue.sourceLine));
+      appendCell(row, optionalText(issue.sourceFileLabel || issue.sourceFileName));
+      appendCell(row, issue.sourceLine === null ? translate('empty_value') : String(issue.sourceLine));
       appendCell(row, issue.field ? core.getFieldLabel(issue.field, state.language) : translate('structure_field'));
       appendCell(row, issue.code);
       appendCell(row, issue.message);
       elements.issuesTableBody.appendChild(row);
     });
+  }
+
+  function warningText(warning) {
+    const replacements = {
+      left: warning.sourceFileLabels[0],
+      right: warning.sourceFileLabels[1],
+      start: warning.overlapStart,
+      end: warning.overlapEnd
+    };
+    if (warning.code === 'overlapping_date_ranges') {
+      return translate('warning_overlap', replacements);
+    }
+    if (warning.code === 'identical_file_content') {
+      return translate('warning_identical', replacements);
+    }
+    return translate('warning_metadata', replacements);
+  }
+
+  function renderSourceFiles(result) {
+    elements.sourceFilesTableBody.replaceChildren();
+    result.files.forEach(function (file) {
+      const row = document.createElement('tr');
+      appendCell(row, file.label);
+      const statusCell = document.createElement('td');
+      const status = document.createElement('span');
+      status.className = 'status-badge' + (file.included ? '' : ' excluded');
+      setText(status, translate(file.included ? 'mapping_file_included' : 'mapping_file_excluded'));
+      statusCell.appendChild(status);
+      row.appendChild(statusCell);
+      appendCell(row, formatNumber(file.totalRows, 0), 'number');
+      appendCell(row, formatNumber(file.validRows, 0), 'number');
+      appendCell(row, formatNumber(file.invalidRows, 0), 'number');
+      elements.sourceFilesTableBody.appendChild(row);
+    });
+
+    elements.batchWarnings.replaceChildren();
+    elements.batchWarnings.classList.toggle('hidden', result.warnings.length === 0);
+    if (result.warnings.length > 0) {
+      const title = document.createElement('strong');
+      setText(title, translate('warning_title'));
+      const list = document.createElement('ul');
+      result.warnings.forEach(function (warning) {
+        const item = document.createElement('li');
+        setText(item, warningText(warning));
+        list.appendChild(item);
+      });
+      elements.batchWarnings.appendChild(title);
+      elements.batchWarnings.appendChild(list);
+    }
   }
 
   function renderResults(result, options) {
@@ -744,10 +926,11 @@
       state.detailPage = 1;
       state.issuePage = 1;
     }
-    const hasIssues = result.invalidRows > 0 || result.issues.some(function (issue) { return issue.sourceLine === null; });
+    const hasIssues = result.invalidRows > 0 || result.excludedFiles > 0 || result.warnings.length > 0;
     elements.importSummary.className = 'import-summary' + (hasIssues ? ' warning' : '');
     let summary = translate('summary_valid', {
-      file: state.fileName,
+      included: result.includedFiles,
+      selected: result.selectedFiles,
       valid: result.validRows,
       total: result.totalRows
     });
@@ -758,7 +941,11 @@
       }
       summary += '.';
     }
+    if (result.excludedFiles > 0) {
+      summary += ' ' + translate('summary_excluded', { count: result.excludedFiles });
+    }
     setText(elements.importSummary, summary);
+    renderSourceFiles(result);
     renderMetrics(state.analysis);
     renderArticles();
     if (state.selectedArticleId && selectedArticle()) {
@@ -771,81 +958,168 @@
     elements.resultsPanel.classList.remove('hidden');
   }
 
-  async function handleFileChange() {
-    const file = elements.fileInput.files[0];
-    if (!file) {
-      return;
-    }
-    const selectionVersion = state.fileSelectionVersion + 1;
-    state.fileSelectionVersion = selectionVersion;
+  function sourceContext(file) {
+    return { id: file.id, name: file.name, label: file.label };
+  }
+
+  function refreshAnalyzedResults(preserveView) {
+    const batchFiles = state.files.map(function (file) {
+      if (file.parsed && !file.errorKey) {
+        const mapping = file.confirmedMapping || file.mapping;
+        file.result = core.importParsedCsv(file.parsed, mapping, {
+          locale: state.language,
+          sourceFile: sourceContext(file)
+        });
+      } else {
+        file.result = null;
+      }
+      return file;
+    });
+    const result = core.combineImportResults(batchFiles);
+    renderMapping();
+    renderResults(result, { preserveView: preserveView });
+  }
+
+  function clearAnalysis() {
     state.result = null;
     state.analysis = null;
-    state.fileName = '';
-    state.parsed = null;
-    state.headers = [];
-    state.mapping = {};
-    state.confirmedMapping = null;
-    state.dataRowCount = 0;
-    state.hasParseErrors = false;
     state.articlePage = 1;
     state.selectedArticleId = null;
     state.detailPage = 1;
     state.issuePage = 1;
-    elements.articleFilter.value = '';
-    elements.mappingGrid.replaceChildren();
-    elements.mappingPanel.classList.add('hidden');
+    state.files.forEach(function (file) {
+      file.result = null;
+      file.confirmedMapping = null;
+    });
     elements.resultsPanel.classList.add('hidden');
-    elements.analyzeButton.disabled = true;
     elements.exportButton.disabled = true;
-    setSourceStatus('reading_file', { file: file.name });
+  }
+
+  function updateSourceStatus() {
+    const rows = state.files.reduce(function (sum, file) { return sum + (file.dataRowCount || 0); }, 0);
+    const errors = state.files.filter(function (file) { return Boolean(file.errorKey); }).length;
+    setSourceStatus(errors > 0 ? 'files_detected_with_errors' : 'files_detected', {
+      files: state.files.length,
+      rows: rows,
+      errors: errors
+    });
+  }
+
+  function decodeFileEntry(file) {
+    file.errorKey = null;
+    file.content = null;
+    file.parsed = null;
+    file.headers = [];
+    file.mapping = {};
+    file.confirmedMapping = null;
+    file.dataRowCount = 0;
+    file.hasParseErrors = false;
+    file.result = null;
+    file.activeEncoding = null;
     try {
-      const fileText = await readFile(file);
-      if (selectionVersion !== state.fileSelectionVersion) {
-        return;
-      }
-      state.fileName = file.name;
-      const parsed = core.parseCsv(fileText);
+      const decoded = encoding.decodeBufferDetailed(file.buffer, file.encodingMode || 'auto');
+      const parsed = core.parseCsv(decoded.text);
       if (parsed.rows.length === 0) {
         throw createTranslationError('empty_file');
       }
-      state.parsed = parsed;
-      state.headers = parsed.rows[0].values.map(function (header) { return String(header).trim(); });
-      state.mapping = core.detectMapping(state.headers);
-      state.dataRowCount = Math.max(0, parsed.rows.length - 1);
-      state.hasParseErrors = parsed.errors.length > 0;
-      renderMapping();
-      showMappingMessage(parsed.errors.length > 0 ? translate('structure_hint') : '');
-      setSourceStatus('file_detected', { file: file.name, count: Math.max(0, parsed.rows.length - 1) });
-      elements.mappingPanel.classList.remove('hidden');
-      elements.resultsPanel.classList.add('hidden');
-      elements.analyzeButton.disabled = false;
-    } catch (error) {
-      if (selectionVersion !== state.fileSelectionVersion) {
-        return;
+      file.content = decoded.text;
+      file.activeEncoding = decoded.encoding;
+      if (decoded.automatic) {
+        file.detectedEncoding = decoded.encoding;
       }
-      state.parsed = null;
-      setSourceError(error && error.translationKey, error && error.message);
-      elements.mappingPanel.classList.add('hidden');
-      elements.resultsPanel.classList.add('hidden');
-      elements.analyzeButton.disabled = true;
-      elements.exportButton.disabled = true;
+      file.parsed = parsed;
+      file.headers = parsed.rows[0].values.map(function (header) { return String(header).trim(); });
+      file.mapping = core.detectMapping(file.headers);
+      file.dataRowCount = Math.max(0, parsed.rows.length - 1);
+      file.hasParseErrors = parsed.errors.length > 0;
+    } catch (error) {
+      file.errorKey = error && error.translationKey ? error.translationKey : 'invalid_encoding';
     }
   }
 
-  function analyze() {
-    if (!state.parsed) {
+  async function handleFileChange() {
+    const selectedFiles = Array.from(elements.fileInput.files || []);
+    if (selectedFiles.length === 0) {
       return;
     }
-    const draftMapping = currentMapping();
-    const mappingIssues = core.validateMapping(draftMapping, state.language);
-    if (mappingIssues.length > 0) {
-      showMappingMessage(mappingIssues.map(function (issue) { return issue.message; }).join(' '));
-      return;
-    }
-    state.mapping = draftMapping;
-    state.confirmedMapping = Object.assign({}, draftMapping);
+    const selectionVersion = state.fileSelectionVersion + 1;
+    state.fileSelectionVersion = selectionVersion;
+    clearAnalysis();
+    elements.articleFilter.value = '';
+    elements.analyzeButton.disabled = true;
     showMappingMessage('');
-    renderResults(core.importParsedCsv(state.parsed, state.confirmedMapping, { locale: state.language }));
+
+    const labeled = core.assignSourceFileLabels(selectedFiles.map(function (file, index) {
+      return {
+        id: 'source-' + (index + 1),
+        name: file.name,
+        size: file.size,
+        lastModified: file.lastModified
+      };
+    }));
+    state.files = labeled.map(function (source, index) {
+      return {
+        id: source.id,
+        name: source.name,
+        label: source.label,
+        size: source.size,
+        lastModified: source.lastModified,
+        browserFile: selectedFiles[index],
+        buffer: null,
+        reading: true,
+        errorKey: null,
+        encodingMode: 'auto',
+        activeEncoding: null,
+        detectedEncoding: null,
+        content: null,
+        parsed: null,
+        headers: [],
+        mapping: {},
+        confirmedMapping: null,
+        dataRowCount: 0,
+        hasParseErrors: false,
+        result: null
+      };
+    });
+    setSourceStatus('reading_files', { count: state.files.length });
+    elements.mappingPanel.classList.remove('hidden');
+    renderMapping();
+
+    await Promise.all(state.files.map(async function (file) {
+      try {
+        file.buffer = await readFileBuffer(file.browserFile);
+        if (selectionVersion !== state.fileSelectionVersion) {
+          return;
+        }
+        decodeFileEntry(file);
+      } catch (error) {
+        file.errorKey = error && error.translationKey ? error.translationKey : 'file_read_error';
+      } finally {
+        file.reading = false;
+      }
+    }));
+
+    if (selectionVersion !== state.fileSelectionVersion) {
+      return;
+    }
+    renderMapping();
+    updateSourceStatus();
+    const hasPreparedFile = state.files.some(function (file) { return Boolean(file.parsed); });
+    elements.analyzeButton.disabled = !hasPreparedFile;
+    showMappingMessage(hasPreparedFile ? '' : translate('no_prepared_files'));
+  }
+
+  function analyze() {
+    const preparedFiles = state.files.filter(function (file) { return Boolean(file.parsed) && !file.errorKey; });
+    if (preparedFiles.length === 0) {
+      showMappingMessage(translate('no_prepared_files'));
+      return;
+    }
+    preparedFiles.forEach(function (file) {
+      file.confirmedMapping = Object.assign({}, file.mapping);
+    });
+    showMappingMessage('');
+    refreshAnalyzedResults(false);
   }
 
   function exportResults() {
@@ -863,20 +1137,9 @@
   }
 
   function reset() {
-    state.fileName = '';
-    state.parsed = null;
-    state.headers = [];
-    state.mapping = {};
-    state.confirmedMapping = null;
-    state.dataRowCount = 0;
-    state.hasParseErrors = false;
+    state.files = [];
     state.fileSelectionVersion += 1;
-    state.result = null;
-    state.analysis = null;
-    state.articlePage = 1;
-    state.selectedArticleId = null;
-    state.detailPage = 1;
-    state.issuePage = 1;
+    clearAnalysis();
     elements.fileInput.value = '';
     elements.articleFilter.value = '';
     setSourceStatus('no_file_selected');
@@ -886,6 +1149,67 @@
   }
 
   elements.fileInput.addEventListener('change', handleFileChange);
+  elements.mappingGrid.addEventListener('change', function (event) {
+    const select = event.target.closest('select[data-encoding-file-id]');
+    if (!select || !elements.mappingGrid.contains(select)) {
+      return;
+    }
+    const file = state.files.find(function (item) { return item.id === select.dataset.encodingFileId; });
+    if (!file || !file.buffer) {
+      return;
+    }
+    clearAnalysis();
+    file.encodingMode = select.value;
+    decodeFileEntry(file);
+    renderMapping();
+    updateSourceStatus();
+    const replacement = elements.mappingGrid.querySelector('select[data-encoding-file-id="' + file.id + '"]');
+    if (replacement) {
+      replacement.focus();
+    }
+    const hasPreparedFile = state.files.some(function (item) { return Boolean(item.parsed); });
+    elements.analyzeButton.disabled = !hasPreparedFile;
+    showMappingMessage(hasPreparedFile ? '' : translate('no_prepared_files'));
+  });
+  elements.mappingGrid.addEventListener('change', function (event) {
+    const select = event.target.closest('select[data-file-id][data-field]');
+    if (!select || !elements.mappingGrid.contains(select)) {
+      return;
+    }
+    const file = state.files.find(function (item) { return item.id === select.dataset.fileId; });
+    if (!file) {
+      return;
+    }
+    file.mapping[select.dataset.field] = select.value === '' ? null : Number(select.value);
+    const fileId = file.id;
+    const field = select.dataset.field;
+    clearAnalysis();
+    renderMapping();
+    const replacement = elements.mappingGrid.querySelector('select[data-file-id="' + fileId + '"][data-field="' + field + '"]');
+    if (replacement) {
+      replacement.focus();
+    }
+  });
+  elements.mappingGrid.addEventListener('click', function (event) {
+    const button = event.target.closest('button[data-remove-file-id]');
+    if (!button || !elements.mappingGrid.contains(button)) {
+      return;
+    }
+    clearAnalysis();
+    state.files = state.files.filter(function (file) { return file.id !== button.dataset.removeFileId; });
+    const relabeled = core.assignSourceFileLabels(state.files);
+    relabeled.forEach(function (source, index) {
+      state.files[index].label = source.label;
+    });
+    elements.fileInput.value = '';
+    if (state.files.length === 0) {
+      reset();
+      return;
+    }
+    renderMapping();
+    updateSourceStatus();
+    elements.analyzeButton.disabled = !state.files.some(function (file) { return Boolean(file.parsed); });
+  });
   elements.languageSelect.addEventListener('change', function () {
     state.language = elements.languageSelect.value === 'de' ? 'de' : 'en';
     applyLanguage();

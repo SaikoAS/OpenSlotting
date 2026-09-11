@@ -65,8 +65,29 @@
     return null;
   }
 
-  function decodeBuffer(buffer) {
+  const SUPPORTED_ENCODINGS = Object.freeze(['utf-8', 'utf-16le', 'utf-16be', 'windows-1252']);
+
+  function decodeBytes(bytes, encoding) {
+    if (SUPPORTED_ENCODINGS.indexOf(encoding) < 0) {
+      throw new RangeError('Unsupported encoding selection.');
+    }
+    const text = new TextDecoder(encoding, { fatal: true }).decode(bytes);
+    if (text.indexOf('\u0000') >= 0) {
+      throw new TypeError('The decoded text contains unsupported embedded NUL characters.');
+    }
+    return text;
+  }
+
+  function decodeBufferDetailed(buffer, preferredEncoding) {
     const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    if (preferredEncoding && preferredEncoding !== 'auto') {
+      return {
+        text: decodeBytes(bytes, preferredEncoding),
+        encoding: preferredEncoding,
+        automatic: false
+      };
+    }
+
     let encoding = null;
     if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
       encoding = 'utf-8';
@@ -79,21 +100,39 @@
     }
 
     if (encoding) {
-      return new TextDecoder(encoding, { fatal: true }).decode(bytes);
+      return {
+        text: decodeBytes(bytes, encoding),
+        encoding: encoding,
+        automatic: true
+      };
     }
     if (bytes.some(function (byte) { return byte === 0; })) {
       throw new TypeError('The byte sequence contains unsupported embedded NUL bytes.');
     }
 
     try {
-      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      return {
+        text: decodeBytes(bytes, 'utf-8'),
+        encoding: 'utf-8',
+        automatic: true
+      };
     } catch (error) {
-      return new TextDecoder('windows-1252', { fatal: true }).decode(bytes);
+      return {
+        text: decodeBytes(bytes, 'windows-1252'),
+        encoding: 'windows-1252',
+        automatic: true
+      };
     }
   }
 
+  function decodeBuffer(buffer) {
+    return decodeBufferDetailed(buffer, 'auto').text;
+  }
+
   return {
+    SUPPORTED_ENCODINGS: SUPPORTED_ENCODINGS,
     decodeBuffer: decodeBuffer,
+    decodeBufferDetailed: decodeBufferDetailed,
     detectBomlessUtf16: detectBomlessUtf16
   };
 }));

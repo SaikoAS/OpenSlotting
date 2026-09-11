@@ -9,9 +9,9 @@
   <body>
     <header class="app-header">
       <div>
-        <p class="eyebrow" data-i18n="eyebrow">OpenSlotting · V0.1</p>
-        <h1 data-i18n="hero_title">Understand order lines</h1>
-        <p class="subtitle" data-i18n="hero_subtitle">Inspect CSV data locally, aggregate article movement, and build the foundation for slotting.</p>
+        <p class="eyebrow" data-i18n="eyebrow">OpenSlotting · V0.2</p>
+        <h1 data-i18n="hero_title">Analyze order lines across exports</h1>
+        <p class="subtitle" data-i18n="hero_subtitle">Combine multiple CSV exports locally while keeping every source file and line traceable.</p>
       </div>
       <div class="header-actions">
         <label class="language-picker">
@@ -30,14 +30,14 @@
         <div class="panel-heading">
           <div>
             <p class="step" data-i18n="step_1">Step 1</p>
-            <h2 data-i18n="select_file_title">Select a CSV file</h2>
+            <h2 data-i18n="select_file_title">Select CSV files</h2>
           </div>
           <span class="hint" data-i18n="local_hint">No data leaves your browser.</span>
         </div>
         <label class="file-picker" for="file-input">
-          <span class="file-picker-title" data-i18n="open_csv">Open CSV file</span>
+          <span class="file-picker-title" data-i18n="open_csv">Open CSV files</span>
           <span class="file-picker-copy" data-i18n="file_format_hint">UTF-8, UTF-16, or Windows-1252 with semicolon delimiter</span>
-          <input id="file-input" type="file" accept=".csv,text/csv">
+          <input id="file-input" type="file" accept=".csv,text/csv" multiple>
         </label>
         <p id="source-status" class="status-text" role="status" data-i18n="no_file_selected">No file selected yet.</p>
       </section>
@@ -46,9 +46,9 @@
         <div class="panel-heading">
           <div>
             <p class="step" data-i18n="step_2">Step 2</p>
-            <h2 id="mapping-title" data-i18n="mapping_title">Map source columns</h2>
+            <h2 id="mapping-title" data-i18n="mapping_title">Map source columns per file</h2>
           </div>
-          <span class="hint" data-i18n="mapping_hint">Review and adjust the detected mappings.</span>
+          <span class="hint" data-i18n="mapping_hint">Review each file independently. Blocking files are excluded from the combined analysis.</span>
         </div>
         <div id="mapping-grid" class="mapping-grid"></div>
         <div id="mapping-message" class="message hidden" role="alert"></div>
@@ -65,6 +65,29 @@
         </div>
 
         <div id="import-summary" class="import-summary" role="status"></div>
+        <section class="panel source-files-panel" aria-labelledby="source-files-title">
+          <div class="table-toolbar">
+            <div>
+              <h3 id="source-files-title" data-i18n="source_files_title">Source files</h3>
+              <p class="table-note" data-i18n="source_files_note">Rows are combined without automatic cross-file deduplication.</p>
+            </div>
+          </div>
+          <div id="batch-warnings" class="batch-warnings hidden" role="status"></div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th data-i18n="source_file_column">Source file</th>
+                  <th data-i18n="status_column">Status</th>
+                  <th class="number" data-i18n="total_rows_column">Rows</th>
+                  <th class="number" data-i18n="valid_rows_column">Valid</th>
+                  <th class="number" data-i18n="invalid_rows_column">Invalid</th>
+                </tr>
+              </thead>
+              <tbody id="source-files-table-body"></tbody>
+            </table>
+          </div>
+        </section>
         <div id="metric-grid" class="metric-grid"></div>
 
         <section id="article-overview-panel" class="panel table-panel" aria-labelledby="article-title">
@@ -127,6 +150,7 @@
             <table>
               <thead>
                 <tr>
+                  <th data-i18n="detail_source_file">Source file</th>
                   <th class="number" data-i18n="detail_source_line">Source line</th>
                   <th data-i18n="detail_order_id">Order ID</th>
                   <th data-i18n="detail_order_date">Order date</th>
@@ -151,13 +175,14 @@
           <div class="table-toolbar">
             <div>
               <h3 id="issues-title" data-i18n="issues_title">Validation notes</h3>
-              <p class="table-note" data-i18n="issues_note">Invalid rows are not aggregated and remain traceable by source line.</p>
+              <p class="table-note" data-i18n="issues_note">Blocking files and invalid rows are not aggregated and remain traceable by source file and line.</p>
             </div>
           </div>
           <div class="table-scroll">
             <table>
               <thead>
                 <tr>
+                  <th data-i18n="issue_source_file">Source file</th>
                   <th data-i18n="issue_source_line">Source line</th>
                   <th data-i18n="issue_field">Field</th>
                   <th data-i18n="issue_code">Code</th>
@@ -178,7 +203,7 @@
 
     <footer class="app-footer">
       <div>
-        <span data-i18n="footer_local">OpenSlotting processes the selected file locally only.</span>
+        <span data-i18n="footer_local">OpenSlotting processes the selected files locally only.</span>
         <span id="app-version" class="app-version"></span>
       </div>
       <button id="reset-button" class="text-button" type="button" data-i18n="reset_button">Reset</button>
