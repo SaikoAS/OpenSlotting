@@ -45,6 +45,7 @@ $releaseFiles = @(
     'index.html',
     'app.css',
     'app.js',
+    'workspace.js',
     'encoding.js',
     'csv.js',
     'OpenSlotting.Windows.psm1',

@@ -26,6 +26,21 @@
     </header>
 
     <main class="page-shell">
+      <section class="panel workspace-panel" aria-labelledby="workspace-title">
+        <div class="panel-heading">
+          <div><p class="step" data-i18n="workspace_label">Workspace</p><h2 id="workspace-title" data-i18n="workspace_title">Local workspaces</h2></div>
+          <span class="hint" data-i18n="workspace_hint">Saved automatically in this browser.</span>
+        </div>
+        <div class="workspace-toolbar">
+          <label class="compact-field workspace-select"><span data-i18n="workspace_open">Open workspace</span><select id="workspace-select"></select></label>
+          <button id="workspace-create" class="secondary-button" type="button" data-i18n="workspace_create">Create</button>
+          <button id="workspace-rename" class="secondary-button" type="button" data-i18n="workspace_rename">Rename</button>
+          <button id="workspace-delete" class="secondary-button danger-button" type="button" data-i18n="workspace_delete">Delete</button>
+          <button id="workspace-export" class="secondary-button" type="button" data-i18n="workspace_export">Back up</button>
+          <label class="secondary-button restore-picker"><span data-i18n="workspace_restore">Restore</span><input id="workspace-restore-input" type="file" accept=".json,application/json"></label>
+        </div>
+        <div id="workspace-message" class="message hidden" role="alert"></div>
+      </section>
       <section class="panel">
         <div class="panel-heading">
           <div>
@@ -209,6 +224,7 @@
       <button id="reset-button" class="text-button" type="button" data-i18n="reset_button">Reset</button>
     </footer>
 
+    <script src="workspace.js"></script>
     <script src="encoding.js"></script>
     <script src="csv.js"></script>
     <script src="app.js"></script>

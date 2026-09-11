@@ -15,7 +15,7 @@ test('release version is defined centrally for the UI and package', () => {
 });
 
 test('runtime source has no mandatory network dependency', () => {
-  const runtimeFiles = ['index.html', 'app.css', 'app.js', 'encoding.js', 'csv.js'];
+  const runtimeFiles = ['index.html', 'app.css', 'app.js', 'workspace.js', 'encoding.js', 'csv.js'];
   const forbiddenPattern = /https?:\/\/|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\blocalhost\b|127\.0\.0\.1/;
 
   runtimeFiles.forEach((fileName) => {

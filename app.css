@@ -69,6 +69,12 @@ h3 { margin-bottom: 4px; font-size: 1.08rem; }
 .file-picker-copy { display: block; margin-top: 5px; color: var(--muted); font-size: .9rem; }
 input[type="file"] { display: block; margin-top: 16px; width: 100%; color: var(--muted); }
 .status-text { margin: 16px 0 0; }
+.workspace-toolbar { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+.workspace-select { flex: 1 1 240px; }
+.restore-picker { display: inline-block; cursor: pointer; }
+.restore-picker input { display: none; }
+.danger-button { border-color: #d8aaaa; color: var(--danger); background: var(--danger-soft); }
+.workspace-panel .message { margin: 16px 0 0; }
 
 .mapping-grid { display: grid; gap: 18px; margin: 24px 0; }
 .mapping-file { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fbfcfc; }

@@ -36,15 +36,19 @@ The current implementation includes:
 - warnings for overlapping date ranges, identical decoded content, and matching file metadata
 - no automatic cross-file deduplication
 - source-file coverage in the analysis export
+- separate browser-local workspaces with automatic persistence and strict data isolation
+- portable, versioned workspace backups that restore as a new workspace or explicitly replace one workspace
 - optional Windows launch, current-user shortcut setup, and safe shortcut removal for Microsoft Edge app mode
 
 The complete implemented import, normalization, validation, and export contract is documented in [`docs/data-format.md`](docs/data-format.md).
 
 The published V0.1 release was accepted in Microsoft Edge Desktop on Windows with `index.html` opened directly through `file:///`. V0.2 retains the same acceptance target and requires a separate multi-file Edge run before release using [`docs/acceptance-v0.2.md`](docs/acceptance-v0.2.md). Other browsers may work but are not part of the compatibility claim unless tested separately.
 
-The current implementation intentionally keeps data in memory for the current
-browser session. It does not upload files or require a server, backend,
-Node.js, Python, or an internet connection.
+Workspace data is stored locally by the browser and restored when the same
+local application is reopened. A workspace backup contains the complete
+analysis state and source provenance; protect it like the source exports. The
+application does not upload files or require a server, backend, Node.js,
+Python, or an internet connection.
 
 ## Optional Windows launcher
 

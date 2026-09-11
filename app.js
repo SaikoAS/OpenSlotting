@@ -3,6 +3,7 @@
 
   const core = window.OpenSlottingCsv;
   const encoding = window.OpenSlottingEncoding;
+  const workspaceCore = window.OpenSlottingWorkspaces;
   const TRANSLATIONS = {
     en: {
       page_title: 'OpenSlotting – CSV Analysis',
@@ -128,6 +129,12 @@
       file_read_error: 'The file could not be read.',
       empty_file: 'The selected CSV file is empty or has no header row.',
       invalid_encoding: 'The file encoding is not supported. Use UTF-8, UTF-16, or Windows-1252.'
+      ,workspace_label: 'Workspace', workspace_title: 'Local workspaces', workspace_hint: 'Saved automatically in this browser.',
+      workspace_open: 'Open workspace', workspace_create: 'Create', workspace_rename: 'Rename', workspace_delete: 'Delete', workspace_export: 'Back up', workspace_restore: 'Restore',
+      workspace_default_name: 'My workspace', workspace_name_prompt: 'Workspace name', workspace_delete_confirm: 'Delete this workspace and all its local data?',
+      workspace_replace_confirm: 'Replace the selected workspace with this backup? Cancel restores it as a new workspace.', workspace_saved: 'Workspace saved locally.',
+      workspace_restored: 'Workspace restored.', workspace_invalid_backup: 'The backup is invalid or truncated.', workspace_unsupported_backup: 'This backup version is not supported.',
+      workspace_storage_unavailable: 'Browser storage is unavailable.', workspace_storage_quota: 'Browser storage is full. Your latest change could not be saved.', workspace_error: 'The workspace operation failed.'
     },
     de: {
       page_title: 'OpenSlotting – CSV-Analyse',
@@ -253,6 +260,12 @@
       file_read_error: 'Die Datei konnte nicht gelesen werden.',
       empty_file: 'Die ausgewählte CSV-Datei ist leer oder enthält keine Kopfzeile.',
       invalid_encoding: 'Die Dateikodierung wird nicht unterstützt. Bitte UTF-8, UTF-16 oder Windows-1252 verwenden.'
+      ,workspace_label: 'Arbeitsbereich', workspace_title: 'Lokale Arbeitsbereiche', workspace_hint: 'Wird automatisch in diesem Browser gespeichert.',
+      workspace_open: 'Arbeitsbereich öffnen', workspace_create: 'Erstellen', workspace_rename: 'Umbenennen', workspace_delete: 'Löschen', workspace_export: 'Sichern', workspace_restore: 'Wiederherstellen',
+      workspace_default_name: 'Mein Arbeitsbereich', workspace_name_prompt: 'Name des Arbeitsbereichs', workspace_delete_confirm: 'Diesen Arbeitsbereich und alle lokalen Daten löschen?',
+      workspace_replace_confirm: 'Den ausgewählten Arbeitsbereich durch diese Sicherung ersetzen? Abbrechen stellt sie als neuen Arbeitsbereich wieder her.', workspace_saved: 'Arbeitsbereich lokal gespeichert.',
+      workspace_restored: 'Arbeitsbereich wiederhergestellt.', workspace_invalid_backup: 'Die Sicherung ist ungültig oder unvollständig.', workspace_unsupported_backup: 'Diese Sicherungsversion wird nicht unterstützt.',
+      workspace_storage_unavailable: 'Der Browserspeicher ist nicht verfügbar.', workspace_storage_quota: 'Der Browserspeicher ist voll. Die letzte Änderung konnte nicht gespeichert werden.', workspace_error: 'Der Arbeitsbereichsvorgang ist fehlgeschlagen.'
     }
   };
 
@@ -267,6 +280,7 @@
     selectedArticleId: null,
     detailPage: 1,
     issuePage: 1
+    ,workspaceId: null
   };
 
   const TABLE_PAGE_SIZE = 100;
@@ -313,7 +327,12 @@
     issuePageStatus: document.getElementById('issue-page-status'),
     appVersion: document.getElementById('app-version'),
     resetButton: document.getElementById('reset-button')
+    ,workspaceSelect: document.getElementById('workspace-select'), workspaceCreate: document.getElementById('workspace-create'),
+    workspaceRename: document.getElementById('workspace-rename'), workspaceDelete: document.getElementById('workspace-delete'), workspaceExport: document.getElementById('workspace-export'),
+    workspaceRestoreInput: document.getElementById('workspace-restore-input'), workspaceMessage: document.getElementById('workspace-message')
   };
+
+  let workspaceRepository = null;
 
   function translate(key, replacements) {
     let value = TRANSLATIONS[state.language][key] || TRANSLATIONS.en[key] || key;
@@ -1049,15 +1068,16 @@
     elements.analyzeButton.disabled = true;
     showMappingMessage('');
 
-    const labeled = core.assignSourceFileLabels(selectedFiles.map(function (file, index) {
+    const idPrefix = 'source-' + Date.now().toString(36) + '-';
+    const newSources = selectedFiles.map(function (file, index) {
       return {
-        id: 'source-' + (index + 1),
+        id: idPrefix + (index + 1),
         name: file.name,
         size: file.size,
         lastModified: file.lastModified
       };
-    }));
-    state.files = labeled.map(function (source, index) {
+    });
+    const newEntries = newSources.map(function (source, index) {
       return {
         id: source.id,
         name: source.name,
@@ -1081,11 +1101,13 @@
         result: null
       };
     });
+    state.files = state.files.concat(newEntries);
+    core.assignSourceFileLabels(state.files).forEach(function (source, index) { state.files[index].label = source.label; });
     setSourceStatus('reading_files', { count: state.files.length });
     elements.mappingPanel.classList.remove('hidden');
     renderMapping();
 
-    await Promise.all(state.files.map(async function (file) {
+    await Promise.all(newEntries.map(async function (file) {
       try {
         file.buffer = await readFileBuffer(file.browserFile);
         if (selectionVersion !== state.fileSelectionVersion) {
@@ -1107,6 +1129,7 @@
     const hasPreparedFile = state.files.some(function (file) { return Boolean(file.parsed); });
     elements.analyzeButton.disabled = !hasPreparedFile;
     showMappingMessage(hasPreparedFile ? '' : translate('no_prepared_files'));
+    persistWorkspace();
   }
 
   function analyze() {
@@ -1120,6 +1143,7 @@
     });
     showMappingMessage('');
     refreshAnalyzedResults(false);
+    persistWorkspace();
   }
 
   function exportResults() {
@@ -1136,6 +1160,82 @@
     URL.revokeObjectURL(url);
   }
 
+  function workspaceError(error) {
+    const keys = { STORAGE_UNAVAILABLE: 'workspace_storage_unavailable', STORAGE_QUOTA: 'workspace_storage_quota',
+      INVALID_BACKUP: 'workspace_invalid_backup', STORAGE_INVALID: 'workspace_invalid_backup',
+      UNSUPPORTED_BACKUP: 'workspace_unsupported_backup', UNSUPPORTED_SCHEMA: 'workspace_unsupported_backup' };
+    setText(elements.workspaceMessage, translate(keys[error && error.message] || 'workspace_error'));
+    elements.workspaceMessage.classList.remove('hidden');
+  }
+
+  function workspaceSnapshot() {
+    return {
+      files: state.files.map(function (file) {
+        const saved = Object.assign({}, file);
+        delete saved.browserFile; delete saved.buffer; delete saved.content; saved.reading = false;
+        return saved;
+      }),
+      result: state.result, analysis: state.analysis, sourceStatus: state.sourceStatus,
+      articleFilter: elements.articleFilter.value, articleSort: elements.articleSort.value
+    };
+  }
+
+  function persistWorkspace() {
+    if (!workspaceRepository || !state.workspaceId) return;
+    try {
+      workspaceRepository.save(state.workspaceId, workspaceSnapshot());
+      elements.workspaceMessage.classList.add('hidden');
+    } catch (error) { workspaceError(error); }
+  }
+
+  function renderWorkspaceList() {
+    const store = workspaceRepository.load();
+    elements.workspaceSelect.replaceChildren();
+    store.workspaces.forEach(function (workspace) { addOption(elements.workspaceSelect, workspace.id, workspace.name); });
+    elements.workspaceSelect.value = state.workspaceId || '';
+    const unavailable = store.workspaces.length === 0;
+    [elements.workspaceRename, elements.workspaceDelete, elements.workspaceExport].forEach(function (button) { button.disabled = unavailable; });
+  }
+
+  function openWorkspace(workspaceId) {
+    const store = workspaceRepository.load();
+    const workspace = store.workspaces.find(function (item) { return item.id === workspaceId; });
+    if (!workspace) throw new Error('WORKSPACE_NOT_FOUND');
+    workspaceRepository.select(workspaceId); state.workspaceId = workspaceId;
+    const data = workspace.data || {};
+    state.files = data.files || []; state.result = data.result || null; state.analysis = data.analysis || null;
+    state.sourceStatus = data.sourceStatus || { key: 'no_file_selected', replacements: {}, error: false, text: '' };
+    state.fileSelectionVersion += 1; state.articlePage = 1; state.selectedArticleId = null; state.detailPage = 1; state.issuePage = 1;
+    elements.articleFilter.value = data.articleFilter || ''; elements.articleSort.value = data.articleSort || 'lines'; elements.fileInput.value = '';
+    if (state.files.length) { elements.mappingPanel.classList.remove('hidden'); renderMapping(); elements.analyzeButton.disabled = !state.files.some(function (file) { return file.parsed; }); }
+    else { elements.mappingPanel.classList.add('hidden'); elements.mappingGrid.replaceChildren(); }
+    if (state.result && state.analysis) renderResults(state.result, { preserveView: false }); else elements.resultsPanel.classList.add('hidden');
+    renderSourceStatus(); renderWorkspaceList();
+  }
+
+  function createWorkspace() {
+    const name = window.prompt(translate('workspace_name_prompt'), translate('workspace_default_name'));
+    if (name === null) return;
+    try { const workspace = workspaceRepository.create(name, {}); openWorkspace(workspace.id); } catch (error) { workspaceError(error); }
+  }
+
+  function downloadWorkspace() {
+    try {
+      persistWorkspace(); const text = workspaceRepository.export(state.workspaceId);
+      const blob = new Blob([text], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a');
+      link.href = url; link.download = 'openslotting-workspace.json'; link.click(); URL.revokeObjectURL(url);
+    } catch (error) { workspaceError(error); }
+  }
+
+  function initializeWorkspaces() {
+    try {
+      workspaceRepository = new workspaceCore.Repository(window.localStorage);
+      let store = workspaceRepository.load();
+      if (!store.workspaces.length) { const initial = workspaceRepository.create(translate('workspace_default_name'), {}); store = workspaceRepository.load(); store.selectedId = initial.id; }
+      openWorkspace(store.selectedId || store.workspaces[0].id);
+    } catch (error) { workspaceRepository = null; workspaceError(error); }
+  }
+
   function reset() {
     state.files = [];
     state.fileSelectionVersion += 1;
@@ -1146,6 +1246,7 @@
     elements.mappingGrid.replaceChildren();
     elements.mappingPanel.classList.add('hidden');
     elements.resultsPanel.classList.add('hidden');
+    persistWorkspace();
   }
 
   elements.fileInput.addEventListener('change', handleFileChange);
@@ -1170,6 +1271,7 @@
     const hasPreparedFile = state.files.some(function (item) { return Boolean(item.parsed); });
     elements.analyzeButton.disabled = !hasPreparedFile;
     showMappingMessage(hasPreparedFile ? '' : translate('no_prepared_files'));
+    persistWorkspace();
   });
   elements.mappingGrid.addEventListener('change', function (event) {
     const select = event.target.closest('select[data-file-id][data-field]');
@@ -1189,6 +1291,7 @@
     if (replacement) {
       replacement.focus();
     }
+    persistWorkspace();
   });
   elements.mappingGrid.addEventListener('click', function (event) {
     const button = event.target.closest('button[data-remove-file-id]');
@@ -1209,6 +1312,7 @@
     renderMapping();
     updateSourceStatus();
     elements.analyzeButton.disabled = !state.files.some(function (file) { return Boolean(file.parsed); });
+    persistWorkspace();
   });
   elements.languageSelect.addEventListener('change', function () {
     state.language = elements.languageSelect.value === 'de' ? 'de' : 'en';
@@ -1266,5 +1370,42 @@
   });
   elements.resetButton.addEventListener('click', reset);
 
+  elements.workspaceSelect.addEventListener('change', function () {
+    try { openWorkspace(elements.workspaceSelect.value); } catch (error) { workspaceError(error); }
+  });
+  elements.workspaceCreate.addEventListener('click', createWorkspace);
+  elements.workspaceRename.addEventListener('click', function () {
+    if (!workspaceRepository || !state.workspaceId) return;
+    const current = elements.workspaceSelect.options[elements.workspaceSelect.selectedIndex];
+    const name = window.prompt(translate('workspace_name_prompt'), current ? current.textContent : '');
+    if (name === null) return;
+    try { workspaceRepository.rename(state.workspaceId, name); renderWorkspaceList(); } catch (error) { workspaceError(error); }
+  });
+  elements.workspaceDelete.addEventListener('click', function () {
+    if (!workspaceRepository || !state.workspaceId || !window.confirm(translate('workspace_delete_confirm'))) return;
+    try {
+      const store = workspaceRepository.remove(state.workspaceId);
+      if (store.selectedId) openWorkspace(store.selectedId);
+      else { const workspace = workspaceRepository.create(translate('workspace_default_name'), {}); openWorkspace(workspace.id); }
+    } catch (error) { workspaceError(error); }
+  });
+  elements.workspaceExport.addEventListener('click', downloadWorkspace);
+  elements.workspaceRestoreInput.addEventListener('change', function () {
+    const file = elements.workspaceRestoreInput.files && elements.workspaceRestoreInput.files[0];
+    if (!file || !workspaceRepository) return;
+    const reader = new FileReader();
+    reader.onload = function () {
+      try {
+        const replace = window.confirm(translate('workspace_replace_confirm'));
+        const restored = workspaceRepository.restore(String(reader.result), replace ? { replaceId: state.workspaceId } : {});
+        openWorkspace(restored.id); setText(elements.workspaceMessage, translate('workspace_restored')); elements.workspaceMessage.classList.remove('hidden');
+      } catch (error) { workspaceError(error); }
+      elements.workspaceRestoreInput.value = '';
+    };
+    reader.onerror = function () { workspaceError(new Error('INVALID_BACKUP')); };
+    reader.readAsText(file, 'utf-8');
+  });
+
   applyLanguage();
+  initializeWorkspaces();
 }());
