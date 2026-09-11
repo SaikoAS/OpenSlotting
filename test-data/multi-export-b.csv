@@ -1,0 +1,3 @@
+order_id;article_id;article_name;quantity;order_date;customer_id;sales_value;location
+ORDER-B-001;SKU-MULTI;Widget Special;0.2;2026-09-02;CUSTOMER-03;0.20;B-01
+ORDER-B-002;SKU-B-ONLY;Packing Tape;3;2026-09-04;CUSTOMER-04;30.00;B-02

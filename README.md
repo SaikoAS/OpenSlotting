@@ -4,14 +4,14 @@ OpenSlotting is an open-source, local-first web tool for analyzing warehouse ord
 
 The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. Future versions are planned to expand this foundation through multi-export analysis, separate locally stored workspaces, period comparisons, ABC/XYZ classification, configurable master data, slotting scores, and warehouse slotting recommendations.
 
-> **Project status:** V0.1 CSV import, article overview, and traceable article details implemented.
+> **Project status:** V0.2 multi-export analysis with per-file validation and source traceability implemented.
 
-## Current V0.1 implementation
+## Current V0.2 implementation
 
 OpenSlotting currently provides a browser-local first feature for importing and
 analyzing order-line CSV files. Open `index.html` directly in a supported
-browser, choose a CSV file, review the detected column mapping, and start the
-analysis.
+browser, choose one or more CSV files, review the detected column mapping for
+each file, and start the combined analysis.
 
 The current implementation includes:
 
@@ -19,7 +19,7 @@ The current implementation includes:
 - automatic mapping for canonical and common German column names
 - ISO and German date normalization
 - decimal-point and decimal-comma number parsing
-- validation with source line and field information
+- validation with source file, source line, and field information
 - preservation of raw field positions, including duplicate rows
 - optional article descriptions with English and German column aliases
 - stable article grouping by ID with visible description-conflict detection
@@ -29,12 +29,19 @@ The current implementation includes:
 - paginated article and validation-note rendering with 100 rows per page for large imports
 - paginated detail rows with 100 rows per page
 - English as the default interface language, with German available from the language selector
+- multiple source files in one in-memory analysis batch
+- independent encoding selection, mapping, parsing, and validation per source file
+- visible exclusion of files with blocking import errors
+- source-file and source-line traceability for validation notes and article details
+- warnings for overlapping date ranges, identical decoded content, and matching file metadata
+- no automatic cross-file deduplication
+- source-file coverage in the analysis export
 
 The complete implemented import, normalization, validation, and export contract is documented in [`docs/data-format.md`](docs/data-format.md).
 
-The official V0.1 acceptance target is Microsoft Edge Desktop on Windows with `index.html` opened directly through `file:///`. Other browsers may work, but are not part of the V0.1 compatibility claim unless they are tested separately.
+The published V0.1 release was accepted in Microsoft Edge Desktop on Windows with `index.html` opened directly through `file:///`. V0.2 retains the same acceptance target and requires a separate multi-file Edge run before release using [`docs/acceptance-v0.2.md`](docs/acceptance-v0.2.md). Other browsers may work but are not part of the compatibility claim unless tested separately.
 
-The first implementation intentionally keeps data in memory for the current
+The current implementation intentionally keeps data in memory for the current
 browser session. It does not upload files or require a server, backend,
 Node.js, Python, or an internet connection.
 
@@ -75,18 +82,20 @@ Only order ID, article ID, quantity, and order date are required. The other list
 
 Different ERP, WMS, and CSV export headers are supported through configurable column mapping instead of hard-coded field names.
 
-## Current V0.1 Workflow
+## Current V0.2 Workflow
 
-1. Import a CSV file
-2. Detect available columns
-3. Map source columns to OpenSlotting fields
-4. Validate the imported data
-5. Normalize the data internally
-6. Aggregate order lines by article
-7. Calculate basic warehouse activity metrics
-8. Sort and filter the results
-9. Open an article to inspect its normalized source rows
-10. Export analysis results
+1. Select one or more CSV files
+2. Detect encoding and available columns independently for each file
+3. Map each file's source columns to OpenSlotting fields
+4. Validate and normalize every source independently
+5. Exclude visibly blocked files and invalid rows
+6. Warn about overlapping exports without removing rows
+7. Combine all valid normalized rows
+8. Aggregate order lines by article
+9. Calculate basic warehouse activity metrics
+10. Sort and filter the results
+11. Open an article to inspect its source file and source line
+12. Export the combined analysis
 
 ## Current Metrics
 
@@ -136,7 +145,7 @@ For example:
 | Menge | Quantity |
 | Qty | Quantity |
 
-Users can review and change the mapping for the current import. Workspace-specific mappings are planned for V0.3; reusable mapping templates remain planned for V0.6.
+Users can review and change the mapping independently for every file in the current batch. Workspace-specific mappings are planned for V0.3; reusable mapping templates remain planned for V0.6.
 
 Article descriptions are optional display metadata. Articles are always grouped by
 `article_id`. If one article ID has multiple distinct non-empty descriptions,
@@ -147,6 +156,26 @@ The analysis export keeps stable English headers. It includes `article_name`,
 `article_name_conflict`, and the JSON-encoded `article_name_variants` directly after
 `article_id`. Imported description text is protected against spreadsheet formula
 injection in the same way as article IDs.
+
+## Multi-Export Analysis
+
+Every selected file is decoded, mapped, parsed, and validated independently. The
+detected encoding is shown per file and can be overridden with UTF-8, UTF-16 LE,
+UTF-16 BE, or Windows-1252 before analysis. A
+file with a blocking header, parser, or mapping error is shown as excluded and
+contributes no rows. Ready files remain analyzable when another file is blocked.
+
+Valid rows from included files are concatenated in file-selection and source-row
+order before article aggregation. OpenSlotting does not infer business-event
+identity and never removes cross-file rows automatically. Overlapping normalized
+date ranges, identical decoded content, and matching filename/size/modification
+metadata produce visible risk warnings only.
+
+Every normalized row retains a batch-local source-file ID, original filename,
+display label, and physical source line. Duplicate filenames receive distinct
+display labels. Article details expose file and line provenance, while the
+analysis export contains each article's contributing source-file count and a
+JSON array of source-file labels.
 
 ## Local-First
 
@@ -288,13 +317,11 @@ Demo data may include fictional:
 
 No real operational or company data should be committed to the repository.
 
-The repository's `test-data` directory contains documented synthetic fixtures. They cover standard imports,
-alternative column mappings, missing values, duplicates, invalid values,
-malformed rows, and CSV quoting.
+The repository's `test-data` directory contains documented synthetic fixtures. They cover standard and multi-file imports, alternative column mappings, missing values, duplicates, invalid values, malformed rows, overlap warnings, and CSV quoting.
 
 ## Technology
 
-V0.1 is implemented as a browser-based application using standard web technologies.
+OpenSlotting is implemented as a browser-based application using standard web technologies.
 
 Current implementation:
 

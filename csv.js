@@ -7,7 +7,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const APP_VERSION = '0.1.0';
+  const APP_VERSION = '0.2.0';
   const QUANTITY_DECIMAL_PLACES = 7;
   const QUANTITY_SCALE = 10000000n;
   const SALES_DECIMAL_PLACES = 2;
@@ -430,7 +430,28 @@
     ].join('-');
   }
 
-  function normalizeRecord(record, headers, mapping, locale) {
+  function normalizeSourceFile(sourceFile) {
+    const source = sourceFile || {};
+    const name = source.name === undefined || source.name === null ? '' : String(source.name);
+    const label = source.label === undefined || source.label === null ? name : String(source.label);
+    return {
+      id: source.id === undefined || source.id === null ? null : String(source.id),
+      name: name || null,
+      label: label || name || null
+    };
+  }
+
+  function addSourceToIssues(issues, sourceFile) {
+    return issues.map(function (issue) {
+      return Object.assign({
+        sourceFileId: sourceFile.id,
+        sourceFileName: sourceFile.name,
+        sourceFileLabel: sourceFile.label
+      }, issue);
+    });
+  }
+
+  function normalizeRecord(record, headers, mapping, locale, sourceFile) {
     const values = record.values;
     const issues = [];
 
@@ -530,6 +551,9 @@
 
     return {
       record: {
+        source_file_id: sourceFile.id,
+        source_file_name: sourceFile.name,
+        source_file_label: sourceFile.label,
         source_line: record.sourceLine,
         raw_values: values.slice(),
         raw_fields: headers.map(function (header, index) {
@@ -560,6 +584,7 @@
 
   function importParsedCsv(parsed, mapping, options) {
     const locale = normalizeLocale(options && options.locale);
+    const sourceFile = normalizeSourceFile(options && options.sourceFile);
     const parserIssues = parsed.errors.map(function (error) {
       return {
         sourceLine: error.sourceLine,
@@ -573,12 +598,14 @@
       return {
         headers: [],
         rows: [],
-        issues: parserIssues.concat([{ sourceLine: null, field: null, code: 'header_missing', message: message(locale, 'headerMissing') }]),
+        issues: addSourceToIssues(parserIssues.concat([{ sourceLine: null, field: null, code: 'header_missing', message: message(locale, 'headerMissing') }]), sourceFile),
         totalRows: 0,
         validRows: 0,
         invalidRows: 0,
         structuralRows: 0,
-        mapping: mapping || {}
+        mapping: mapping || {},
+        sourceFile: sourceFile,
+        blocking: true
       };
     }
 
@@ -592,12 +619,14 @@
       return {
         headers: headers,
         rows: [],
-        issues: parserIssues,
+        issues: addSourceToIssues(parserIssues, sourceFile),
         totalRows: dataRows.length,
         validRows: 0,
         invalidRows: dataRows.length,
         structuralRows: 0,
-        mapping: mapping || {}
+        mapping: mapping || {},
+        sourceFile: sourceFile,
+        blocking: true
       };
     }
     const selectedMapping = mapping || detectMapping(headers);
@@ -606,12 +635,14 @@
       return {
         headers: headers,
         rows: [],
-        issues: parserIssues.concat(mappingIssues),
+        issues: addSourceToIssues(parserIssues.concat(mappingIssues), sourceFile),
         totalRows: dataRows.length,
         validRows: 0,
         invalidRows: 0,
         structuralRows: 0,
-        mapping: selectedMapping
+        mapping: selectedMapping,
+        sourceFile: sourceFile,
+        blocking: true
       };
     }
 
@@ -634,7 +665,7 @@
         return;
       }
 
-      const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale);
+      const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile);
       const rowIssues = normalized.issues;
       if (parserErrorLines.has(dataRow.sourceLine)) {
         invalidLines.add(dataRow.sourceLine);
@@ -650,12 +681,14 @@
     return {
       headers: headers,
       rows: rows,
-      issues: issues,
+      issues: addSourceToIssues(issues, sourceFile),
       totalRows: dataRows.length,
       validRows: rows.length,
       invalidRows: invalidLines.size,
       structuralRows: structuralLines.size,
-      mapping: selectedMapping
+      mapping: selectedMapping,
+      sourceFile: sourceFile,
+      blocking: false
     };
   }
 
@@ -848,11 +881,211 @@
     });
   }
 
+  function assignSourceFileLabels(files) {
+    const counts = new Map();
+    const occurrences = new Map();
+    const originalNames = new Set();
+    const usedLabels = new Set();
+    (files || []).forEach(function (file) {
+      const name = String(file && file.name !== undefined && file.name !== null ? file.name : '');
+      counts.set(name, (counts.get(name) || 0) + 1);
+      originalNames.add(name);
+    });
+
+    return (files || []).map(function (file) {
+      const copy = Object.assign({}, file);
+      const name = String(copy.name === undefined || copy.name === null ? '' : copy.name);
+      const occurrence = (occurrences.get(name) || 0) + 1;
+      occurrences.set(name, occurrence);
+      if (counts.get(name) === 1) {
+        copy.label = name;
+        usedLabels.add(copy.label);
+        return copy;
+      }
+
+      const preferredLabel = name + ' (' + occurrence + '/' + counts.get(name) + ')';
+      let label = preferredLabel;
+      let suffix = 1;
+      while (originalNames.has(label) || usedLabels.has(label)) {
+        label = preferredLabel + ' [source ' + suffix + ']';
+        suffix += 1;
+      }
+      copy.label = label;
+      usedLabels.add(copy.label);
+      return copy;
+    });
+  }
+
+  function dateRangeForRows(rows) {
+    let start = null;
+    let end = null;
+    (rows || []).forEach(function (row) {
+      if (!row.order_date) {
+        return;
+      }
+      if (start === null || row.order_date < start) {
+        start = row.order_date;
+      }
+      if (end === null || row.order_date > end) {
+        end = row.order_date;
+      }
+    });
+    return { start: start, end: end };
+  }
+
+  function detectBatchWarnings(files) {
+    const warnings = [];
+    const entries = files || [];
+
+    for (let leftIndex = 0; leftIndex < entries.length; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < entries.length; rightIndex += 1) {
+        const left = entries[leftIndex];
+        const right = entries[rightIndex];
+        const leftLabel = left.label || left.name || '';
+        const rightLabel = right.label || right.name || '';
+        const sameContent = typeof left.content === 'string' && typeof right.content === 'string' &&
+          left.content === right.content;
+
+        if (sameContent) {
+          warnings.push({
+            code: 'identical_file_content',
+            sourceFileIds: [left.id, right.id],
+            sourceFileLabels: [leftLabel, rightLabel]
+          });
+        } else if (left.name && left.name === right.name &&
+          Number.isFinite(left.size) && left.size === right.size &&
+          Number.isFinite(left.lastModified) && left.lastModified === right.lastModified) {
+          warnings.push({
+            code: 'matching_file_metadata',
+            sourceFileIds: [left.id, right.id],
+            sourceFileLabels: [leftLabel, rightLabel]
+          });
+        }
+
+        const leftResult = left.result;
+        const rightResult = right.result;
+        if (!leftResult || leftResult.blocking || !rightResult || rightResult.blocking) {
+          continue;
+        }
+        const leftRange = dateRangeForRows(leftResult.rows);
+        const rightRange = dateRangeForRows(rightResult.rows);
+        if (leftRange.start !== null && rightRange.start !== null) {
+          const overlapStart = leftRange.start > rightRange.start ? leftRange.start : rightRange.start;
+          const overlapEnd = leftRange.end < rightRange.end ? leftRange.end : rightRange.end;
+          if (overlapStart <= overlapEnd) {
+            warnings.push({
+              code: 'overlapping_date_ranges',
+              sourceFileIds: [left.id, right.id],
+              sourceFileLabels: [leftLabel, rightLabel],
+              overlapStart: overlapStart,
+              overlapEnd: overlapEnd
+            });
+          }
+        }
+      }
+    }
+
+    return warnings;
+  }
+
+  function combineImportResults(files) {
+    const rows = [];
+    const issues = [];
+    let totalRows = 0;
+    let invalidRows = 0;
+    let structuralRows = 0;
+    let includedFiles = 0;
+    const usedSourceIds = new Set();
+    const normalizedFiles = [];
+
+    const fileSummaries = (files || []).map(function (file, index) {
+      let sourceId = file.id === undefined || file.id === null ? 'source-' + (index + 1) : String(file.id);
+      if (usedSourceIds.has(sourceId)) {
+        sourceId = 'source-' + (index + 1);
+        while (usedSourceIds.has(sourceId)) {
+          sourceId += '-duplicate';
+        }
+      }
+      usedSourceIds.add(sourceId);
+      const source = normalizeSourceFile({
+        id: sourceId,
+        name: file.name,
+        label: file.label
+      });
+      const result = file.result || null;
+      const included = Boolean(result && !result.blocking);
+      const resultRows = included && Array.isArray(result.rows)
+        ? result.rows.map(function (row) {
+          return Object.assign({}, row, {
+            source_file_id: source.id,
+            source_file_name: source.name,
+            source_file_label: source.label
+          });
+        })
+        : [];
+      const resultIssues = result && Array.isArray(result.issues)
+        ? result.issues.map(function (issue) {
+          return Object.assign({}, issue, {
+            sourceFileId: source.id,
+            sourceFileName: source.name,
+            sourceFileLabel: source.label
+          });
+        })
+        : [];
+      normalizedFiles.push(Object.assign({}, file, {
+        id: source.id,
+        name: source.name,
+        label: source.label,
+        result: result ? Object.assign({}, result, { rows: resultRows, issues: resultIssues }) : null
+      }));
+
+      totalRows += result ? result.totalRows : 0;
+      invalidRows += result ? result.invalidRows : 0;
+      structuralRows += result ? result.structuralRows : 0;
+      if (included) {
+        includedFiles += 1;
+        Array.prototype.push.apply(rows, resultRows);
+      }
+      Array.prototype.push.apply(issues, resultIssues);
+
+      const range = dateRangeForRows(resultRows);
+      return {
+        id: source.id,
+        name: source.name,
+        label: source.label,
+        included: included,
+        blocking: !included,
+        errorCode: file.errorCode || file.errorKey || null,
+        totalRows: result ? result.totalRows : 0,
+        validRows: result ? result.validRows : 0,
+        invalidRows: result ? result.invalidRows : 0,
+        structuralRows: result ? result.structuralRows : 0,
+        dateStart: range.start,
+        dateEnd: range.end
+      };
+    });
+
+    return {
+      rows: rows,
+      issues: issues,
+      totalRows: totalRows,
+      validRows: rows.length,
+      invalidRows: invalidRows,
+      structuralRows: structuralRows,
+      selectedFiles: fileSummaries.length,
+      includedFiles: includedFiles,
+      excludedFiles: fileSummaries.length - includedFiles,
+      files: fileSummaries,
+      warnings: detectBatchWarnings(normalizedFiles)
+    };
+  }
+
   function analyzeRows(rows) {
     const articleMap = new Map();
     const orderIds = new Set();
     const customerIds = new Set();
     const activeDays = new Set();
+    const sourceFiles = new Map();
     let totalQuantity = 0n;
     let totalSales = decimalZero();
     let salesValueRows = 0;
@@ -866,6 +1099,14 @@
         customerIds.add(row.customer_id);
       }
       activeDays.add(row.order_date);
+      const sourceFileId = row.source_file_id === undefined || row.source_file_id === null
+        ? ''
+        : String(row.source_file_id);
+      const sourceFileLabel = row.source_file_label || row.source_file_name || sourceFileId;
+      const sourceFileKey = sourceFileId ? 'id:' + sourceFileId : (sourceFileLabel ? 'label:' + sourceFileLabel : '');
+      if (sourceFileKey) {
+        sourceFiles.set(sourceFileKey, sourceFileLabel);
+      }
       totalQuantity += row.quantity;
       const rowSales = row.sales_value_exact !== null && row.sales_value_exact !== undefined
         ? decimalFromText(row.sales_value_exact)
@@ -888,6 +1129,7 @@
           total_sales: decimalZero(),
           sales_value_rows: 0,
           locations: new Set(),
+          source_files: new Map(),
           order_lines: []
         });
       }
@@ -912,6 +1154,9 @@
       }
       if (row.location) {
         article.locations.add(row.location);
+      }
+      if (sourceFileKey) {
+        article.source_files.set(sourceFileKey, sourceFileLabel);
       }
       article.order_lines.push(row);
     });
@@ -938,6 +1183,8 @@
           total_sales_exact: totalSalesExact,
           sales_value_rows: article.sales_value_rows,
           locations: Array.from(article.locations).sort(),
+          source_file_count: article.source_files.size,
+          source_files: Array.from(article.source_files.values()),
           order_lines: article.order_lines,
           share_of_order_lines: rows.length === 0 ? 0 : article.order_line_count / rows.length
         };
@@ -956,6 +1203,8 @@
       distinct_orders: orderIds.size,
       distinct_customers: customerIds.size,
       active_days: activeDays.size,
+      source_file_count: sourceFiles.size,
+      source_files: Array.from(sourceFiles.values()),
       total_sales: decimalToPublicValue(totalSales),
       total_sales_exact: decimalToText(totalSales),
       sales_value_rows: salesValueRows,
@@ -1043,6 +1292,14 @@
     return JSON.stringify(variants);
   }
 
+  function serializeSourceFiles(sourceFiles) {
+    if (!Array.isArray(sourceFiles) || sourceFiles.length === 0) {
+      return '';
+    }
+
+    return JSON.stringify(sourceFiles.map(protectSpreadsheetText));
+  }
+
   function exportAnalysisCsv(articles, options) {
     const delimiter = options && options.delimiter ? options.delimiter : ';';
     const headers = [
@@ -1050,6 +1307,8 @@
       'article_name',
       'article_name_conflict',
       'article_name_variants',
+      'source_file_count',
+      'source_files',
       'order_line_count',
       'total_quantity',
       'distinct_orders',
@@ -1064,11 +1323,16 @@
     const lines = [headers.join(delimiter)];
 
     articles.forEach(function (article) {
+      const sourceFileCount = Number.isInteger(article.source_file_count)
+        ? article.source_file_count
+        : (Array.isArray(article.source_files) ? article.source_files.length : 0);
       lines.push([
         protectSpreadsheetText(article.article_id),
         protectSpreadsheetText(article.article_name),
         article.article_name_conflict ? 'true' : 'false',
         protectSpreadsheetText(serializeArticleNameVariants(article.article_name_variants)),
+        sourceFileCount,
+        protectSpreadsheetText(serializeSourceFiles(article.source_files)),
         article.order_line_count,
         serializeQuantity(article.total_quantity),
         article.distinct_orders,
@@ -1091,7 +1355,10 @@
     QUANTITY_DECIMAL_PLACES: QUANTITY_DECIMAL_PLACES,
     QUANTITY_SCALE: QUANTITY_SCALE,
     SALES_DECIMAL_PLACES: SALES_DECIMAL_PLACES,
+    assignSourceFileLabels: assignSourceFileLabels,
     detectMapping: detectMapping,
+    combineImportResults: combineImportResults,
+    detectBatchWarnings: detectBatchWarnings,
     analyzeRows: analyzeRows,
     articleMatchesQuery: articleMatchesQuery,
     compareSalesValuesDescending: compareSalesValuesDescending,

@@ -1,6 +1,6 @@
 # Synthetic test data
 
-These files contain fictional data for V0.1 and are semicolon-separated. They are
+These files contain fictional data for V0.1 and V0.2 and are semicolon-separated. They are
 UTF-8 encoded unless a different encoding is part of the documented test. The
 canonical fixtures use these columns:
 
@@ -25,6 +25,11 @@ source column. The normalized key is always `article_name`.
 | `quoted-fields.csv` | CSV quoting | Semicolons inside quotes belong to the quoted field |
 | `article-descriptions.csv` | Optional article descriptions and detail traceability | English mapping, empty values, identical and conflicting descriptions, quoted punctuation, formula-like text, and stable source lines |
 | `compact-german-windows-1252.csv.hex` | Hex-encoded Windows-1252 bytes for compact German warehouse headers | Automatic mapping of `AuftrNr`, `ArtNr`, `Bezeichnung`, `GMenge`, `LfDat`, `KdNr`, `VkWert`, and `LgPl`; German characters survive decoding; the ASCII hex representation keeps the non-UTF-8 fixture byte-exact across Git and patch tooling |
+| `multi-export-a.csv` | First source in the V0.2 multi-export scenario | Overlaps the second source by date range and contributes `SKU-MULTI` with exact quantity `0.1` |
+| `multi-export-b.csv` | Second source in the V0.2 multi-export scenario | Contributes a second description and quantity `0.2` for `SKU-MULTI`; both source files and lines remain traceable |
+| `multi-export-blocked.csv` | Blocking source in the V0.2 multi-export scenario | Missing the required order-date column; the file is excluded while ready files remain analyzable |
+
+Select the two valid multi-export fixtures together for the basic V0.2 browser check. The combined result contains four valid rows, three articles, total quantity `5.3`, and an overlap warning for `2026-09-02` through `2026-09-03`. `SKU-MULTI` has two source files, two description variants, and exact total quantity `0.3`.
 
 ## German column mapping
 

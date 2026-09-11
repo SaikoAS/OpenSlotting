@@ -28,6 +28,21 @@ test('decodes UTF-8 with and without a byte-order mark', () => {
   assert.equal(encoding.decodeBuffer(Buffer.concat([Buffer.from([0xEF, 0xBB, 0xBF]), Buffer.from(SAMPLE)])), SAMPLE);
 });
 
+test('reports detected encoding and supports an explicit per-file override', () => {
+  const utf8 = new TextEncoder().encode('order_id;article_id\nO1;Ä-1\n');
+  const windows1252 = Uint8Array.from([0x6f, 0x72, 0x64, 0x65, 0x72, 0x5f, 0x69, 0x64, 0x3b, 0xc4]);
+  const detected = encoding.decodeBufferDetailed(utf8.buffer, 'auto');
+  const overridden = encoding.decodeBufferDetailed(windows1252.buffer, 'windows-1252');
+
+  assert.equal(detected.encoding, 'utf-8');
+  assert.equal(detected.automatic, true);
+  assert.match(detected.text, /Ä-1/);
+  assert.equal(overridden.encoding, 'windows-1252');
+  assert.equal(overridden.automatic, false);
+  assert.equal(overridden.text, 'order_id;Ä');
+  assert.throws(() => encoding.decodeBufferDetailed(windows1252.buffer, 'utf-8'));
+});
+
 test('decodes BOM-aware and BOM-less UTF-16 in both byte orders', () => {
   const utf16le = Buffer.from(SAMPLE, 'utf16le');
   assert.equal(encoding.decodeBuffer(Buffer.concat([Buffer.from([0xFF, 0xFE]), utf16le])), SAMPLE);
