@@ -12,6 +12,7 @@
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
+  const SUPPORTED_SOURCE_ENCODINGS = Object.freeze(['utf-8', 'utf-16le', 'utf-16be', 'windows-1252']);
 
   class WorkspaceValidationError extends Error {
     constructor(code, message) {
@@ -216,6 +217,18 @@
     }
     const size = Number(file.size);
     const lastModified = Number(file.lastModified);
+    const encodingMode = file.encodingMode === undefined ? 'auto' : file.encodingMode;
+    const activeEncoding = file.activeEncoding === undefined || file.activeEncoding === null ? null : file.activeEncoding;
+    const detectedEncoding = file.detectedEncoding === undefined || file.detectedEncoding === null ? null : file.detectedEncoding;
+    if (typeof encodingMode !== 'string' || (encodingMode !== 'auto' && SUPPORTED_SOURCE_ENCODINGS.indexOf(encodingMode) < 0)) {
+      validationError('invalid_source_encoding', 'Source encoding mode is not supported.');
+    }
+    if (activeEncoding !== null && (typeof activeEncoding !== 'string' || SUPPORTED_SOURCE_ENCODINGS.indexOf(activeEncoding) < 0)) {
+      validationError('invalid_source_encoding', 'Active source encoding is not supported.');
+    }
+    if (detectedEncoding !== null && (typeof detectedEncoding !== 'string' || SUPPORTED_SOURCE_ENCODINGS.indexOf(detectedEncoding) < 0)) {
+      validationError('invalid_source_encoding', 'Detected source encoding is not supported.');
+    }
     return {
       id: id,
       name: name,
@@ -223,9 +236,9 @@
       size: Number.isFinite(size) && size >= 0 ? size : 0,
       lastModified: Number.isFinite(lastModified) && lastModified >= 0 ? lastModified : 0,
       buffer: copyArrayBuffer(file.buffer, options),
-      encodingMode: String(file.encodingMode || 'auto'),
-      activeEncoding: file.activeEncoding ? String(file.activeEncoding) : null,
-      detectedEncoding: file.detectedEncoding ? String(file.detectedEncoding) : null,
+      encodingMode: encodingMode,
+      activeEncoding: activeEncoding,
+      detectedEncoding: detectedEncoding,
       errorKey: file.errorKey ? String(file.errorKey) : null,
       mapping: normalizeMapping(file.mapping),
       confirmedMapping: file.confirmedMapping ? normalizeMapping(file.confirmedMapping) : null,

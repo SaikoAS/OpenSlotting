@@ -44,7 +44,13 @@
     });
   }
 
-  function metadataFor(workspace) {
+  function storageRevisionOf(metadata) {
+    return metadata && Number.isInteger(metadata.storageRevision) && metadata.storageRevision >= 0
+      ? metadata.storageRevision
+      : 0;
+  }
+
+  function metadataFor(workspace, storageRevision) {
     const normalizedRowCount = workspace.files.reduce(function (sum, file) {
       return sum + (file.result && Array.isArray(file.result.rows) ? file.result.rows.length : 0);
     }, 0);
@@ -59,6 +65,7 @@
       updatedAt: workspace.updatedAt,
       language: workspace.language,
       analyzed: workspace.analyzed,
+      storageRevision: storageRevision,
       sourceCount: workspace.files.length,
       sourceBytes: sourceBytes,
       normalizedRowCount: normalizedRowCount
@@ -88,7 +95,7 @@
     if (!metadata || !payload) {
       return null;
     }
-    return workspaceModel.migrateWorkspace({
+    const workspace = workspaceModel.migrateWorkspace({
       id: metadata.id,
       schemaVersion: metadata.schemaVersion,
       name: metadata.name,
@@ -98,6 +105,8 @@
       analyzed: metadata.analyzed,
       files: payload.files
     });
+    workspace.storageRevision = storageRevisionOf(metadata);
+    return workspace;
   }
 
   function combineStoredWorkspaceRaw(metadata, payload) {
@@ -112,6 +121,7 @@
       updatedAt: metadata.updatedAt,
       language: metadata.language,
       analyzed: metadata.analyzed,
+      storageRevision: storageRevisionOf(metadata),
       files: payload.files
     };
   }
@@ -230,15 +240,38 @@
       });
     }
 
-    function saveWorkspace(workspace, options) {
-      const validated = options && options.validated
-        ? workspace
-        : workspaceModel.validateWorkspace(workspace);
-      return transact(['workspaces', 'workspacePayloads'], 'readwrite', function (stores) {
-        stores.workspaces.put(metadataFor(validated));
+    function writeWorkspace(workspace, mode, options) {
+      const settings = options || {};
+      const validated = settings.validated ? workspace : workspaceModel.validateWorkspace(workspace);
+      return transact(['workspaces', 'workspacePayloads'], 'readwrite', async function (stores) {
+        const current = await requestPromise(stores.workspaces.get(validated.id));
+        if (mode === 'create' && current) {
+          throw storageError('workspace_conflict', 'Workspace already exists.');
+        }
+        if (mode !== 'create' && !current) {
+          throw storageError('workspace_not_found', 'Workspace does not exist.');
+        }
+        const currentRevision = storageRevisionOf(current);
+        if (mode !== 'create' && settings.expectedRevision !== currentRevision) {
+          throw storageError('workspace_conflict', 'Workspace changed in another browser tab.');
+        }
+        const nextRevision = mode === 'create' ? 1 : currentRevision + 1;
+        stores.workspaces.put(metadataFor(validated, nextRevision));
         stores.workspacePayloads.put(payloadFor(validated));
-        return validated;
+        return Object.assign({}, validated, { storageRevision: nextRevision });
       });
+    }
+
+    function createWorkspace(workspace, options) {
+      return writeWorkspace(workspace, 'create', options);
+    }
+
+    function updateWorkspace(workspace, options) {
+      return writeWorkspace(workspace, 'update', options);
+    }
+
+    function replaceWorkspace(workspace, options) {
+      return writeWorkspace(workspace, 'replace', options);
     }
 
     function loadWorkspace(id) {
@@ -273,52 +306,70 @@
       return transact(['workspaces'], 'readonly', async function (stores) {
         const records = await requestPromise(stores.workspaces.getAll());
         return records
-          .map(function (record) { return Object.assign({}, record); })
+          .map(function (record) {
+            return Object.assign({}, record, { storageRevision: storageRevisionOf(record) });
+          })
           .sort(function (left, right) {
             return String(right.updatedAt).localeCompare(String(left.updatedAt)) || left.name.localeCompare(right.name);
           });
       });
     }
 
-    function renameWorkspace(id, name, now) {
+    function renameWorkspace(id, name, options) {
       const workspaceId = String(id || '');
       const normalizedName = workspaceModel.assertWorkspaceName(name);
-      const updatedAt = now || new Date().toISOString();
+      const settings = options || {};
+      const updatedAt = settings.now || new Date().toISOString();
       return transact(['workspaces'], 'readwrite', async function (stores) {
         const metadata = await requestPromise(stores.workspaces.get(workspaceId));
         if (!metadata) {
           throw storageError('workspace_not_found', 'Workspace does not exist.');
         }
+        const currentRevision = storageRevisionOf(metadata);
+        if (settings.expectedRevision !== currentRevision) {
+          throw storageError('workspace_conflict', 'Workspace changed in another browser tab.');
+        }
         const renamed = Object.assign({}, metadata, {
           name: normalizedName,
-          updatedAt: updatedAt
+          updatedAt: updatedAt,
+          storageRevision: currentRevision + 1
         });
         stores.workspaces.put(renamed);
         return renamed;
       });
     }
 
-    function updateWorkspaceSummary(id, summary) {
+    function updateWorkspaceSummary(id, summary, options) {
       const workspaceId = String(id || '');
+      const settings = options || {};
       return transact(['workspaces'], 'readwrite', async function (stores) {
         const metadata = await requestPromise(stores.workspaces.get(workspaceId));
         if (!metadata) {
           throw storageError('workspace_not_found', 'Workspace does not exist.');
         }
+        if (settings.expectedRevision !== storageRevisionOf(metadata)) {
+          throw storageError('workspace_conflict', 'Workspace changed in another browser tab.');
+        }
         const updated = metadataWithSummary(metadata, summary);
+        updated.storageRevision = storageRevisionOf(metadata) + 1;
         stores.workspaces.put(updated);
         return updated;
       });
     }
 
-    function commitWorkspaceActivation(id, summary) {
+    function commitWorkspaceActivation(id, summary, options) {
       const workspaceId = String(id || '');
+      const settings = options || {};
       return transact(['workspaces', 'settings'], 'readwrite', async function (stores) {
         const metadata = await requestPromise(stores.workspaces.get(workspaceId));
         if (!metadata) {
           throw storageError('workspace_not_found', 'Workspace does not exist.');
         }
+        if (settings.expectedRevision !== storageRevisionOf(metadata)) {
+          throw storageError('workspace_conflict', 'Workspace changed in another browser tab.');
+        }
         const updated = metadataWithSummary(metadata, summary);
+        updated.storageRevision = storageRevisionOf(metadata) + 1;
         stores.workspaces.put(updated);
         stores.settings.put({ key: ACTIVE_WORKSPACE_SETTING, value: workspaceId });
         return updated;
@@ -395,7 +446,9 @@
 
     return {
       open: open,
-      saveWorkspace: saveWorkspace,
+      createWorkspace: createWorkspace,
+      updateWorkspace: updateWorkspace,
+      replaceWorkspace: replaceWorkspace,
       loadWorkspace: loadWorkspace,
       loadWorkspaceRaw: loadWorkspaceRaw,
       listWorkspaces: listWorkspaces,

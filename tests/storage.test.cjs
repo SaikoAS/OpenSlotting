@@ -36,8 +36,8 @@ test('persists isolated workspaces and the active selection across repository in
   const north = workspaceWithSource('workspace-north', 'North', 'SKU-N');
   const south = workspaceWithSource('workspace-south', 'South', 'SKU-S');
 
-  await first.saveWorkspace(north);
-  await first.saveWorkspace(south);
+  await first.createWorkspace(north);
+  await first.createWorkspace(south);
   await first.setActiveWorkspace(north.id);
   first.close();
 
@@ -58,17 +58,20 @@ test('renaming and replacing one workspace does not alter another workspace', as
   const repository = storage.createRepository({ indexedDB, databaseName: 'replace-test' });
   const first = workspaceWithSource('workspace-1', 'First', 'SKU-1');
   const second = workspaceWithSource('workspace-2', 'Second', 'SKU-2');
-  await repository.saveWorkspace(first);
-  await repository.saveWorkspace(second);
+  const savedFirst = await repository.createWorkspace(first);
+  await repository.createWorkspace(second);
 
-  await repository.renameWorkspace(first.id, 'Renamed', '2026-09-12T09:00:00.000Z');
+  const renamed = await repository.renameWorkspace(first.id, 'Renamed', {
+    expectedRevision: savedFirst.storageRevision,
+    now: '2026-09-12T09:00:00.000Z'
+  });
   const backupContent = workspaceWithSource('workspace-backup', 'Backup', 'SKU-NEW');
   const replacement = workspace.prepareRestore(backupContent, {
     mode: 'replace',
     targetId: first.id,
     now: '2026-09-12T10:00:00.000Z'
   });
-  await repository.saveWorkspace(replacement);
+  await repository.replaceWorkspace(replacement, { expectedRevision: renamed.storageRevision });
 
   assert.equal((await repository.loadWorkspace(first.id)).files[0].name, 'SKU-NEW.csv');
   assert.equal((await repository.loadWorkspace(second.id)).files[0].name, 'SKU-2.csv');
@@ -79,15 +82,20 @@ test('renaming metadata does not load or rewrite the large workspace payload', a
   const databaseName = 'metadata-rename-test';
   const repository = storage.createRepository({ indexedDB, databaseName });
   const record = workspaceWithSource('workspace-1', 'Before', 'SKU-1');
-  await repository.saveWorkspace(record);
+  const saved = await repository.createWorkspace(record);
   const payloadBefore = indexedDB.inspect(databaseName, 'workspacePayloads')[0];
 
-  const renamed = await repository.renameWorkspace(record.id, 'After', '2026-09-12T09:00:00.000Z');
+  const renamed = await repository.renameWorkspace(record.id, 'After', {
+    expectedRevision: saved.storageRevision,
+    now: '2026-09-12T09:00:00.000Z'
+  });
   await repository.updateWorkspaceSummary(record.id, {
     analyzed: true,
     sourceCount: 1,
     sourceBytes: 1234,
     normalizedRowCount: 5678
+  }, {
+    expectedRevision: renamed.storageRevision
   });
   const payloadAfter = indexedDB.inspect(databaseName, 'workspacePayloads')[0];
   const listed = (await repository.listWorkspaces())[0];
@@ -105,8 +113,8 @@ test('workspace activation commits its summary and active marker atomically', as
   const repository = storage.createRepository({ indexedDB, databaseName });
   const first = workspaceWithSource('workspace-1', 'First', 'SKU-1');
   const second = workspaceWithSource('workspace-2', 'Second', 'SKU-2');
-  await repository.saveWorkspace(first);
-  await repository.saveWorkspace(second);
+  await repository.createWorkspace(first);
+  await repository.createWorkspace(second);
   await repository.setActiveWorkspace(first.id);
 
   await repository.commitWorkspaceActivation(second.id, {
@@ -114,10 +122,24 @@ test('workspace activation commits its summary and active marker atomically', as
     sourceCount: 1,
     sourceBytes: 222,
     normalizedRowCount: 10
+  }, {
+    expectedRevision: 1
   });
 
   assert.equal(await repository.getActiveWorkspaceId(), second.id);
   assert.equal((await repository.listWorkspaces()).find((item) => item.id === second.id).normalizedRowCount, 10);
+
+  await assert.rejects(
+    repository.commitWorkspaceActivation(second.id, {
+      analyzed: false,
+      sourceCount: 0,
+      sourceBytes: 0,
+      normalizedRowCount: 0
+    }, {
+      expectedRevision: 1
+    }),
+    (error) => error.code === 'workspace_conflict'
+  );
 
   indexedDB.failNextWrite('QuotaExceededError');
   await assert.rejects(
@@ -126,6 +148,8 @@ test('workspace activation commits its summary and active marker atomically', as
       sourceCount: 1,
       sourceBytes: 999,
       normalizedRowCount: 99
+    }, {
+      expectedRevision: 1
     }),
     (error) => error.code === 'quota_exceeded'
   );
@@ -134,13 +158,50 @@ test('workspace activation commits its summary and active marker atomically', as
   assert.notEqual((await repository.listWorkspaces()).find((item) => item.id === first.id).sourceBytes, 999);
 });
 
+test('stale updates cannot recreate deleted workspaces or overwrite newer metadata', async () => {
+  const indexedDB = createFakeIndexedDB();
+  const repository = storage.createRepository({ indexedDB, databaseName: 'stale-update-test' });
+  const original = workspaceWithSource('workspace-1', 'Original', 'SKU-1');
+  const created = await repository.createWorkspace(original);
+
+  await assert.rejects(
+    repository.createWorkspace(original),
+    (error) => error.code === 'workspace_conflict'
+  );
+
+  const updated = await repository.updateWorkspace(original, {
+    expectedRevision: created.storageRevision
+  });
+  const renamed = await repository.renameWorkspace(original.id, 'Renamed elsewhere', {
+    expectedRevision: updated.storageRevision,
+    now: '2026-09-12T10:00:00.000Z'
+  });
+
+  await assert.rejects(
+    repository.updateWorkspace(original, {
+      expectedRevision: updated.storageRevision
+    }),
+    (error) => error.code === 'workspace_conflict'
+  );
+  assert.equal((await repository.loadWorkspace(original.id)).name, 'Renamed elsewhere');
+
+  await repository.deleteWorkspace(original.id);
+  await assert.rejects(
+    repository.updateWorkspace(original, {
+      expectedRevision: renamed.storageRevision
+    }),
+    (error) => error.code === 'workspace_not_found'
+  );
+  assert.equal(await repository.loadWorkspace(original.id), null);
+});
+
 test('deleting the active workspace clears only its selection and data', async () => {
   const indexedDB = createFakeIndexedDB();
   const repository = storage.createRepository({ indexedDB, databaseName: 'delete-test' });
   const first = workspaceWithSource('workspace-1', 'First', 'SKU-1');
   const second = workspaceWithSource('workspace-2', 'Second', 'SKU-2');
-  await repository.saveWorkspace(first);
-  await repository.saveWorkspace(second);
+  await repository.createWorkspace(first);
+  await repository.createWorkspace(second);
   await repository.setActiveWorkspace(first.id);
 
   await repository.deleteWorkspace(first.id);
@@ -156,7 +217,7 @@ test('quota failures are surfaced and an aborted write leaves no partial workspa
   indexedDB.failNextWrite('QuotaExceededError');
 
   await assert.rejects(
-    repository.saveWorkspace(workspaceWithSource('workspace-1', 'First', 'SKU-1')),
+    repository.createWorkspace(workspaceWithSource('workspace-1', 'First', 'SKU-1')),
     (error) => error.code === 'quota_exceeded'
   );
   assert.equal(await repository.loadWorkspace('workspace-1'), null);

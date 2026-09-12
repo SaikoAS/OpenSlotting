@@ -32,7 +32,8 @@ test('persistent workspace runtime uses IndexedDB without localStorage payloads'
 
   assert.match(indexSource, /<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="app\.js"><\/script>/);
   assert.match(storageSource, /indexedDb\.open\(databaseName, DATABASE_VERSION\)/);
-  assert.match(appSource, /workspaceRepository\.saveWorkspace/);
+  assert.match(appSource, /workspaceRepository\.updateWorkspace/);
+  assert.match(appSource, /workspaceRepository\.createWorkspace/);
   assert.match(workspaceSource, /BACKUP_FORMAT = 'openslotting-workspace'/);
   assert.doesNotMatch([appSource, storageSource, workspaceSource].join('\n'), /\blocalStorage\b/);
 });
@@ -49,12 +50,14 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   const controlsBody = appSource.match(/function renderWorkspaceControls\(\) \{([\s\S]*?)\n  function renderStorageStatus/);
   const fileChangeBody = appSource.match(/async function handleFileChange\(\) \{([\s\S]*?)\n  function analyze/);
   const backupBody = appSource.match(/async function exportWorkspaceBackup\(\) \{([\s\S]*?)\n  function readBackupFile/);
+  const restoreBody = appSource.match(/async function restoreWorkspaceBackup\(file, mode\) \{([\s\S]*?)\n  async function initializeWorkspaces/);
 
   assert.ok(initializeBody);
   assert.ok(activateBody);
   assert.ok(controlsBody);
   assert.ok(fileChangeBody);
   assert.ok(backupBody);
+  assert.ok(restoreBody);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /id="workspace-open"/);
   assert.match(indexSource, /id="workspace-load-progress"/);
@@ -75,8 +78,13 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(fileChangeBody[1], /state\.files\.some\(function \(file\) \{ return Boolean\(file\.reading\); \}\)/);
   assert.match(backupBody[1], /state\.selectedWorkspaceId/);
   assert.match(backupBody[1], /loadWorkspace\(selected\.id\)/);
+  assert.ok(restoreBody[1].indexOf('replaceWorkspace') < restoreBody[1].indexOf('state.activeWorkspace = null'));
+  assert.ok(restoreBody[1].indexOf('state.activeWorkspace = null') < restoreBody[1].indexOf('activateWorkspace'));
   assert.match(storageSource, /function loadWorkspaceRaw/);
   assert.match(storageSource, /function commitWorkspaceActivation/);
+  assert.match(storageSource, /function createWorkspace/);
+  assert.match(storageSource, /function updateWorkspace/);
+  assert.match(storageSource, /function replaceWorkspace/);
   assert.match(encodingSource, /OpenSlottingEncodingFactory/);
   assert.match(csvSource, /OpenSlottingCsvFactory/);
   assert.match(workspaceSource, /OpenSlottingWorkspaceFactory/);

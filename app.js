@@ -78,6 +78,7 @@
       storage_unavailable: 'IndexedDB is unavailable. Persistent workspaces cannot be used in this browser context.',
       storage_aborted: 'The browser aborted the storage transaction. No partial change was saved.',
       workspace_not_found: 'The selected workspace no longer exists in local browser storage.',
+      workspace_conflict: 'This workspace changed in another browser tab. Reopen it before saving more changes.',
       storage_failed: 'The local browser storage operation failed.',
       step_1: 'Step 1',
       select_file_title: 'Select CSV files',
@@ -266,6 +267,7 @@
       storage_unavailable: 'IndexedDB ist nicht verfügbar. Dauerhafte Arbeitsbereiche können in diesem Browserkontext nicht verwendet werden.',
       storage_aborted: 'Der Browser hat die Speichertransaktion abgebrochen. Es wurde keine Teiländerung gespeichert.',
       workspace_not_found: 'Der ausgewählte Arbeitsbereich ist im lokalen Browserspeicher nicht mehr vorhanden.',
+      workspace_conflict: 'Dieser Arbeitsbereich wurde in einem anderen Browser-Tab geändert. Öffnen Sie ihn vor weiteren Änderungen erneut.',
       storage_failed: 'Der lokale Browser-Speichervorgang ist fehlgeschlagen.',
       step_1: 'Schritt 1',
       select_file_title: 'CSV-Dateien auswählen',
@@ -709,7 +711,15 @@
     setWorkspaceMessage('workspace_saving', { name: snapshot.name });
     const task = workspaceSaveChain
       .catch(function () {})
-      .then(function () { return workspaceRepository.saveWorkspace(snapshot, { validated: true }); })
+      .then(function () {
+        const current = state.activeWorkspace && state.activeWorkspace.id === snapshot.id
+          ? state.activeWorkspace
+          : state.workspaces.find(function (workspace) { return workspace.id === snapshot.id; });
+        return workspaceRepository.updateWorkspace(snapshot, {
+          validated: true,
+          expectedRevision: current ? current.storageRevision : null
+        });
+      })
       .then(async function (saved) {
         if (state.activeWorkspace && state.activeWorkspace.id === saved.id) {
           state.activeWorkspace = workspaceMetadata(saved);
@@ -1575,6 +1585,7 @@
       updatedAt: record.updatedAt,
       language: record.language,
       analyzed: record.analyzed,
+      storageRevision: Number.isInteger(record.storageRevision) ? record.storageRevision : 0,
       sourceCount: Array.isArray(record.files) ? record.files.length : Number(record.sourceCount || 0),
       sourceBytes: Number(record.sourceBytes || 0),
       normalizedRowCount: Number(record.normalizedRowCount || 0)
@@ -1883,8 +1894,9 @@
       if (!record) {
         throw new storageApi.WorkspaceStorageError('workspace_not_found', 'Workspace does not exist.');
       }
+      let targetStorageRevision = record.storageRevision;
       record = omitStoredResultsForRebuild(record);
-      const targetLanguage = Number(record.schemaVersion) === 0
+      let targetLanguage = Number(record.schemaVersion) === 0
         ? (record.language === 'de' ? 'de' : 'en')
         : record.language;
       await nextBrowserPaint();
@@ -1909,6 +1921,10 @@
         if (!record || revision !== workspaceLoadRevision) {
           throw workspaceLoadError('workspace_load_cancelled');
         }
+        targetStorageRevision = record.storageRevision;
+        targetLanguage = Number(record.schemaVersion) === 0
+          ? (record.language === 'de' ? 'de' : 'en')
+          : record.language;
         record = omitStoredResultsForRebuild(record);
         prepared = prepareWorkspaceRecord(record, targetLanguage, function (progress) {
           updateWorkspaceLoadProgress(progress, listedWorkspace.name);
@@ -1917,13 +1933,17 @@
       if (revision !== workspaceLoadRevision) {
         throw workspaceLoadError('workspace_load_cancelled');
       }
-      await workspaceRepository.commitWorkspaceActivation(workspaceId, prepared.workspace);
+      const committedMetadata = await workspaceRepository.commitWorkspaceActivation(workspaceId, prepared.workspace, {
+        expectedRevision: targetStorageRevision
+      });
       if (revision !== workspaceLoadRevision) {
         await workspaceRepository.setActiveWorkspace(previousActiveId || null);
         throw workspaceLoadError('workspace_load_cancelled');
       }
       state.lastActiveWorkspaceId = workspaceId;
-      state.activeWorkspace = workspaceMetadata(prepared.workspace);
+      state.activeWorkspace = workspaceMetadata(Object.assign({}, prepared.workspace, {
+        storageRevision: committedMetadata.storageRevision
+      }));
       state.language = targetLanguage;
       elements.languageSelect.value = targetLanguage;
       state.workspaces = state.workspaces.map(function (workspace) {
@@ -1965,7 +1985,7 @@
     }
     try {
       const record = workspaceModel.createWorkspace(name, { language: state.language });
-      await workspaceRepository.saveWorkspace(record, { validated: true });
+      await workspaceRepository.createWorkspace(record, { validated: true });
       state.selectedWorkspaceId = record.id;
       await refreshWorkspaceCatalog();
       scheduleStorageEstimateRefresh();
@@ -1986,7 +2006,10 @@
     }
     try {
       await workspaceSaveChain.catch(function () {});
-      const renamed = await workspaceRepository.renameWorkspace(selected.id, name);
+      const current = state.workspaces.find(function (workspace) { return workspace.id === selected.id; });
+      const renamed = await workspaceRepository.renameWorkspace(selected.id, name, {
+        expectedRevision: current ? current.storageRevision : null
+      });
       if (state.activeWorkspace && state.activeWorkspace.id === selected.id) {
         state.activeWorkspace = workspaceMetadata(renamed);
       }
@@ -2065,6 +2088,7 @@
       const parsed = workspaceModel.parseBackup(text);
       let restored;
       let successKey;
+      let replaceTarget = null;
       if (mode === 'replace') {
         const target = state.workspaces.find(function (workspace) { return workspace.id === state.selectedWorkspaceId; });
         if (!target) {
@@ -2074,16 +2098,31 @@
           return;
         }
         await workspaceSaveChain.catch(function () {});
+        replaceTarget = state.workspaces.find(function (workspace) { return workspace.id === target.id; });
+        if (!replaceTarget) {
+          throw new storageApi.WorkspaceStorageError('workspace_not_found', 'Workspace does not exist.');
+        }
         restored = workspaceModel.prepareRestore(parsed, {
           mode: 'replace',
-          targetId: target.id
+          targetId: replaceTarget.id
         });
         successKey = 'workspace_restored_replace';
       } else {
         restored = workspaceModel.prepareRestore(parsed, { mode: 'new' });
         successKey = 'workspace_restored_new';
       }
-      await workspaceRepository.saveWorkspace(restored, { validated: true });
+      if (replaceTarget) {
+        await workspaceRepository.replaceWorkspace(restored, {
+          validated: true,
+          expectedRevision: replaceTarget.storageRevision
+        });
+        if (state.activeWorkspace && state.activeWorkspace.id === replaceTarget.id) {
+          state.activeWorkspace = null;
+          clearWorkspaceView();
+        }
+      } else {
+        await workspaceRepository.createWorkspace(restored, { validated: true });
+      }
       state.selectedWorkspaceId = restored.id;
       await refreshWorkspaceCatalog();
       scheduleStorageEstimateRefresh();

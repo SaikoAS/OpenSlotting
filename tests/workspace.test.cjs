@@ -245,6 +245,13 @@ test('invalid, truncated, and unsupported backups are rejected', () => {
     () => workspace.parseBackup(JSON.stringify(missingFlag)),
     (error) => error.code === 'invalid_workspace_flag'
   );
+
+  const unsupportedEncoding = JSON.parse(workspace.stringifyBackup(analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1')));
+  unsupportedEncoding.workspace.files[0].encodingMode = 'bogus';
+  assert.throws(
+    () => workspace.parseBackup(JSON.stringify(unsupportedEncoding)),
+    (error) => error.code === 'invalid_source_encoding'
+  );
 });
 
 test('baseline schema migration upgrades a schema-zero workspace without losing sources', () => {

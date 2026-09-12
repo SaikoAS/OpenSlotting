@@ -22,6 +22,8 @@ It contains three object stores:
 
 Saving a workspace writes its metadata and payload in one IndexedDB read/write transaction. A failed or quota-exceeded transaction must not leave one half updated.
 
+Workspace creation, update, and replacement are distinct storage operations. Each metadata record carries a monotonic `storageRevision`; records created before this field existed are treated as revision `0`. Updates, renames, replacements, and completed background activation must match the revision that the caller read and then increment it. A missing record or revision mismatch is rejected instead of upserting stale data. This prevents an older browser tab from recreating a deleted workspace or overwriting a newer rename, payload, or analysis state.
+
 ## Workspace record
 
 Every workspace has:
@@ -130,6 +132,7 @@ The complete backup is parsed, decoded, migrated, and validated before IndexedDB
 - workspace identity, name, and timestamps
 - unique source IDs
 - original source-byte representation
+- decoding mode (`auto`, UTF-8, UTF-16 LE/BE, or Windows-1252) and supported detected/active encodings
 - mapping positions
 - stored row counts
 - source ownership of normalized rows and validation issues
@@ -147,7 +150,7 @@ A new workspace ID is generated. Existing workspaces are not modified. Source ID
 
 ### Replace from backup
 
-The currently selected workspace is the explicit replacement target. The user must confirm the named target after the backup has passed validation. The backup receives that target workspace ID and replaces its metadata and payload atomically. Other workspaces are not changed.
+The currently selected workspace is the explicit replacement target. The user must confirm the named target after the backup has passed validation. The backup receives that target workspace ID and replaces its metadata and payload atomically when the selected storage revision is still current. Other workspaces are not changed. If the replaced workspace was open, its old in-memory view is cleared immediately after the replacement commit and before reopening; an activation failure therefore cannot autosave stale pre-replacement files over the restored backup.
 
 There is no merge restore mode.
 
@@ -166,6 +169,7 @@ OpenSlotting exposes distinct user-visible states for:
 - transaction aborted
 - quota exceeded
 - general storage failure
+- a workspace changed or was deleted in another browser tab
 - invalid backup JSON or format
 - unsupported backup or workspace version
 - invalid or incomplete backup payload
