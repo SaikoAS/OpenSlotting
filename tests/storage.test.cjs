@@ -99,6 +99,41 @@ test('renaming metadata does not load or rewrite the large workspace payload', a
   assert.equal(listed.normalizedRowCount, 5678);
 });
 
+test('workspace activation commits its summary and active marker atomically', async () => {
+  const indexedDB = createFakeIndexedDB();
+  const databaseName = 'atomic-activation-test';
+  const repository = storage.createRepository({ indexedDB, databaseName });
+  const first = workspaceWithSource('workspace-1', 'First', 'SKU-1');
+  const second = workspaceWithSource('workspace-2', 'Second', 'SKU-2');
+  await repository.saveWorkspace(first);
+  await repository.saveWorkspace(second);
+  await repository.setActiveWorkspace(first.id);
+
+  await repository.commitWorkspaceActivation(second.id, {
+    analyzed: true,
+    sourceCount: 1,
+    sourceBytes: 222,
+    normalizedRowCount: 10
+  });
+
+  assert.equal(await repository.getActiveWorkspaceId(), second.id);
+  assert.equal((await repository.listWorkspaces()).find((item) => item.id === second.id).normalizedRowCount, 10);
+
+  indexedDB.failNextWrite('QuotaExceededError');
+  await assert.rejects(
+    repository.commitWorkspaceActivation(first.id, {
+      analyzed: true,
+      sourceCount: 1,
+      sourceBytes: 999,
+      normalizedRowCount: 99
+    }),
+    (error) => error.code === 'quota_exceeded'
+  );
+
+  assert.equal(await repository.getActiveWorkspaceId(), second.id);
+  assert.notEqual((await repository.listWorkspaces()).find((item) => item.id === first.id).sourceBytes, 999);
+});
+
 test('deleting the active workspace clears only its selection and data', async () => {
   const indexedDB = createFakeIndexedDB();
   const repository = storage.createRepository({ indexedDB, databaseName: 'delete-test' });

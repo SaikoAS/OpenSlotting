@@ -607,7 +607,9 @@
     });
     elements.workspaceSelect.value = selectedId;
 
-    const ready = state.storageReady && !state.workspaceLoading;
+    const fileReadPending = state.files.some(function (file) { return Boolean(file.reading); });
+    const editsLocked = state.workspaceLoading || fileReadPending;
+    const ready = state.storageReady && !editsLocked;
     const hasWorkspace = ready && Boolean(state.activeWorkspace);
     const hasSelection = ready && Boolean(selectedId);
     elements.workspaceSelect.disabled = !ready || state.workspaces.length === 0;
@@ -617,11 +619,25 @@
     elements.workspaceRestoreNew.disabled = !ready;
     elements.workspaceRename.disabled = !hasSelection;
     elements.workspaceDelete.disabled = !hasSelection;
-    elements.workspaceBackup.disabled = !hasWorkspace;
+    elements.workspaceBackup.disabled = !hasSelection;
     elements.workspaceRestoreReplace.disabled = !hasSelection;
     elements.fileInput.disabled = !hasWorkspace;
     elements.resetButton.disabled = !hasWorkspace || state.files.length === 0;
     elements.filePicker.classList.toggle('disabled', !hasWorkspace);
+    elements.languageSelect.disabled = editsLocked;
+    elements.analyzeButton.disabled = editsLocked || !state.activeWorkspace || !state.files.some(function (file) { return Boolean(file.parsed); });
+    elements.exportButton.disabled = editsLocked || !state.result || state.result.validRows === 0;
+    elements.mappingGrid.querySelectorAll('select, button').forEach(function (control) {
+      const fileId = control.dataset.encodingFileId || control.dataset.removeFileId || control.dataset.fileId;
+      const file = state.files.find(function (item) { return item.id === fileId; });
+      if (control.dataset.encodingFileId) {
+        control.disabled = editsLocked || !file || file.reading || !file.buffer;
+      } else if (control.dataset.removeFileId) {
+        control.disabled = editsLocked || !file || file.reading;
+      } else {
+        control.disabled = editsLocked;
+      }
+    });
     renderWorkspaceProgress();
     renderWorkspaceOverview();
   }
@@ -820,6 +836,7 @@
   }
 
   function renderMapping() {
+    const editsLocked = state.workspaceLoading || state.files.some(function (file) { return Boolean(file.reading); });
     elements.mappingGrid.replaceChildren();
     state.files.forEach(function (file) {
       const section = document.createElement('section');
@@ -844,7 +861,7 @@
       removeButton.type = 'button';
       removeButton.className = 'text-button';
       removeButton.dataset.removeFileId = file.id;
-      removeButton.disabled = file.reading;
+      removeButton.disabled = editsLocked || file.reading;
       setText(removeButton, translate('remove_file'));
       removeButton.setAttribute('aria-label', translate('remove_file_label', { file: file.label }));
       heading.appendChild(headingCopy);
@@ -857,7 +874,7 @@
       setText(encodingLabel, translate('encoding_label'));
       const encodingSelect = document.createElement('select');
       encodingSelect.dataset.encodingFileId = file.id;
-      encodingSelect.disabled = file.reading || !file.buffer;
+      encodingSelect.disabled = editsLocked || file.reading || !file.buffer;
       addOption(
         encodingSelect,
         'auto',
@@ -902,6 +919,7 @@
           select.id = selectId;
           select.dataset.field = definition.key;
           select.dataset.fileId = file.id;
+          select.disabled = editsLocked;
           addOption(select, '', translate('not_mapped'));
           file.headers.forEach(function (header, index) {
             addOption(select, String(index), (index + 1) + ': ' + (header || translate('empty_header')));
@@ -1442,7 +1460,8 @@
   }
 
   async function handleFileChange() {
-    if (!state.activeWorkspace) {
+    if (!state.activeWorkspace || state.workspaceLoading || state.files.some(function (file) { return Boolean(file.reading); })) {
+      elements.fileInput.value = '';
       return;
     }
     const selectedFiles = Array.from(elements.fileInput.files || []);
@@ -1503,6 +1522,7 @@
     setSourceStatus('reading_files', { count: newEntries.length });
     elements.mappingPanel.classList.remove('hidden');
     renderMapping();
+    renderWorkspaceControls();
 
     await Promise.all(newEntries.map(async function (file) {
       try {
@@ -1519,6 +1539,7 @@
     }));
 
     if (selectionVersion !== state.fileSelectionVersion) {
+      renderWorkspaceControls();
       return;
     }
     renderMapping();
@@ -1527,6 +1548,7 @@
     elements.analyzeButton.disabled = !hasPreparedFile;
     showMappingMessage(hasPreparedFile ? '' : translate('no_prepared_files'));
     elements.fileInput.value = '';
+    renderWorkspaceControls();
     persistActiveWorkspace().catch(function () {});
   }
 
@@ -1842,8 +1864,7 @@
       return;
     }
     const revision = workspaceLoadRevision + 1;
-    const previousActiveWorkspace = state.activeWorkspace;
-    const previousActiveId = previousActiveWorkspace ? previousActiveWorkspace.id : state.lastActiveWorkspaceId;
+    const previousActiveId = state.activeWorkspace ? state.activeWorkspace.id : state.lastActiveWorkspaceId;
     workspaceLoadRevision = revision;
     state.selectedWorkspaceId = workspaceId;
     state.workspaceLoading = true;
@@ -1863,12 +1884,13 @@
         throw new storageApi.WorkspaceStorageError('workspace_not_found', 'Workspace does not exist.');
       }
       record = omitStoredResultsForRebuild(record);
-      state.language = record.language === 'de' ? 'de' : 'en';
-      elements.languageSelect.value = state.language;
+      const targetLanguage = Number(record.schemaVersion) === 0
+        ? (record.language === 'de' ? 'de' : 'en')
+        : record.language;
       await nextBrowserPaint();
       let prepared;
       try {
-        prepared = await runWorkspaceWorker(record, state.language, revision, listedWorkspace.name);
+        prepared = await runWorkspaceWorker(record, targetLanguage, revision, listedWorkspace.name);
       } catch (error) {
         if (error && error.code === 'workspace_load_cancelled') {
           throw error;
@@ -1888,27 +1910,22 @@
           throw workspaceLoadError('workspace_load_cancelled');
         }
         record = omitStoredResultsForRebuild(record);
-        prepared = prepareWorkspaceRecord(record, state.language, function (progress) {
+        prepared = prepareWorkspaceRecord(record, targetLanguage, function (progress) {
           updateWorkspaceLoadProgress(progress, listedWorkspace.name);
         });
       }
       if (revision !== workspaceLoadRevision) {
         throw workspaceLoadError('workspace_load_cancelled');
       }
-      await workspaceRepository.setActiveWorkspace(workspaceId);
+      await workspaceRepository.commitWorkspaceActivation(workspaceId, prepared.workspace);
       if (revision !== workspaceLoadRevision) {
         await workspaceRepository.setActiveWorkspace(previousActiveId || null);
         throw workspaceLoadError('workspace_load_cancelled');
       }
       state.lastActiveWorkspaceId = workspaceId;
       state.activeWorkspace = workspaceMetadata(prepared.workspace);
-      await workspaceRepository.updateWorkspaceSummary(workspaceId, state.activeWorkspace);
-      if (revision !== workspaceLoadRevision) {
-        await workspaceRepository.setActiveWorkspace(previousActiveId || null);
-        state.activeWorkspace = previousActiveWorkspace;
-        state.lastActiveWorkspaceId = previousActiveId || null;
-        throw workspaceLoadError('workspace_load_cancelled');
-      }
+      state.language = targetLanguage;
+      elements.languageSelect.value = targetLanguage;
       state.workspaces = state.workspaces.map(function (workspace) {
         return workspace.id === workspaceId ? Object.assign({}, workspace, state.activeWorkspace) : workspace;
       });
@@ -2011,12 +2028,20 @@
   }
 
   async function exportWorkspaceBackup() {
-    if (!state.activeWorkspace) {
+    const selected = state.workspaces.find(function (workspace) { return workspace.id === state.selectedWorkspaceId; });
+    if (!selected) {
       return;
     }
     try {
-      await persistActiveWorkspace();
-      const record = await workspaceRepository.loadWorkspace(state.activeWorkspace.id);
+      if (state.activeWorkspace && state.activeWorkspace.id === selected.id) {
+        await persistActiveWorkspace();
+      } else {
+        await workspaceSaveChain.catch(function () {});
+      }
+      const record = await workspaceRepository.loadWorkspace(selected.id);
+      if (!record) {
+        throw new storageApi.WorkspaceStorageError('workspace_not_found', 'Workspace does not exist.');
+      }
       const text = workspaceModel.stringifyBackup(record);
       downloadTextFile(workspaceModel.backupFilename(record.name), text, 'application/json;charset=utf-8');
       setWorkspaceMessage('workspace_backup_exported', { name: record.name });

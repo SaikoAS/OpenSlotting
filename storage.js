@@ -72,6 +72,18 @@
     };
   }
 
+  function metadataWithSummary(metadata, summary) {
+    const values = summary || {};
+    return Object.assign({}, metadata, {
+      analyzed: Boolean(values.analyzed),
+      sourceCount: Number.isInteger(values.sourceCount) && values.sourceCount >= 0 ? values.sourceCount : metadata.sourceCount,
+      sourceBytes: Number.isFinite(values.sourceBytes) && values.sourceBytes >= 0 ? values.sourceBytes : metadata.sourceBytes,
+      normalizedRowCount: Number.isInteger(values.normalizedRowCount) && values.normalizedRowCount >= 0
+        ? values.normalizedRowCount
+        : metadata.normalizedRowCount
+    });
+  }
+
   function combineStoredWorkspace(metadata, payload) {
     if (!metadata || !payload) {
       return null;
@@ -288,21 +300,27 @@
 
     function updateWorkspaceSummary(id, summary) {
       const workspaceId = String(id || '');
-      const values = summary || {};
       return transact(['workspaces'], 'readwrite', async function (stores) {
         const metadata = await requestPromise(stores.workspaces.get(workspaceId));
         if (!metadata) {
           throw storageError('workspace_not_found', 'Workspace does not exist.');
         }
-        const updated = Object.assign({}, metadata, {
-          analyzed: Boolean(values.analyzed),
-          sourceCount: Number.isInteger(values.sourceCount) && values.sourceCount >= 0 ? values.sourceCount : metadata.sourceCount,
-          sourceBytes: Number.isFinite(values.sourceBytes) && values.sourceBytes >= 0 ? values.sourceBytes : metadata.sourceBytes,
-          normalizedRowCount: Number.isInteger(values.normalizedRowCount) && values.normalizedRowCount >= 0
-            ? values.normalizedRowCount
-            : metadata.normalizedRowCount
-        });
+        const updated = metadataWithSummary(metadata, summary);
         stores.workspaces.put(updated);
+        return updated;
+      });
+    }
+
+    function commitWorkspaceActivation(id, summary) {
+      const workspaceId = String(id || '');
+      return transact(['workspaces', 'settings'], 'readwrite', async function (stores) {
+        const metadata = await requestPromise(stores.workspaces.get(workspaceId));
+        if (!metadata) {
+          throw storageError('workspace_not_found', 'Workspace does not exist.');
+        }
+        const updated = metadataWithSummary(metadata, summary);
+        stores.workspaces.put(updated);
+        stores.settings.put({ key: ACTIVE_WORKSPACE_SETTING, value: workspaceId });
         return updated;
       });
     }
@@ -383,6 +401,7 @@
       listWorkspaces: listWorkspaces,
       renameWorkspace: renameWorkspace,
       updateWorkspaceSummary: updateWorkspaceSummary,
+      commitWorkspaceActivation: commitWorkspaceActivation,
       deleteWorkspace: deleteWorkspace,
       setActiveWorkspace: setActiveWorkspace,
       getActiveWorkspaceId: getActiveWorkspaceId,

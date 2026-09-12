@@ -280,6 +280,12 @@
     if (!validIsoDate(workspace.createdAt) || !validIsoDate(workspace.updatedAt)) {
       validationError('invalid_workspace_date', 'Workspace timestamps are invalid.');
     }
+    if (workspace.language !== 'en' && workspace.language !== 'de') {
+      validationError('invalid_workspace_language', 'Workspace language must be en or de.');
+    }
+    if (typeof workspace.analyzed !== 'boolean') {
+      validationError('invalid_workspace_flag', 'Workspace analyzed state must be a boolean.');
+    }
     if (!Array.isArray(workspace.files)) {
       validationError('invalid_workspace', 'Workspace sources must be an array.');
     }
@@ -298,8 +304,8 @@
       name: assertWorkspaceName(workspace.name),
       createdAt: workspace.createdAt,
       updatedAt: workspace.updatedAt,
-      language: workspace.language === 'de' ? 'de' : 'en',
-      analyzed: Boolean(workspace.analyzed),
+      language: workspace.language,
+      analyzed: workspace.analyzed,
       files: files
     };
   }

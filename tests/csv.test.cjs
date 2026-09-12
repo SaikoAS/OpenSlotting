@@ -46,9 +46,15 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8');
   const initializeBody = appSource.match(/async function initializeWorkspaces\(\) \{([\s\S]*?)\n  function exportResults/);
   const activateBody = appSource.match(/async function activateWorkspace\(id, successKey\) \{([\s\S]*?)\n  async function createWorkspace/);
+  const controlsBody = appSource.match(/function renderWorkspaceControls\(\) \{([\s\S]*?)\n  function renderStorageStatus/);
+  const fileChangeBody = appSource.match(/async function handleFileChange\(\) \{([\s\S]*?)\n  function analyze/);
+  const backupBody = appSource.match(/async function exportWorkspaceBackup\(\) \{([\s\S]*?)\n  function readBackupFile/);
 
   assert.ok(initializeBody);
   assert.ok(activateBody);
+  assert.ok(controlsBody);
+  assert.ok(fileChangeBody);
+  assert.ok(backupBody);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /id="workspace-open"/);
   assert.match(indexSource, /id="workspace-load-progress"/);
@@ -59,9 +65,18 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(appSource, /task\.worker\.terminate\(\)/);
   assert.match(activateBody[1], /runWorkspaceWorker/);
   assert.ok(activateBody[1].indexOf('omitStoredResultsForRebuild') < activateBody[1].indexOf('runWorkspaceWorker'));
+  assert.ok(activateBody[1].indexOf('commitWorkspaceActivation') < activateBody[1].indexOf('state.activeWorkspace = workspaceMetadata'));
+  assert.ok(activateBody[1].indexOf('commitWorkspaceActivation') < activateBody[1].indexOf('state.language = targetLanguage'));
   assert.doesNotMatch(activateBody[1], /refreshAnalyzedResults\(/);
   assert.doesNotMatch(activateBody[1], /refreshWorkspaceCatalog\(/);
+  assert.doesNotMatch(activateBody[1], /updateWorkspaceSummary/);
+  assert.match(controlsBody[1], /const editsLocked = state\.workspaceLoading \|\| fileReadPending/);
+  assert.match(controlsBody[1], /workspaceBackup\.disabled = !hasSelection/);
+  assert.match(fileChangeBody[1], /state\.files\.some\(function \(file\) \{ return Boolean\(file\.reading\); \}\)/);
+  assert.match(backupBody[1], /state\.selectedWorkspaceId/);
+  assert.match(backupBody[1], /loadWorkspace\(selected\.id\)/);
   assert.match(storageSource, /function loadWorkspaceRaw/);
+  assert.match(storageSource, /function commitWorkspaceActivation/);
   assert.match(encodingSource, /OpenSlottingEncodingFactory/);
   assert.match(csvSource, /OpenSlottingCsvFactory/);
   assert.match(workspaceSource, /OpenSlottingWorkspaceFactory/);

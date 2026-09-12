@@ -217,6 +217,34 @@ test('invalid, truncated, and unsupported backups are rejected', () => {
     () => workspace.parseBackup(JSON.stringify(valid)),
     (error) => error.code === 'unsupported_workspace_version'
   );
+
+  const invalidLanguage = JSON.parse(workspace.stringifyBackup(analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1')));
+  invalidLanguage.workspace.language = 'fr';
+  assert.throws(
+    () => workspace.parseBackup(JSON.stringify(invalidLanguage)),
+    (error) => error.code === 'invalid_workspace_language'
+  );
+
+  const missingLanguage = JSON.parse(workspace.stringifyBackup(analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1')));
+  delete missingLanguage.workspace.language;
+  assert.throws(
+    () => workspace.parseBackup(JSON.stringify(missingLanguage)),
+    (error) => error.code === 'invalid_workspace_language'
+  );
+
+  const coercedFlag = JSON.parse(workspace.stringifyBackup(analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1')));
+  coercedFlag.workspace.analyzed = 'false';
+  assert.throws(
+    () => workspace.parseBackup(JSON.stringify(coercedFlag)),
+    (error) => error.code === 'invalid_workspace_flag'
+  );
+
+  const missingFlag = JSON.parse(workspace.stringifyBackup(analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1')));
+  delete missingFlag.workspace.analyzed;
+  assert.throws(
+    () => workspace.parseBackup(JSON.stringify(missingFlag)),
+    (error) => error.code === 'invalid_workspace_flag'
+  );
 });
 
 test('baseline schema migration upgrades a schema-zero workspace without losing sources', () => {
