@@ -26,6 +26,42 @@
     </header>
 
     <main class="page-shell">
+      <section class="panel workspace-panel" aria-labelledby="workspace-title">
+        <div class="panel-heading">
+          <div>
+            <p class="step" data-i18n="workspace_eyebrow">Local storage</p>
+            <h2 id="workspace-title" data-i18n="workspace_title">Workspaces</h2>
+          </div>
+          <span class="hint" data-i18n="workspace_hint">Each workspace remains separate in this browser profile.</span>
+        </div>
+        <div class="workspace-toolbar">
+          <label class="compact-field workspace-select-field">
+            <span data-i18n="workspace_select_label">Workspace selection</span>
+            <select id="workspace-select" disabled>
+              <option value="" data-i18n="workspace_none">No workspace selected</option>
+            </select>
+          </label>
+          <div class="workspace-actions" aria-label="Workspace actions" data-i18n-aria-label="workspace_actions_label">
+            <button id="workspace-open" class="primary-button" type="button" disabled data-i18n="workspace_open_selected">Open selected</button>
+            <button id="workspace-cancel" class="secondary-button hidden" type="button" data-i18n="workspace_cancel_loading">Cancel loading</button>
+            <button id="workspace-create" class="secondary-button" type="button" disabled data-i18n="workspace_create">Create</button>
+            <button id="workspace-rename" class="secondary-button" type="button" disabled data-i18n="workspace_rename">Rename</button>
+            <button id="workspace-delete" class="secondary-button danger-button" type="button" disabled data-i18n="workspace_delete">Delete</button>
+            <button id="workspace-backup" class="secondary-button" type="button" disabled data-i18n="workspace_backup">Export backup</button>
+            <button id="workspace-restore-new" class="secondary-button" type="button" disabled data-i18n="workspace_restore_new">Restore as new</button>
+            <button id="workspace-restore-replace" class="secondary-button danger-button" type="button" disabled data-i18n="workspace_restore_replace">Replace from backup</button>
+          </div>
+        </div>
+        <input id="workspace-restore-file" class="hidden" type="file" accept=".json,.workspace.json,application/json">
+        <div id="workspace-load-progress" class="workspace-load-progress hidden" aria-live="polite">
+          <div id="workspace-load-label" class="status-text"></div>
+          <progress id="workspace-progress" max="1"></progress>
+        </div>
+        <div id="workspace-overview" class="workspace-overview" aria-live="polite"></div>
+        <div id="workspace-storage-status" class="storage-status" role="status"></div>
+        <div id="workspace-message" class="workspace-message hidden" role="status"></div>
+      </section>
+
       <section class="panel">
         <div class="panel-heading">
           <div>
@@ -37,7 +73,7 @@
         <label class="file-picker" for="file-input">
           <span class="file-picker-title" data-i18n="open_csv">Open CSV files</span>
           <span class="file-picker-copy" data-i18n="file_format_hint">UTF-8, UTF-16, or Windows-1252 with semicolon delimiter</span>
-          <input id="file-input" type="file" accept=".csv,text/csv" multiple>
+          <input id="file-input" type="file" accept=".csv,text/csv" multiple disabled>
         </label>
         <p id="source-status" class="status-text" role="status" data-i18n="no_file_selected">No file selected yet.</p>
       </section>
@@ -211,6 +247,8 @@
 
     <script src="encoding.js"></script>
     <script src="csv.js"></script>
+    <script src="workspace.js"></script>
+    <script src="storage.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

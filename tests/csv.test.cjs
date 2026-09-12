@@ -15,13 +15,56 @@ test('release version is defined centrally for the UI and package', () => {
 });
 
 test('runtime source has no mandatory network dependency', () => {
-  const runtimeFiles = ['index.html', 'app.css', 'app.js', 'encoding.js', 'csv.js'];
+  const runtimeFiles = ['index.html', 'app.css', 'app.js', 'encoding.js', 'csv.js', 'workspace.js', 'storage.js'];
   const forbiddenPattern = /https?:\/\/|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\blocalhost\b|127\.0\.0\.1/;
 
   runtimeFiles.forEach((fileName) => {
     const source = fs.readFileSync(path.join(__dirname, '..', fileName), 'utf8');
     assert.doesNotMatch(source, forbiddenPattern, fileName);
   });
+});
+
+test('persistent workspace runtime uses IndexedDB without localStorage payloads', () => {
+  const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
+  const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8');
+
+  assert.match(indexSource, /<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="app\.js"><\/script>/);
+  assert.match(storageSource, /indexedDb\.open\(databaseName, DATABASE_VERSION\)/);
+  assert.match(appSource, /workspaceRepository\.saveWorkspace/);
+  assert.match(workspaceSource, /BACKUP_FORMAT = 'openslotting-workspace'/);
+  assert.doesNotMatch([appSource, storageSource, workspaceSource].join('\n'), /\blocalStorage\b/);
+});
+
+test('workspace startup is metadata-first and heavy preparation is delegated to an offline blob worker', () => {
+  const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
+  const encodingSource = fs.readFileSync(path.join(__dirname, '..', 'encoding.js'), 'utf8');
+  const csvSource = fs.readFileSync(path.join(__dirname, '..', 'csv.js'), 'utf8');
+  const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8');
+  const initializeBody = appSource.match(/async function initializeWorkspaces\(\) \{([\s\S]*?)\n  function exportResults/);
+  const activateBody = appSource.match(/async function activateWorkspace\(id, successKey\) \{([\s\S]*?)\n  async function createWorkspace/);
+
+  assert.ok(initializeBody);
+  assert.ok(activateBody);
+  assert.match(indexSource, /id="workspace-overview"/);
+  assert.match(indexSource, /id="workspace-open"/);
+  assert.match(indexSource, /id="workspace-load-progress"/);
+  assert.doesNotMatch(initializeBody[1], /activateWorkspace\(/);
+  assert.match(appSource, /workspaceRepository\.loadWorkspaceRaw/);
+  assert.match(appSource, /new Worker\(url\)/);
+  assert.match(appSource, /new Blob\(\[source\]/);
+  assert.match(appSource, /task\.worker\.terminate\(\)/);
+  assert.match(activateBody[1], /runWorkspaceWorker/);
+  assert.ok(activateBody[1].indexOf('omitStoredResultsForRebuild') < activateBody[1].indexOf('runWorkspaceWorker'));
+  assert.doesNotMatch(activateBody[1], /refreshAnalyzedResults\(/);
+  assert.doesNotMatch(activateBody[1], /refreshWorkspaceCatalog\(/);
+  assert.match(storageSource, /function loadWorkspaceRaw/);
+  assert.match(encodingSource, /OpenSlottingEncodingFactory/);
+  assert.match(csvSource, /OpenSlottingCsvFactory/);
+  assert.match(workspaceSource, /OpenSlottingWorkspaceFactory/);
 });
 
 test('release packaging reads files from an explicit Git commit', () => {
@@ -55,6 +98,13 @@ test('release packaging includes the optional Windows launcher and setup', () =>
   assert.doesNotMatch(installerSource, /taskbarpin|Import-StartLayout/i);
 });
 
+test('release packaging includes persistent workspace runtime and documentation', () => {
+  const packagingSource = fs.readFileSync(path.join(__dirname, '..', 'tools', 'package-release.ps1'), 'utf8');
+  ['workspace.js', 'storage.js', 'docs/workspace-format.md', 'docs/acceptance-workspaces.md'].forEach((fileName) => {
+    assert.match(packagingSource, new RegExp("'" + fileName.replaceAll('.', '\\.') + "'"), fileName);
+  });
+});
+
 test('browser UI declares multi-file selection and bilingual source traceability', () => {
   const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
@@ -82,7 +132,7 @@ test('browser translation dictionaries cover every referenced UI key', () => {
   const translations = Function('return ' + dictionaryMatch[1])();
   const referencedKeys = [
     ...[...appSource.matchAll(/translate\('([^']+)'/g)].map((match) => match[1]),
-    ...[...indexSource.matchAll(/data-i18n(?:-placeholder)?="([^"]+)"/g)].map((match) => match[1])
+    ...[...indexSource.matchAll(/data-i18n(?:-placeholder|-aria-label)?="([^"]+)"/g)].map((match) => match[1])
   ];
 
   for (const language of ['en', 'de']) {

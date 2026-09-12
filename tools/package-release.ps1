@@ -47,6 +47,8 @@ $releaseFiles = @(
     'app.js',
     'encoding.js',
     'csv.js',
+    'workspace.js',
+    'storage.js',
     'OpenSlotting.Windows.psm1',
     'Start-OpenSlotting.cmd',
     'Start-OpenSlotting.ps1',
@@ -60,6 +62,8 @@ $releaseFiles = @(
     'CONTRIBUTING.md',
     'SECURITY.md',
     'docs/data-format.md',
+    'docs/workspace-format.md',
+    'docs/acceptance-workspaces.md',
     'docs/acceptance-v0.2.md',
     'docs/acceptance-v0.2.1.md'
 )

@@ -144,4 +144,4 @@ Before export, untrusted text that starts, after optional whitespace, with `=`, 
 
 ## Runtime and privacy boundary
 
-Import and analysis run in the browser memory for the current session. Normal use requires no upload, backend, local server, internet connection, Node.js, or Python. Opening `index.html` directly through `file:///` remains the V0.2 runtime model. Persistent local workspaces, backup, and restore are not part of V0.2. See [SECURITY.md](../SECURITY.md) for repository and operational-data rules.
+Import and analysis calculations run locally in the browser. In the post-V0.2.1 development implementation, the active workspace retains original source bytes, mappings, normalized rows, validation results, and provenance in IndexedDB; derived article analysis is rebuilt when an analyzed workspace is reopened. Normal use requires no upload, backend, local server, internet connection, Node.js, or Python. Opening `index.html` directly through `file:///` remains the runtime model. See [workspace-format.md](workspace-format.md) for the persistent storage and backup contract and [SECURITY.md](../SECURITY.md) for repository and operational-data rules.

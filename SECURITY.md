@@ -86,6 +86,26 @@ file:///.../index.html
 
 Changes that introduce network communication, remote storage, telemetry, external APIs, or other data transmission must be clearly documented and reviewed before becoming part of the core workflow.
 
+## Browser-Local Workspace Storage
+
+Persistent workspaces use IndexedDB in the current browser profile and origin.
+The application retains original imported bytes, normalized rows, mappings,
+validation results, and source provenance so the workspace can be reconstructed
+without uploading the source files.
+
+Browser-local storage is not a file beside `index.html` and is not a central or
+multi-user database. Clearing browser site data can remove it. A different
+browser profile or origin, including changing between `file:///` and localhost,
+can expose a different storage area. The complete single-workspace backup is the
+supported user-controlled migration and recovery path.
+
+Workspace backup files can contain the complete original operational CSV bytes.
+They must be protected like the source exports and must never be committed,
+uploaded, attached to public issues, or included in screenshots. Restore input
+is validated before any existing workspace is changed, and replacement requires
+an explicit named target and confirmation. OpenSlotting provides no merge restore
+path.
+
 ## Optional Windows Launcher
 
 The optional Windows launcher and shortcut setup only resolve the adjacent local
