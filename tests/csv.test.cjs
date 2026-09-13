@@ -88,6 +88,9 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(activateBody[1], /state\.selectedWorkspaceId = state\.activeWorkspace\.id/);
   assert.match(controlsBody[1], /const editsLocked = state\.workspaceLoading \|\| fileReadPending/);
   assert.match(controlsBody[1], /workspaceCancel\.classList\.toggle\('hidden', !state\.workspaceLoading \|\| !state\.workspaceLoadCancellable\)/);
+  assert.match(appSource, /workspaceMessage: \{ key: null, replacements: \{\}, type: '' \}/);
+  assert.match(appSource, /function renderWorkspaceMessage\(\)/);
+  assert.match(appSource, /renderWorkspaceMessage\(\);\s*if \(state\.files\.length > 0\)/);
   assert.match(controlsBody[1], /workspaceBackup\.disabled = !hasSelection/);
   assert.match(fileChangeBody[1], /state\.files\.some\(function \(file\) \{ return Boolean\(file\.reading\); \}\)/);
   assert.match(backupBody[1], /state\.selectedWorkspaceId/);
@@ -101,6 +104,10 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(restoreBody[1], /else \{\s*await workspaceSaveChain;/);
   assert.ok(restoreBody[1].indexOf('runWorkspaceWorker') < restoreBody[1].indexOf('replaceWorkspace'));
   assert.ok(restoreBody[1].indexOf('runWorkspaceWorker') < restoreBody[1].indexOf('createWorkspace'));
+  assert.ok(restoreBody[1].indexOf('runWorkspaceWorker') < restoreBody[1].indexOf('window.confirm'));
+  assert.match(restoreBody[1], /state\.workspaceLoadCancellable = false;\s*renderWorkspaceControls\(\);\s*if \(revision !== workspaceLoadRevision\)/);
+  assert.match(restoreBody[1], /await workspaceRepository\.replaceWorkspace[\s\S]*?if \(revision !== workspaceLoadRevision\)/);
+  assert.match(restoreBody[1], /await workspaceRepository\.createWorkspace[\s\S]*?if \(revision !== workspaceLoadRevision\)/);
   assert.match(deleteBody[1], /await workspaceSaveChain;/);
   assert.doesNotMatch(deleteBody[1], /workspaceSaveChain\.catch/);
   assert.match(deleteBody[1], /deleteWorkspace\(selected\.id, \{\s*expectedRevision: current\.storageRevision/);

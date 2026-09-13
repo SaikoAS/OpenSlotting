@@ -398,6 +398,7 @@
     workspaceLoading: false,
     workspaceLoadCancellable: false,
     workspaceProgress: null,
+    workspaceMessage: { key: null, replacements: {}, type: '' },
     restoreMode: null,
     files: [],
     fileSelectionVersion: 0,
@@ -512,14 +513,24 @@
     }).format(amount) + ' ' + units[unitIndex];
   }
 
-  function setWorkspaceMessage(key, replacements, type) {
-    if (!key) {
+  function renderWorkspaceMessage() {
+    const message = state.workspaceMessage;
+    if (!message || !message.key) {
       elements.workspaceMessage.className = 'workspace-message hidden';
       setText(elements.workspaceMessage, '');
       return;
     }
-    elements.workspaceMessage.className = 'workspace-message' + (type ? ' ' + type : '');
-    setText(elements.workspaceMessage, translate(key, replacements));
+    elements.workspaceMessage.className = 'workspace-message' + (message.type ? ' ' + message.type : '');
+    setText(elements.workspaceMessage, translate(message.key, message.replacements));
+  }
+
+  function setWorkspaceMessage(key, replacements, type) {
+    state.workspaceMessage = {
+      key: key || null,
+      replacements: Object.assign({}, replacements || {}),
+      type: type || ''
+    };
+    renderWorkspaceMessage();
   }
 
   function showWorkspaceError(error) {
@@ -989,6 +1000,7 @@
     elements.languageSelect.setAttribute('aria-label', translate('language_label'));
     renderWorkspaceControls();
     renderStorageStatus();
+    renderWorkspaceMessage();
     if (state.files.length > 0) {
       renderMapping();
     }
@@ -2162,9 +2174,6 @@
         if (!target) {
           return;
         }
-        if (!window.confirm(translate('workspace_replace_confirm', { name: target.name }))) {
-          return;
-        }
         await workspaceSaveChain;
         if (revision !== workspaceLoadRevision) {
           throw workspaceLoadError('workspace_load_cancelled');
@@ -2215,22 +2224,42 @@
         files: preparedRestore.files
       }), { clonePayload: false });
       if (replaceTarget) {
+        if (revision !== workspaceLoadRevision) {
+          throw workspaceLoadError('workspace_load_cancelled');
+        }
+        if (!window.confirm(translate('workspace_replace_confirm', { name: replaceTarget.name }))) {
+          return;
+        }
+        state.workspaceLoadCancellable = false;
+        renderWorkspaceControls();
+        if (revision !== workspaceLoadRevision) {
+          throw workspaceLoadError('workspace_load_cancelled');
+        }
         await workspaceRepository.replaceWorkspace(restored, {
           validated: true,
           expectedRevision: replaceTarget.storageRevision
         });
+        if (revision !== workspaceLoadRevision) {
+          throw workspaceLoadError('workspace_load_cancelled');
+        }
         if (state.activeWorkspace && state.activeWorkspace.id === replaceTarget.id) {
           state.activeWorkspace = null;
           clearWorkspaceView();
         }
       } else {
+        state.workspaceLoadCancellable = false;
+        renderWorkspaceControls();
+        if (revision !== workspaceLoadRevision) {
+          throw workspaceLoadError('workspace_load_cancelled');
+        }
         await workspaceRepository.createWorkspace(restored, { validated: true });
+        if (revision !== workspaceLoadRevision) {
+          throw workspaceLoadError('workspace_load_cancelled');
+        }
       }
       state.selectedWorkspaceId = restored.id;
       await refreshWorkspaceCatalog();
       scheduleStorageEstimateRefresh();
-      state.workspaceLoading = false;
-      state.workspaceLoadCancellable = false;
       await activateWorkspace(restored.id, successKey);
     } catch (error) {
       if (error && error.code === 'workspace_load_cancelled') {
