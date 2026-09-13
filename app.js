@@ -1619,8 +1619,15 @@
     };
     if (file.buffer) {
       decodeFileEntry(file);
-      file.mapping = savedMapping;
-      file.confirmedMapping = savedConfirmedMapping;
+      if (file.parsed && !file.errorKey) {
+        file.mapping = workspaceModel.validateMappingRange(savedMapping, file.headers.length);
+        file.confirmedMapping = savedConfirmedMapping
+          ? workspaceModel.validateMappingRange(savedConfirmedMapping, file.headers.length)
+          : null;
+      } else {
+        file.mapping = savedMapping;
+        file.confirmedMapping = savedConfirmedMapping;
+      }
     }
     return file;
   }
@@ -1863,6 +1870,7 @@
     elements.articleFilter.value = '';
     setSourceStatus('no_file_selected');
     elements.mappingGrid.replaceChildren();
+    showMappingMessage('');
     elements.mappingPanel.classList.add('hidden');
     elements.resultsPanel.classList.add('hidden');
   }
@@ -2033,8 +2041,14 @@
       return;
     }
     try {
-      await workspaceSaveChain.catch(function () {});
-      await workspaceRepository.deleteWorkspace(selected.id);
+      await workspaceSaveChain;
+      const current = state.workspaces.find(function (workspace) { return workspace.id === selected.id; });
+      if (!current) {
+        throw new storageApi.WorkspaceStorageError('workspace_not_found', 'Workspace does not exist.');
+      }
+      await workspaceRepository.deleteWorkspace(selected.id, {
+        expectedRevision: current.storageRevision
+      });
       if (state.activeWorkspace && state.activeWorkspace.id === selected.id) {
         state.activeWorkspace = null;
         clearWorkspaceView();
@@ -2086,8 +2100,20 @@
   }
 
   async function restoreWorkspaceBackup(file, mode) {
+    const revision = workspaceLoadRevision + 1;
+    workspaceLoadRevision = revision;
+    state.workspaceLoading = true;
+    state.workspaceProgress = {
+      key: 'workspace_loading_validating',
+      replacements: { name: file.name }
+    };
+    setWorkspaceMessage('workspace_loading_validating', { name: file.name });
+    renderWorkspaceControls();
     try {
       const text = await readBackupFile(file);
+      if (revision !== workspaceLoadRevision) {
+        throw workspaceLoadError('workspace_load_cancelled');
+      }
       const parsed = workspaceModel.parseBackup(text);
       let restored;
       let successKey;
@@ -2100,7 +2126,7 @@
         if (!window.confirm(translate('workspace_replace_confirm', { name: target.name }))) {
           return;
         }
-        await workspaceSaveChain.catch(function () {});
+        await workspaceSaveChain;
         replaceTarget = state.workspaces.find(function (workspace) { return workspace.id === target.id; });
         if (!replaceTarget) {
           throw new storageApi.WorkspaceStorageError('workspace_not_found', 'Workspace does not exist.');
@@ -2114,6 +2140,33 @@
         restored = workspaceModel.prepareRestore(parsed, { mode: 'new' });
         successKey = 'workspace_restored_new';
       }
+      await nextBrowserPaint();
+      let preparedRestore;
+      try {
+        preparedRestore = await runWorkspaceWorker(restored, restored.language, revision, restored.name);
+      } catch (error) {
+        if (!error || error.code !== 'worker_unavailable') {
+          throw error;
+        }
+        setWorkspaceMessage('workspace_worker_fallback', {}, 'warning');
+        const retryParsed = workspaceModel.parseBackup(await readBackupFile(file));
+        restored = workspaceModel.prepareRestore(retryParsed, replaceTarget ? {
+          mode: 'replace',
+          targetId: replaceTarget.id
+        } : {
+          mode: 'new',
+          newId: restored.id
+        });
+        preparedRestore = prepareWorkspaceRecord(restored, restored.language, function (progress) {
+          updateWorkspaceLoadProgress(progress, restored.name);
+        });
+      }
+      if (revision !== workspaceLoadRevision) {
+        throw workspaceLoadError('workspace_load_cancelled');
+      }
+      restored = workspaceModel.validateWorkspace(Object.assign({}, restored, {
+        files: preparedRestore.files
+      }), { clonePayload: false });
       if (replaceTarget) {
         await workspaceRepository.replaceWorkspace(restored, {
           validated: true,
@@ -2129,12 +2182,21 @@
       state.selectedWorkspaceId = restored.id;
       await refreshWorkspaceCatalog();
       scheduleStorageEstimateRefresh();
+      state.workspaceLoading = false;
       await activateWorkspace(restored.id, successKey);
     } catch (error) {
+      if (error && error.code === 'workspace_load_cancelled') {
+        return;
+      }
       showWorkspaceError(error);
     } finally {
       elements.workspaceRestoreFile.value = '';
       state.restoreMode = null;
+      if (revision === workspaceLoadRevision) {
+        state.workspaceLoading = false;
+        updateWorkspaceLoadProgress(null);
+        renderWorkspaceControls();
+      }
     }
   }
 

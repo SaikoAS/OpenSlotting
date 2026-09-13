@@ -185,7 +185,7 @@ test('stale updates cannot recreate deleted workspaces or overwrite newer metada
   );
   assert.equal((await repository.loadWorkspace(original.id)).name, 'Renamed elsewhere');
 
-  await repository.deleteWorkspace(original.id);
+  await repository.deleteWorkspace(original.id, { expectedRevision: renamed.storageRevision });
   await assert.rejects(
     repository.updateWorkspace(original, {
       expectedRevision: renamed.storageRevision
@@ -200,15 +200,35 @@ test('deleting the active workspace clears only its selection and data', async (
   const repository = storage.createRepository({ indexedDB, databaseName: 'delete-test' });
   const first = workspaceWithSource('workspace-1', 'First', 'SKU-1');
   const second = workspaceWithSource('workspace-2', 'Second', 'SKU-2');
-  await repository.createWorkspace(first);
+  const savedFirst = await repository.createWorkspace(first);
   await repository.createWorkspace(second);
   await repository.setActiveWorkspace(first.id);
 
-  await repository.deleteWorkspace(first.id);
+  await repository.deleteWorkspace(first.id, { expectedRevision: savedFirst.storageRevision });
 
   assert.equal(await repository.loadWorkspace(first.id), null);
   assert.equal(await repository.getActiveWorkspaceId(), null);
   assert.equal((await repository.loadWorkspace(second.id)).name, 'Second');
+});
+
+test('deleting a workspace rejects stale revisions and preserves the newer record', async () => {
+  const indexedDB = createFakeIndexedDB();
+  const repository = storage.createRepository({ indexedDB, databaseName: 'stale-delete-test' });
+  const original = workspaceWithSource('workspace-1', 'Original', 'SKU-1');
+  const created = await repository.createWorkspace(original);
+  const renamed = await repository.renameWorkspace(original.id, 'Renamed elsewhere', {
+    expectedRevision: created.storageRevision,
+    now: '2026-09-12T10:00:00.000Z'
+  });
+
+  await assert.rejects(
+    repository.deleteWorkspace(original.id, { expectedRevision: created.storageRevision }),
+    (error) => error.code === 'workspace_conflict'
+  );
+  assert.equal((await repository.loadWorkspace(original.id)).name, 'Renamed elsewhere');
+
+  await repository.deleteWorkspace(original.id, { expectedRevision: renamed.storageRevision });
+  assert.equal(await repository.loadWorkspace(original.id), null);
 });
 
 test('quota failures are surfaced and an aborted write leaves no partial workspace', async () => {

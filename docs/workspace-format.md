@@ -176,6 +176,10 @@ OpenSlotting exposes distinct user-visible states for:
 
 A storage failure must remain visible. It must not be reported as a successful save and must not silently discard or partially replace workspace data. Opening another workspace waits for the current autosave and stops on failure, retaining the unsaved active view for recovery.
 
+Current-schema restores also decode each readable source before committing the backup. Every non-null position in `mapping`, `confirmedMapping`, and a stored result mapping must reference an existing decoded header. Backup reading locks workspace editing immediately, so a concurrently selected CSV cannot be discarded by the following activation.
+
+Delete operations use the selected metadata revision. If another browser tab saves, renames, replaces, or deletes that workspace after the catalog was rendered, deletion stops with a conflict instead of removing the newer record.
+
 ## Schema migration
 
 Workspace records carry `schemaVersion`. The current reader accepts version `1` and contains a baseline migration from the pre-release schema `0`, adding explicit language and analyzed-state defaults without changing source records. Versions newer than the current reader are rejected rather than guessed.

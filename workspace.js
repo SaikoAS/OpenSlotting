@@ -134,6 +134,20 @@
     return normalized;
   }
 
+  function validateMappingRange(mapping, headerCount) {
+    const normalized = normalizeMapping(mapping);
+    if (!Number.isInteger(headerCount) || headerCount < 0) {
+      validationError('invalid_mapping', 'Decoded source header count is invalid.');
+    }
+    Object.keys(normalized).forEach(function (key) {
+      const value = normalized[key];
+      if (value !== null && value >= headerCount) {
+        validationError('invalid_mapping', 'Column mapping points outside the decoded source headers.');
+      }
+    });
+    return normalized;
+  }
+
   function normalizeIssue(issue, sourceId, options) {
     if (!isPlainObject(issue)) {
       validationError('invalid_validation_issue', 'Validation issue must be an object.');
@@ -234,6 +248,17 @@
     if (detectedEncoding !== null && (typeof detectedEncoding !== 'string' || SUPPORTED_SOURCE_ENCODINGS.indexOf(detectedEncoding) < 0)) {
       validationError('invalid_source_encoding', 'Detected source encoding is not supported.');
     }
+    const result = normalizeImportResult(file.result, id, options);
+    let mapping = normalizeMapping(file.mapping);
+    let confirmedMapping = file.confirmedMapping ? normalizeMapping(file.confirmedMapping) : null;
+    if (result !== null) {
+      if (!Array.isArray(result.headers)) {
+        validationError('invalid_import_result', 'Stored import result is missing decoded source headers.');
+      }
+      mapping = validateMappingRange(mapping, result.headers.length);
+      confirmedMapping = confirmedMapping ? validateMappingRange(confirmedMapping, result.headers.length) : null;
+      result.mapping = validateMappingRange(result.mapping, result.headers.length);
+    }
     return {
       id: id,
       name: name,
@@ -245,9 +270,9 @@
       activeEncoding: activeEncoding,
       detectedEncoding: detectedEncoding,
       errorKey: file.errorKey ? String(file.errorKey) : null,
-      mapping: normalizeMapping(file.mapping),
-      confirmedMapping: file.confirmedMapping ? normalizeMapping(file.confirmedMapping) : null,
-      result: normalizeImportResult(file.result, id, options)
+      mapping: mapping,
+      confirmedMapping: confirmedMapping,
+      result: result
     };
   }
 
@@ -527,6 +552,7 @@
     assertWorkspaceName: assertWorkspaceName,
     createId: createId,
     createWorkspace: createWorkspace,
+    validateMappingRange: validateMappingRange,
     validateWorkspace: validateWorkspace,
     migrateWorkspace: migrateWorkspace,
     captureWorkspace: captureWorkspace,

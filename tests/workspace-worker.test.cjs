@@ -92,4 +92,12 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.equal(completed.prepared.result.rows[0].quantity, 3000000n);
   assert.equal(completed.prepared.analysis.total_lines, 1);
   assert.equal(completed.prepared.files[0].parsed.rows.length, 2);
+
+  messages.length = 0;
+  vm.runInContext([
+    'workerRecord.files[0].mapping.order_id = 9;',
+    "self.onmessage({ data: { record: workerRecord, language: 'en' } });"
+  ].join('\n'), context);
+  const mappingError = messages.find((message) => message.type === 'error');
+  assert.equal(mappingError.code, 'invalid_mapping');
 });

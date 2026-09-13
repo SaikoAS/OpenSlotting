@@ -376,9 +376,17 @@
       });
     }
 
-    function deleteWorkspace(id) {
+    function deleteWorkspace(id, options) {
       const workspaceId = String(id || '');
+      const settings = options || {};
       return transact(['workspaces', 'workspacePayloads', 'settings'], 'readwrite', async function (stores) {
+        const metadata = await requestPromise(stores.workspaces.get(workspaceId));
+        if (!metadata) {
+          throw storageError('workspace_not_found', 'Workspace does not exist.');
+        }
+        if (settings.expectedRevision !== storageRevisionOf(metadata)) {
+          throw storageError('workspace_conflict', 'Workspace changed in another browser tab.');
+        }
         stores.workspaces.delete(workspaceId);
         stores.workspacePayloads.delete(workspaceId);
         const active = await requestPromise(stores.settings.get(ACTIVE_WORKSPACE_SETTING));

@@ -51,6 +51,8 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   const fileChangeBody = appSource.match(/async function handleFileChange\(\) \{([\s\S]*?)\n  function analyze/);
   const backupBody = appSource.match(/async function exportWorkspaceBackup\(\) \{([\s\S]*?)\n  function readBackupFile/);
   const restoreBody = appSource.match(/async function restoreWorkspaceBackup\(file, mode\) \{([\s\S]*?)\n  async function initializeWorkspaces/);
+  const deleteBody = appSource.match(/async function deleteActiveWorkspace\(\) \{([\s\S]*?)\n  async function exportWorkspaceBackup/);
+  const clearViewBody = appSource.match(/function clearWorkspaceView\(\) \{([\s\S]*?)\n  async function activateWorkspace/);
 
   assert.ok(initializeBody);
   assert.ok(activateBody);
@@ -58,6 +60,8 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.ok(fileChangeBody);
   assert.ok(backupBody);
   assert.ok(restoreBody);
+  assert.ok(deleteBody);
+  assert.ok(clearViewBody);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /id="workspace-open"/);
   assert.match(indexSource, /id="workspace-load-progress"/);
@@ -81,6 +85,13 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(fileChangeBody[1], /state\.files\.some\(function \(file\) \{ return Boolean\(file\.reading\); \}\)/);
   assert.match(backupBody[1], /state\.selectedWorkspaceId/);
   assert.match(backupBody[1], /loadWorkspace\(selected\.id\)/);
+  assert.ok(restoreBody[1].indexOf('state.workspaceLoading = true') < restoreBody[1].indexOf('readBackupFile(file)'));
+  assert.ok(restoreBody[1].indexOf('runWorkspaceWorker') < restoreBody[1].indexOf('replaceWorkspace'));
+  assert.ok(restoreBody[1].indexOf('runWorkspaceWorker') < restoreBody[1].indexOf('createWorkspace'));
+  assert.match(deleteBody[1], /await workspaceSaveChain;/);
+  assert.doesNotMatch(deleteBody[1], /workspaceSaveChain\.catch/);
+  assert.match(deleteBody[1], /deleteWorkspace\(selected\.id, \{\s*expectedRevision: current\.storageRevision/);
+  assert.match(clearViewBody[1], /showMappingMessage\(''\)/);
   assert.ok(restoreBody[1].indexOf('replaceWorkspace') < restoreBody[1].indexOf('state.activeWorkspace = null'));
   assert.ok(restoreBody[1].indexOf('state.activeWorkspace = null') < restoreBody[1].indexOf('activateWorkspace'));
   assert.match(storageSource, /function loadWorkspaceRaw/);
