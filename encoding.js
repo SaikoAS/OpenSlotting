@@ -2,6 +2,7 @@
   if (typeof module === 'object' && module.exports) {
     module.exports = factory();
   } else {
+    root.OpenSlottingEncodingFactory = factory;
     root.OpenSlottingEncoding = factory();
   }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {

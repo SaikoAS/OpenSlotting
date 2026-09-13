@@ -15,13 +15,126 @@ test('release version is defined centrally for the UI and package', () => {
 });
 
 test('runtime source has no mandatory network dependency', () => {
-  const runtimeFiles = ['index.html', 'app.css', 'app.js', 'encoding.js', 'csv.js'];
+  const runtimeFiles = ['index.html', 'app.css', 'app.js', 'encoding.js', 'csv.js', 'workspace.js', 'storage.js'];
   const forbiddenPattern = /https?:\/\/|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\blocalhost\b|127\.0\.0\.1/;
 
   runtimeFiles.forEach((fileName) => {
     const source = fs.readFileSync(path.join(__dirname, '..', fileName), 'utf8');
     assert.doesNotMatch(source, forbiddenPattern, fileName);
   });
+});
+
+test('persistent workspace runtime uses IndexedDB without localStorage payloads', () => {
+  const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
+  const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8');
+
+  assert.match(indexSource, /<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="app\.js"><\/script>/);
+  assert.match(storageSource, /indexedDb\.open\(databaseName, DATABASE_VERSION\)/);
+  assert.match(appSource, /workspaceRepository\.updateWorkspace/);
+  assert.match(appSource, /workspaceRepository\.createWorkspace/);
+  assert.match(workspaceSource, /BACKUP_FORMAT = 'openslotting-workspace'/);
+  assert.doesNotMatch([appSource, storageSource, workspaceSource].join('\n'), /\blocalStorage\b/);
+});
+
+test('workspace startup is metadata-first and heavy preparation is delegated to an offline blob worker', () => {
+  const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
+  const encodingSource = fs.readFileSync(path.join(__dirname, '..', 'encoding.js'), 'utf8');
+  const csvSource = fs.readFileSync(path.join(__dirname, '..', 'csv.js'), 'utf8');
+  const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8');
+  const initializeBody = appSource.match(/async function initializeWorkspaces\(\) \{([\s\S]*?)\n  function exportResults/);
+  const activateBody = appSource.match(/async function activateWorkspace\(id, successKey\) \{([\s\S]*?)\n  async function createWorkspace/);
+  const controlsBody = appSource.match(/function renderWorkspaceControls\(\) \{([\s\S]*?)\n  function renderStorageStatus/);
+  const fileChangeBody = appSource.match(/async function handleFileChange\(\) \{([\s\S]*?)\n  function analyze/);
+  const workerBody = appSource.match(/function workspaceWorkerMain\(\) \{([\s\S]*?)\n  function workspaceLoadError/);
+  const cancelBody = appSource.match(/function cancelWorkspaceLoading\(\) \{([\s\S]*?)\n  function clearWorkspaceView/);
+  const backupBody = appSource.match(/async function exportWorkspaceBackup\(\) \{([\s\S]*?)\n  function readBackupFile/);
+  const restoreBody = appSource.match(/async function restoreWorkspaceBackup\(file, mode\) \{([\s\S]*?)\n  async function initializeWorkspaces/);
+  const createBody = appSource.match(/async function createWorkspace\(\) \{([\s\S]*?)\n  async function renameActiveWorkspace/);
+  const deleteBody = appSource.match(/async function deleteActiveWorkspace\(\) \{([\s\S]*?)\n  async function exportWorkspaceBackup/);
+  const renameBody = appSource.match(/async function renameActiveWorkspace\(\) \{([\s\S]*?)\n  async function deleteActiveWorkspace/);
+  const clearViewBody = appSource.match(/function clearWorkspaceView\(\) \{([\s\S]*?)\n  async function activateWorkspace/);
+
+  assert.ok(initializeBody);
+  assert.ok(activateBody);
+  assert.ok(controlsBody);
+  assert.ok(fileChangeBody);
+  assert.ok(workerBody);
+  assert.ok(cancelBody);
+  assert.ok(backupBody);
+  assert.ok(restoreBody);
+  assert.ok(createBody);
+  assert.ok(deleteBody);
+  assert.ok(renameBody);
+  assert.ok(clearViewBody);
+  assert.match(indexSource, /id="workspace-overview"/);
+  assert.match(indexSource, /id="workspace-open"/);
+  assert.match(indexSource, /id="workspace-load-progress"/);
+  assert.doesNotMatch(initializeBody[1], /activateWorkspace\(/);
+  assert.match(appSource, /workspaceRepository\.loadWorkspaceRaw/);
+  assert.match(appSource, /new Worker\(url\)/);
+  assert.match(appSource, /new Blob\(\[source\]/);
+  assert.match(appSource, /task\.worker\.terminate\(\)/);
+  assert.match(activateBody[1], /runWorkspaceWorker/);
+  assert.match(activateBody[1], /await workspaceSaveChain;/);
+  assert.doesNotMatch(activateBody[1], /workspaceSaveChain\.catch/);
+  assert.ok(activateBody[1].indexOf('omitStoredResultsForRebuild') < activateBody[1].indexOf('runWorkspaceWorker'));
+  assert.ok(activateBody[1].indexOf('commitWorkspaceActivation') < activateBody[1].indexOf('state.activeWorkspace = workspaceMetadata'));
+  assert.ok(activateBody[1].indexOf('commitWorkspaceActivation') < activateBody[1].indexOf('state.language = targetLanguage'));
+  assert.doesNotMatch(activateBody[1], /refreshAnalyzedResults\(/);
+  assert.doesNotMatch(activateBody[1], /refreshWorkspaceCatalog\(/);
+  assert.doesNotMatch(activateBody[1], /updateWorkspaceSummary/);
+  assert.match(activateBody[1], /state\.selectedWorkspaceId = state\.activeWorkspace\.id/);
+  assert.match(controlsBody[1], /const editsLocked = state\.workspaceLoading \|\| fileReadPending/);
+  assert.match(controlsBody[1], /workspaceCancel\.classList\.toggle\('hidden', !state\.workspaceLoading \|\| !state\.workspaceLoadCancellable\)/);
+  assert.match(activateBody[1], /state\.workspaceLoadCancellable = false;\s*renderWorkspaceControls\(\);\s*if \(revision !== workspaceLoadRevision\)/);
+  assert.ok(activateBody[1].indexOf('state.workspaceLoadCancellable = false;') < activateBody[1].indexOf('commitWorkspaceActivation'));
+  assert.match(appSource, /workspaceMessage: \{ key: null, replacements: \{\}, type: '' \}/);
+  assert.match(appSource, /function renderWorkspaceMessage\(\)/);
+  assert.match(appSource, /renderWorkspaceMessage\(\);\s*if \(state\.files\.length > 0\)/);
+  assert.match(controlsBody[1], /workspaceBackup\.disabled = !hasSelection/);
+  assert.match(fileChangeBody[1], /state\.files\.some\(function \(file\) \{ return Boolean\(file\.reading\); \}\)/);
+  assert.match(backupBody[1], /state\.selectedWorkspaceId/);
+  assert.match(backupBody[1], /loadWorkspace\(selected\.id\)/);
+  assert.match(backupBody[1], /state\.workspaceLoading = true/);
+  assert.match(backupBody[1], /persistActiveWorkspace\(undefined, \{ allowWhileLoading: true \}\)/);
+  assert.ok(backupBody[1].indexOf('state.workspaceLoading = true') < backupBody[1].indexOf('persistActiveWorkspace'));
+  assert.ok(restoreBody[1].indexOf('state.workspaceLoading = true') < restoreBody[1].indexOf('readBackupFile(file)'));
+  assert.match(restoreBody[1], /runWorkspaceWorker\(null, null, revision, file\.name, \{\s*backupText: text/);
+  assert.doesNotMatch(restoreBody[1], /const parsed = workspaceModel\.parseBackup\(text\)/);
+  assert.match(restoreBody[1], /else \{\s*await workspaceSaveChain;/);
+  assert.ok(restoreBody[1].indexOf('runWorkspaceWorker') < restoreBody[1].indexOf('replaceWorkspace'));
+  assert.ok(restoreBody[1].indexOf('runWorkspaceWorker') < restoreBody[1].indexOf('createWorkspace'));
+  assert.ok(restoreBody[1].indexOf('runWorkspaceWorker') < restoreBody[1].indexOf('window.confirm'));
+  assert.match(restoreBody[1], /state\.workspaceLoadCancellable = false;\s*renderWorkspaceControls\(\);\s*if \(revision !== workspaceLoadRevision\)/);
+  assert.match(restoreBody[1], /await workspaceRepository\.replaceWorkspace[\s\S]*?if \(revision !== workspaceLoadRevision\)/);
+  assert.match(restoreBody[1], /await workspaceRepository\.createWorkspace[\s\S]*?if \(revision !== workspaceLoadRevision\)/);
+  assert.match(createBody[1], /await workspaceSaveChain;/);
+  assert.ok(createBody[1].indexOf('await workspaceSaveChain;') < createBody[1].indexOf('workspaceRepository.createWorkspace'));
+  assert.match(deleteBody[1], /await workspaceSaveChain;/);
+  assert.doesNotMatch(deleteBody[1], /workspaceSaveChain\.catch/);
+  assert.match(deleteBody[1], /deleteWorkspace\(selected\.id, \{\s*expectedRevision: current\.storageRevision/);
+  assert.match(renameBody[1], /state\.workspaceLoading = true/);
+  assert.match(renameBody[1], /await workspaceSaveChain;/);
+  assert.doesNotMatch(renameBody[1], /workspaceSaveChain\.catch/);
+  assert.match(clearViewBody[1], /showMappingMessage\(''\)/);
+  assert.match(appSource, /value = value\.replace\(new RegExp\([\s\S]*?function \(\)/);
+  assert.match(workerBody[1], /workspaceModel\.parseBackup\(input\.backupText\)/);
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8'), /size !== buffer\.byteLength/);
+  assert.match(cancelBody[1], /if \(!state\.workspaceLoading \|\| !state\.workspaceLoadCancellable\)/);
+  assert.ok(restoreBody[1].indexOf('replaceWorkspace') < restoreBody[1].indexOf('state.activeWorkspace = null'));
+  assert.ok(restoreBody[1].indexOf('state.activeWorkspace = null') < restoreBody[1].indexOf('activateWorkspace'));
+  assert.match(storageSource, /function loadWorkspaceRaw/);
+  assert.match(storageSource, /function commitWorkspaceActivation/);
+  assert.match(storageSource, /function createWorkspace/);
+  assert.match(storageSource, /function updateWorkspace/);
+  assert.match(storageSource, /function replaceWorkspace/);
+  assert.match(encodingSource, /OpenSlottingEncodingFactory/);
+  assert.match(csvSource, /OpenSlottingCsvFactory/);
+  assert.match(workspaceSource, /OpenSlottingWorkspaceFactory/);
 });
 
 test('release packaging reads files from an explicit Git commit', () => {
@@ -55,6 +168,13 @@ test('release packaging includes the optional Windows launcher and setup', () =>
   assert.doesNotMatch(installerSource, /taskbarpin|Import-StartLayout/i);
 });
 
+test('release packaging includes persistent workspace runtime and documentation', () => {
+  const packagingSource = fs.readFileSync(path.join(__dirname, '..', 'tools', 'package-release.ps1'), 'utf8');
+  ['workspace.js', 'storage.js', 'docs/workspace-format.md', 'docs/acceptance-workspaces.md'].forEach((fileName) => {
+    assert.match(packagingSource, new RegExp("'" + fileName.replaceAll('.', '\\.') + "'"), fileName);
+  });
+});
+
 test('browser UI declares multi-file selection and bilingual source traceability', () => {
   const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
@@ -82,7 +202,7 @@ test('browser translation dictionaries cover every referenced UI key', () => {
   const translations = Function('return ' + dictionaryMatch[1])();
   const referencedKeys = [
     ...[...appSource.matchAll(/translate\('([^']+)'/g)].map((match) => match[1]),
-    ...[...indexSource.matchAll(/data-i18n(?:-placeholder)?="([^"]+)"/g)].map((match) => match[1])
+    ...[...indexSource.matchAll(/data-i18n(?:-placeholder|-aria-label)?="([^"]+)"/g)].map((match) => match[1])
   ];
 
   for (const language of ['en', 'de']) {

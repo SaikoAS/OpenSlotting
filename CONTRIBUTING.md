@@ -19,6 +19,8 @@ Run the repository checks before requesting review:
 node --check csv.js
 node --check app.js
 node --check encoding.js
+node --check workspace.js
+node --check storage.js
 node --test tests/*.test.cjs
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows-launcher.test.ps1
 pwsh -NoProfile -File tests/windows-launcher.test.ps1
