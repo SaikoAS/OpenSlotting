@@ -180,6 +180,8 @@ Current-schema restores also decode each readable source before committing the b
 
 Delete operations use the selected metadata revision. If another browser tab saves, renames, replaces, or deletes that workspace after the catalog was rendered, deletion stops with a conflict instead of removing the newer record.
 
+Restore-as-new waits for the active workspace autosave before creating the new record. Backup export and workspace rename lock workspace editing for the complete asynchronous operation, and confirmation names are interpolated literally.
+
 ## Schema migration
 
 Workspace records carry `schemaVersion`. The current reader accepts version `1` and contains a baseline migration from the pre-release schema `0`, adding explicit language and analyzed-state defaults without changing source records. Versions newer than the current reader are rejected rather than guessed.

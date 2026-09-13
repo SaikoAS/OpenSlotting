@@ -273,6 +273,27 @@ test('invalid, truncated, and unsupported backups are rejected', () => {
     () => workspace.parseBackup(JSON.stringify(confirmedMappingOutsideHeaders)),
     (error) => error.code === 'invalid_mapping'
   );
+
+  const missingMapping = JSON.parse(workspace.stringifyBackup(analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1')));
+  delete missingMapping.workspace.files[0].mapping;
+  assert.throws(
+    () => workspace.parseBackup(JSON.stringify(missingMapping)),
+    (error) => error.code === 'invalid_mapping'
+  );
+
+  const primitiveMapping = JSON.parse(workspace.stringifyBackup(analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1')));
+  primitiveMapping.workspace.files[0].mapping = false;
+  assert.throws(
+    () => workspace.parseBackup(JSON.stringify(primitiveMapping)),
+    (error) => error.code === 'invalid_mapping'
+  );
+
+  const primitiveConfirmedMapping = JSON.parse(workspace.stringifyBackup(analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1')));
+  primitiveConfirmedMapping.workspace.files[0].confirmedMapping = 0;
+  assert.throws(
+    () => workspace.parseBackup(JSON.stringify(primitiveConfirmedMapping)),
+    (error) => error.code === 'invalid_mapping'
+  );
 });
 
 test('baseline schema migration upgrades a schema-zero workspace without losing sources', () => {

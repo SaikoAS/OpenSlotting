@@ -117,9 +117,6 @@
   }
 
   function normalizeMapping(mapping) {
-    if (!mapping) {
-      return {};
-    }
     if (!isPlainObject(mapping)) {
       validationError('invalid_mapping', 'Column mapping must be an object.');
     }
@@ -250,7 +247,9 @@
     }
     const result = normalizeImportResult(file.result, id, options);
     let mapping = normalizeMapping(file.mapping);
-    let confirmedMapping = file.confirmedMapping ? normalizeMapping(file.confirmedMapping) : null;
+    let confirmedMapping = file.confirmedMapping === null || file.confirmedMapping === undefined
+      ? null
+      : normalizeMapping(file.confirmedMapping);
     if (result !== null) {
       if (!Array.isArray(result.headers)) {
         validationError('invalid_import_result', 'Stored import result is missing decoded source headers.');
@@ -364,7 +363,21 @@
       migrationTarget.schemaVersion = 1;
       migrationTarget.language = migrationTarget.language === 'de' ? 'de' : 'en';
       migrationTarget.analyzed = Boolean(migrationTarget.analyzed);
-      migrationTarget.files = Array.isArray(migrationTarget.files) ? migrationTarget.files : [];
+      migrationTarget.files = Array.isArray(migrationTarget.files) ? migrationTarget.files.map(function (file) {
+        const migratedFile = isPlainObject(file) ? file : {};
+        if (!isPlainObject(migratedFile.mapping)) {
+          migratedFile.mapping = {};
+        }
+        if (migratedFile.confirmedMapping !== null && !isPlainObject(migratedFile.confirmedMapping)) {
+          migratedFile.confirmedMapping = null;
+        }
+        if (isPlainObject(migratedFile.result)) {
+          if (!isPlainObject(migratedFile.result.mapping)) {
+            migratedFile.result.mapping = {};
+          }
+        }
+        return migratedFile;
+      }) : [];
       return validateWorkspace(migrationTarget, options);
     }
     return validateWorkspace(workspace, options);
