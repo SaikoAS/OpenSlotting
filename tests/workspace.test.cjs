@@ -253,6 +253,13 @@ test('invalid, truncated, and unsupported backups are rejected', () => {
     (error) => error.code === 'invalid_source_encoding'
   );
 
+  const truncatedSource = JSON.parse(workspace.stringifyBackup(analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1')));
+  truncatedSource.workspace.files[0].buffer.base64 = truncatedSource.workspace.files[0].buffer.base64.slice(0, -4);
+  assert.throws(
+    () => workspace.parseBackup(JSON.stringify(truncatedSource)),
+    (error) => error.code === 'invalid_source_size'
+  );
+
   const unsafeSourceId = JSON.parse(workspace.stringifyBackup(analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1')));
   unsafeSourceId.workspace.files[0].id = 'source"]';
   assert.throws(

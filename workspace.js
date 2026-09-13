@@ -258,13 +258,17 @@
       confirmedMapping = confirmedMapping ? validateMappingRange(confirmedMapping, result.headers.length) : null;
       result.mapping = validateMappingRange(result.mapping, result.headers.length);
     }
+    const buffer = copyArrayBuffer(file.buffer, options);
+    if (buffer !== null && (!Number.isInteger(size) || size < 0 || size !== buffer.byteLength)) {
+      validationError('invalid_source_size', 'Source size does not match its decoded bytes.');
+    }
     return {
       id: id,
       name: name,
       label: String(file.label || name),
       size: Number.isFinite(size) && size >= 0 ? size : 0,
       lastModified: Number.isFinite(lastModified) && lastModified >= 0 ? lastModified : 0,
-      buffer: copyArrayBuffer(file.buffer, options),
+      buffer: buffer,
       encodingMode: encodingMode,
       activeEncoding: activeEncoding,
       detectedEncoding: detectedEncoding,

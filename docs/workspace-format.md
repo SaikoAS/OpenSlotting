@@ -180,9 +180,9 @@ Current-schema restores also decode each readable source before committing the b
 
 Delete operations use the selected metadata revision. If another browser tab saves, renames, replaces, or deletes that workspace after the catalog was rendered, deletion stops with a conflict instead of removing the newer record.
 
-Restore-as-new waits for the active workspace autosave before creating the new record. Backup export and workspace rename lock workspace editing for the complete asynchronous operation, and confirmation names are interpolated literally.
+Workspace creation and restore-as-new wait for the active workspace autosave before creating a new record. Normal activation and restore activation hide Cancel before their final IndexedDB commit while retaining the loading lock through the commit. Backup export and workspace rename lock workspace editing for the complete asynchronous operation, and confirmation names are interpolated literally.
 
-Restoring a backup reads the selected file asynchronously and sends its text to the offline worker. JSON parsing, portable-payload decoding, workspace validation, source preparation, and analysis therefore remain off the main browser thread in the normal worker path. Replacement confirmation is requested only after that validation succeeds. The Cancel control is shown only while a workspace load or restore worker can actually be terminated; once a validated restore is ready for its atomic create or replacement commit, cancellation is hidden while the storage operation finishes.
+Restoring a backup reads the selected file asynchronously and sends its text to the offline worker. JSON parsing, portable-payload decoding, workspace validation, source preparation, and analysis therefore remain off the main browser thread in the normal worker path. Replacement confirmation is requested only after that validation succeeds. Restored source records with a decoded buffer must declare a nonnegative integer `size` equal to that buffer's byte length. The Cancel control is shown only while a workspace load or restore worker can actually be terminated; once a validated restore is ready for its atomic create or replacement commit, cancellation is hidden while the storage operation finishes.
 
 ## Schema migration
 

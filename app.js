@@ -1977,6 +1977,11 @@
       if (revision !== workspaceLoadRevision) {
         throw workspaceLoadError('workspace_load_cancelled');
       }
+      state.workspaceLoadCancellable = false;
+      renderWorkspaceControls();
+      if (revision !== workspaceLoadRevision) {
+        throw workspaceLoadError('workspace_load_cancelled');
+      }
       const committedMetadata = await workspaceRepository.commitWorkspaceActivation(workspaceId, prepared.workspace, {
         expectedRevision: targetStorageRevision
       });
@@ -2032,6 +2037,7 @@
       return;
     }
     try {
+      await workspaceSaveChain;
       const record = workspaceModel.createWorkspace(name, { language: state.language });
       await workspaceRepository.createWorkspace(record, { validated: true });
       state.selectedWorkspaceId = record.id;
