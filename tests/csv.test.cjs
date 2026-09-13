@@ -67,12 +67,15 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(appSource, /new Blob\(\[source\]/);
   assert.match(appSource, /task\.worker\.terminate\(\)/);
   assert.match(activateBody[1], /runWorkspaceWorker/);
+  assert.match(activateBody[1], /await workspaceSaveChain;/);
+  assert.doesNotMatch(activateBody[1], /workspaceSaveChain\.catch/);
   assert.ok(activateBody[1].indexOf('omitStoredResultsForRebuild') < activateBody[1].indexOf('runWorkspaceWorker'));
   assert.ok(activateBody[1].indexOf('commitWorkspaceActivation') < activateBody[1].indexOf('state.activeWorkspace = workspaceMetadata'));
   assert.ok(activateBody[1].indexOf('commitWorkspaceActivation') < activateBody[1].indexOf('state.language = targetLanguage'));
   assert.doesNotMatch(activateBody[1], /refreshAnalyzedResults\(/);
   assert.doesNotMatch(activateBody[1], /refreshWorkspaceCatalog\(/);
   assert.doesNotMatch(activateBody[1], /updateWorkspaceSummary/);
+  assert.match(activateBody[1], /state\.selectedWorkspaceId = state\.activeWorkspace\.id/);
   assert.match(controlsBody[1], /const editsLocked = state\.workspaceLoading \|\| fileReadPending/);
   assert.match(controlsBody[1], /workspaceBackup\.disabled = !hasSelection/);
   assert.match(fileChangeBody[1], /state\.files\.some\(function \(file\) \{ return Boolean\(file\.reading\); \}\)/);

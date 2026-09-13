@@ -1886,7 +1886,7 @@
     setWorkspaceMessage('workspace_loading_payload', { name: listedWorkspace.name });
     renderWorkspaceControls();
     try {
-      await workspaceSaveChain.catch(function () {});
+      await workspaceSaveChain;
       let record = await workspaceRepository.loadWorkspaceRaw(workspaceId);
       if (revision !== workspaceLoadRevision) {
         throw workspaceLoadError('workspace_load_cancelled');
@@ -1965,6 +1965,9 @@
     } catch (error) {
       if (error && error.code === 'workspace_load_cancelled') {
         return;
+      }
+      if (state.activeWorkspace) {
+        state.selectedWorkspaceId = state.activeWorkspace.id;
       }
       showWorkspaceError(error);
       throw error;

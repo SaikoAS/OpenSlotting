@@ -13,6 +13,8 @@
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
   const SUPPORTED_SOURCE_ENCODINGS = Object.freeze(['utf-8', 'utf-16le', 'utf-16be', 'windows-1252']);
+  const SOURCE_ID_PATTERN = /^source-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
+  const MAX_SOURCE_ID_LENGTH = 128;
 
   class WorkspaceValidationError extends Error {
     constructor(code, message) {
@@ -210,6 +212,9 @@
     const id = String(file.id || '');
     if (!id) {
       validationError('invalid_source_file', 'Workspace source file has no ID.');
+    }
+    if (id.length > MAX_SOURCE_ID_LENGTH || !SOURCE_ID_PATTERN.test(id)) {
+      validationError('invalid_source_id', 'Workspace source file ID is invalid.');
     }
     const name = String(file.name || '');
     if (!name) {

@@ -130,7 +130,7 @@ The complete backup is parsed, decoded, migrated, and validated before IndexedDB
 - backup format and backup-format version
 - workspace schema version
 - workspace identity, name, and timestamps
-- unique source IDs
+- unique source IDs matching the generated selector-safe `source-<alphanumeric-or-hyphen>` grammar
 - original source-byte representation
 - decoding mode (`auto`, UTF-8, UTF-16 LE/BE, or Windows-1252) and supported detected/active encodings
 - mapping positions
@@ -174,7 +174,7 @@ OpenSlotting exposes distinct user-visible states for:
 - unsupported backup or workspace version
 - invalid or incomplete backup payload
 
-A storage failure must remain visible. It must not be reported as a successful save and must not silently discard or partially replace workspace data.
+A storage failure must remain visible. It must not be reported as a successful save and must not silently discard or partially replace workspace data. Opening another workspace waits for the current autosave and stops on failure, retaining the unsaved active view for recovery.
 
 ## Schema migration
 
