@@ -49,6 +49,8 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   const activateBody = appSource.match(/async function activateWorkspace\(id, successKey\) \{([\s\S]*?)\n  async function createWorkspace/);
   const controlsBody = appSource.match(/function renderWorkspaceControls\(\) \{([\s\S]*?)\n  function renderStorageStatus/);
   const fileChangeBody = appSource.match(/async function handleFileChange\(\) \{([\s\S]*?)\n  function analyze/);
+  const workerBody = appSource.match(/function workspaceWorkerMain\(\) \{([\s\S]*?)\n  function workspaceLoadError/);
+  const cancelBody = appSource.match(/function cancelWorkspaceLoading\(\) \{([\s\S]*?)\n  function clearWorkspaceView/);
   const backupBody = appSource.match(/async function exportWorkspaceBackup\(\) \{([\s\S]*?)\n  function readBackupFile/);
   const restoreBody = appSource.match(/async function restoreWorkspaceBackup\(file, mode\) \{([\s\S]*?)\n  async function initializeWorkspaces/);
   const deleteBody = appSource.match(/async function deleteActiveWorkspace\(\) \{([\s\S]*?)\n  async function exportWorkspaceBackup/);
@@ -59,6 +61,8 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.ok(activateBody);
   assert.ok(controlsBody);
   assert.ok(fileChangeBody);
+  assert.ok(workerBody);
+  assert.ok(cancelBody);
   assert.ok(backupBody);
   assert.ok(restoreBody);
   assert.ok(deleteBody);
@@ -83,6 +87,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.doesNotMatch(activateBody[1], /updateWorkspaceSummary/);
   assert.match(activateBody[1], /state\.selectedWorkspaceId = state\.activeWorkspace\.id/);
   assert.match(controlsBody[1], /const editsLocked = state\.workspaceLoading \|\| fileReadPending/);
+  assert.match(controlsBody[1], /workspaceCancel\.classList\.toggle\('hidden', !state\.workspaceLoading \|\| !state\.workspaceLoadCancellable\)/);
   assert.match(controlsBody[1], /workspaceBackup\.disabled = !hasSelection/);
   assert.match(fileChangeBody[1], /state\.files\.some\(function \(file\) \{ return Boolean\(file\.reading\); \}\)/);
   assert.match(backupBody[1], /state\.selectedWorkspaceId/);
@@ -91,6 +96,8 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(backupBody[1], /persistActiveWorkspace\(undefined, \{ allowWhileLoading: true \}\)/);
   assert.ok(backupBody[1].indexOf('state.workspaceLoading = true') < backupBody[1].indexOf('persistActiveWorkspace'));
   assert.ok(restoreBody[1].indexOf('state.workspaceLoading = true') < restoreBody[1].indexOf('readBackupFile(file)'));
+  assert.match(restoreBody[1], /runWorkspaceWorker\(null, null, revision, file\.name, \{\s*backupText: text/);
+  assert.doesNotMatch(restoreBody[1], /const parsed = workspaceModel\.parseBackup\(text\)/);
   assert.match(restoreBody[1], /else \{\s*await workspaceSaveChain;/);
   assert.ok(restoreBody[1].indexOf('runWorkspaceWorker') < restoreBody[1].indexOf('replaceWorkspace'));
   assert.ok(restoreBody[1].indexOf('runWorkspaceWorker') < restoreBody[1].indexOf('createWorkspace'));
@@ -102,6 +109,8 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.doesNotMatch(renameBody[1], /workspaceSaveChain\.catch/);
   assert.match(clearViewBody[1], /showMappingMessage\(''\)/);
   assert.match(appSource, /value = value\.replace\(new RegExp\([\s\S]*?function \(\)/);
+  assert.match(workerBody[1], /workspaceModel\.parseBackup\(input\.backupText\)/);
+  assert.match(cancelBody[1], /if \(!state\.workspaceLoading \|\| !state\.workspaceLoadCancellable\)/);
   assert.ok(restoreBody[1].indexOf('replaceWorkspace') < restoreBody[1].indexOf('state.activeWorkspace = null'));
   assert.ok(restoreBody[1].indexOf('state.activeWorkspace = null') < restoreBody[1].indexOf('activateWorkspace'));
   assert.match(storageSource, /function loadWorkspaceRaw/);

@@ -396,6 +396,7 @@
     storageEstimate: null,
     storageReady: false,
     workspaceLoading: false,
+    workspaceLoadCancellable: false,
     workspaceProgress: null,
     restoreMode: null,
     files: [],
@@ -618,7 +619,7 @@
     const hasSelection = ready && Boolean(selectedId);
     elements.workspaceSelect.disabled = !ready || state.workspaces.length === 0;
     elements.workspaceOpen.disabled = !hasSelection;
-    elements.workspaceCancel.classList.toggle('hidden', !state.workspaceLoading);
+    elements.workspaceCancel.classList.toggle('hidden', !state.workspaceLoading || !state.workspaceLoadCancellable);
     elements.workspaceCreate.disabled = !ready;
     elements.workspaceRestoreNew.disabled = !ready;
     elements.workspaceRename.disabled = !hasSelection;
@@ -1689,7 +1690,17 @@
   function workspaceWorkerMain() {
     self.onmessage = function (event) {
       try {
-        const prepared = prepareWorkspaceRecord(event.data.record, event.data.language, function (progress) {
+        const input = event.data || {};
+        let record = input.record;
+        let language = input.language;
+        if (typeof input.backupText === 'string') {
+          const parsed = workspaceModel.parseBackup(input.backupText);
+          record = workspaceModel.prepareRestore(parsed, input.mode === 'replace'
+            ? { mode: 'replace', targetId: input.targetId }
+            : { mode: input.mode, newId: input.newId });
+          language = record.language;
+        }
+        const prepared = prepareWorkspaceRecord(record, language, function (progress) {
           self.postMessage({ type: 'progress', progress: progress });
         });
         const buffers = [];
@@ -1787,11 +1798,11 @@
     }
   }
 
-  function runWorkspaceWorker(record, language, revision, workspaceName) {
+  function runWorkspaceWorker(record, language, revision, workspaceName, options) {
     const created = createWorkspaceWorker();
     const transfer = [];
     const seenBuffers = new Set();
-    (record.files || []).forEach(function (file) {
+    ((record && record.files) || []).forEach(function (file) {
       if (file.buffer instanceof ArrayBuffer && !seenBuffers.has(file.buffer)) {
         seenBuffers.add(file.buffer);
         transfer.push(file.buffer);
@@ -1838,7 +1849,16 @@
         reject(workspaceLoadError('worker_unavailable', event && event.message));
       };
       try {
-        task.worker.postMessage({ record: record, language: language }, transfer);
+        const settings = options || {};
+        const message = settings.backupText === undefined
+          ? { record: record, language: language }
+          : {
+            backupText: settings.backupText,
+            mode: settings.mode,
+            targetId: settings.targetId,
+            newId: settings.newId
+          };
+        task.worker.postMessage(message, transfer);
       } catch (error) {
         dispose();
         reject(workspaceLoadError('worker_unavailable', error && error.message));
@@ -1847,7 +1867,7 @@
   }
 
   function cancelWorkspaceLoading() {
-    if (!state.workspaceLoading) {
+    if (!state.workspaceLoading || !state.workspaceLoadCancellable) {
       return;
     }
     workspaceLoadRevision += 1;
@@ -1859,6 +1879,7 @@
       task.reject(workspaceLoadError('workspace_load_cancelled'));
     }
     state.workspaceLoading = false;
+    state.workspaceLoadCancellable = false;
     updateWorkspaceLoadProgress(null);
     setWorkspaceMessage('workspace_loading_cancelled', {}, 'warning');
     renderWorkspaceControls();
@@ -1889,6 +1910,7 @@
     workspaceLoadRevision = revision;
     state.selectedWorkspaceId = workspaceId;
     state.workspaceLoading = true;
+    state.workspaceLoadCancellable = true;
     state.workspaceProgress = {
       key: 'workspace_loading_payload',
       replacements: { name: listedWorkspace.name }
@@ -1984,6 +2006,7 @@
     } finally {
       if (revision === workspaceLoadRevision) {
         state.workspaceLoading = false;
+        state.workspaceLoadCancellable = false;
         updateWorkspaceLoadProgress(null);
         renderWorkspaceControls();
       }
@@ -2018,6 +2041,7 @@
       return;
     }
     state.workspaceLoading = true;
+    state.workspaceLoadCancellable = false;
     renderWorkspaceControls();
     try {
       await workspaceSaveChain;
@@ -2034,6 +2058,7 @@
       showWorkspaceError(error);
     } finally {
       state.workspaceLoading = false;
+      state.workspaceLoadCancellable = false;
       renderWorkspaceControls();
     }
   }
@@ -2080,6 +2105,7 @@
       return;
     }
     state.workspaceLoading = true;
+    state.workspaceLoadCancellable = false;
     renderWorkspaceControls();
     try {
       if (state.activeWorkspace && state.activeWorkspace.id === selected.id) {
@@ -2098,6 +2124,7 @@
       showWorkspaceError(error);
     } finally {
       state.workspaceLoading = false;
+      state.workspaceLoadCancellable = false;
       renderWorkspaceControls();
     }
   }
@@ -2115,6 +2142,7 @@
     const revision = workspaceLoadRevision + 1;
     workspaceLoadRevision = revision;
     state.workspaceLoading = true;
+    state.workspaceLoadCancellable = true;
     state.workspaceProgress = {
       key: 'workspace_loading_validating',
       replacements: { name: file.name }
@@ -2126,10 +2154,9 @@
       if (revision !== workspaceLoadRevision) {
         throw workspaceLoadError('workspace_load_cancelled');
       }
-      const parsed = workspaceModel.parseBackup(text);
-      let restored;
       let successKey;
       let replaceTarget = null;
+      let restoreNewId = null;
       if (mode === 'replace') {
         const target = state.workspaces.find(function (workspace) { return workspace.id === state.selectedWorkspaceId; });
         if (!target) {
@@ -2139,45 +2166,52 @@
           return;
         }
         await workspaceSaveChain;
+        if (revision !== workspaceLoadRevision) {
+          throw workspaceLoadError('workspace_load_cancelled');
+        }
         replaceTarget = state.workspaces.find(function (workspace) { return workspace.id === target.id; });
         if (!replaceTarget) {
           throw new storageApi.WorkspaceStorageError('workspace_not_found', 'Workspace does not exist.');
         }
-        restored = workspaceModel.prepareRestore(parsed, {
-          mode: 'replace',
-          targetId: replaceTarget.id
-        });
         successKey = 'workspace_restored_replace';
       } else {
         await workspaceSaveChain;
-        restored = workspaceModel.prepareRestore(parsed, { mode: 'new' });
+        if (revision !== workspaceLoadRevision) {
+          throw workspaceLoadError('workspace_load_cancelled');
+        }
+        restoreNewId = workspaceModel.createId('workspace');
         successKey = 'workspace_restored_new';
       }
       await nextBrowserPaint();
       let preparedRestore;
       try {
-        preparedRestore = await runWorkspaceWorker(restored, restored.language, revision, restored.name);
+        preparedRestore = await runWorkspaceWorker(null, null, revision, file.name, {
+          backupText: text,
+          mode: replaceTarget ? 'replace' : 'new',
+          targetId: replaceTarget ? replaceTarget.id : null,
+          newId: restoreNewId
+        });
       } catch (error) {
         if (!error || error.code !== 'worker_unavailable') {
           throw error;
         }
         setWorkspaceMessage('workspace_worker_fallback', {}, 'warning');
-        const retryParsed = workspaceModel.parseBackup(await readBackupFile(file));
-        restored = workspaceModel.prepareRestore(retryParsed, replaceTarget ? {
+        const retryParsed = workspaceModel.parseBackup(text);
+        const fallbackRestored = workspaceModel.prepareRestore(retryParsed, replaceTarget ? {
           mode: 'replace',
           targetId: replaceTarget.id
         } : {
           mode: 'new',
-          newId: restored.id
+          newId: restoreNewId
         });
-        preparedRestore = prepareWorkspaceRecord(restored, restored.language, function (progress) {
-          updateWorkspaceLoadProgress(progress, restored.name);
+        preparedRestore = prepareWorkspaceRecord(fallbackRestored, fallbackRestored.language, function (progress) {
+          updateWorkspaceLoadProgress(progress, fallbackRestored.name);
         });
       }
       if (revision !== workspaceLoadRevision) {
         throw workspaceLoadError('workspace_load_cancelled');
       }
-      restored = workspaceModel.validateWorkspace(Object.assign({}, restored, {
+      const restored = workspaceModel.validateWorkspace(Object.assign({}, preparedRestore.workspace, {
         files: preparedRestore.files
       }), { clonePayload: false });
       if (replaceTarget) {
@@ -2196,6 +2230,7 @@
       await refreshWorkspaceCatalog();
       scheduleStorageEstimateRefresh();
       state.workspaceLoading = false;
+      state.workspaceLoadCancellable = false;
       await activateWorkspace(restored.id, successKey);
     } catch (error) {
       if (error && error.code === 'workspace_load_cancelled') {
@@ -2207,6 +2242,7 @@
       state.restoreMode = null;
       if (revision === workspaceLoadRevision) {
         state.workspaceLoading = false;
+        state.workspaceLoadCancellable = false;
         updateWorkspaceLoadProgress(null);
         renderWorkspaceControls();
       }

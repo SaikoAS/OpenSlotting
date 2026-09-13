@@ -32,6 +32,8 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
     TextDecoder,
     TextEncoder,
     Uint8Array,
+    btoa: (value) => Buffer.from(value, 'binary').toString('base64'),
+    atob: (value) => Buffer.from(value, 'base64').toString('binary'),
     console,
     self: {
       postMessage(message) {
@@ -92,6 +94,16 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.equal(completed.prepared.result.rows[0].quantity, 3000000n);
   assert.equal(completed.prepared.analysis.total_lines, 1);
   assert.equal(completed.prepared.files[0].parsed.rows.length, 2);
+
+  messages.length = 0;
+  vm.runInContext([
+    'const backupText = workspaceModel.stringifyBackup(workerRecord, { now: \'2026-09-12T10:00:00.000Z\' });',
+    "self.onmessage({ data: { backupText: backupText, mode: 'new', newId: 'workspace-backup-worker' } });"
+  ].join('\n'), context);
+  const backupCompleted = messages.find((message) => message.type === 'complete');
+  assert.ok(backupCompleted);
+  assert.equal(backupCompleted.prepared.workspace.id, 'workspace-backup-worker');
+  assert.equal(backupCompleted.prepared.result.validRows, 1);
 
   messages.length = 0;
   vm.runInContext([

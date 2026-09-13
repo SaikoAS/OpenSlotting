@@ -182,6 +182,8 @@ Delete operations use the selected metadata revision. If another browser tab sav
 
 Restore-as-new waits for the active workspace autosave before creating the new record. Backup export and workspace rename lock workspace editing for the complete asynchronous operation, and confirmation names are interpolated literally.
 
+Restoring a backup reads the selected file asynchronously and sends its text to the offline worker. JSON parsing, portable-payload decoding, workspace validation, source preparation, and analysis therefore remain off the main browser thread in the normal worker path. The Cancel control is shown only while a workspace load or restore worker can actually be terminated; storage rename and backup export operations keep their lock until completion.
+
 ## Schema migration
 
 Workspace records carry `schemaVersion`. The current reader accepts version `1` and contains a baseline migration from the pre-release schema `0`, adding explicit language and analyzed-state defaults without changing source records. Versions newer than the current reader are rejected rather than guessed.
