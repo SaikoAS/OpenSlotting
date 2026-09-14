@@ -2,6 +2,34 @@
 
 All notable changes to OpenSlotting are documented in this file.
 
+## Next bundled release - Unreleased
+
+The final version number will be assigned during bundled release planning.
+
+### Added
+
+- persistent and strictly isolated local workspaces backed by IndexedDB
+- automatic storage of original source bytes, mappings, normalized rows, validation results, and source provenance
+- workspace creation, selection, rename, confirmed clearing, and confirmed deletion
+- approximate browser storage usage and quota display with unavailable and failure fallbacks
+- complete single-workspace JSON backup with exact `BigInt` and original-byte encoding
+- validated restore as a new workspace or explicit confirmed replacement without a merge path
+- versioned workspace and backup schemas with a baseline migration path
+- English and German workspace, storage, backup, confirmation, and error states
+- automated isolation, persistence, transaction-failure, quota, backup-roundtrip, restore, validation, and migration tests
+- metadata-first workspace start overview with explicit open and last-used marker
+- cancellable offline `blob:` worker for background workspace validation, CSV preparation, and analysis
+- worker-path tests using the real decoder, parser, normalizer, and analyzer
+
+### Changed
+
+- CSV selection now adds sources to the active workspace instead of replacing an unpersisted session batch
+- derived article analysis is rebuilt from retained source state when an analyzed workspace is reopened
+- the last-used workspace is no longer loaded automatically at application startup
+- workspace opening performs one analysis and one storage estimate instead of duplicate startup work
+- trusted load/save paths avoid redundant full payload and `ArrayBuffer` copies while backup validation remains strict
+- release packages include the workspace runtime and its data-contract and acceptance documentation
+
 ## 0.2.1 - Unreleased
 
 ### Added

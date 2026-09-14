@@ -2,6 +2,7 @@
   if (typeof module === 'object' && module.exports) {
     module.exports = factory();
   } else {
+    root.OpenSlottingCsvFactory = factory;
     root.OpenSlottingCsv = factory();
   }
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {

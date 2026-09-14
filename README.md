@@ -4,14 +4,16 @@ OpenSlotting is an open-source, local-first web tool for analyzing warehouse ord
 
 The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. Future versions are planned to expand this foundation through multi-export analysis, separate locally stored workspaces, period comparisons, ABC/XYZ classification, configurable master data, slotting scores, and warehouse slotting recommendations.
 
-> **Project status:** V0.2.1 development with multi-export analysis and an optional Windows Edge app-mode launcher.
+> **Project status:** Post-V0.2.1 development with persistent local workspaces. The final bundled release version has not yet been assigned.
 
-## Current V0.2.1 implementation
+## Current development implementation
 
-OpenSlotting currently provides a browser-local first feature for importing and
-analyzing order-line CSV files. Open `index.html` directly in a supported
-browser, choose one or more CSV files, review the detected column mapping for
-each file, and start the combined analysis.
+OpenSlotting provides a browser-local workflow for creating separate workspaces,
+importing and analyzing order-line CSV files, and reopening the saved state.
+Open `index.html` directly in a supported browser, select a workspace from the
+metadata-first start overview or create a new one, explicitly open it,
+choose one or more CSV files, review the detected column mapping for each file,
+and start the combined analysis.
 
 The current implementation includes:
 
@@ -37,14 +39,27 @@ The current implementation includes:
 - no automatic cross-file deduplication
 - source-file coverage in the analysis export
 - optional Windows launch, current-user shortcut setup, and safe shortcut removal for Microsoft Edge app mode
+- persistent, strictly isolated browser-local workspaces backed by IndexedDB
+- automatic storage of original source bytes, mappings, normalized rows, validation results, and provenance
+- workspace creation, selection, rename, confirmed clearing, and confirmed deletion
+- metadata-first workspace overview without automatically loading the last large payload
+- cancellable background validation, CSV preparation, and analysis in an offline `blob:` worker
+- last-used workspace marker and per-workspace source/row overview
+- approximate browser usage/quota display with a clear unavailable fallback
+- complete single-workspace JSON backup and validated restore as new or explicit replacement
+- versioned workspace and backup schemas without a workspace merge path
 
-The complete implemented import, normalization, validation, and export contract is documented in [`docs/data-format.md`](docs/data-format.md).
+The complete import, normalization, validation, and analysis-export contract is documented in [`docs/data-format.md`](docs/data-format.md). Persistent storage, backup, restore, and migration are documented in [`docs/workspace-format.md`](docs/workspace-format.md).
 
 The published V0.1 release was accepted in Microsoft Edge Desktop on Windows with `index.html` opened directly through `file:///`. V0.2 retains the same acceptance target and requires a separate multi-file Edge run before release using [`docs/acceptance-v0.2.md`](docs/acceptance-v0.2.md). Other browsers may work but are not part of the compatibility claim unless tested separately.
 
-The current implementation intentionally keeps data in memory for the current
-browser session. It does not upload files or require a server, backend,
-Node.js, Python, or an internet connection.
+Workspace source data is stored locally in IndexedDB in the current browser
+profile and origin. Startup loads only small workspace metadata; the selected
+payload is read and the derived article analysis is rebuilt from retained source
+state only after the user opens that workspace. Heavy preparation runs in an
+offline worker where supported. OpenSlotting does not upload files or
+require a server, backend, Node.js, Python, account, telemetry, or internet
+connection.
 
 ## Optional Windows launcher
 
@@ -117,20 +132,23 @@ Only order ID, article ID, quantity, and order date are required. The other list
 
 Different ERP, WMS, and CSV export headers are supported through configurable column mapping instead of hard-coded field names.
 
-## Current V0.2 Workflow
+## Current workflow
 
-1. Select one or more CSV files
-2. Detect encoding and available columns independently for each file
-3. Map each file's source columns to OpenSlotting fields
-4. Validate and normalize every source independently
-5. Exclude visibly blocked files and invalid rows
-6. Warn about overlapping exports without removing rows
-7. Combine all valid normalized rows
-8. Aggregate order lines by article
-9. Calculate basic warehouse activity metrics
-10. Sort and filter the results
-11. Open an article to inspect its source file and source line
-12. Export the combined analysis
+1. Select a workspace from the fast start overview, create one, or restore a backup
+2. Explicitly open the selected workspace and wait for cancellable background preparation
+3. Add one or more CSV files to that workspace
+4. Detect encoding and available columns independently for each file
+5. Map each file's source columns to OpenSlotting fields
+6. Validate and normalize every source independently
+7. Exclude visibly blocked files and invalid rows
+8. Warn about overlapping exports without removing rows
+9. Combine all valid normalized rows
+10. Aggregate order lines by article
+11. Calculate basic warehouse activity metrics
+12. Sort and filter the results
+13. Open an article to inspect its source file and source line
+14. Export the combined analysis or one complete workspace backup
+15. Return to the overview after a later restart, then reopen or replace a selected workspace
 
 ## Current Metrics
 
@@ -216,6 +234,11 @@ JSON array of source-file labels.
 
 OpenSlotting is intended to process imported warehouse data locally in the user's browser.
 
+Persistent workspaces use IndexedDB. They belong to the current browser profile
+and origin rather than to the folder containing `index.html`. The supported way
+to transfer a workspace between profiles or origins is to export and restore its
+complete local backup.
+
 Direct local file execution is a core compatibility requirement. The application must remain usable by opening `index.html` directly from the local filesystem through a `file:///` URL in a supported browser.
 
 Normal use must not require:
@@ -273,7 +296,9 @@ The public project and demo data must not contain real company, customer, articl
 
 ### V0.3 — Local Workspaces
 
-- Create and reopen separate workspaces in browser-local storage
+- Create and reopen separate workspaces in browser-local IndexedDB storage
+- Start with a metadata-only overview and load a large workspace only after explicit selection
+- Prepare reopened workspaces in a cancellable offline background worker
 - Keep normalized order lines, source metadata, mappings, and validation results isolated per workspace
 - Add or remove source exports only within the selected workspace
 - Export or restore exactly one complete workspace per backup file
@@ -281,6 +306,10 @@ The public project and demo data must not contain real company, customer, articl
 - Never merge or mix two workspaces during restore
 - Portable workspace backups for migration between browser profiles or `file:///` origins
 - No mandatory cloud storage, backend, account, or network connection
+
+Implementation exists on the Issue #19 feature branch; exact-candidate automated
+checks and manual Microsoft Edge `file:///` acceptance remain required before a
+release claim.
 
 ### V0.4 — Period Comparison
 
