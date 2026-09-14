@@ -1452,7 +1452,10 @@
     const batchFiles = state.files.map(function (file) {
       if (file.parsed && !file.errorKey) {
         const mapping = file.confirmedMapping || file.mapping;
-        file.result = core.importParsedCsv(file.parsed, mapping, {
+        const text = file.content === null || file.content === undefined
+          ? encoding.decodeBufferDetailed(file.buffer, file.encodingMode || 'auto').text
+          : file.content;
+        file.result = core.importCsvStreaming(text, mapping, {
           locale: state.language,
           sourceFile: sourceContext(file)
         });
@@ -1494,7 +1497,8 @@
     });
   }
 
-  function decodeFileEntry(file) {
+  function decodeFileEntry(file, options) {
+    const streaming = Boolean(options && options.streaming);
     file.errorKey = null;
     file.content = null;
     file.parsed = null;
@@ -1507,8 +1511,11 @@
     file.activeEncoding = null;
     try {
       const decoded = encoding.decodeBufferDetailed(file.buffer, file.encodingMode || 'auto');
-      const parsed = core.parseCsv(decoded.text);
-      if (parsed.rows.length === 0) {
+      const parsed = core.parseCsv(decoded.text, streaming ? { retainRows: false } : undefined);
+      const headers = streaming
+        ? (parsed.headers || []).map(function (header) { return String(header).trim(); })
+        : (parsed.rows.length > 0 ? parsed.rows[0].values.map(function (header) { return String(header).trim(); }) : []);
+      if (headers.length === 0) {
         const emptyError = new Error('The selected CSV file is empty or has no header row.');
         emptyError.translationKey = 'empty_file';
         throw emptyError;
@@ -1519,9 +1526,11 @@
         file.detectedEncoding = decoded.encoding;
       }
       file.parsed = parsed;
-      file.headers = parsed.rows[0].values.map(function (header) { return String(header).trim(); });
+      file.headers = headers;
       file.mapping = core.detectMapping(file.headers);
-      file.dataRowCount = Math.max(0, parsed.rows.length - 1);
+      file.dataRowCount = streaming
+        ? Number(parsed.dataRowCount || 0)
+        : Math.max(0, parsed.rows.length - 1);
       file.hasParseErrors = parsed.errors.length > 0;
     } catch (error) {
       file.errorKey = error && error.translationKey ? error.translationKey : 'invalid_encoding';
@@ -1599,7 +1608,7 @@
         if (selectionVersion !== state.fileSelectionVersion) {
           return;
         }
-        decodeFileEntry(file);
+        decodeFileEntry(file, { streaming: true });
       } catch (error) {
         file.errorKey = error && error.translationKey ? error.translationKey : 'file_read_error';
       } finally {
@@ -1611,6 +1620,11 @@
       renderWorkspaceControls();
       return;
     }
+    state.files.forEach(function (file) {
+      if (file.parsed && !file.errorKey) {
+        file.content = null;
+      }
+    });
     renderMapping();
     updateSourceStatus();
     const hasPreparedFile = state.files.some(function (file) { return Boolean(file.parsed); });
@@ -1677,7 +1691,7 @@
       result: null
     };
     if (file.buffer) {
-      decodeFileEntry(file);
+      decodeFileEntry(file, { streaming: true });
       if (file.parsed && !file.errorKey) {
         file.mapping = workspaceModel.validateMappingRange(savedMapping, file.headers.length);
         file.confirmedMapping = savedConfirmedMapping
@@ -1733,7 +1747,7 @@
       const batchFiles = files.map(function (file) {
         if (file.parsed && !file.errorKey) {
           const mapping = file.confirmedMapping || file.mapping;
-          file.result = core.importParsedCsv(file.parsed, mapping, {
+          file.result = core.importCsvStreaming(file.content || '', mapping, {
             locale: language,
             sourceFile: { id: file.id, name: file.name, label: file.label }
           });
@@ -1743,6 +1757,15 @@
       result = core.combineImportResults(batchFiles);
       analysis = core.analyzeRows(result.rows);
     }
+    files.forEach(function (file) {
+      // The source bytes remain the durable source of truth. Do not retain a
+      // second decoded text copy after the worker has extracted its metadata
+      // and, where applicable, built the normalized result.
+      file.content = null;
+      if (file.parsed && Array.isArray(file.parsed.rows)) {
+        file.parsed.rows = [];
+      }
+    });
     return {
       workspace: {
         id: validated.id,
@@ -2674,13 +2697,14 @@
     }
     clearAnalysis();
     file.encodingMode = select.value;
-    decodeFileEntry(file);
+    decodeFileEntry(file, { streaming: true });
     renderMapping();
     updateSourceStatus();
     const replacement = elements.mappingGrid.querySelector('select[data-encoding-file-id="' + file.id + '"]');
     if (replacement) {
       replacement.focus();
     }
+    file.content = null;
     const hasPreparedFile = state.files.some(function (item) { return Boolean(item.parsed); });
     elements.analyzeButton.disabled = !hasPreparedFile;
     showMappingMessage(hasPreparedFile ? '' : translate('no_prepared_files'));

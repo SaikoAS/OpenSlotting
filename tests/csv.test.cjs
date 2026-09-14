@@ -273,6 +273,28 @@ test('basic fixture matches its documented metrics', () => {
   assert.equal(analysis.active_days, 6);
 });
 
+test('streaming import keeps large batches stack-safe and source-complete', () => {
+  const rowCount = 130000;
+  const lines = ['order_id;article_id;quantity;order_date'];
+  for (let index = 0; index < rowCount; index += 1) {
+    lines.push(`O-${index};SKU-${index % 1000};1;2026-09-12`);
+  }
+  const source = { id: 'large-source', name: 'large.csv', label: 'large.csv' };
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
+  const result = csv.importCsv(lines.join('\n'), mapping, { sourceFile: source });
+
+  assert.equal(result.totalRows, rowCount);
+  assert.equal(result.validRows, rowCount);
+  assert.equal(result.rows.length, rowCount);
+  assert.equal(result.rows[0].source_line, 2);
+  assert.equal(result.rows.at(-1).source_line, rowCount + 1);
+
+  const combined = csv.combineImportResults([{ ...source, result }]);
+  assert.equal(combined.rows.length, rowCount);
+  assert.equal(combined.rows[0], result.rows[0]);
+  assert.equal(combined.rows.at(-1).source_file_id, source.id);
+});
+
 test('duplicate source filenames receive stable batch labels', () => {
   const labeled = csv.assignSourceFileLabels([
     { id: 'source-1', name: 'orders.csv' },

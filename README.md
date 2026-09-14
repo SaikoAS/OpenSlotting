@@ -30,6 +30,7 @@ The current implementation includes:
 - article details with aggregate metrics and source-line traceability
 - paginated article and validation-note rendering with 100 rows per page for large imports
 - paginated detail rows with 100 rows per page
+- streaming normalization for large CSV imports without retaining a second full parser-row copy
 - English as the default interface language, with German available from the language selector
 - multiple source files in one in-memory analysis batch
 - independent encoding selection, mapping, parsing, and validation per source file
@@ -49,7 +50,7 @@ The current implementation includes:
 - complete single-workspace JSON backup and validated restore as new or explicit replacement
 - versioned workspace and backup schemas without a workspace merge path
 
-The complete import, normalization, validation, and analysis-export contract is documented in [`docs/data-format.md`](docs/data-format.md). Persistent storage, backup, restore, and migration are documented in [`docs/workspace-format.md`](docs/workspace-format.md).
+The complete import, normalization, validation, and analysis-export contract is documented in [`docs/data-format.md`](docs/data-format.md). Large-import measurements and the synthetic benchmark are documented in [`docs/large-imports.md`](docs/large-imports.md). Persistent storage, backup, restore, and migration are documented in [`docs/workspace-format.md`](docs/workspace-format.md).
 
 The published V0.1 release was accepted in Microsoft Edge Desktop on Windows with `index.html` opened directly through `file:///`. V0.2 retains the same acceptance target and requires a separate multi-file Edge run before release using [`docs/acceptance-v0.2.md`](docs/acceptance-v0.2.md). Other browsers may work but are not part of the compatibility claim unless tested separately.
 

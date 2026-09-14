@@ -93,7 +93,9 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.equal(completed.prepared.result.validRows, 1);
   assert.equal(completed.prepared.result.rows[0].quantity, 3000000n);
   assert.equal(completed.prepared.analysis.total_lines, 1);
-  assert.equal(completed.prepared.files[0].parsed.rows.length, 2);
+  assert.equal(completed.prepared.files[0].parsed.rows.length, 0);
+  assert.equal(completed.prepared.files[0].parsed.dataRowCount, 1);
+  assert.deepEqual(Array.from(completed.prepared.files[0].parsed.headers), ['order_id', 'article_id', 'quantity', 'order_date']);
 
   messages.length = 0;
   vm.runInContext([
@@ -106,7 +108,8 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].result.validRows, 1);
   assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].buffer.byteLength, new TextEncoder().encode(text).byteLength);
   assert.ok(backupCompleted.prepared.runtime);
-  assert.equal(backupCompleted.prepared.runtime.files[0].parsed.rows.length, 2);
+  assert.equal(backupCompleted.prepared.runtime.files[0].parsed.rows.length, 0);
+  assert.equal(backupCompleted.prepared.runtime.files[0].parsed.dataRowCount, 1);
 
   messages.length = 0;
   vm.runInContext("self.onmessage({ data: { backupExport: workerRecord } });", context);
