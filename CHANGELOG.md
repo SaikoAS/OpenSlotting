@@ -2,9 +2,7 @@
 
 All notable changes to OpenSlotting are documented in this file.
 
-## Next bundled release - Unreleased
-
-The final version number will be assigned during bundled release planning.
+## 0.2.1 - 2026-09-14
 
 ### Added
 
@@ -30,10 +28,6 @@ The final version number will be assigned during bundled release planning.
 - trusted load/save paths avoid redundant full payload and `ArrayBuffer` copies while backup validation remains strict
 - release packages include the workspace runtime and its data-contract and acceptance documentation
 
-## 0.2.1 - Unreleased
-
-### Added
-
 - optional Windows launch command for opening the local application in Microsoft Edge app mode
 - current-user Start menu and Desktop shortcut setup without administrator rights
 - safe shortcut removal that leaves unrelated shortcuts, application files, and browser-local data untouched
@@ -41,8 +35,6 @@ The final version number will be assigned during bundled release planning.
 - optional local `OpenSlotting.ico` support with a local Edge icon fallback
 - cross-platform launcher logic tests and Windows COM shortcut tests
 - a post-install reminder for optional user-controlled taskbar pinning
-
-### Changed
 
 - release packages now include the optional Windows launcher and shortcut-management files
 
