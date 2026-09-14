@@ -539,11 +539,12 @@
     if (!validIsoDate(exportedAt)) {
       validationError('invalid_backup_date', 'Backup timestamp is invalid.');
     }
+    const persistedWorkspace = settings.validated ? workspace : validateWorkspace(workspace);
     return {
       format: BACKUP_FORMAT,
       formatVersion: BACKUP_FORMAT_VERSION,
       exportedAt: exportedAt,
-      workspace: encodePortable(validateWorkspace(workspace))
+      workspace: encodePortable(persistedWorkspace)
     };
   }
 

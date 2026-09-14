@@ -480,6 +480,7 @@
   };
 
   let workspaceSaveChain = Promise.resolve();
+  let workspaceSavePending = 0;
   let workspaceSaveRevision = 0;
   let workspaceSaveGeneration = 0;
   let workspaceLoadRevision = 0;
@@ -745,6 +746,7 @@
     const revision = workspaceSaveRevision + 1;
     workspaceSaveRevision = revision;
     const generation = workspaceSaveGeneration;
+    workspaceSavePending += 1;
     setWorkspaceMessage('workspace_saving', { name: snapshot.name });
     const task = workspaceSaveChain
       .catch(function () {})
@@ -787,6 +789,9 @@
           showWorkspaceError(error);
         }
         throw error;
+      })
+      .finally(function () {
+        workspaceSavePending = Math.max(0, workspaceSavePending - 1);
       });
     workspaceSaveChain = task;
     return task;
@@ -1766,7 +1771,8 @@
       try {
         const input = event.data || {};
         if (input.backupExport) {
-          const backupText = workspaceModel.stringifyBackup(input.backupExport);
+          const validatedExport = workspaceModel.migrateWorkspace(input.backupExport, { clonePayload: false });
+          const backupText = workspaceModel.stringifyBackup(validatedExport, { validated: true });
           self.postMessage({
             type: 'backup',
             text: backupText,
@@ -2347,7 +2353,7 @@
       } else {
         await workspaceSaveChain;
       }
-      const record = await workspaceRepository.loadWorkspace(selected.id);
+      const record = await workspaceRepository.loadWorkspaceRaw(selected.id);
       if (!record) {
         throw new storageApi.WorkspaceStorageError('workspace_not_found', 'Workspace does not exist.');
       }
@@ -2526,9 +2532,9 @@
       }
       showWorkspaceError(error);
     } finally {
-      elements.workspaceRestoreFile.value = '';
-      state.restoreMode = null;
       if (revision === workspaceLoadRevision) {
+        elements.workspaceRestoreFile.value = '';
+        state.restoreMode = null;
         state.workspaceLoading = false;
         state.workspaceLoadCancellable = false;
         updateWorkspaceLoadProgress(null);
@@ -2778,6 +2784,13 @@
     renderIssues(state.result ? state.result.issues : []);
   });
   elements.resetButton.addEventListener('click', reset);
+
+  window.addEventListener('beforeunload', function (event) {
+    if (workspaceSavePending > 0 || state.workspaceSaveFailure) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  });
 
   applyLanguage();
   initializeWorkspaces();
