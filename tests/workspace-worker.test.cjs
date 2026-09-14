@@ -105,6 +105,17 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.equal(backupCompleted.prepared.workspace.id, 'workspace-backup-worker');
   assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].result.validRows, 1);
   assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].buffer.byteLength, new TextEncoder().encode(text).byteLength);
+  assert.ok(backupCompleted.prepared.runtime);
+  assert.equal(backupCompleted.prepared.runtime.files[0].parsed.rows.length, 2);
+
+  messages.length = 0;
+  vm.runInContext("self.onmessage({ data: { backupExport: workerRecord } });", context);
+  const exportCompleted = messages.find((message) => message.type === 'backup');
+  assert.ok(exportCompleted);
+  assert.equal(exportCompleted.filename, 'OpenSlotting-Worker.workspace.json');
+  const exportedBackup = JSON.parse(exportCompleted.text);
+  assert.equal(exportedBackup.workspace.id, 'workspace-worker');
+  assert.equal(exportedBackup.workspace.files[0].size, new TextEncoder().encode(text).byteLength);
 
   messages.length = 0;
   vm.runInContext([

@@ -481,6 +481,7 @@
 
   let workspaceSaveChain = Promise.resolve();
   let workspaceSaveRevision = 0;
+  let workspaceSaveGeneration = 0;
   let workspaceLoadRevision = 0;
   let workspaceWorkerTask = null;
   let storageEstimateTimer = null;
@@ -647,7 +648,7 @@
     elements.workspaceSelect.disabled = !ready || state.workspaces.length === 0;
     elements.workspaceOpen.disabled = !hasSelection;
     elements.workspaceCancel.classList.toggle('hidden', !state.workspaceLoading || !state.workspaceLoadCancellable);
-    elements.workspaceRecovery.disabled = state.workspaceLoading;
+    elements.workspaceRecovery.disabled = state.workspaceLoading && !state.workspaceRecoveryAvailable;
     elements.workspaceCreate.disabled = !ready;
     elements.workspaceRestoreNew.disabled = !ready;
     elements.workspaceRename.disabled = !hasSelection;
@@ -743,10 +744,14 @@
     }
     const revision = workspaceSaveRevision + 1;
     workspaceSaveRevision = revision;
+    const generation = workspaceSaveGeneration;
     setWorkspaceMessage('workspace_saving', { name: snapshot.name });
     const task = workspaceSaveChain
       .catch(function () {})
       .then(function () {
+        if (generation !== workspaceSaveGeneration) {
+          throw workspaceLoadError('workspace_save_discarded');
+        }
         const current = state.activeWorkspace && state.activeWorkspace.id === snapshot.id
           ? state.activeWorkspace
           : state.workspaces.find(function (workspace) { return workspace.id === snapshot.id; });
@@ -756,11 +761,17 @@
         });
       })
       .then(async function (saved) {
+        if (generation !== workspaceSaveGeneration) {
+          return saved;
+        }
         state.workspaceSaveFailure = null;
         if (state.activeWorkspace && state.activeWorkspace.id === saved.id) {
           state.activeWorkspace = workspaceMetadata(saved);
         }
         await refreshWorkspaceCatalog();
+        if (generation !== workspaceSaveGeneration) {
+          return saved;
+        }
         scheduleStorageEstimateRefresh();
         if (revision === workspaceSaveRevision && state.activeWorkspace && state.activeWorkspace.id === saved.id) {
           setWorkspaceMessage(successKey || 'workspace_saved', { name: saved.name });
@@ -768,11 +779,13 @@
         return saved;
       })
       .catch(function (error) {
-        state.workspaceSaveFailure = {
-          workspaceId: snapshot.id,
-          error: error
-        };
-        showWorkspaceError(error);
+        if (generation === workspaceSaveGeneration) {
+          state.workspaceSaveFailure = {
+            workspaceId: snapshot.id,
+            error: error
+          };
+          showWorkspaceError(error);
+        }
         throw error;
       });
     workspaceSaveChain = task;
@@ -1752,6 +1765,15 @@
     self.onmessage = function (event) {
       try {
         const input = event.data || {};
+        if (input.backupExport) {
+          const backupText = workspaceModel.stringifyBackup(input.backupExport);
+          self.postMessage({
+            type: 'backup',
+            text: backupText,
+            filename: workspaceModel.backupFilename(input.backupExport.name)
+          });
+          return;
+        }
         let record = input.record;
         let language = input.language;
         if (typeof input.backupText === 'string') {
@@ -1767,7 +1789,8 @@
         const preparedPayload = typeof input.backupText === 'string'
           ? {
             workspace: prepared.workspace,
-            persistedWorkspace: persistPreparedWorkspace(prepared)
+            persistedWorkspace: persistPreparedWorkspace(prepared),
+            runtime: prepared
           }
           : prepared;
         const buffers = [];
@@ -1876,6 +1899,13 @@
         transfer.push(file.buffer);
       }
     });
+    const settings = options || {};
+    ((settings.backupExport && settings.backupExport.files) || []).forEach(function (file) {
+      if (file.buffer instanceof ArrayBuffer && !seenBuffers.has(file.buffer)) {
+        seenBuffers.add(file.buffer);
+        transfer.push(file.buffer);
+      }
+    });
     return new Promise(function (resolve, reject) {
       const task = {
         worker: created.worker,
@@ -1902,6 +1932,11 @@
           updateWorkspaceLoadProgress(message.progress, workspaceName);
           return;
         }
+        if (message.type === 'backup') {
+          dispose();
+          resolve({ backupText: message.text, filename: message.filename });
+          return;
+        }
         if (message.type === 'complete') {
           dispose();
           resolve(message.prepared);
@@ -1917,15 +1952,19 @@
         reject(workspaceLoadError('worker_unavailable', event && event.message));
       };
       try {
-        const settings = options || {};
-        const message = settings.backupText === undefined
-          ? { record: record, language: language }
-          : {
+        let message;
+        if (settings.backupExport) {
+          message = { backupExport: settings.backupExport };
+        } else if (settings.backupText === undefined) {
+          message = { record: record, language: language };
+        } else {
+          message = {
             backupText: settings.backupText,
             mode: settings.mode,
             targetId: settings.targetId,
             newId: settings.newId
           };
+        }
         task.worker.postMessage(message, transfer);
       } catch (error) {
         dispose();
@@ -1959,19 +1998,25 @@
     if (!failure || !activeId || failure.workspaceId !== activeId) {
       return;
     }
-    state.workspaceSaveFailure = null;
     state.workspaceRecoveryAvailable = false;
-    workspaceSaveChain = Promise.resolve();
     workspaceSaveRevision += 1;
+    const recoveryGeneration = workspaceSaveGeneration + 1;
+    const previousSaveChain = workspaceSaveChain;
+    workspaceSaveGeneration = recoveryGeneration;
     const revision = workspaceLoadRevision + 1;
     workspaceLoadRevision = revision;
     state.selectedWorkspaceId = activeId;
     state.workspaceLoading = true;
     state.workspaceLoadCancellable = false;
-    clearWorkspaceView();
     setWorkspaceMessage('workspace_loading_payload', { name: state.activeWorkspace.name });
     renderWorkspaceControls();
+    let recovered = false;
     try {
+      await previousSaveChain.catch(function () {});
+      if (recoveryGeneration !== workspaceSaveGeneration || revision !== workspaceLoadRevision) {
+        throw workspaceLoadError('workspace_load_cancelled');
+      }
+      workspaceSaveChain = Promise.resolve();
       await refreshWorkspaceCatalog();
       if (revision !== workspaceLoadRevision) {
         throw workspaceLoadError('workspace_load_cancelled');
@@ -1981,17 +2026,29 @@
         if (state.lastActiveWorkspaceId === activeId) {
           state.lastActiveWorkspaceId = null;
         }
+        clearWorkspaceView();
         state.selectedWorkspaceId = state.workspaces.length > 0 ? state.workspaces[0].id : null;
+        state.workspaceSaveFailure = null;
+        state.workspaceRecoveryAvailable = false;
         setWorkspaceMessage('workspace_not_found', {}, 'error');
+        recovered = true;
         return;
       }
       await activateWorkspace(activeId, 'workspace_opened', { cancellable: false });
+      state.workspaceSaveFailure = null;
+      state.workspaceRecoveryAvailable = false;
+      recovered = true;
     } catch (error) {
       if (!error || error.code !== 'workspace_load_cancelled') {
+        state.workspaceSaveFailure = failure;
+        state.workspaceRecoveryAvailable = true;
+        state.workspaceLoading = true;
+        state.workspaceLoadCancellable = false;
         showWorkspaceError(error);
+        renderWorkspaceControls();
       }
     } finally {
-      if (revision === workspaceLoadRevision) {
+      if (recovered && revision === workspaceLoadRevision) {
         state.workspaceLoading = false;
         state.workspaceLoadCancellable = false;
         updateWorkspaceLoadProgress(null);
@@ -2061,48 +2118,57 @@
     renderWorkspaceControls();
     try {
       await workspaceSaveChain;
-      let record = await workspaceRepository.loadWorkspaceRaw(workspaceId);
-      if (revision !== workspaceLoadRevision) {
-        throw workspaceLoadError('workspace_load_cancelled');
-      }
-      if (!record) {
-        throw new storageApi.WorkspaceStorageError('workspace_not_found', 'Workspace does not exist.');
-      }
-      let targetStorageRevision = record.storageRevision;
-      record = omitStoredResultsForRebuild(record);
-      let targetLanguage = Number(record.schemaVersion) === 0
-        ? (record.language === 'de' ? 'de' : 'en')
-        : record.language;
-      await nextBrowserPaint();
-      let prepared;
-      try {
-        prepared = await runWorkspaceWorker(record, targetLanguage, revision, listedWorkspace.name);
-      } catch (error) {
-        if (error && error.code === 'workspace_load_cancelled') {
-          throw error;
-        }
-        if (!error || error.code !== 'worker_unavailable') {
-          throw error;
-        }
-        setWorkspaceMessage('workspace_worker_fallback', {}, 'warning');
-        state.workspaceProgress = {
-          key: 'workspace_worker_fallback',
-          replacements: {}
-        };
-        renderWorkspaceProgress();
-        await nextBrowserPaint();
-        record = await workspaceRepository.loadWorkspaceRaw(workspaceId);
-        if (!record || revision !== workspaceLoadRevision) {
+      let prepared = activationOptions.prepared || null;
+      let targetStorageRevision = activationOptions.expectedRevision;
+      let targetLanguage = prepared && prepared.workspace
+        ? prepared.workspace.language
+        : null;
+      if (!prepared) {
+        let record = await workspaceRepository.loadWorkspaceRaw(workspaceId);
+        if (revision !== workspaceLoadRevision) {
           throw workspaceLoadError('workspace_load_cancelled');
         }
+        if (!record) {
+          throw new storageApi.WorkspaceStorageError('workspace_not_found', 'Workspace does not exist.');
+        }
         targetStorageRevision = record.storageRevision;
+        record = omitStoredResultsForRebuild(record);
         targetLanguage = Number(record.schemaVersion) === 0
           ? (record.language === 'de' ? 'de' : 'en')
           : record.language;
-        record = omitStoredResultsForRebuild(record);
-        prepared = prepareWorkspaceRecord(record, targetLanguage, function (progress) {
-          updateWorkspaceLoadProgress(progress, listedWorkspace.name);
-        });
+        await nextBrowserPaint();
+        try {
+          prepared = await runWorkspaceWorker(record, targetLanguage, revision, listedWorkspace.name);
+        } catch (error) {
+          if (error && error.code === 'workspace_load_cancelled') {
+            throw error;
+          }
+          if (!error || error.code !== 'worker_unavailable') {
+            throw error;
+          }
+          setWorkspaceMessage('workspace_worker_fallback', {}, 'warning');
+          state.workspaceProgress = {
+            key: 'workspace_worker_fallback',
+            replacements: {}
+          };
+          renderWorkspaceProgress();
+          await nextBrowserPaint();
+          record = await workspaceRepository.loadWorkspaceRaw(workspaceId);
+          if (!record || revision !== workspaceLoadRevision) {
+            throw workspaceLoadError('workspace_load_cancelled');
+          }
+          targetStorageRevision = record.storageRevision;
+          targetLanguage = Number(record.schemaVersion) === 0
+            ? (record.language === 'de' ? 'de' : 'en')
+            : record.language;
+          record = omitStoredResultsForRebuild(record);
+          prepared = prepareWorkspaceRecord(record, targetLanguage, function (progress) {
+            updateWorkspaceLoadProgress(progress, listedWorkspace.name);
+          });
+        }
+      }
+      if (!prepared || !prepared.workspace || !Number.isInteger(targetStorageRevision)) {
+        throw workspaceLoadError('worker_failed', 'The workspace background processing did not return a complete payload.');
       }
       if (revision !== workspaceLoadRevision) {
         throw workspaceLoadError('workspace_load_cancelled');
@@ -2230,6 +2296,10 @@
     if (!window.confirm(translate('workspace_delete_confirm', { name: deletedName }))) {
       return;
     }
+    workspaceLoadRevision += 1;
+    state.workspaceLoading = true;
+    state.workspaceLoadCancellable = false;
+    renderWorkspaceControls();
     try {
       await workspaceSaveChain;
       const current = state.workspaces.find(function (workspace) { return workspace.id === selected.id; });
@@ -2254,6 +2324,10 @@
       renderWorkspaceControls();
     } catch (error) {
       showWorkspaceError(error);
+    } finally {
+      state.workspaceLoading = false;
+      state.workspaceLoadCancellable = false;
+      renderWorkspaceControls();
     }
   }
 
@@ -2262,6 +2336,8 @@
     if (!selected) {
       return;
     }
+    const revision = workspaceLoadRevision + 1;
+    workspaceLoadRevision = revision;
     state.workspaceLoading = true;
     state.workspaceLoadCancellable = false;
     renderWorkspaceControls();
@@ -2275,8 +2351,26 @@
       if (!record) {
         throw new storageApi.WorkspaceStorageError('workspace_not_found', 'Workspace does not exist.');
       }
-      const text = workspaceModel.stringifyBackup(record);
-      downloadTextFile(workspaceModel.backupFilename(record.name), text, 'application/json;charset=utf-8');
+      await nextBrowserPaint();
+      let serialized;
+      try {
+        serialized = await runWorkspaceWorker(null, null, revision, record.name, {
+          backupExport: record
+        });
+      } catch (error) {
+        if (!error || error.code !== 'worker_unavailable') {
+          throw error;
+        }
+        setWorkspaceMessage('workspace_worker_fallback', {}, 'warning');
+        serialized = {
+          backupText: workspaceModel.stringifyBackup(record),
+          filename: workspaceModel.backupFilename(record.name)
+        };
+      }
+      if (revision !== workspaceLoadRevision) {
+        throw workspaceLoadError('workspace_load_cancelled');
+      }
+      downloadTextFile(serialized.filename, serialized.backupText, 'application/json;charset=utf-8');
       setWorkspaceMessage('workspace_backup_exported', { name: record.name });
     } catch (error) {
       showWorkspaceError(error);
@@ -2364,7 +2458,8 @@
         });
         preparedRestore = {
           workspace: fallbackPrepared.workspace,
-          persistedWorkspace: persistPreparedWorkspace(fallbackPrepared)
+          persistedWorkspace: persistPreparedWorkspace(fallbackPrepared),
+          runtime: fallbackPrepared
         };
       }
       if (revision !== workspaceLoadRevision) {
@@ -2374,6 +2469,7 @@
       if (!restored) {
         throw workspaceLoadError('worker_failed', 'The background restore did not return a validated workspace.');
       }
+      let committedRestore;
       if (replaceTarget) {
         if (revision !== workspaceLoadRevision) {
           throw workspaceLoadError('workspace_load_cancelled');
@@ -2386,7 +2482,7 @@
         if (revision !== workspaceLoadRevision) {
           throw workspaceLoadError('workspace_load_cancelled');
         }
-        await workspaceRepository.replaceWorkspace(restored, {
+        committedRestore = await workspaceRepository.replaceWorkspace(restored, {
           validated: true,
           expectedRevision: replaceTarget.storageRevision
         });
@@ -2403,7 +2499,7 @@
         if (revision !== workspaceLoadRevision) {
           throw workspaceLoadError('workspace_load_cancelled');
         }
-        await workspaceRepository.createWorkspace(restored, { validated: true });
+        committedRestore = await workspaceRepository.createWorkspace(restored, { validated: true });
         if (revision !== workspaceLoadRevision) {
           throw workspaceLoadError('workspace_load_cancelled');
         }
@@ -2411,7 +2507,12 @@
       state.selectedWorkspaceId = restored.id;
       await refreshWorkspaceCatalog();
       scheduleStorageEstimateRefresh();
-      await activateWorkspace(restored.id, successKey);
+      const committedRevision = committedRestore && committedRestore.storageRevision;
+      await activateWorkspace(restored.id, successKey, {
+        cancellable: false,
+        prepared: preparedRestore.runtime,
+        expectedRevision: committedRevision
+      });
     } catch (error) {
       if (error && error.code === 'workspace_load_cancelled') {
         return;

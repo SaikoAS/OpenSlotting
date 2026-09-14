@@ -105,6 +105,8 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(fileChangeBody[1], /state\.files\.some\(function \(file\) \{ return Boolean\(file\.reading\); \}\)/);
   assert.match(backupBody[1], /state\.selectedWorkspaceId/);
   assert.match(backupBody[1], /loadWorkspace\(selected\.id\)/);
+  assert.match(backupBody[1], /runWorkspaceWorker\(null, null, revision, record\.name, \{\s*backupExport: record/);
+  assert.match(workerBody[1], /workspaceModel\.stringifyBackup\(input\.backupExport\)/);
   assert.match(backupBody[1], /state\.workspaceLoading = true/);
   assert.match(backupBody[1], /persistActiveWorkspace\(undefined, \{ allowWhileLoading: true \}\)/);
   assert.ok(backupBody[1].indexOf('state.workspaceLoading = true') < backupBody[1].indexOf('persistActiveWorkspace'));
@@ -125,9 +127,12 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.ok(createBody[1].indexOf('await workspaceSaveChain;') < createBody[1].indexOf('workspaceRepository.createWorkspace'));
   assert.match(createBody[1], /activateWorkspace\(record\.id, 'workspace_created', \{ cancellable: false \}\)/);
   assert.match(persistBody[1], /state\.workspaceSaveFailure/);
-  assert.match(recoveryBody[1], /workspaceSaveChain = Promise\.resolve\(\)/);
-  assert.match(recoveryBody[1], /clearWorkspaceView\(\)/);
+  assert.ok(recoveryBody[1].includes('await previousSaveChain.catch(function () {})'));
+  assert.match(recoveryBody[1], /workspaceSaveGeneration/);
+  assert.match(recoveryBody[1], /state\.workspaceLoading = true/);
+  assert.match(recoveryBody[1], /state\.workspaceSaveFailure = failure/);
   assert.match(deleteBody[1], /await workspaceSaveChain;/);
+  assert.match(deleteBody[1], /state\.workspaceLoading = true/);
   assert.doesNotMatch(deleteBody[1], /workspaceSaveChain\.catch/);
   assert.match(deleteBody[1], /deleteWorkspace\(selected\.id, \{\s*expectedRevision: current\.storageRevision/);
   assert.match(renameBody[1], /state\.workspaceLoading = true/);
