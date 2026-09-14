@@ -22,6 +22,8 @@ It contains three object stores:
 
 Saving a workspace writes its metadata and payload in one IndexedDB read/write transaction. A failed or quota-exceeded transaction must not leave one half updated.
 
+Autosaves capture the already validated live runtime into the persisted shape without walking every normalized row again. New sources, mappings, encodings, and analyses are validated at their import or edit boundaries; backup and storage restore paths retain the full validation walk before committing.
+
 Workspace creation, update, and replacement are distinct storage operations. Each metadata record carries a monotonic `storageRevision`; records created before this field existed are treated as revision `0`. Updates, renames, replacements, and completed background activation must match the revision that the caller read and then increment it. A missing record or revision mismatch is rejected instead of upserting stale data. This prevents an older browser tab from recreating a deleted workspace or overwriting a newer rename, payload, or analysis state.
 
 ## Workspace record

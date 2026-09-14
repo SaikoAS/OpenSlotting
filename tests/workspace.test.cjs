@@ -116,6 +116,21 @@ test('trusted validation can retain large payload references without copying the
   assert.notEqual(copied.files[0].result.rows[0], originalRow);
 });
 
+test('trusted runtime capture builds an autosave snapshot without traversing payload rows', () => {
+  const original = analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1');
+  const captured = workspace.captureWorkspaceTrusted(original, {
+    language: 'de',
+    analysis: { total_lines: 1 },
+    files: original.files
+  }, { now: '2026-09-12T09:00:00.000Z' });
+
+  assert.equal(captured.updatedAt, '2026-09-12T09:00:00.000Z');
+  assert.equal(captured.language, 'de');
+  assert.equal(captured.analyzed, true);
+  assert.equal(captured.files[0].buffer, original.files[0].buffer);
+  assert.equal(captured.files[0].result, original.files[0].result);
+});
+
 test('captures and restores the real CSV importer result without changing provenance', () => {
   const text = 'order_id;article_id;quantity;order_date\nO-1;SKU-REAL;0.3;2026-09-12\n';
   const bytes = new TextEncoder().encode(text);

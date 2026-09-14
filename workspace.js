@@ -405,6 +405,44 @@
     }, settings);
   }
 
+  // The application only calls this for a live runtime that was already
+  // validated while it was decoded, imported, or edited through validated
+  // controls. It deliberately copies the shallow persisted shape without
+  // traversing rows, issues, or raw fields on every autosave.
+  function captureWorkspaceTrusted(metadata, state, options) {
+    if (!metadata || !metadata.id) {
+      validationError('workspace_not_selected', 'No workspace is selected.');
+    }
+    const settings = options || {};
+    const files = state && Array.isArray(state.files) ? state.files.map(function (file) {
+      return {
+        id: file.id,
+        name: file.name,
+        label: file.label,
+        size: file.size,
+        lastModified: file.lastModified,
+        buffer: file.buffer,
+        encodingMode: file.encodingMode,
+        activeEncoding: file.activeEncoding,
+        detectedEncoding: file.detectedEncoding,
+        errorKey: file.errorKey || null,
+        mapping: file.mapping,
+        confirmedMapping: file.confirmedMapping,
+        result: file.result
+      };
+    }) : [];
+    return {
+      id: metadata.id,
+      schemaVersion: WORKSPACE_SCHEMA_VERSION,
+      name: metadata.name,
+      createdAt: metadata.createdAt,
+      updatedAt: settings.now || new Date().toISOString(),
+      language: state && state.language === 'de' ? 'de' : 'en',
+      analyzed: Boolean(state && state.analysis),
+      files: files
+    };
+  }
+
   function renameWorkspace(workspace, name, now) {
     const renamed = validateWorkspace(workspace);
     renamed.name = assertWorkspaceName(name);
@@ -573,6 +611,7 @@
     validateWorkspace: validateWorkspace,
     migrateWorkspace: migrateWorkspace,
     captureWorkspace: captureWorkspace,
+    captureWorkspaceTrusted: captureWorkspaceTrusted,
     renameWorkspace: renameWorkspace,
     createBackup: createBackup,
     stringifyBackup: stringifyBackup,

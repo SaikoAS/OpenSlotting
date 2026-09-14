@@ -724,7 +724,7 @@
   }
 
   function captureActiveWorkspace() {
-    return workspaceModel.captureWorkspace(state.activeWorkspace, state, { clonePayload: false });
+    return workspaceModel.captureWorkspaceTrusted(state.activeWorkspace, state);
   }
 
   function persistActiveWorkspace(successKey, options) {
@@ -2362,9 +2362,13 @@
           throw error;
         }
         setWorkspaceMessage('workspace_worker_fallback', {}, 'warning');
+        const fallbackRecord = await workspaceRepository.loadWorkspace(selected.id);
+        if (!fallbackRecord || revision !== workspaceLoadRevision) {
+          throw workspaceLoadError('workspace_load_cancelled');
+        }
         serialized = {
-          backupText: workspaceModel.stringifyBackup(record),
-          filename: workspaceModel.backupFilename(record.name)
+          backupText: workspaceModel.stringifyBackup(fallbackRecord),
+          filename: workspaceModel.backupFilename(fallbackRecord.name)
         };
       }
       if (revision !== workspaceLoadRevision) {
@@ -2432,6 +2436,9 @@
         successKey = 'workspace_restored_new';
       }
       await nextBrowserPaint();
+      if (revision !== workspaceLoadRevision) {
+        throw workspaceLoadError('workspace_load_cancelled');
+      }
       let preparedRestore;
       try {
         preparedRestore = await runWorkspaceWorker(null, null, revision, file.name, {
