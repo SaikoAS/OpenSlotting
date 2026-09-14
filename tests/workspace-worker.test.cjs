@@ -103,7 +103,8 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   const backupCompleted = messages.find((message) => message.type === 'complete');
   assert.ok(backupCompleted);
   assert.equal(backupCompleted.prepared.workspace.id, 'workspace-backup-worker');
-  assert.equal(backupCompleted.prepared.result.validRows, 1);
+  assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].result.validRows, 1);
+  assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].buffer.byteLength, new TextEncoder().encode(text).byteLength);
 
   messages.length = 0;
   vm.runInContext([

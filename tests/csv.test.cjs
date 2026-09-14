@@ -46,7 +46,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   const csvSource = fs.readFileSync(path.join(__dirname, '..', 'csv.js'), 'utf8');
   const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8');
   const initializeBody = appSource.match(/async function initializeWorkspaces\(\) \{([\s\S]*?)\n  function exportResults/);
-  const activateBody = appSource.match(/async function activateWorkspace\(id, successKey\) \{([\s\S]*?)\n  async function createWorkspace/);
+  const activateBody = appSource.match(/async function activateWorkspace\(id, successKey, options\) \{([\s\S]*?)\n  async function createWorkspace/);
   const controlsBody = appSource.match(/function renderWorkspaceControls\(\) \{([\s\S]*?)\n  function renderStorageStatus/);
   const fileChangeBody = appSource.match(/async function handleFileChange\(\) \{([\s\S]*?)\n  function analyze/);
   const workerBody = appSource.match(/function workspaceWorkerMain\(\) \{([\s\S]*?)\n  function workspaceLoadError/);
@@ -54,6 +54,8 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   const backupBody = appSource.match(/async function exportWorkspaceBackup\(\) \{([\s\S]*?)\n  function readBackupFile/);
   const restoreBody = appSource.match(/async function restoreWorkspaceBackup\(file, mode\) \{([\s\S]*?)\n  async function initializeWorkspaces/);
   const createBody = appSource.match(/async function createWorkspace\(\) \{([\s\S]*?)\n  async function renameActiveWorkspace/);
+  const persistBody = appSource.match(/function persistActiveWorkspace\(successKey, options\) \{([\s\S]*?)\n  function downloadTextFile/);
+  const recoveryBody = appSource.match(/async function recoverWorkspaceSaveFailure\(\) \{([\s\S]*?)\n  function clearWorkspaceView/);
   const deleteBody = appSource.match(/async function deleteActiveWorkspace\(\) \{([\s\S]*?)\n  async function exportWorkspaceBackup/);
   const renameBody = appSource.match(/async function renameActiveWorkspace\(\) \{([\s\S]*?)\n  async function deleteActiveWorkspace/);
   const clearViewBody = appSource.match(/function clearWorkspaceView\(\) \{([\s\S]*?)\n  async function activateWorkspace/);
@@ -67,12 +69,15 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.ok(backupBody);
   assert.ok(restoreBody);
   assert.ok(createBody);
+  assert.ok(persistBody);
+  assert.ok(recoveryBody);
   assert.ok(deleteBody);
   assert.ok(renameBody);
   assert.ok(clearViewBody);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /id="workspace-open"/);
   assert.match(indexSource, /id="workspace-load-progress"/);
+  assert.match(indexSource, /id="workspace-recovery"[^>]*data-i18n="workspace_recover_save_failure"/);
   assert.doesNotMatch(initializeBody[1], /activateWorkspace\(/);
   assert.match(appSource, /workspaceRepository\.loadWorkspaceRaw/);
   assert.match(appSource, /new Worker\(url\)/);
@@ -90,6 +95,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(activateBody[1], /state\.selectedWorkspaceId = state\.activeWorkspace\.id/);
   assert.match(controlsBody[1], /const editsLocked = state\.workspaceLoading \|\| fileReadPending/);
   assert.match(controlsBody[1], /workspaceCancel\.classList\.toggle\('hidden', !state\.workspaceLoading \|\| !state\.workspaceLoadCancellable\)/);
+  assert.match(activateBody[1], /if \(error && error\.code === 'workspace_not_found'\) \{\s*await recoverWorkspaceCatalogAfterMissing\(\);/);
   assert.match(activateBody[1], /state\.workspaceLoadCancellable = false;\s*renderWorkspaceControls\(\);\s*if \(revision !== workspaceLoadRevision\)/);
   assert.ok(activateBody[1].indexOf('state.workspaceLoadCancellable = false;') < activateBody[1].indexOf('commitWorkspaceActivation'));
   assert.match(appSource, /workspaceMessage: \{ key: null, replacements: \{\}, type: '' \}/);
@@ -105,6 +111,8 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.ok(restoreBody[1].indexOf('state.workspaceLoading = true') < restoreBody[1].indexOf('readBackupFile(file)'));
   assert.match(restoreBody[1], /runWorkspaceWorker\(null, null, revision, file\.name, \{\s*backupText: text/);
   assert.doesNotMatch(restoreBody[1], /const parsed = workspaceModel\.parseBackup\(text\)/);
+  assert.doesNotMatch(restoreBody[1], /workspaceModel\.validateWorkspace\(Object\.assign\(\{\}, preparedRestore/);
+  assert.match(restoreBody[1], /preparedRestore\.persistedWorkspace/);
   assert.match(restoreBody[1], /else \{\s*await workspaceSaveChain;/);
   assert.ok(restoreBody[1].indexOf('runWorkspaceWorker') < restoreBody[1].indexOf('replaceWorkspace'));
   assert.ok(restoreBody[1].indexOf('runWorkspaceWorker') < restoreBody[1].indexOf('createWorkspace'));
@@ -113,7 +121,12 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(restoreBody[1], /await workspaceRepository\.replaceWorkspace[\s\S]*?if \(revision !== workspaceLoadRevision\)/);
   assert.match(restoreBody[1], /await workspaceRepository\.createWorkspace[\s\S]*?if \(revision !== workspaceLoadRevision\)/);
   assert.match(createBody[1], /await workspaceSaveChain;/);
+  assert.match(createBody[1], /state\.workspaceLoading = true;\s*state\.workspaceLoadCancellable = false;\s*renderWorkspaceControls\(\);\s*try/);
   assert.ok(createBody[1].indexOf('await workspaceSaveChain;') < createBody[1].indexOf('workspaceRepository.createWorkspace'));
+  assert.match(createBody[1], /activateWorkspace\(record\.id, 'workspace_created', \{ cancellable: false \}\)/);
+  assert.match(persistBody[1], /state\.workspaceSaveFailure/);
+  assert.match(recoveryBody[1], /workspaceSaveChain = Promise\.resolve\(\)/);
+  assert.match(recoveryBody[1], /clearWorkspaceView\(\)/);
   assert.match(deleteBody[1], /await workspaceSaveChain;/);
   assert.doesNotMatch(deleteBody[1], /workspaceSaveChain\.catch/);
   assert.match(deleteBody[1], /deleteWorkspace\(selected\.id, \{\s*expectedRevision: current\.storageRevision/);
@@ -123,6 +136,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(clearViewBody[1], /showMappingMessage\(''\)/);
   assert.match(appSource, /value = value\.replace\(new RegExp\([\s\S]*?function \(\)/);
   assert.match(workerBody[1], /workspaceModel\.parseBackup\(input\.backupText\)/);
+  assert.match(workerBody[1], /persistPreparedWorkspace\(prepared\)/);
   assert.match(fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8'), /size !== buffer\.byteLength/);
   assert.match(cancelBody[1], /if \(!state\.workspaceLoading \|\| !state\.workspaceLoadCancellable\)/);
   assert.ok(restoreBody[1].indexOf('replaceWorkspace') < restoreBody[1].indexOf('state.activeWorkspace = null'));

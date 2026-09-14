@@ -182,7 +182,11 @@ Delete operations use the selected metadata revision. If another browser tab sav
 
 Workspace creation and restore-as-new wait for the active workspace autosave before creating a new record. Normal activation and restore activation hide Cancel before their final IndexedDB commit while retaining the loading lock through the commit. Backup export and workspace rename lock workspace editing for the complete asynchronous operation, and confirmation names are interpolated literally.
 
+If an active workspace autosave stops on a conflict or storage failure, further saves and activation attempts remain stopped so stale data cannot overwrite a newer record. The workspace status offers an explicit discard-and-reload action; it resets the rejected save chain, discards the in-memory view, refreshes the catalog, and reloads the current stored payload.
+
 Restoring a backup reads the selected file asynchronously and sends its text to the offline worker. JSON parsing, portable-payload decoding, workspace validation, source preparation, and analysis therefore remain off the main browser thread in the normal worker path. Replacement confirmation is requested only after that validation succeeds. Restored source records with a decoded buffer must declare a nonnegative integer `size` equal to that buffer's byte length. The Cancel control is shown only while a workspace load or restore worker can actually be terminated; once a validated restore is ready for its atomic create or replacement commit, cancellation is hidden while the storage operation finishes.
+
+The restore worker returns the already validated persisted payload for the storage commit; the main thread does not repeat the full source/row validation walk. If an activation target disappeared in another tab, the catalog is refreshed and the selection is moved to the active or first remaining workspace.
 
 ## Schema migration
 
