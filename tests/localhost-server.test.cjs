@@ -79,6 +79,16 @@ test('experimental Python server is loopback-only and serves only runtime files'
   assert.match(await indexResponse.text(), /<title>OpenSlotting[^<]*<\/title>/);
 
   const origin = new URL(url).origin;
+  const healthResponse = await fetch(origin + '/health');
+  assert.equal(healthResponse.status, 200);
+  assert.match(healthResponse.headers.get('content-type'), /^application\/json/);
+  const health = await healthResponse.json();
+  assert.equal(health.application, 'OpenSlotting');
+  assert.equal(health.server, 'experimental-python');
+  assert.equal(health.version, 1);
+  assert.equal(Number.isInteger(health.pid), true);
+  assert.equal(path.resolve(health.applicationRoot), path.resolve(path.dirname(scriptPath)));
+
   const scriptResponse = await fetch(origin + '/app.js');
   assert.equal(scriptResponse.status, 200);
   assert.match(scriptResponse.headers.get('content-type'), /^text\/javascript/);

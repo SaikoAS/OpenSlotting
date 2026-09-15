@@ -100,10 +100,12 @@ automation.
 
 This branch also contains an optional Python 3 localhost launcher for evaluating
 OpenSlotting under a stable HTTP origin. It installs neither OpenSlotting nor
-Python packages and builds no application executable. Start
-`Start-OpenSlotting-Localhost.cmd` on Windows or run
-`python Start-OpenSlotting-Localhost.py`; the default address is
-`http://127.0.0.1:8765/index.html`.
+Python packages and builds no application executable. On Windows,
+`Start-OpenSlotting-Localhost.cmd` starts the server in the background when
+needed and opens Edge in app mode. `Install-OpenSlotting-Localhost.cmd` creates
+an OpenSlotting-managed Start menu and/or Desktop shortcut that performs the
+same combined start. Run `Stop-OpenSlotting-Localhost.cmd` to stop the background
+server. The default address is `http://127.0.0.1:8765/index.html`.
 
 The server binds only to loopback and serves an explicit runtime-file allowlist.
 Because browser storage is origin-specific, existing `file:///` workspaces do

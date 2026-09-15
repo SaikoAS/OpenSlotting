@@ -183,7 +183,7 @@ function New-OpenSlottingShortcuts {
     foreach ($item in $Plan) {
         if (Test-Path -LiteralPath $item.ShortcutPath -PathType Leaf) {
             $existing = $shell.CreateShortcut($item.ShortcutPath)
-            if ($existing.Description -ne $script:OpenSlottingShortcutDescription) {
+            if ($existing.Description -ne $item.Description) {
                 throw "A shortcut not managed by OpenSlotting already exists and was not overwritten: $($item.ShortcutPath)"
             }
         }
@@ -198,7 +198,7 @@ function New-OpenSlottingShortcuts {
         $shortcut.Arguments = $item.Arguments
         $shortcut.WorkingDirectory = $item.WorkingDirectory
         $shortcut.IconLocation = $item.IconLocation
-        $shortcut.Description = $script:OpenSlottingShortcutDescription
+        $shortcut.Description = $item.Description
         $shortcut.Save()
         $created += $item.ShortcutPath
     }

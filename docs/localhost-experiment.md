@@ -12,7 +12,10 @@ library and serves the files from the extracted OpenSlotting folder.
 - no administrator rights
 - no internet connection
 
-On Windows, double-click `Start-OpenSlotting-Localhost.cmd`. Alternatively run:
+On Windows, double-click `Start-OpenSlotting-Localhost.cmd`. It checks whether
+the matching server is already running, starts it hidden when needed, waits for
+the health endpoint, and opens Microsoft Edge in app mode. Alternatively run
+the server visibly for diagnostics:
 
 ```text
 python Start-OpenSlotting-Localhost.py
@@ -24,8 +27,23 @@ The stable default address is:
 http://127.0.0.1:8765/index.html
 ```
 
-Stop the server with `Ctrl+C`. For diagnostics or automated tests, prevent the
-browser from opening with `--no-browser`.
+Stop a visibly running server with `Ctrl+C`. A server started by the combined
+launcher continues in the background so the app can be reopened; stop it with
+`Stop-OpenSlotting-Localhost.cmd`. For diagnostics or automated tests, prevent
+the browser from opening with `--no-browser`.
+
+## Combined Windows shortcut
+
+Run `Install-OpenSlotting-Localhost.cmd` and choose the Start menu, Desktop, or
+both. The generated `OpenSlotting Localhost` shortcut points to the launcher in
+this extracted folder, starts the server when necessary, and then opens the
+stable localhost URL in Edge app mode. It does not modify the Edge-installed
+web-app shortcut shown by Edge's "Install this site as an app" feature.
+
+Run `Remove-OpenSlotting-Localhost.cmd` to remove only shortcuts carrying the
+OpenSlotting localhost ownership marker. This does not stop the server or erase
+browser data. Moving the extracted folder invalidates its shortcut; run setup
+again from the new location.
 
 ## Storage boundary
 

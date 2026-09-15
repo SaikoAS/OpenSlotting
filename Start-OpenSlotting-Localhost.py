@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 import mimetypes
+import os
 import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -77,11 +79,35 @@ class OpenSlottingRequestHandler(BaseHTTPRequestHandler):
         if include_body:
             self.wfile.write(payload)
 
+    def _serve_health(self, include_body: bool) -> None:
+        payload = json.dumps(
+            {
+                "application": "OpenSlotting",
+                "server": "experimental-python",
+                "version": 1,
+                "pid": os.getpid(),
+                "applicationRoot": str(APPLICATION_ROOT),
+            },
+            separators=(",", ":"),
+        ).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        if include_body:
+            self.wfile.write(payload)
+
+    def _serve_request(self, include_body: bool) -> None:
+        if urlsplit(self.path).path == "/health":
+            self._serve_health(include_body)
+            return
+        self._serve_runtime_file(include_body)
+
     def do_GET(self) -> None:  # noqa: N802 - HTTP handler API name
-        self._serve_runtime_file(include_body=True)
+        self._serve_request(include_body=True)
 
     def do_HEAD(self) -> None:  # noqa: N802 - HTTP handler API name
-        self._serve_runtime_file(include_body=False)
+        self._serve_request(include_body=False)
 
     def log_message(self, message_format: str, *args: object) -> None:
         print("[OpenSlotting] " + (message_format % args), flush=True)
