@@ -80,6 +80,16 @@ h3 { margin-bottom: 4px; font-size: 1.08rem; }
 .danger-button { border-color: #d7aaaa; color: var(--danger); background: #fff7f7; }
 .danger-button:hover:not(:disabled) { background: var(--danger-soft); }
 .storage-status { margin-top: 18px; padding: 12px 14px; border-radius: 10px; color: #31534e; background: var(--accent-soft); font-size: .85rem; }
+.runtime-diagnostics { margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fbfcfc; }
+.runtime-diagnostics summary { padding: 11px 14px; color: var(--accent-dark); cursor: pointer; font-size: .84rem; font-weight: 800; }
+.runtime-diagnostics-grid { display: grid; grid-template-columns: minmax(150px, .7fr) minmax(220px, 1fr); gap: 12px 18px; margin: 0; padding: 2px 14px 14px; }
+.runtime-diagnostics-grid > div { min-width: 0; }
+.runtime-diagnostics-grid dt { color: var(--muted); font-size: .74rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.runtime-diagnostics-grid dd { margin: 4px 0 0; overflow-wrap: anywhere; font-size: .86rem; }
+.runtime-capabilities-row { grid-column: 1 / -1; }
+.runtime-capabilities { display: flex; flex-wrap: wrap; gap: 7px; margin: 7px 0 0; padding: 0; list-style: none; }
+.runtime-capability { padding: 4px 8px; border-radius: 999px; color: var(--accent-dark); background: var(--accent-soft); font-size: .75rem; font-weight: 700; }
+.runtime-capability.unavailable { color: var(--muted); background: #edf0f1; }
 .workspace-message { margin-top: 12px; padding: 12px 14px; border-radius: 10px; color: #31534e; background: var(--accent-soft); font-size: .88rem; }
 .workspace-recovery { margin-top: 10px; }
 .workspace-message.error { color: var(--danger); background: var(--danger-soft); }
@@ -172,6 +182,8 @@ td:first-child { color: var(--accent-dark); font-weight: 800; }
   .mapping-file-heading { display: block; }
   .mapping-file-heading .text-button { margin-top: 10px; }
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .runtime-diagnostics-grid { grid-template-columns: 1fr; }
+  .runtime-capabilities-row { grid-column: auto; }
   .app-footer { width: min(100% - 28px, 1180px); }
   .app-footer .text-button { margin-top: 10px; }
 }

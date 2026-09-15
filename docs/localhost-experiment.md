@@ -5,6 +5,10 @@ This branch adds an optional loopback-only start mode while keeping the existing
 application executable is built. The server uses only the Python 3 standard
 library and serves the files from the extracted OpenSlotting folder.
 
+Both startup profiles use the same application code and workspace contract.
+Their central detection and capability rules are documented in
+[`runtime-profiles.md`](runtime-profiles.md).
+
 ## Requirements and start
 
 - Windows, macOS, or Linux with Python 3.8 or newer already available

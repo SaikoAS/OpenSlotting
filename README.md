@@ -111,7 +111,9 @@ The server binds only to loopback and serves an explicit runtime-file allowlist.
 Because browser storage is origin-specific, existing `file:///` workspaces do
 not automatically appear on localhost. Move them with workspace backup and
 restore. Requirements, options, and security boundaries are documented in
-[`docs/localhost-experiment.md`](docs/localhost-experiment.md).
+[`docs/localhost-experiment.md`](docs/localhost-experiment.md). The shared
+runtime contract, capability registry, and Portable/Enhanced guarantees are
+documented in [`docs/runtime-profiles.md`](docs/runtime-profiles.md).
 
 The application interface is English by default. Users can switch the visible
 interface, validation messages, labels, and number formatting to German at any
@@ -259,7 +261,7 @@ complete local backup.
 
 Direct local file execution is a core compatibility requirement. The application must remain usable by opening `index.html` directly from the local filesystem through a `file:///` URL in a supported browser.
 
-Normal use must not require:
+Portable Mode and every core business workflow must not require:
 
 - A local web server or `localhost`
 - A backend service
@@ -419,7 +421,9 @@ Current implementation:
 - CSS
 - JavaScript
 - Client-side data processing
-- Direct `file:///` execution without a local web server
+- One shared browser runtime with centralized profile and capability detection
+- Portable Mode through direct `file:///` execution without a local web server
+- Optional Enhanced Local Mode through a loopback-only Python standard-library server
 - Local browser storage where compatible with `file:///`
 - No runtime backend requirement
 - No internet connection required for core functionality

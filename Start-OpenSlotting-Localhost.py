@@ -21,6 +21,7 @@ RUNTIME_FILES = frozenset(
     {
         "index.html",
         "app.css",
+        "runtime.js",
         "app.js",
         "encoding.js",
         "csv.js",
@@ -51,6 +52,8 @@ class OpenSlottingRequestHandler(BaseHTTPRequestHandler):
         request_path = unquote(urlsplit(self.path).path)
         if request_path == "/":
             relative_path = "index.html"
+        elif request_path == "/favicon.ico":
+            relative_path = "OpenSlotting.ico"
         else:
             relative_path = request_path.lstrip("/")
         if (

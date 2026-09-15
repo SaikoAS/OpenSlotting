@@ -19,14 +19,20 @@ Run the repository checks before requesting review:
 node --check csv.js
 node --check app.js
 node --check encoding.js
+node --check runtime.js
 node --check workspace.js
 node --check storage.js
 node --test tests/*.test.cjs
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows-launcher.test.ps1
 pwsh -NoProfile -File tests/windows-launcher.test.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/localhost-windows-launcher.test.ps1
+pwsh -NoProfile -File tests/localhost-windows-launcher.test.ps1
 ```
 
 Runtime or UI changes that may affect local execution also require a manual Microsoft Edge Desktop check on Windows by opening `index.html` directly through `file:///`. Compilation and automated tests do not replace this runtime acceptance.
+
+Runtime-profile changes additionally require both profile checks in
+[`docs/acceptance-runtime-profiles.md`](docs/acceptance-runtime-profiles.md).
 
 Windows launcher or shortcut changes additionally require the checks in
 [`docs/acceptance-v0.2.1.md`](docs/acceptance-v0.2.1.md). Use a temporary test

@@ -5,6 +5,7 @@
   const encoding = window.OpenSlottingEncoding;
   const workspaceModel = window.OpenSlottingWorkspace;
   const storageApi = window.OpenSlottingStorage;
+  const runtime = window.OpenSlottingRuntime;
   const workspaceRepository = storageApi.createRepository();
   const TRANSLATIONS = {
     en: {
@@ -15,7 +16,26 @@
       language_label: 'Language',
       language_english: 'English',
       language_german: 'German',
-      local_badge: 'local · browser-only',
+      runtime_badge_portable: 'Runtime · Portable',
+      runtime_badge_enhanced_local: 'Runtime · Enhanced Local',
+      runtime_badge_unsupported: 'Runtime · Unsupported',
+      runtime_diagnostics_title: 'Runtime diagnostics',
+      runtime_mode_label: 'Mode',
+      runtime_origin_label: 'Origin',
+      runtime_capabilities_label: 'Browser capabilities',
+      runtime_mode_portable: 'Portable Mode',
+      runtime_mode_enhanced_local: 'Enhanced Local Mode',
+      runtime_mode_unsupported: 'Unsupported origin',
+      runtime_capability_available: '{{name}} available',
+      runtime_capability_unavailable: '{{name}} unavailable',
+      runtime_capability_indexedDb: 'IndexedDB',
+      runtime_capability_webWorkers: 'Web Workers',
+      runtime_capability_persistentStorage: 'Persistent storage request',
+      runtime_capability_webLocks: 'Web Locks',
+      runtime_capability_broadcastChannel: 'BroadcastChannel',
+      runtime_capability_opfs: 'OPFS',
+      runtime_capability_folderAccess: 'Folder access',
+      runtime_capability_sqlite: 'SQLite',
       workspace_eyebrow: 'Local storage',
       workspace_title: 'Workspaces',
       workspace_hint: 'Each workspace remains separate in this browser profile.',
@@ -205,7 +225,26 @@
       language_label: 'Sprache',
       language_english: 'Englisch',
       language_german: 'Deutsch',
-      local_badge: 'lokal · nur Browser',
+      runtime_badge_portable: 'Runtime · Portabel',
+      runtime_badge_enhanced_local: 'Runtime · Erweitert lokal',
+      runtime_badge_unsupported: 'Runtime · Nicht unterstützt',
+      runtime_diagnostics_title: 'Runtime-Diagnose',
+      runtime_mode_label: 'Modus',
+      runtime_origin_label: 'Ursprung',
+      runtime_capabilities_label: 'Browser-Fähigkeiten',
+      runtime_mode_portable: 'Portabler Modus',
+      runtime_mode_enhanced_local: 'Erweiterter lokaler Modus',
+      runtime_mode_unsupported: 'Nicht unterstützter Ursprung',
+      runtime_capability_available: '{{name}} verfügbar',
+      runtime_capability_unavailable: '{{name}} nicht verfügbar',
+      runtime_capability_indexedDb: 'IndexedDB',
+      runtime_capability_webWorkers: 'Web Worker',
+      runtime_capability_persistentStorage: 'Dauerhafte Speicheranfrage',
+      runtime_capability_webLocks: 'Web Locks',
+      runtime_capability_broadcastChannel: 'BroadcastChannel',
+      runtime_capability_opfs: 'OPFS',
+      runtime_capability_folderAccess: 'Ordnerzugriff',
+      runtime_capability_sqlite: 'SQLite',
       workspace_eyebrow: 'Lokaler Speicher',
       workspace_title: 'Arbeitsbereiche',
       workspace_hint: 'Jeder Arbeitsbereich bleibt in diesem Browserprofil vollständig getrennt.',
@@ -417,7 +456,37 @@
 
   const TABLE_PAGE_SIZE = 100;
 
+  const RUNTIME_MODE_TRANSLATION_KEYS = {
+    portable: {
+      badge: 'runtime_badge_portable',
+      mode: 'runtime_mode_portable'
+    },
+    'enhanced-local': {
+      badge: 'runtime_badge_enhanced_local',
+      mode: 'runtime_mode_enhanced_local'
+    },
+    unsupported: {
+      badge: 'runtime_badge_unsupported',
+      mode: 'runtime_mode_unsupported'
+    }
+  };
+
+  const RUNTIME_CAPABILITY_TRANSLATION_KEYS = {
+    indexedDb: 'runtime_capability_indexedDb',
+    webWorkers: 'runtime_capability_webWorkers',
+    persistentStorage: 'runtime_capability_persistentStorage',
+    webLocks: 'runtime_capability_webLocks',
+    broadcastChannel: 'runtime_capability_broadcastChannel',
+    opfs: 'runtime_capability_opfs',
+    folderAccess: 'runtime_capability_folderAccess',
+    sqlite: 'runtime_capability_sqlite'
+  };
+
   const elements = {
+    runtimeBadge: document.getElementById('runtime-badge'),
+    runtimeMode: document.getElementById('runtime-mode'),
+    runtimeOrigin: document.getElementById('runtime-origin'),
+    runtimeCapabilities: document.getElementById('runtime-capabilities'),
     workspaceSelect: document.getElementById('workspace-select'),
     workspaceOpen: document.getElementById('workspace-open'),
     workspaceCancel: document.getElementById('workspace-cancel'),
@@ -1028,6 +1097,24 @@
     elements.mappingMessage.classList.remove('hidden');
   }
 
+  function renderRuntimeDiagnostics() {
+    const modeTranslation = RUNTIME_MODE_TRANSLATION_KEYS[runtime.mode] || RUNTIME_MODE_TRANSLATION_KEYS.unsupported;
+    setText(elements.runtimeBadge, translate(modeTranslation.badge));
+    setText(elements.runtimeMode, translate(modeTranslation.mode));
+    setText(elements.runtimeOrigin, runtime.origin);
+    elements.runtimeCapabilities.replaceChildren();
+    window.OpenSlottingRuntimeFactory.CAPABILITY_KEYS.forEach(function (capabilityName) {
+      const available = runtime.supports(capabilityName);
+      const item = document.createElement('li');
+      item.className = 'runtime-capability' + (available ? '' : ' unavailable');
+      setText(item, translate(
+        available ? 'runtime_capability_available' : 'runtime_capability_unavailable',
+        { name: translate(RUNTIME_CAPABILITY_TRANSLATION_KEYS[capabilityName]) }
+      ));
+      elements.runtimeCapabilities.appendChild(item);
+    });
+  }
+
   function applyLanguage(options) {
     document.documentElement.lang = state.language;
     document.title = translate('page_title');
@@ -1041,6 +1128,7 @@
     document.querySelectorAll('[data-i18n-aria-label]').forEach(function (element) {
       element.setAttribute('aria-label', translate(element.dataset.i18nAriaLabel));
     });
+    renderRuntimeDiagnostics();
     elements.languageSelect.setAttribute('aria-label', translate('language_label'));
     renderWorkspaceControls();
     renderStorageStatus();
