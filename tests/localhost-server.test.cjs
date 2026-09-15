@@ -37,6 +37,24 @@ function requestStatusWithHost(url, host) {
   });
 }
 
+test('accepts the default HTTP Host form when configured for port 80', () => {
+  const python = findPython();
+  if (!python) {
+    return;
+  }
+  const scriptPath = path.join(__dirname, '..', 'Start-OpenSlotting-Localhost.py');
+  const check = spawnSync(
+    python.command,
+    python.prefix.concat([
+      '-c',
+      'import runpy, sys; module = runpy.run_path(sys.argv[1]); assert module["expected_loopback_hosts"](80) == frozenset({"127.0.0.1", "127.0.0.1:80"}); assert module["expected_loopback_hosts"](8765) == frozenset({"127.0.0.1:8765"})',
+      scriptPath
+    ]),
+    { encoding: 'utf8', windowsHide: true }
+  );
+  assert.equal(check.status, 0, check.stderr || check.stdout);
+});
+
 test('experimental Python server is loopback-only and serves only runtime files', { timeout: 15000 }, async (context) => {
   const python = findPython();
   if (!python) {
