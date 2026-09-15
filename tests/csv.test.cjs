@@ -295,6 +295,29 @@ test('streaming import keeps large batches stack-safe and source-complete', () =
   assert.equal(combined.rows.at(-1).source_file_id, source.id);
 });
 
+test('streaming import handles parser errors per row without rescanning history', () => {
+  const malformedRows = 20000;
+  const lines = ['order_id;article_id;quantity;order_date'];
+  for (let index = 0; index < malformedRows; index += 1) {
+    lines.push(`\"O-${index}\"oops;SKU-${index};1;2026-09-12`);
+    lines.push(`O-valid-${index};SKU-valid-${index};1;2026-09-12`);
+  }
+  const result = csv.importCsv(lines.join('\n'), {
+    order_id: 0,
+    article_id: 1,
+    quantity: 2,
+    order_date: 3
+  }, {
+    sourceFile: { id: 'parser-errors', name: 'parser-errors.csv', label: 'parser-errors.csv' }
+  });
+
+  assert.equal(result.totalRows, malformedRows * 2);
+  assert.equal(result.validRows, malformedRows);
+  assert.equal(result.invalidRows, malformedRows);
+  assert.equal(result.rows[0].order_id, 'O-valid-0');
+  assert.equal(result.issues.filter((issue) => issue.code === 'unexpected_character_after_quote').length, malformedRows);
+});
+
 test('duplicate source filenames receive stable batch labels', () => {
   const labeled = csv.assignSourceFileLabels([
     { id: 'source-1', name: 'orders.csv' },

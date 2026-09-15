@@ -125,6 +125,7 @@
     const source = String(text === undefined || text === null ? '' : text).replace(/^\uFEFF/, '');
     const rows = [];
     const errors = [];
+    let recordErrors = [];
     let fields = [];
     let field = '';
     let inQuotes = false;
@@ -134,6 +135,11 @@
     let recordStartLine = 1;
     let headerValues = null;
     let dataRowCount = 0;
+
+    function addParserError(error) {
+      errors.push(error);
+      recordErrors.push(error);
+    }
 
     function flushField() {
       fields.push(field);
@@ -150,13 +156,14 @@
           dataRowCount += 1;
         }
         if (onRow) {
-          onRow(row, errors);
+          onRow(row, recordErrors);
         }
         if (retainRows) {
           rows.push(row);
         }
       }
       fields = [];
+      recordErrors = [];
       afterClosingQuote = false;
       recordHasContent = false;
     }
@@ -206,7 +213,7 @@
         } else if (character === '\n') {
           finishLine();
         } else {
-          errors.push({
+          addParserError({
             sourceLine: recordStartLine,
             code: 'unexpected_character_after_quote',
             message: message(locale, 'unexpectedQuote')
@@ -222,7 +229,7 @@
       } else if (character === '"' && field === '') {
         inQuotes = true;
       } else if (character === '"') {
-        errors.push({
+        addParserError({
           sourceLine: recordStartLine,
           code: 'unexpected_quote_in_unquoted_field',
           message: message(locale, 'bareQuote')
@@ -241,7 +248,7 @@
     }
 
     if (inQuotes) {
-      errors.push({
+      addParserError({
         sourceLine: recordStartLine,
         code: 'unterminated_quote',
         message: message(locale, 'unterminatedQuote')
@@ -607,7 +614,6 @@
     const locale = normalizeLocale(options && options.locale);
     const sourceFile = normalizeSourceFile(options && options.sourceFile);
     let headers = null;
-    let headerSourceLine = null;
     let totalRows = 0;
     let selectedMapping = mapping || null;
     let mappingIssues = null;
@@ -622,19 +628,14 @@
       onRow: function (dataRow, parserErrors) {
         if (headers === null) {
           headers = dataRow.values.map(function (header) { return String(header).trim(); });
-          headerSourceLine = dataRow.sourceLine;
-          headerHasParserError = parserErrors.some(function (error) {
-            return error.sourceLine === headerSourceLine;
-          });
+          headerHasParserError = parserErrors.length > 0;
           selectedMapping = selectedMapping || detectMapping(headers);
           mappingIssues = validateMapping(selectedMapping, locale);
           return;
         }
 
         totalRows += 1;
-        const rowHasParserError = parserErrors.some(function (error) {
-          return error.sourceLine === dataRow.sourceLine;
-        });
+        const rowHasParserError = parserErrors.length > 0;
         if (dataRow.values.length !== headers.length) {
           structuralLines.add(dataRow.sourceLine);
           invalidLines.add(dataRow.sourceLine);
