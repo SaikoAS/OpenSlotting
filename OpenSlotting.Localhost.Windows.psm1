@@ -194,8 +194,8 @@ function Start-OpenSlottingLocalhostServer {
 
     $health = Get-OpenSlottingLocalhostHealth
     if ($null -ne $health) {
-        Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $resolvedRoot
         Assert-OpenSlottingLocalhostProcess -Health $health -ApplicationRoot $resolvedRoot | Out-Null
+        Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $resolvedRoot
         return [pscustomobject]@{ Started = $false; ProcessId = [int]$health.pid }
     }
 
@@ -216,7 +216,6 @@ function Start-OpenSlottingLocalhostServer {
         }
         $health = Get-OpenSlottingLocalhostHealth
         if ($null -ne $health) {
-            Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $resolvedRoot
             $ownedByInvocation = Test-OpenSlottingLocalhostProcessOwnership -ServerProcessId ([int]$health.pid) -LauncherProcessId $process.Id
             if (-not $ownedByInvocation) {
                 if (-not $process.HasExited) {
@@ -225,6 +224,7 @@ function Start-OpenSlottingLocalhostServer {
                 throw 'Another OpenSlotting localhost process became ready before this launcher.'
             }
             Assert-OpenSlottingLocalhostProcess -Health $health -ApplicationRoot $resolvedRoot | Out-Null
+            Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $resolvedRoot
             return [pscustomobject]@{ Started = $true; ProcessId = [int]$health.pid }
         }
     } while ([DateTime]::UtcNow -lt $deadline)
@@ -274,7 +274,14 @@ function Assert-OpenSlottingLocalhostProcess {
     $commandLineRootMatches = $false
     if ($scriptArgumentIsEntryPoint) {
         try {
-            $commandLineRootMatches = (Get-OpenSlottingCanonicalPath -Path $arguments[$scriptArgumentIndex]).Equals($serverScript, [System.StringComparison]::OrdinalIgnoreCase)
+            $commandLineScriptPath = [System.IO.Path]::GetFullPath($arguments[$scriptArgumentIndex])
+            $expectedScriptRoot = [System.IO.Path]::GetPathRoot($serverScript)
+            $commandLineScriptRoot = [System.IO.Path]::GetPathRoot($commandLineScriptPath)
+            $commandLineUsesRemoteRoot = $commandLineScriptRoot.StartsWith('\\')
+            $expectedUsesRemoteRoot = $expectedScriptRoot.StartsWith('\\')
+            if (-not ($commandLineUsesRemoteRoot -and -not $expectedUsesRemoteRoot)) {
+                $commandLineRootMatches = (Get-OpenSlottingCanonicalPath -Path $commandLineScriptPath).Equals($serverScript, [System.StringComparison]::OrdinalIgnoreCase)
+            }
         } catch {
             $commandLineRootMatches = $false
         }
@@ -365,9 +372,8 @@ function Stop-OpenSlottingLocalhostServer {
     if ($null -eq $health) {
         return $false
     }
-    Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $resolvedRoot
-
     Assert-OpenSlottingLocalhostProcess -Health $health -ApplicationRoot $resolvedRoot | Out-Null
+    Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $resolvedRoot
     $serverProcessId = [int]$health.pid
     Stop-Process -Id $serverProcessId -Force -ErrorAction Stop
     return $true

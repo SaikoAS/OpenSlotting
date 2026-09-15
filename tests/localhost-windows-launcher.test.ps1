@@ -29,6 +29,8 @@ Assert-True ($moduleSource -notmatch '\$processId\b') 'The stop path must not us
 $serverFunctionSource = [regex]::Match($moduleSource, 'function Start-OpenSlottingLocalhostServer \{([\s\S]*?)\n\}').Groups[1].Value
 Assert-True ($serverFunctionSource.Contains('Assert-OpenSlottingLocalhostProcess -Health $health')) 'An existing server must be verified by PID and command line before reuse.'
 Assert-True ($serverFunctionSource.Contains('Test-OpenSlottingLocalhostProcessOwnership -ServerProcessId')) 'A newly started server must be tied to the launching process before cleanup ownership is recorded.'
+Assert-True ($serverFunctionSource.IndexOf('Assert-OpenSlottingLocalhostProcess -Health $health', [System.StringComparison]::Ordinal) -lt
+    $serverFunctionSource.IndexOf('Assert-OpenSlottingLocalhostHealth -Health $health', [System.StringComparison]::Ordinal)) 'The responder process must be verified before its advertised root is canonicalized.'
 
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('OpenSlotting Localhost Launcher Tests ' + [guid]::NewGuid().ToString('N'))
 [System.IO.Directory]::CreateDirectory($testRoot) | Out-Null
