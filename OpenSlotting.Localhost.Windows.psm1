@@ -217,6 +217,14 @@ function Start-OpenSlottingLocalhostServer {
         $health = Get-OpenSlottingLocalhostHealth
         if ($null -ne $health) {
             Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $resolvedRoot
+            $ownedByInvocation = Test-OpenSlottingLocalhostProcessOwnership -ServerProcessId ([int]$health.pid) -LauncherProcessId $process.Id
+            if (-not $ownedByInvocation) {
+                if (-not $process.HasExited) {
+                    Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+                }
+                throw 'Another OpenSlotting localhost process became ready before this launcher.'
+            }
+            Assert-OpenSlottingLocalhostProcess -Health $health -ApplicationRoot $resolvedRoot | Out-Null
             return [pscustomobject]@{ Started = $true; ProcessId = [int]$health.pid }
         }
     } while ([DateTime]::UtcNow -lt $deadline)
@@ -243,29 +251,77 @@ function Assert-OpenSlottingLocalhostProcess {
     if ($null -eq $processInfo) {
         throw 'The process answering on the OpenSlotting port could not be verified.'
     }
-    $commandLine = [string]$processInfo.CommandLine
-    $scriptMatch = [regex]::Match($commandLine, '(?i)"(?<quoted>[^"]*Start-OpenSlotting-Localhost\.py)"|(?<bare>[^\s]*Start-OpenSlotting-Localhost\.py)')
-    $commandLineScript = if ($scriptMatch.Groups['quoted'].Success) {
-        $scriptMatch.Groups['quoted'].Value
-    } elseif ($scriptMatch.Groups['bare'].Success) {
-        $scriptMatch.Groups['bare'].Value
+    $executablePath = [string]$processInfo.ExecutablePath
+    $executableName = if ([string]::IsNullOrWhiteSpace($executablePath)) {
+        ''
     } else {
-        $null
+        [System.IO.Path]::GetFileName($executablePath)
     }
+    $commandLine = [string]$processInfo.CommandLine
+    $argumentMatches = [regex]::Matches($commandLine, '(?:(?:"(?<quoted>[^"]*)")|(?<bare>[^\s]+))')
+    $arguments = @($argumentMatches | ForEach-Object {
+        if ($_.Groups['quoted'].Success) { $_.Groups['quoted'].Value } else { $_.Groups['bare'].Value }
+    })
+    $scriptArgumentIndex = -1
+    for ($index = 1; $index -lt $arguments.Count; $index++) {
+        if ($arguments[$index] -match '(?i)(?:^|[\\/])Start-OpenSlotting-Localhost\.py$') {
+            $scriptArgumentIndex = $index
+            break
+        }
+    }
+    $scriptArgumentIsEntryPoint = $scriptArgumentIndex -eq 1 -or
+        ($scriptArgumentIndex -eq 2 -and $arguments[1] -eq '-3')
     $commandLineRootMatches = $false
-    if (-not [string]::IsNullOrWhiteSpace($commandLineScript)) {
+    if ($scriptArgumentIsEntryPoint) {
         try {
-            $commandLineRootMatches = (Get-OpenSlottingCanonicalPath -Path $commandLineScript).Equals($serverScript, [System.StringComparison]::OrdinalIgnoreCase)
+            $commandLineRootMatches = (Get-OpenSlottingCanonicalPath -Path $arguments[$scriptArgumentIndex]).Equals($serverScript, [System.StringComparison]::OrdinalIgnoreCase)
         } catch {
             $commandLineRootMatches = $false
         }
     }
     if ([string]::IsNullOrWhiteSpace($commandLine) -or
+        $executableName -notmatch '^(?i:python(?:\d+)?|py)\.exe$' -or
+        -not $scriptArgumentIsEntryPoint -or
         -not $commandLineRootMatches) {
         throw 'The process answering on the OpenSlotting port could not be verified.'
     }
 
     return $processInfo
+}
+
+function Test-OpenSlottingLocalhostProcessOwnership {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$ServerProcessId,
+
+        [Parameter(Mandatory = $true)]
+        [int]$LauncherProcessId
+    )
+
+    if ($ServerProcessId -eq $LauncherProcessId) {
+        return $true
+    }
+
+    $visited = @{}
+    $currentProcessId = $ServerProcessId
+    for ($depth = 0; $depth -lt 16; $depth++) {
+        if ($currentProcessId -le 0 -or $visited.ContainsKey($currentProcessId)) {
+            return $false
+        }
+        $visited[$currentProcessId] = $true
+        $processInfo = Get-CimInstance Win32_Process -Filter "ProcessId = $currentProcessId" -ErrorAction SilentlyContinue
+        if ($null -eq $processInfo) {
+            return $false
+        }
+        $parentProcessId = [int]$processInfo.ParentProcessId
+        if ($parentProcessId -eq $LauncherProcessId) {
+            return $true
+        }
+        $currentProcessId = $parentProcessId
+    }
+
+    return $false
 }
 
 function Start-OpenSlottingLocalhostApp {

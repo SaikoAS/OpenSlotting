@@ -135,7 +135,7 @@ class OpenSlottingRequestHandler(BaseHTTPRequestHandler):
 
 class LoopbackServer(ThreadingHTTPServer):
     # Keep the fixed localhost origin exclusive, including on Windows.
-    allow_reuse_address = False
+    allow_reuse_address = os.name != "nt"
     daemon_threads = True
 
 

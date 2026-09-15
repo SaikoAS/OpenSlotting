@@ -28,6 +28,7 @@ Assert-True ($appFunctionSource.IndexOf('$edgePath = Find-OpenSlottingEdgePath',
 Assert-True ($moduleSource -notmatch '\$processId\b') 'The stop path must not use a variable that aliases PowerShell automatic variable $PID.'
 $serverFunctionSource = [regex]::Match($moduleSource, 'function Start-OpenSlottingLocalhostServer \{([\s\S]*?)\n\}').Groups[1].Value
 Assert-True ($serverFunctionSource.Contains('Assert-OpenSlottingLocalhostProcess -Health $health')) 'An existing server must be verified by PID and command line before reuse.'
+Assert-True ($serverFunctionSource.Contains('Test-OpenSlottingLocalhostProcessOwnership -ServerProcessId')) 'A newly started server must be tied to the launching process before cleanup ownership is recorded.'
 
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('OpenSlotting Localhost Launcher Tests ' + [guid]::NewGuid().ToString('N'))
 [System.IO.Directory]::CreateDirectory($testRoot) | Out-Null
