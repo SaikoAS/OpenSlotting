@@ -58,3 +58,16 @@ jobs:
         env:
           CANDIDATE_COMMIT: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         run: ./tools/package-release.ps1 -OutputDirectory (Join-Path $env:RUNNER_TEMP 'openslotting-release') -CandidateCommit $env:CANDIDATE_COMMIT
+
+  localhost-launcher:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Test localhost Windows launcher logic
+        shell: pwsh
+        run: ./tests/localhost-windows-launcher.test.ps1

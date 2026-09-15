@@ -31,6 +31,8 @@ Assert-True ($serverFunctionSource.Contains('Assert-OpenSlottingLocalhostProcess
 Assert-True ($serverFunctionSource.Contains('Test-OpenSlottingLocalhostProcessOwnership -ServerProcessId')) 'A newly started server must be tied to the launching process before cleanup ownership is recorded.'
 Assert-True ($serverFunctionSource.IndexOf('Assert-OpenSlottingLocalhostProcess -Health $health', [System.StringComparison]::Ordinal) -lt
     $serverFunctionSource.IndexOf('Assert-OpenSlottingLocalhostHealth -Health $health', [System.StringComparison]::Ordinal)) 'The responder process must be verified before its advertised root is canonicalized.'
+Assert-True ($moduleSource.Contains('Get-NetTCPConnection -LocalAddress')) 'The responder PID must be tied to the listening loopback socket.'
+Assert-True ($moduleSource.Contains('Join-Path $ApplicationRoot $scriptArgument')) 'Relative server script arguments must resolve against the application root.'
 
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('OpenSlotting Localhost Launcher Tests ' + [guid]::NewGuid().ToString('N'))
 [System.IO.Directory]::CreateDirectory($testRoot) | Out-Null

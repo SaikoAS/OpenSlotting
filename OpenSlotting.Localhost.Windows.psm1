@@ -246,6 +246,11 @@ function Assert-OpenSlottingLocalhostProcess {
     )
 
     $serverProcessId = [int]$Health.pid
+    $socketConnections = @(Get-NetTCPConnection -LocalAddress '127.0.0.1' -LocalPort $script:LocalhostPort -State Listen -ErrorAction Stop)
+    if ($socketConnections.Count -ne 1 -or
+        [int]$socketConnections[0].OwningProcess -ne $serverProcessId) {
+        throw 'The process answering on the OpenSlotting port could not be verified.'
+    }
     $serverScript = Get-OpenSlottingCanonicalPath -Path (Join-Path $ApplicationRoot 'Start-OpenSlotting-Localhost.py')
     $processInfo = Get-CimInstance Win32_Process -Filter "ProcessId = $serverProcessId" -ErrorAction Stop
     if ($null -eq $processInfo) {
@@ -274,7 +279,13 @@ function Assert-OpenSlottingLocalhostProcess {
     $commandLineRootMatches = $false
     if ($scriptArgumentIsEntryPoint) {
         try {
-            $commandLineScriptPath = [System.IO.Path]::GetFullPath($arguments[$scriptArgumentIndex])
+            $scriptArgument = [string]$arguments[$scriptArgumentIndex]
+            $scriptBasePath = if ([System.IO.Path]::IsPathRooted($scriptArgument)) {
+                $scriptArgument
+            } else {
+                Join-Path $ApplicationRoot $scriptArgument
+            }
+            $commandLineScriptPath = [System.IO.Path]::GetFullPath($scriptBasePath)
             $expectedScriptRoot = [System.IO.Path]::GetPathRoot($serverScript)
             $commandLineScriptRoot = [System.IO.Path]::GetPathRoot($commandLineScriptPath)
             $commandLineUsesRemoteRoot = $commandLineScriptRoot.StartsWith('\\')
