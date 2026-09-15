@@ -25,6 +25,7 @@ if ([string]::IsNullOrWhiteSpace($appFunctionSource)) {
 }
 Assert-True ($appFunctionSource.IndexOf('$edgePath = Find-OpenSlottingEdgePath', [System.StringComparison]::Ordinal) -lt
     $appFunctionSource.IndexOf('Start-OpenSlottingLocalhostServer', [System.StringComparison]::Ordinal)) 'Edge must be resolved before a background server is started.'
+Assert-True ($moduleSource -notmatch '\$processId\b') 'The stop path must not use a variable that aliases PowerShell automatic variable $PID.'
 
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('OpenSlotting Localhost Launcher Tests ' + [guid]::NewGuid().ToString('N'))
 [System.IO.Directory]::CreateDirectory($testRoot) | Out-Null

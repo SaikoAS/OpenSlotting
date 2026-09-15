@@ -269,16 +269,16 @@ function Stop-OpenSlottingLocalhostServer {
     }
     Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $resolvedRoot
 
-    $processId = [int]$health.pid
+    $serverProcessId = [int]$health.pid
     $serverScript = [System.IO.Path]::GetFullPath((Join-Path $resolvedRoot 'Start-OpenSlotting-Localhost.py'))
-    $processInfo = Get-CimInstance Win32_Process -Filter "ProcessId = $processId" -ErrorAction Stop
+    $processInfo = Get-CimInstance Win32_Process -Filter "ProcessId = $serverProcessId" -ErrorAction Stop
     if ($null -eq $processInfo -or
         [string]::IsNullOrWhiteSpace($processInfo.CommandLine) -or
         $processInfo.CommandLine.IndexOf($serverScript, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
         throw 'The process answering on the OpenSlotting port could not be verified and was not stopped.'
     }
 
-    Stop-Process -Id $processId -Force -ErrorAction Stop
+    Stop-Process -Id $serverProcessId -Force -ErrorAction Stop
     return $true
 }
 
