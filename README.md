@@ -96,6 +96,21 @@ shortcut, open Start, search for `OpenSlotting`, right-click it, and choose
 this reminder but does not modify taskbar policy or attempt unsupported shell
 automation.
 
+## Experimental localhost start
+
+This branch also contains an optional Python 3 localhost launcher for evaluating
+OpenSlotting under a stable HTTP origin. It installs neither OpenSlotting nor
+Python packages and builds no application executable. Start
+`Start-OpenSlotting-Localhost.cmd` on Windows or run
+`python Start-OpenSlotting-Localhost.py`; the default address is
+`http://127.0.0.1:8765/index.html`.
+
+The server binds only to loopback and serves an explicit runtime-file allowlist.
+Because browser storage is origin-specific, existing `file:///` workspaces do
+not automatically appear on localhost. Move them with workspace backup and
+restore. Requirements, options, and security boundaries are documented in
+[`docs/localhost-experiment.md`](docs/localhost-experiment.md).
+
 The application interface is English by default. Users can switch the visible
 interface, validation messages, labels, and number formatting to German at any
 time. Internal field keys and exported column names remain stable in English so
