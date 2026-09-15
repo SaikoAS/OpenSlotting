@@ -233,7 +233,7 @@ function Start-OpenSlottingLocalhostServer {
                     Stop-Process -Id $healthProcessId -Force -ErrorAction SilentlyContinue
                 }
                 if (-not $process.HasExited) {
-                    Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+                    Stop-OpenSlottingProcessTree -RootProcessId $process.Id
                 }
                 throw
             }
@@ -241,7 +241,7 @@ function Start-OpenSlottingLocalhostServer {
     } while ([DateTime]::UtcNow -lt $deadline)
 
     if (-not $process.HasExited) {
-        Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        Stop-OpenSlottingProcessTree -RootProcessId $process.Id
     }
     throw 'The OpenSlotting localhost server did not become ready within 10 seconds.'
 }
@@ -351,6 +351,35 @@ function Test-OpenSlottingLocalhostProcessOwnership {
     }
 
     return $false
+}
+
+function Get-OpenSlottingDescendantProcessIds {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$RootProcessId
+    )
+
+    $children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $RootProcessId" -ErrorAction SilentlyContinue)
+    foreach ($child in $children) {
+        $childProcessId = [int]$child.ProcessId
+        Get-OpenSlottingDescendantProcessIds -RootProcessId $childProcessId
+        $childProcessId
+    }
+}
+
+function Stop-OpenSlottingProcessTree {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [int]$RootProcessId
+    )
+
+    $descendantProcessIds = @(Get-OpenSlottingDescendantProcessIds -RootProcessId $RootProcessId)
+    foreach ($descendantId in $descendantProcessIds) {
+        Stop-Process -Id $descendantId -Force -ErrorAction SilentlyContinue
+    }
+    Stop-Process -Id $RootProcessId -Force -ErrorAction SilentlyContinue
 }
 
 function Start-OpenSlottingLocalhostApp {
