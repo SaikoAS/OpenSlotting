@@ -116,6 +116,8 @@
   function parseCsv(text, options) {
     const delimiter = options && options.delimiter ? options.delimiter : ';';
     const locale = normalizeLocale(options && options.locale);
+    const retainRows = !(options && options.retainRows === false);
+    const onRow = options && typeof options.onRow === 'function' ? options.onRow : null;
     if (delimiter.length !== 1) {
       throw new Error(message(locale, 'delimiter'));
     }
@@ -123,6 +125,7 @@
     const source = String(text === undefined || text === null ? '' : text).replace(/^\uFEFF/, '');
     const rows = [];
     const errors = [];
+    let recordErrors = [];
     let fields = [];
     let field = '';
     let inQuotes = false;
@@ -130,6 +133,13 @@
     let recordHasContent = false;
     let line = 1;
     let recordStartLine = 1;
+    let headerValues = null;
+    let dataRowCount = 0;
+
+    function addParserError(error) {
+      errors.push(error);
+      recordErrors.push(error);
+    }
 
     function flushField() {
       fields.push(field);
@@ -139,9 +149,21 @@
     function flushRow() {
       flushField();
       if (recordHasContent) {
-        rows.push({ sourceLine: recordStartLine, values: fields });
+        const row = { sourceLine: recordStartLine, values: fields };
+        if (headerValues === null) {
+          headerValues = fields.slice();
+        } else {
+          dataRowCount += 1;
+        }
+        if (onRow) {
+          onRow(row, recordErrors);
+        }
+        if (retainRows) {
+          rows.push(row);
+        }
       }
       fields = [];
+      recordErrors = [];
       afterClosingQuote = false;
       recordHasContent = false;
     }
@@ -191,7 +213,7 @@
         } else if (character === '\n') {
           finishLine();
         } else {
-          errors.push({
+          addParserError({
             sourceLine: recordStartLine,
             code: 'unexpected_character_after_quote',
             message: message(locale, 'unexpectedQuote')
@@ -207,7 +229,7 @@
       } else if (character === '"' && field === '') {
         inQuotes = true;
       } else if (character === '"') {
-        errors.push({
+        addParserError({
           sourceLine: recordStartLine,
           code: 'unexpected_quote_in_unquoted_field',
           message: message(locale, 'bareQuote')
@@ -226,7 +248,7 @@
     }
 
     if (inQuotes) {
-      errors.push({
+      addParserError({
         sourceLine: recordStartLine,
         code: 'unterminated_quote',
         message: message(locale, 'unterminatedQuote')
@@ -237,7 +259,12 @@
       flushRow();
     }
 
-    return { rows: rows, errors: errors };
+    const result = { rows: rows, errors: errors };
+    if (!retainRows) {
+      result.headers = headerValues || [];
+      result.dataRowCount = dataRowCount;
+    }
+    return result;
   }
 
   function detectMapping(headers) {
@@ -580,7 +607,125 @@
   }
 
   function importCsv(text, mapping, options) {
-    return importParsedCsv(parseCsv(text, options), mapping, options);
+    return importCsvStreaming(text, mapping, options);
+  }
+
+  function importCsvStreaming(text, mapping, options) {
+    const locale = normalizeLocale(options && options.locale);
+    const sourceFile = normalizeSourceFile(options && options.sourceFile);
+    let headers = null;
+    let totalRows = 0;
+    let selectedMapping = mapping || null;
+    let mappingIssues = null;
+    let headerHasParserError = false;
+    const issues = [];
+    const rows = [];
+    const invalidLines = new Set();
+    const structuralLines = new Set();
+
+    const parsed = parseCsv(text, Object.assign({}, options, {
+      retainRows: false,
+      onRow: function (dataRow, parserErrors) {
+        if (headers === null) {
+          headers = dataRow.values.map(function (header) { return String(header).trim(); });
+          headerHasParserError = parserErrors.length > 0;
+          selectedMapping = selectedMapping || detectMapping(headers);
+          mappingIssues = validateMapping(selectedMapping, locale);
+          return;
+        }
+
+        totalRows += 1;
+        const rowHasParserError = parserErrors.length > 0;
+        if (dataRow.values.length !== headers.length) {
+          structuralLines.add(dataRow.sourceLine);
+          invalidLines.add(dataRow.sourceLine);
+          issues.push({
+            sourceLine: dataRow.sourceLine,
+            field: null,
+            code: 'column_count_mismatch',
+            message: message(locale, 'columnCount', { actual: dataRow.values.length, expected: headers.length })
+          });
+          return;
+        }
+        if (headerHasParserError || mappingIssues.length > 0) {
+          return;
+        }
+
+        const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile);
+        if (rowHasParserError) {
+          invalidLines.add(dataRow.sourceLine);
+        }
+        if (normalized.issues.length > 0) {
+          invalidLines.add(dataRow.sourceLine);
+          normalized.issues.forEach(function (issue) { issues.push(issue); });
+        } else if (!rowHasParserError) {
+          rows.push(normalized.record);
+        }
+      }
+    }));
+    const parserIssues = parsed.errors.map(function (error) {
+      return {
+        sourceLine: error.sourceLine,
+        field: null,
+        code: error.code,
+        message: parserErrorMessage(error, locale)
+      };
+    });
+    const finalHeaders = headers || parsed.headers || [];
+    if (finalHeaders.length === 0) {
+      return {
+        headers: [],
+        rows: [],
+        issues: addSourceToIssues(parserIssues.concat([{ sourceLine: null, field: null, code: 'header_missing', message: message(locale, 'headerMissing') }]), sourceFile),
+        totalRows: 0,
+        validRows: 0,
+        invalidRows: 0,
+        structuralRows: 0,
+        mapping: mapping || {},
+        sourceFile: sourceFile,
+        blocking: true
+      };
+    }
+    if (headerHasParserError) {
+      return {
+        headers: finalHeaders,
+        rows: [],
+        issues: addSourceToIssues(parserIssues, sourceFile),
+        totalRows: totalRows,
+        validRows: 0,
+        invalidRows: totalRows,
+        structuralRows: 0,
+        mapping: mapping || {},
+        sourceFile: sourceFile,
+        blocking: true
+      };
+    }
+    if (mappingIssues && mappingIssues.length > 0) {
+      return {
+        headers: finalHeaders,
+        rows: [],
+        issues: addSourceToIssues(parserIssues.concat(mappingIssues), sourceFile),
+        totalRows: totalRows,
+        validRows: 0,
+        invalidRows: 0,
+        structuralRows: 0,
+        mapping: selectedMapping,
+        sourceFile: sourceFile,
+        blocking: true
+      };
+    }
+    return {
+      headers: finalHeaders,
+      rows: rows,
+      issues: addSourceToIssues(parserIssues.concat(issues), sourceFile),
+      totalRows: totalRows,
+      validRows: rows.length,
+      invalidRows: invalidLines.size,
+      structuralRows: structuralLines.size,
+      mapping: selectedMapping,
+      sourceFile: sourceFile,
+      blocking: false
+    };
   }
 
   function importParsedCsv(parsed, mapping, options) {
@@ -673,7 +818,7 @@
       }
       if (rowIssues.length > 0) {
         invalidLines.add(dataRow.sourceLine);
-        Array.prototype.push.apply(issues, rowIssues);
+        rowIssues.forEach(function (issue) { issues.push(issue); });
       } else if (!parserErrorLines.has(dataRow.sourceLine)) {
         rows.push(normalized.record);
       }
@@ -944,8 +1089,10 @@
         const right = entries[rightIndex];
         const leftLabel = left.label || left.name || '';
         const rightLabel = right.label || right.name || '';
-        const sameContent = typeof left.content === 'string' && typeof right.content === 'string' &&
-          left.content === right.content;
+        const sameContent = (typeof left.content === 'string' && typeof right.content === 'string' &&
+          left.content === right.content) ||
+          (typeof left.contentFingerprint === 'string' && typeof right.contentFingerprint === 'string' &&
+            left.contentFingerprint === right.contentFingerprint);
 
         if (sameContent) {
           warnings.push({
@@ -1016,28 +1163,44 @@
       const result = file.result || null;
       const included = Boolean(result && !result.blocking);
       const resultRows = included && Array.isArray(result.rows)
-        ? result.rows.map(function (row) {
+        ? result.rows
+        : [];
+      const rowsNeedSourceDecoration = resultRows.some(function (row) {
+        return row.source_file_id !== source.id ||
+          row.source_file_name !== source.name ||
+          row.source_file_label !== source.label;
+      });
+      const normalizedRows = rowsNeedSourceDecoration
+        ? resultRows.map(function (row) {
           return Object.assign({}, row, {
             source_file_id: source.id,
             source_file_name: source.name,
             source_file_label: source.label
           });
         })
-        : [];
+        : resultRows;
       const resultIssues = result && Array.isArray(result.issues)
-        ? result.issues.map(function (issue) {
+        ? result.issues
+        : [];
+      const issuesNeedSourceDecoration = resultIssues.some(function (issue) {
+        return issue.sourceFileId !== source.id ||
+          issue.sourceFileName !== source.name ||
+          issue.sourceFileLabel !== source.label;
+      });
+      const normalizedIssues = issuesNeedSourceDecoration
+        ? resultIssues.map(function (issue) {
           return Object.assign({}, issue, {
             sourceFileId: source.id,
             sourceFileName: source.name,
             sourceFileLabel: source.label
           });
         })
-        : [];
+        : resultIssues;
       normalizedFiles.push(Object.assign({}, file, {
         id: source.id,
         name: source.name,
         label: source.label,
-        result: result ? Object.assign({}, result, { rows: resultRows, issues: resultIssues }) : null
+        result: result ? Object.assign({}, result, { rows: normalizedRows, issues: normalizedIssues }) : null
       }));
 
       totalRows += result ? result.totalRows : 0;
@@ -1045,11 +1208,11 @@
       structuralRows += result ? result.structuralRows : 0;
       if (included) {
         includedFiles += 1;
-        Array.prototype.push.apply(rows, resultRows);
+        normalizedRows.forEach(function (row) { rows.push(row); });
       }
-      Array.prototype.push.apply(issues, resultIssues);
+      normalizedIssues.forEach(function (issue) { issues.push(issue); });
 
-      const range = dateRangeForRows(resultRows);
+      const range = dateRangeForRows(normalizedRows);
       return {
         id: source.id,
         name: source.name,
@@ -1369,6 +1532,7 @@
     formatScaledQuantity: formatScaledQuantity,
     getFieldLabel: getFieldLabel,
     importCsv: importCsv,
+    importCsvStreaming: importCsvStreaming,
     importParsedCsv: importParsedCsv,
     normalizeDate: normalizeDate,
     normalizeHeader: normalizeHeader,

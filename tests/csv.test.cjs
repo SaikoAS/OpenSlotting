@@ -273,6 +273,51 @@ test('basic fixture matches its documented metrics', () => {
   assert.equal(analysis.active_days, 6);
 });
 
+test('streaming import keeps large batches stack-safe and source-complete', () => {
+  const rowCount = 130000;
+  const lines = ['order_id;article_id;quantity;order_date'];
+  for (let index = 0; index < rowCount; index += 1) {
+    lines.push(`O-${index};SKU-${index % 1000};1;2026-09-12`);
+  }
+  const source = { id: 'large-source', name: 'large.csv', label: 'large.csv' };
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
+  const result = csv.importCsv(lines.join('\n'), mapping, { sourceFile: source });
+
+  assert.equal(result.totalRows, rowCount);
+  assert.equal(result.validRows, rowCount);
+  assert.equal(result.rows.length, rowCount);
+  assert.equal(result.rows[0].source_line, 2);
+  assert.equal(result.rows.at(-1).source_line, rowCount + 1);
+
+  const combined = csv.combineImportResults([{ ...source, result }]);
+  assert.equal(combined.rows.length, rowCount);
+  assert.equal(combined.rows[0], result.rows[0]);
+  assert.equal(combined.rows.at(-1).source_file_id, source.id);
+});
+
+test('streaming import handles parser errors per row without rescanning history', () => {
+  const malformedRows = 20000;
+  const lines = ['order_id;article_id;quantity;order_date'];
+  for (let index = 0; index < malformedRows; index += 1) {
+    lines.push(`\"O-${index}\"oops;SKU-${index};1;2026-09-12`);
+    lines.push(`O-valid-${index};SKU-valid-${index};1;2026-09-12`);
+  }
+  const result = csv.importCsv(lines.join('\n'), {
+    order_id: 0,
+    article_id: 1,
+    quantity: 2,
+    order_date: 3
+  }, {
+    sourceFile: { id: 'parser-errors', name: 'parser-errors.csv', label: 'parser-errors.csv' }
+  });
+
+  assert.equal(result.totalRows, malformedRows * 2);
+  assert.equal(result.validRows, malformedRows);
+  assert.equal(result.invalidRows, malformedRows);
+  assert.equal(result.rows[0].order_id, 'O-valid-0');
+  assert.equal(result.issues.filter((issue) => issue.code === 'unexpected_character_after_quote').length, malformedRows);
+});
+
 test('duplicate source filenames receive stable batch labels', () => {
   const labeled = csv.assignSourceFileLabels([
     { id: 'source-1', name: 'orders.csv' },
@@ -427,6 +472,20 @@ test('matching file metadata warns without treating different content as identic
 
   assert.ok(warnings.some((warning) => warning.code === 'matching_file_metadata'));
   assert.equal(warnings.some((warning) => warning.code === 'identical_file_content'), false);
+});
+
+test('content fingerprints preserve duplicate warnings after decoded text is released', () => {
+  const identical = csv.detectBatchWarnings([
+    { id: 'source-1', name: 'first.csv', label: 'first.csv', content: null, contentFingerprint: '12:abc:123' },
+    { id: 'source-2', name: 'second.csv', label: 'second.csv', content: null, contentFingerprint: '12:abc:123' }
+  ]);
+  const different = csv.detectBatchWarnings([
+    { id: 'source-1', name: 'first.csv', label: 'first.csv', content: null, contentFingerprint: '12:abc:123' },
+    { id: 'source-2', name: 'second.csv', label: 'second.csv', content: null, contentFingerprint: '12:def:456' }
+  ]);
+
+  assert.ok(identical.some((warning) => warning.code === 'identical_file_content'));
+  assert.equal(different.some((warning) => warning.code === 'identical_file_content'), false);
 });
 
 test('blocking files are excluded without hiding their source-specific issues', () => {
