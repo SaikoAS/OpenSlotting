@@ -4,6 +4,93 @@ $script:LocalhostPort = 8765
 $script:ShortcutName = 'OpenSlotting Localhost'
 $script:ShortcutDescription = 'OpenSlotting localhost shortcut managed by OpenSlotting'
 
+function Get-OpenSlottingCanonicalPath {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $fullPath = [System.IO.Path]::GetFullPath($Path)
+    if (-not (Test-Path -LiteralPath $fullPath)) {
+        throw "The path was not found: $fullPath"
+    }
+
+    if ($null -eq ('OpenSlottingNativePath' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Text;
+using Microsoft.Win32.SafeHandles;
+
+public static class OpenSlottingNativePath
+{
+    private const uint FileFlagBackupSemantics = 0x02000000;
+    private const uint OpenExisting = 3;
+    private const uint ShareDelete = 4;
+    private const uint ShareRead = 1;
+    private const uint ShareWrite = 2;
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern SafeFileHandle CreateFile(
+        string fileName,
+        uint desiredAccess,
+        uint shareMode,
+        IntPtr securityAttributes,
+        uint creationDisposition,
+        uint flagsAndAttributes,
+        IntPtr templateFile);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern uint GetFinalPathNameByHandle(
+        SafeFileHandle file,
+        StringBuilder path,
+        uint pathLength,
+        uint flags);
+
+    public static string Resolve(string path)
+    {
+        using (var handle = CreateFile(
+            path,
+            0,
+            ShareRead | ShareWrite | ShareDelete,
+            IntPtr.Zero,
+            OpenExisting,
+            FileFlagBackupSemantics,
+            IntPtr.Zero))
+        {
+            if (handle.IsInvalid)
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+
+            var buffer = new StringBuilder(32768);
+            var length = GetFinalPathNameByHandle(handle, buffer, (uint)buffer.Capacity, 0);
+            if (length == 0 || length >= buffer.Capacity)
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+
+            var resolved = buffer.ToString();
+            if (resolved.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase))
+            {
+                return @"\\" + resolved.Substring(8);
+            }
+            if (resolved.StartsWith(@"\\?\", StringComparison.OrdinalIgnoreCase))
+            {
+                return resolved.Substring(4);
+            }
+            return resolved;
+        }
+    }
+}
+'@
+    }
+
+    return ([OpenSlottingNativePath]::Resolve($fullPath)).TrimEnd('\')
+}
+
 function Assert-OpenSlottingLocalhostWindows {
     if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
         throw 'The combined OpenSlotting localhost launcher is supported only on Windows.'
@@ -55,8 +142,8 @@ function Assert-OpenSlottingLocalhostHealth {
         throw "Port $script:LocalhostPort is occupied by another application."
     }
 
-    $expectedRoot = [System.IO.Path]::GetFullPath($ApplicationRoot).TrimEnd('\')
-    $actualRoot = [System.IO.Path]::GetFullPath([string]$Health.applicationRoot).TrimEnd('\')
+    $expectedRoot = Get-OpenSlottingCanonicalPath -Path $ApplicationRoot
+    $actualRoot = Get-OpenSlottingCanonicalPath -Path ([string]$Health.applicationRoot)
     if (-not $actualRoot.Equals($expectedRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
         throw "Another OpenSlotting folder is already running on port ${script:LocalhostPort}: $actualRoot"
     }
@@ -147,11 +234,24 @@ function Start-OpenSlottingLocalhostApp {
     )
 
     $resolvedRoot = [System.IO.Path]::GetFullPath($ApplicationRoot)
-    Start-OpenSlottingLocalhostServer -ApplicationRoot $resolvedRoot | Out-Null
     Import-Module (Join-Path $resolvedRoot 'OpenSlotting.Windows.psm1') -Force
     $edgePath = Find-OpenSlottingEdgePath
     $url = Get-OpenSlottingLocalhostUrl
-    Start-Process -FilePath $edgePath -ArgumentList ('--app="{0}"' -f $url) -WorkingDirectory $resolvedRoot
+    $serverStarted = $false
+    try {
+        $serverResult = Start-OpenSlottingLocalhostServer -ApplicationRoot $resolvedRoot
+        $serverStarted = [bool]$serverResult.Started
+        Start-Process -FilePath $edgePath -ArgumentList ('--app="{0}"' -f $url) -WorkingDirectory $resolvedRoot
+    } catch {
+        if ($serverStarted) {
+            try {
+                Stop-OpenSlottingLocalhostServer -ApplicationRoot $resolvedRoot | Out-Null
+            } catch {
+                # Preserve the browser-start failure while leaving a safe manual stop path.
+            }
+        }
+        throw
+    }
 }
 
 function Stop-OpenSlottingLocalhostServer {

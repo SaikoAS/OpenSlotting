@@ -18,6 +18,13 @@ function Assert-True {
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Import-Module (Join-Path $repositoryRoot 'OpenSlotting.Windows.psm1') -Force
 Import-Module (Join-Path $repositoryRoot 'OpenSlotting.Localhost.Windows.psm1') -Force
+$moduleSource = Get-Content -LiteralPath (Join-Path $repositoryRoot 'OpenSlotting.Localhost.Windows.psm1') -Raw
+$appFunctionSource = [regex]::Match($moduleSource, 'function Start-OpenSlottingLocalhostApp \{([\s\S]*?)\n\}').Groups[1].Value
+if ([string]::IsNullOrWhiteSpace($appFunctionSource)) {
+    throw 'The combined app launcher function could not be inspected.'
+}
+Assert-True ($appFunctionSource.IndexOf('$edgePath = Find-OpenSlottingEdgePath', [System.StringComparison]::Ordinal) -lt
+    $appFunctionSource.IndexOf('Start-OpenSlottingLocalhostServer', [System.StringComparison]::Ordinal)) 'Edge must be resolved before a background server is started.'
 
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('OpenSlotting Localhost Launcher Tests ' + [guid]::NewGuid().ToString('N'))
 [System.IO.Directory]::CreateDirectory($testRoot) | Out-Null
@@ -26,9 +33,11 @@ try {
     $startScript = Join-Path $testRoot 'Start-OpenSlotting-Localhost.ps1'
     $powerShellPath = Join-Path $testRoot 'powershell.exe'
     $iconPath = Join-Path $testRoot 'OpenSlotting.ico'
+    $anotherRoot = Join-Path $testRoot 'another-copy'
     Set-Content -LiteralPath $startScript -Value '# synthetic launcher' -Encoding UTF8
     Set-Content -LiteralPath $powerShellPath -Value 'synthetic PowerShell' -Encoding UTF8
     Set-Content -LiteralPath $iconPath -Value 'synthetic icon' -Encoding UTF8
+    New-Item -ItemType Directory -Path $anotherRoot | Out-Null
 
     Assert-Equal (Get-OpenSlottingLocalhostUrl) 'http://127.0.0.1:8765/index.html' 'The combined launcher URL must remain stable.'
 
@@ -43,7 +52,7 @@ try {
 
     $wrongRootBlocked = $false
     try {
-        Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot (Join-Path $testRoot 'another-copy')
+        Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $anotherRoot
     } catch {
         $wrongRootBlocked = $_.Exception.Message -match 'Another OpenSlotting folder'
     }

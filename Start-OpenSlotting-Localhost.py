@@ -40,6 +40,7 @@ CONTENT_TYPES = {
 
 class OpenSlottingRequestHandler(BaseHTTPRequestHandler):
     server_version = "OpenSlottingLocalhost/0.1"
+    expected_host = ""
 
     def end_headers(self) -> None:
         self.send_header("Cache-Control", "no-store")
@@ -100,7 +101,15 @@ class OpenSlottingRequestHandler(BaseHTTPRequestHandler):
         if include_body:
             self.wfile.write(payload)
 
+    def _has_trusted_host(self) -> bool:
+        if self.headers.get("Host", "") == self.expected_host:
+            return True
+        self.send_error(400, "The Host header must target the loopback server")
+        return False
+
     def _serve_request(self, include_body: bool) -> None:
+        if not self._has_trusted_host():
+            return
         if urlsplit(self.path).path == "/health":
             self._serve_health(include_body)
             return
@@ -174,6 +183,7 @@ def main() -> int:
         return 1
 
     actual_port = int(server.server_address[1])
+    OpenSlottingRequestHandler.expected_host = f"127.0.0.1:{actual_port}"
     url = f"http://127.0.0.1:{actual_port}/index.html"
     print(f"OpenSlotting local server: {url}", flush=True)
     print("Stop with Ctrl+C. No files are uploaded or served outside loopback.", flush=True)

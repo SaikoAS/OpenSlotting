@@ -31,6 +31,26 @@ test('detects the direct file runtime as Portable Mode', () => {
   assert.equal(runtime.supports('unknown'), false);
 });
 
+test('rejects file URLs hosted on remote shares', () => {
+  const runtime = runtimeApi.detectRuntime(createEnvironment({
+    protocol: 'file:',
+    hostname: 'server',
+    origin: 'null'
+  }));
+
+  assert.equal(runtime.mode, runtimeApi.RUNTIME_MODES.UNSUPPORTED);
+});
+
+test('accepts the explicit local file host alias', () => {
+  const runtime = runtimeApi.detectRuntime(createEnvironment({
+    protocol: 'file:',
+    hostname: ['local', 'host'].join(''),
+    origin: 'null'
+  }));
+
+  assert.equal(runtime.mode, runtimeApi.RUNTIME_MODES.PORTABLE);
+});
+
 test('detects loopback HTTP variants as Enhanced Local Mode', () => {
   const loopbackHosts = [
     ['127', '0', '0', '1'].join('.'),

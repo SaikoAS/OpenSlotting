@@ -62,8 +62,10 @@ The default port is deliberately fixed instead of choosing a random free port.
 The server binds only to `127.0.0.1`; it is not reachable through the computer's
 LAN address. It serves an explicit allowlist of OpenSlotting runtime files and
 does not expose repository files, `.git`, documentation, or arbitrary parent
-paths. All application processing remains local and the runtime still contains
-no external network requests.
+paths. Health and runtime requests must also use the exact loopback host and
+port, so an untrusted `Host` header cannot read local diagnostics. All
+application processing remains local and the runtime still contains no
+external network requests.
 
 This experiment is portable as a folder but depends on a Python 3 interpreter
 already present on the target computer. Bundling Python would require shipping

@@ -1,6 +1,7 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const http = require('node:http');
 const { spawn, spawnSync } = require('node:child_process');
 const path = require('node:path');
 const test = require('node:test');
@@ -23,6 +24,17 @@ function findPython() {
     });
     return checked.status === 0;
   }) || null;
+}
+
+function requestStatusWithHost(url, host) {
+  return new Promise((resolve, reject) => {
+    const request = http.request(url, { headers: { Host: host } }, (response) => {
+      response.resume();
+      response.once('end', () => resolve(response.statusCode));
+    });
+    request.once('error', reject);
+    request.end();
+  });
 }
 
 test('experimental Python server is loopback-only and serves only runtime files', { timeout: 15000 }, async (context) => {
@@ -88,6 +100,9 @@ test('experimental Python server is loopback-only and serves only runtime files'
   assert.equal(health.version, 1);
   assert.equal(Number.isInteger(health.pid), true);
   assert.equal(path.resolve(health.applicationRoot), path.resolve(path.dirname(scriptPath)));
+
+  const untrustedHealthStatus = await requestStatusWithHost(origin + '/health', 'attacker.invalid');
+  assert.equal(untrustedHealthStatus, 400);
 
   const scriptResponse = await fetch(origin + '/app.js');
   assert.equal(scriptResponse.status, 200);

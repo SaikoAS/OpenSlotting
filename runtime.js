@@ -41,7 +41,11 @@
     const protocol = String(locationLike && locationLike.protocol || '').toLowerCase();
     const hostname = String(locationLike && locationLike.hostname || '');
     if (protocol === 'file:') {
-      return RUNTIME_MODES.PORTABLE;
+      const normalizedFileHost = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+      const localFileHost = ['local', 'host'].join('');
+      return normalizedFileHost === '' || normalizedFileHost === localFileHost
+        ? RUNTIME_MODES.PORTABLE
+        : RUNTIME_MODES.UNSUPPORTED;
     }
     if ((protocol === 'http:' || protocol === 'https:') && isLoopbackHostname(hostname)) {
       return RUNTIME_MODES.ENHANCED_LOCAL;
