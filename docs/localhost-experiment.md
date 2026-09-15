@@ -19,10 +19,15 @@ Their central detection and capability rules are documented in
 On Windows, double-click `Start-OpenSlotting-Localhost.cmd`. It checks whether
 the matching server is already running, starts it hidden when needed, waits for
 the health endpoint, and opens Microsoft Edge in app mode. Alternatively run
-the server visibly for diagnostics:
+the server visibly for diagnostics. Use the executable name available on the
+target platform:
 
 ```text
+# Windows
 python Start-OpenSlotting-Localhost.py
+
+# macOS or Linux
+python3 Start-OpenSlotting-Localhost.py
 ```
 
 The stable default address is:
