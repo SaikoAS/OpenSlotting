@@ -33,6 +33,8 @@ Assert-True ($serverFunctionSource.IndexOf('Assert-OpenSlottingLocalhostProcess 
     $serverFunctionSource.IndexOf('Assert-OpenSlottingLocalhostHealth -Health $health', [System.StringComparison]::Ordinal)) 'The responder process must be verified before its advertised root is canonicalized.'
 Assert-True ($moduleSource.Contains('Get-NetTCPConnection -LocalAddress')) 'The responder PID must be tied to the listening loopback socket.'
 Assert-True ($moduleSource.Contains('Join-Path $ApplicationRoot $scriptArgument')) 'Relative server script arguments must resolve against the application root.'
+$pythonFunctionSource = [regex]::Match($moduleSource, 'function Find-OpenSlottingPythonCommand \{([\s\S]*?)\n\}').Groups[1].Value
+Assert-True ($pythonFunctionSource.Contains('Get-Command $candidate.Name -All')) 'All Python command candidates must be probed, including WindowsApps aliases.'
 $postStartStopCount = ([regex]::Matches($serverFunctionSource, 'Stop-Process -Id \$process\.Id')).Count
 Assert-True ($postStartStopCount -ge 2) 'A server created by this invocation must be stopped when post-start verification fails.'
 

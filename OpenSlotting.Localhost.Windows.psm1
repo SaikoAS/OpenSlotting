@@ -158,19 +158,20 @@ function Find-OpenSlottingPythonCommand {
         [pscustomobject]@{ Name = 'python.exe'; Prefix = @() }
     )
     foreach ($candidate in $candidates) {
-        $command = Get-Command $candidate.Name -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($null -eq $command -or [string]::IsNullOrWhiteSpace($command.Source)) {
-            continue
-        }
-        if ($command.Source -match '[\\/]WindowsApps[\\/]python(?:3)?\.exe$') {
-            continue
-        }
-
-        & $command.Source @($candidate.Prefix) -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 8) else 1)' 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            return [pscustomobject]@{
-                FilePath = [System.IO.Path]::GetFullPath($command.Source)
-                Prefix = @($candidate.Prefix)
+        $commands = @(Get-Command $candidate.Name -All -ErrorAction SilentlyContinue | Where-Object {
+            $_.CommandType -eq 'Application' -and -not [string]::IsNullOrWhiteSpace($_.Source)
+        })
+        foreach ($command in $commands) {
+            try {
+                & $command.Source @($candidate.Prefix) -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 8) else 1)' 2>$null
+            } catch {
+                continue
+            }
+            if ($LASTEXITCODE -eq 0) {
+                return [pscustomobject]@{
+                    FilePath = [System.IO.Path]::GetFullPath($command.Source)
+                    Prefix = @($candidate.Prefix)
+                }
             }
         }
     }
