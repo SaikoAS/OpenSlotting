@@ -474,6 +474,20 @@ test('matching file metadata warns without treating different content as identic
   assert.equal(warnings.some((warning) => warning.code === 'identical_file_content'), false);
 });
 
+test('content fingerprints preserve duplicate warnings after decoded text is released', () => {
+  const identical = csv.detectBatchWarnings([
+    { id: 'source-1', name: 'first.csv', label: 'first.csv', content: null, contentFingerprint: '12:abc:123' },
+    { id: 'source-2', name: 'second.csv', label: 'second.csv', content: null, contentFingerprint: '12:abc:123' }
+  ]);
+  const different = csv.detectBatchWarnings([
+    { id: 'source-1', name: 'first.csv', label: 'first.csv', content: null, contentFingerprint: '12:abc:123' },
+    { id: 'source-2', name: 'second.csv', label: 'second.csv', content: null, contentFingerprint: '12:def:456' }
+  ]);
+
+  assert.ok(identical.some((warning) => warning.code === 'identical_file_content'));
+  assert.equal(different.some((warning) => warning.code === 'identical_file_content'), false);
+});
+
 test('blocking files are excluded without hiding their source-specific issues', () => {
   const text = 'order_id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
   const readySource = { id: 'source-1', name: 'ready.csv', label: 'ready.csv' };

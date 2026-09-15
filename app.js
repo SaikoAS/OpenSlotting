@@ -1499,8 +1499,19 @@
 
   function decodeFileEntry(file, options) {
     const streaming = Boolean(options && options.streaming);
+    function fingerprint(text) {
+      let first = 2166136261;
+      let second = 2246822519;
+      for (let index = 0; index < text.length; index += 1) {
+        const code = text.charCodeAt(index);
+        first = Math.imul(first ^ code, 16777619) >>> 0;
+        second = Math.imul(second ^ (code + index), 3266489917) >>> 0;
+      }
+      return text.length + ':' + first.toString(16) + ':' + second.toString(16);
+    }
     file.errorKey = null;
     file.content = null;
+    file.contentFingerprint = null;
     file.parsed = null;
     file.headers = [];
     file.mapping = {};
@@ -1521,6 +1532,7 @@
         throw emptyError;
       }
       file.content = decoded.text;
+      file.contentFingerprint = fingerprint(decoded.text);
       file.activeEncoding = decoded.encoding;
       if (decoded.automatic) {
         file.detectedEncoding = decoded.encoding;
@@ -1587,6 +1599,7 @@
         activeEncoding: null,
         detectedEncoding: null,
         content: null,
+        contentFingerprint: null,
         parsed: null,
         headers: [],
         mapping: {},
@@ -1682,6 +1695,7 @@
       activeEncoding: stored.activeEncoding,
       detectedEncoding: stored.detectedEncoding,
       content: null,
+      contentFingerprint: null,
       parsed: null,
       headers: [],
       mapping: {},

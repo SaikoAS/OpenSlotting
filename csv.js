@@ -1089,8 +1089,10 @@
         const right = entries[rightIndex];
         const leftLabel = left.label || left.name || '';
         const rightLabel = right.label || right.name || '';
-        const sameContent = typeof left.content === 'string' && typeof right.content === 'string' &&
-          left.content === right.content;
+        const sameContent = (typeof left.content === 'string' && typeof right.content === 'string' &&
+          left.content === right.content) ||
+          (typeof left.contentFingerprint === 'string' && typeof right.contentFingerprint === 'string' &&
+            left.contentFingerprint === right.contentFingerprint);
 
         if (sameContent) {
           warnings.push({

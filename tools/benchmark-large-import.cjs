@@ -26,19 +26,29 @@ function megabytes(value) {
 
 function memory() {
   const usage = process.memoryUsage();
+  const resourceUsage = typeof process.resourceUsage === 'function'
+    ? process.resourceUsage()
+    : null;
   return {
     rssMb: megabytes(usage.rss),
-    heapUsedMb: megabytes(usage.heapUsed)
+    heapUsedMb: megabytes(usage.heapUsed),
+    peakRssMb: resourceUsage && Number.isFinite(resourceUsage.maxRSS)
+      ? megabytes(resourceUsage.maxRSS * 1024)
+      : megabytes(usage.rss)
   };
 }
 
 const startedAt = process.hrtime.bigint();
+const stageMemory = { fixture: memory() };
 const imported = csv.importCsv(text, mapping, { sourceFile: sourceFile });
 const importedAt = process.hrtime.bigint();
+stageMemory.import = memory();
 const combined = csv.combineImportResults([{ ...sourceFile, result: imported }]);
 const combinedAt = process.hrtime.bigint();
+stageMemory.combine = memory();
 const analysis = csv.analyzeRows(combined.rows);
 const analyzedAt = process.hrtime.bigint();
+stageMemory.analyze = memory();
 
 function milliseconds(start, end) {
   return Number(end - start) / 1000000;
@@ -56,5 +66,10 @@ console.log(JSON.stringify({
     analyze: milliseconds(combinedAt, analyzedAt),
     total: milliseconds(startedAt, analyzedAt)
   },
-  memory: memory()
+  memory: {
+    stages: stageMemory,
+    peakRssMb: Math.max.apply(null, Object.keys(stageMemory).map(function (stage) {
+      return stageMemory[stage].peakRssMb;
+    }))
+  }
 }, null, 2));

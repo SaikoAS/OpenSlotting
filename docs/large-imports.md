@@ -19,14 +19,17 @@ Damit bleiben insbesondere diese Eigenschaften erhalten:
 
 ## Reproduzierbare synthetische Messung
 
-Die Messung erzeugt keine Datei und verwendet keine Betriebsdaten:
+Die Messung erzeugt keine Datei und verwendet keine Betriebsdaten. Sie gibt
+zusätzlich die vom Betriebssystem gemeldete maximale RSS-Nutzung über
+`process.resourceUsage().maxRSS` sowie Momentaufnahmen je Verarbeitungsschritt
+aus:
 
 ```text
 node --expose-gc --max-old-space-size=4096 tools/benchmark-large-import.cjs 700000
 ```
 
 Das Programm meldet Quellgröße, exakte Zeilenzahlen, Import-/Analysezeit und
-den Node-Speicherstand. Eine Messung auf dem Entwicklungsrechner mit 700.000
+den aktuellen sowie den maximal gemessenen Node-Speicherstand. Eine Messung auf dem Entwicklungsrechner mit 700.000
 schmalen, gültigen Zeilen reduzierte den Spitzenbedarf des bisherigen
 Parser- plus Normalisierungspfads von ungefähr 944 MB auf ungefähr 777 MB RSS.
 Das ist ein reproduzierbarer Node-Vergleich, kein Nachweis der manuellen
