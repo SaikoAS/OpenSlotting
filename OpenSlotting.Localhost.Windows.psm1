@@ -216,16 +216,20 @@ function Start-OpenSlottingLocalhostServer {
         }
         $health = Get-OpenSlottingLocalhostHealth
         if ($null -ne $health) {
-            $ownedByInvocation = Test-OpenSlottingLocalhostProcessOwnership -ServerProcessId ([int]$health.pid) -LauncherProcessId $process.Id
-            if (-not $ownedByInvocation) {
+            try {
+                $ownedByInvocation = Test-OpenSlottingLocalhostProcessOwnership -ServerProcessId ([int]$health.pid) -LauncherProcessId $process.Id
+                if (-not $ownedByInvocation) {
+                    throw 'Another OpenSlotting localhost process became ready before this launcher.'
+                }
+                Assert-OpenSlottingLocalhostProcess -Health $health -ApplicationRoot $resolvedRoot | Out-Null
+                Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $resolvedRoot
+                return [pscustomobject]@{ Started = $true; ProcessId = [int]$health.pid }
+            } catch {
                 if (-not $process.HasExited) {
                     Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
                 }
-                throw 'Another OpenSlotting localhost process became ready before this launcher.'
+                throw
             }
-            Assert-OpenSlottingLocalhostProcess -Health $health -ApplicationRoot $resolvedRoot | Out-Null
-            Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $resolvedRoot
-            return [pscustomobject]@{ Started = $true; ProcessId = [int]$health.pid }
         }
     } while ([DateTime]::UtcNow -lt $deadline)
 
