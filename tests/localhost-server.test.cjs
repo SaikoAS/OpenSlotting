@@ -47,7 +47,7 @@ test('accepts the default HTTP Host form when configured for port 80', () => {
     python.command,
     python.prefix.concat([
       '-c',
-      'import runpy, sys; module = runpy.run_path(sys.argv[1]); assert module["expected_loopback_hosts"](80) == frozenset({"127.0.0.1", "127.0.0.1:80"}); assert module["expected_loopback_hosts"](8765) == frozenset({"127.0.0.1:8765"})',
+      'import runpy, sys; module = runpy.run_path(sys.argv[1]); assert module["expected_loopback_hosts"](80) == frozenset({"127.0.0.1", "127.0.0.1:80"}); assert module["expected_loopback_hosts"](8765) == frozenset({"127.0.0.1:8765"}); assert module["LoopbackServer"].allow_reuse_address is False',
       scriptPath
     ]),
     { encoding: 'utf8', windowsHide: true }

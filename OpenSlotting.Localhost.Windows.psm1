@@ -195,6 +195,7 @@ function Start-OpenSlottingLocalhostServer {
     $health = Get-OpenSlottingLocalhostHealth
     if ($null -ne $health) {
         Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $resolvedRoot
+        Assert-OpenSlottingLocalhostProcess -Health $health -ApplicationRoot $resolvedRoot | Out-Null
         return [pscustomobject]@{ Started = $false; ProcessId = [int]$health.pid }
     }
 
@@ -224,6 +225,47 @@ function Start-OpenSlottingLocalhostServer {
         Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
     }
     throw 'The OpenSlotting localhost server did not become ready within 10 seconds.'
+}
+
+function Assert-OpenSlottingLocalhostProcess {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Health,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ApplicationRoot
+    )
+
+    $serverProcessId = [int]$Health.pid
+    $serverScript = Get-OpenSlottingCanonicalPath -Path (Join-Path $ApplicationRoot 'Start-OpenSlotting-Localhost.py')
+    $processInfo = Get-CimInstance Win32_Process -Filter "ProcessId = $serverProcessId" -ErrorAction Stop
+    if ($null -eq $processInfo) {
+        throw 'The process answering on the OpenSlotting port could not be verified.'
+    }
+    $commandLine = [string]$processInfo.CommandLine
+    $scriptMatch = [regex]::Match($commandLine, '(?i)"(?<quoted>[^"]*Start-OpenSlotting-Localhost\.py)"|(?<bare>[^\s]*Start-OpenSlotting-Localhost\.py)')
+    $commandLineScript = if ($scriptMatch.Groups['quoted'].Success) {
+        $scriptMatch.Groups['quoted'].Value
+    } elseif ($scriptMatch.Groups['bare'].Success) {
+        $scriptMatch.Groups['bare'].Value
+    } else {
+        $null
+    }
+    $commandLineRootMatches = $false
+    if (-not [string]::IsNullOrWhiteSpace($commandLineScript)) {
+        try {
+            $commandLineRootMatches = (Get-OpenSlottingCanonicalPath -Path $commandLineScript).Equals($serverScript, [System.StringComparison]::OrdinalIgnoreCase)
+        } catch {
+            $commandLineRootMatches = $false
+        }
+    }
+    if ([string]::IsNullOrWhiteSpace($commandLine) -or
+        -not $commandLineRootMatches) {
+        throw 'The process answering on the OpenSlotting port could not be verified.'
+    }
+
+    return $processInfo
 }
 
 function Start-OpenSlottingLocalhostApp {
@@ -269,15 +311,8 @@ function Stop-OpenSlottingLocalhostServer {
     }
     Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $resolvedRoot
 
+    Assert-OpenSlottingLocalhostProcess -Health $health -ApplicationRoot $resolvedRoot | Out-Null
     $serverProcessId = [int]$health.pid
-    $serverScript = [System.IO.Path]::GetFullPath((Join-Path $resolvedRoot 'Start-OpenSlotting-Localhost.py'))
-    $processInfo = Get-CimInstance Win32_Process -Filter "ProcessId = $serverProcessId" -ErrorAction Stop
-    if ($null -eq $processInfo -or
-        [string]::IsNullOrWhiteSpace($processInfo.CommandLine) -or
-        $processInfo.CommandLine.IndexOf($serverScript, [System.StringComparison]::OrdinalIgnoreCase) -lt 0) {
-        throw 'The process answering on the OpenSlotting port could not be verified and was not stopped.'
-    }
-
     Stop-Process -Id $serverProcessId -Force -ErrorAction Stop
     return $true
 }
