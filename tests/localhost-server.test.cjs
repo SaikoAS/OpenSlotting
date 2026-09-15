@@ -120,7 +120,9 @@ test('experimental Python server is loopback-only and serves only runtime files'
   assert.equal(headResponse.status, 200);
   assert.equal(await headResponse.text(), '');
 
-  assert.equal((await fetch(origin + '/README.md')).status, 404);
-  assert.equal((await fetch(origin + '/.git/config')).status, 404);
-  assert.equal((await fetch(origin + '/%2e%2e/README.md')).status, 404);
+  for (const blockedPath of ['/README.md', '/.git/config', '/%2e%2e/README.md']) {
+    const blockedResponse = await fetch(origin + blockedPath);
+    assert.equal(blockedResponse.status, 404);
+    await blockedResponse.arrayBuffer();
+  }
 });
