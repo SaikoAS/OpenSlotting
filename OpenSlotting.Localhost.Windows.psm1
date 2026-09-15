@@ -217,8 +217,11 @@ function Start-OpenSlottingLocalhostServer {
         }
         $health = Get-OpenSlottingLocalhostHealth
         if ($null -ne $health) {
+            $ownedByInvocation = $false
+            $healthProcessId = 0
             try {
-                $ownedByInvocation = Test-OpenSlottingLocalhostProcessOwnership -ServerProcessId ([int]$health.pid) -LauncherProcessId $process.Id
+                $healthProcessId = [int]$health.pid
+                $ownedByInvocation = Test-OpenSlottingLocalhostProcessOwnership -ServerProcessId $healthProcessId -LauncherProcessId $process.Id
                 if (-not $ownedByInvocation) {
                     throw 'Another OpenSlotting localhost process became ready before this launcher.'
                 }
@@ -226,6 +229,9 @@ function Start-OpenSlottingLocalhostServer {
                 Assert-OpenSlottingLocalhostHealth -Health $health -ApplicationRoot $resolvedRoot
                 return [pscustomobject]@{ Started = $true; ProcessId = [int]$health.pid }
             } catch {
+                if ($ownedByInvocation -and $healthProcessId -gt 0 -and $healthProcessId -ne $process.Id) {
+                    Stop-Process -Id $healthProcessId -Force -ErrorAction SilentlyContinue
+                }
                 if (-not $process.HasExited) {
                     Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
                 }

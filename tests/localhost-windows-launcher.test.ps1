@@ -37,6 +37,7 @@ $pythonFunctionSource = [regex]::Match($moduleSource, 'function Find-OpenSlottin
 Assert-True ($pythonFunctionSource.Contains('Get-Command $candidate.Name -All')) 'All Python command candidates must be probed, including WindowsApps aliases.'
 $postStartStopCount = ([regex]::Matches($serverFunctionSource, 'Stop-Process -Id \$process\.Id')).Count
 Assert-True ($postStartStopCount -ge 2) 'A server created by this invocation must be stopped when post-start verification fails.'
+Assert-True ($serverFunctionSource.Contains('Stop-Process -Id $healthProcessId')) 'A verified descendant server process must also be stopped during startup cleanup.'
 
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('OpenSlotting Localhost Launcher Tests ' + [guid]::NewGuid().ToString('N'))
 [System.IO.Directory]::CreateDirectory($testRoot) | Out-Null
