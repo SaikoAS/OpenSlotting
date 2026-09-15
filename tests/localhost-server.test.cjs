@@ -125,14 +125,17 @@ test('experimental Python server is loopback-only and serves only runtime files'
   const scriptResponse = await fetch(origin + '/app.js');
   assert.equal(scriptResponse.status, 200);
   assert.match(scriptResponse.headers.get('content-type'), /^text\/javascript/);
+  await scriptResponse.arrayBuffer();
 
   const runtimeResponse = await fetch(origin + '/runtime.js');
   assert.equal(runtimeResponse.status, 200);
   assert.match(runtimeResponse.headers.get('content-type'), /^text\/javascript/);
+  await runtimeResponse.arrayBuffer();
 
   const faviconResponse = await fetch(origin + '/favicon.ico');
   assert.equal(faviconResponse.status, 200);
   assert.match(faviconResponse.headers.get('content-type'), /^image\/vnd\.microsoft\.icon/);
+  await faviconResponse.arrayBuffer();
 
   const headResponse = await fetch(origin + '/index.html', { method: 'HEAD' });
   assert.equal(headResponse.status, 200);
