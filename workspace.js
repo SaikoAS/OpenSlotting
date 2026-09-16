@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 1;
+  const WORKSPACE_SCHEMA_VERSION = 2;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -61,6 +61,52 @@
 
   function validIsoDate(value) {
     return typeof value === 'string' && Number.isFinite(Date.parse(value));
+  }
+
+  function validCalendarDate(value) {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    const text = String(value);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+      validationError('invalid_period_date', 'Comparison periods must use YYYY-MM-DD dates.');
+    }
+    const date = new Date(text + 'T00:00:00Z');
+    if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== text) {
+      validationError('invalid_period_date', 'Comparison period contains an invalid date.');
+    }
+    return text;
+  }
+
+  function normalizePeriod(value, fallbackName) {
+    const input = isPlainObject(value) ? value : {};
+    const name = String(input.name || fallbackName).trim().slice(0, 80) || fallbackName;
+    const start = validCalendarDate(input.start);
+    const end = validCalendarDate(input.end);
+    if (start && end && start > end) {
+      validationError('invalid_period_range', 'Comparison period start must not be after its end.');
+    }
+    return { name: name, start: start, end: end };
+  }
+
+  function normalizePeriodSettings(value) {
+    const input = isPlainObject(value) ? value : {};
+    const hasStoredBoundaries = (isPlainObject(input.periodA) && (input.periodA.start || input.periodA.end)) ||
+      (isPlainObject(input.periodB) && (input.periodB.start || input.periodB.end));
+    const mode = input.mode === 'custom' || (input.mode !== 'weeks' && hasStoredBoundaries) ? 'custom' : 'weeks';
+    const sourceWeekdays = Array.isArray(input.expectedWeekdays) ? input.expectedWeekdays : [0, 1, 2, 3, 4, 5, 6];
+    const expectedWeekdays = Array.from(new Set(sourceWeekdays.filter(function (day) {
+      return Number.isInteger(day) && day >= 0 && day <= 6;
+    }))).sort(function (left, right) { return left - right; });
+    if (expectedWeekdays.length === 0) {
+      validationError('invalid_expected_weekdays', 'At least one expected weekday is required.');
+    }
+    return {
+      mode: mode,
+      expectedWeekdays: expectedWeekdays,
+      periodA: normalizePeriod(input.periodA, 'Period A'),
+      periodB: normalizePeriod(input.periodB, 'Period B')
+    };
   }
 
   function copyArrayBuffer(value, options) {
@@ -179,6 +225,26 @@
     }
     if (typeof row.quantity !== 'bigint' || row.quantity <= 0n) {
       validationError('invalid_normalized_row', 'Normalized quantity must be a positive scaled integer.');
+    }
+    const salesUnitCount = row.sales_unit_count === undefined || row.sales_unit_count === null ? null : row.sales_unit_count;
+    const quantityPerSalesUnit = row.quantity_per_sales_unit === undefined || row.quantity_per_sales_unit === null ? null : row.quantity_per_sales_unit;
+    if (salesUnitCount !== null && (typeof salesUnitCount !== 'bigint' || salesUnitCount < 0n)) {
+      validationError('invalid_normalized_row', 'Normalized selling units must be a non-negative scaled integer.');
+    }
+    if (quantityPerSalesUnit !== null && (typeof quantityPerSalesUnit !== 'bigint' || quantityPerSalesUnit <= 0n)) {
+      validationError('invalid_normalized_row', 'Normalized quantity per selling unit must be a positive scaled integer.');
+    }
+    const expectedUnitMatch = salesUnitCount !== null && quantityPerSalesUnit !== null
+      ? salesUnitCount * quantityPerSalesUnit === row.quantity * 10000000n
+      : null;
+    if (row.sales_unit_quantity_matches !== undefined && row.sales_unit_quantity_matches !== expectedUnitMatch) {
+      validationError('invalid_normalized_row', 'Normalized selling-unit consistency flag is invalid.');
+    }
+    const expectedUnitRelation = salesUnitCount !== null && quantityPerSalesUnit !== null
+      ? (expectedUnitMatch ? 'exact' : (salesUnitCount * quantityPerSalesUnit < row.quantity * 10000000n ? 'partial' : 'exceeds'))
+      : null;
+    if (row.sales_unit_quantity_relation !== undefined && row.sales_unit_quantity_relation !== expectedUnitRelation) {
+      validationError('invalid_normalized_row', 'Normalized selling-unit quantity relation is invalid.');
     }
     if (typeof row.order_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.order_date)) {
       validationError('invalid_normalized_row', 'Normalized row contains an invalid date.');
@@ -301,6 +367,7 @@
       updatedAt: now,
       language: settings.language === 'de' ? 'de' : 'en',
       analyzed: false,
+      periodSettings: normalizePeriodSettings(settings.periodSettings),
       files: []
     };
   }
@@ -352,6 +419,7 @@
       updatedAt: workspace.updatedAt,
       language: workspace.language,
       analyzed: workspace.analyzed,
+      periodSettings: normalizePeriodSettings(workspace.periodSettings),
       files: files
     };
   }
@@ -361,27 +429,29 @@
       validationError('invalid_workspace', 'Workspace must be an object.');
     }
     const schemaVersion = Number(workspace.schemaVersion);
-    if (schemaVersion === 0) {
+    if (schemaVersion === 0 || schemaVersion === 1) {
       const migrated = cloneValue(workspace, options);
       const migrationTarget = options && options.clonePayload === false ? Object.assign({}, migrated) : migrated;
-      migrationTarget.schemaVersion = 1;
-      migrationTarget.language = migrationTarget.language === 'de' ? 'de' : 'en';
-      migrationTarget.analyzed = Boolean(migrationTarget.analyzed);
-      migrationTarget.files = Array.isArray(migrationTarget.files) ? migrationTarget.files.map(function (file) {
-        const migratedFile = isPlainObject(file) ? file : {};
-        if (!isPlainObject(migratedFile.mapping)) {
-          migratedFile.mapping = {};
-        }
-        if (migratedFile.confirmedMapping !== null && !isPlainObject(migratedFile.confirmedMapping)) {
-          migratedFile.confirmedMapping = null;
-        }
-        if (isPlainObject(migratedFile.result)) {
-          if (!isPlainObject(migratedFile.result.mapping)) {
+      if (schemaVersion === 0) {
+        migrationTarget.schemaVersion = 1;
+        migrationTarget.language = migrationTarget.language === 'de' ? 'de' : 'en';
+        migrationTarget.analyzed = Boolean(migrationTarget.analyzed);
+        migrationTarget.files = Array.isArray(migrationTarget.files) ? migrationTarget.files.map(function (file) {
+          const migratedFile = isPlainObject(file) ? file : {};
+          if (!isPlainObject(migratedFile.mapping)) {
+            migratedFile.mapping = {};
+          }
+          if (migratedFile.confirmedMapping !== null && !isPlainObject(migratedFile.confirmedMapping)) {
+            migratedFile.confirmedMapping = null;
+          }
+          if (isPlainObject(migratedFile.result) && !isPlainObject(migratedFile.result.mapping)) {
             migratedFile.result.mapping = {};
           }
-        }
-        return migratedFile;
-      }) : [];
+          return migratedFile;
+        }) : [];
+      }
+      migrationTarget.schemaVersion = 2;
+      migrationTarget.periodSettings = normalizePeriodSettings(migrationTarget.periodSettings);
       return validateWorkspace(migrationTarget, options);
     }
     return validateWorkspace(workspace, options);
@@ -401,6 +471,7 @@
       updatedAt: updatedAt,
       language: state && state.language === 'de' ? 'de' : 'en',
       analyzed: Boolean(state && state.analysis),
+      periodSettings: normalizePeriodSettings(state && state.periodSettings),
       files: state && Array.isArray(state.files) ? state.files : []
     }, settings);
   }
@@ -439,6 +510,7 @@
       updatedAt: settings.now || new Date().toISOString(),
       language: state && state.language === 'de' ? 'de' : 'en',
       analyzed: Boolean(state && state.analysis),
+      periodSettings: normalizePeriodSettings(state && state.periodSettings),
       files: files
     };
   }
@@ -618,6 +690,7 @@
     stringifyBackup: stringifyBackup,
     parseBackup: parseBackup,
     prepareRestore: prepareRestore,
+    normalizePeriodSettings: normalizePeriodSettings,
     backupFilename: backupFilename
   };
 }));

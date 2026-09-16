@@ -2,7 +2,7 @@
 
 OpenSlotting is an open-source, local-first web tool for analyzing warehouse order lines and building a data-driven foundation for warehouse slotting.
 
-The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. Future versions are planned to expand this foundation through multi-export analysis, separate locally stored workspaces, period comparisons, ABC/XYZ classification, configurable master data, slotting scores, and warehouse slotting recommendations.
+The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The current development version adds persistent workspaces and period comparison; future versions are planned to expand this foundation through ABC/XYZ classification, configurable master data, slotting scores, and warehouse slotting recommendations.
 
 > **Project status:** Post-V0.2.1 development with persistent local workspaces. The final bundled release version has not yet been assigned.
 
@@ -49,8 +49,12 @@ The current implementation includes:
 - approximate browser usage/quota display with a clear unavailable fallback
 - complete single-workspace JSON backup and validated restore as new or explicit replacement
 - versioned workspace and backup schemas without a workspace merge path
+- optional selling-unit / VKU / Colli and quantity-per-selling-unit import fields with zero-VKU and partial-sale support
+- visible date coverage with configurable expected weekdays and missing-day warnings
+- automatic ISO-calendar-week selection plus optional custom, workspace-persisted comparison periods
+- article-level comparison filters, data-quality indicators, detail links, and CSV export
 
-The complete import, normalization, validation, and analysis-export contract is documented in [`docs/data-format.md`](docs/data-format.md). Large-import measurements and the synthetic benchmark are documented in [`docs/large-imports.md`](docs/large-imports.md). Persistent storage, backup, restore, and migration are documented in [`docs/workspace-format.md`](docs/workspace-format.md).
+The complete import, normalization, validation, and analysis-export contract is documented in [`docs/data-format.md`](docs/data-format.md). Period coverage and comparison semantics are documented in [`docs/period-comparison.md`](docs/period-comparison.md). Large-import measurements and the synthetic benchmark are documented in [`docs/large-imports.md`](docs/large-imports.md). Persistent storage, backup, restore, and migration are documented in [`docs/workspace-format.md`](docs/workspace-format.md).
 
 The published V0.1 release was accepted in Microsoft Edge Desktop on Windows with `index.html` opened directly through `file:///`. V0.2 retains the same acceptance target and requires a separate multi-file Edge run before release using [`docs/acceptance-v0.2.md`](docs/acceptance-v0.2.md). Other browsers may work but are not part of the compatibility claim unless tested separately.
 
@@ -163,11 +167,11 @@ Different ERP, WMS, and CSV export headers are supported through configurable co
 7. Exclude visibly blocked files and invalid rows
 8. Warn about overlapping exports without removing rows
 9. Combine all valid normalized rows
-10. Aggregate order lines by article
-11. Calculate basic warehouse activity metrics
-12. Sort and filter the results
-13. Open an article to inspect its source file and source line
-14. Export the combined analysis or one complete workspace backup
+10. Review observed date coverage and configure expected weekdays
+11. Select two automatically detected ISO calendar weeks or define custom Period A and Period B boundaries
+12. Compare period metrics and article-level absolute and relative changes
+13. Inspect selling-unit conflicts, missing-day warnings, and source details
+14. Export the period comparison, combined analysis, or one complete workspace backup
 15. Return to the overview after a later restart, then reopen or replace a selected workspace
 
 ## Current Metrics
@@ -183,6 +187,8 @@ The current analysis includes metrics such as:
 - Average quantity per order
 - Share of total order lines
 - Cumulative share of order lines
+- Selling units / Colli and selling-unit coverage
+- Period A versus Period B changes for lines, quantity, orders, customers, and selling units
 
 A key principle of the project is to distinguish between **quantity** and **order-line frequency**.
 

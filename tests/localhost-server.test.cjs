@@ -125,6 +125,10 @@ test('experimental Python server is loopback-only and serves only runtime files'
   const scriptResponse = await fetch(origin + '/app.js');
   assert.equal(scriptResponse.status, 200);
   assert.match(scriptResponse.headers.get('content-type'), /^text\/javascript/);
+  const periodsResponse = await fetch(origin + '/periods.js');
+  assert.equal(periodsResponse.status, 200);
+  assert.match(periodsResponse.headers.get('content-type'), /^text\/javascript/);
+  await periodsResponse.arrayBuffer();
   await scriptResponse.arrayBuffer();
 
   const runtimeResponse = await fetch(origin + '/runtime.js');

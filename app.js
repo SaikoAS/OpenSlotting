@@ -2,6 +2,7 @@
   'use strict';
 
   const core = window.OpenSlottingCsv;
+  const periods = window.OpenSlottingPeriods;
   const encoding = window.OpenSlottingEncoding;
   const workspaceModel = window.OpenSlottingWorkspace;
   const storageApi = window.OpenSlottingStorage;
@@ -161,12 +162,15 @@
       no_detail_rows: 'No normalized order lines are available for this article.',
       empty_value: '—',
       issues_title: 'Validation notes',
-      issues_note: 'Blocking files and invalid rows are not aggregated and remain traceable by source file and line.',
+      issues_note: 'Excluded rows are not aggregated. Advisory notes on optional fields remain included and traceable by source file and line.',
       issue_source_file: 'Source file',
       issue_source_line: 'Source line',
       issue_field: 'Field',
       issue_code: 'Code',
       issue_message: 'Message',
+      issue_status: 'Status',
+      issue_status_included: 'Row included',
+      issue_status_excluded: 'Row excluded',
       footer_local: 'OpenSlotting processes the selected files locally only.',
       reset_button: 'Clear workspace data',
       not_mapped: '— not mapped —',
@@ -215,7 +219,139 @@
       structure_field: 'Structure',
       file_read_error: 'The file could not be read.',
       empty_file: 'The selected CSV file is empty or has no header row.',
-      invalid_encoding: 'The file encoding is not supported. Use UTF-8, UTF-16, or Windows-1252.'
+      invalid_encoding: 'The file encoding is not supported. Use UTF-8, UTF-16, or Windows-1252.',
+      workflow_label: 'Analysis workflow',
+      nav_kicker: 'Workspace',
+      nav_title: 'Analysis workspace',
+      nav_local_note: 'Local-first · source traceable',
+      workflow_workspace: 'Workspace',
+      workflow_import: 'Import sources',
+      workflow_mapping: 'Mapping & quality',
+      workflow_coverage: 'Coverage & periods',
+      workflow_comparison: 'Comparison results',
+      workflow_analysis: 'Analysis',
+      page_status_ready: 'Ready',
+      page_status_workspace: 'Manage workspace',
+      page_status_import: 'Import files',
+      page_status_mapping: 'Review columns',
+      page_status_coverage: 'Check date coverage',
+      page_status_comparison: 'Compare periods',
+      page_status_analysis: 'Explore articles',
+      step_4: 'Step 4',
+      step_5: 'Step 5',
+      required_label: 'Required',
+      optional_label: 'Optional',
+      coverage_title: 'Data coverage & periods',
+      coverage_intro: 'Review observed dates and define two inclusive comparison periods.',
+      coverage_unknown_note: 'Dates without imported rows remain unknown coverage, not zero demand.',
+      coverage_timeline_label: 'Observed date coverage',
+      coverage_sources_title: 'Coverage by source',
+      coverage_sources_intro: 'Review ranges, valid rows, dated invalid rows, and selling-unit coverage per source.',
+      coverage_dates_title: 'Coverage by date',
+      coverage_dates_intro: 'Invalid rows appear on a date only when that row contains a valid mapped order date.',
+      coverage_range: 'Observed range',
+      selling_unit_rows: 'VKU rows',
+      coverage_date_page: 'Page {{page}} of {{pages}} · {{count}} dates on this page',
+      coverage_view_evidence: 'View evidence',
+      coverage_drilldown_label: 'Coverage evidence',
+      coverage_drilldown_close: 'Close evidence',
+      coverage_evidence_type: 'Type',
+      coverage_valid_row: 'Valid row',
+      coverage_invalid_row: 'Excluded row',
+      coverage_advisory_row: 'Advisory · row included',
+      coverage_drilldown_date_title: 'Evidence for {{date}}',
+      coverage_drilldown_source_title: 'Evidence for {{source}}',
+      coverage_drilldown_summary: '{{valid}} valid rows · {{invalid}} invalid source rows · {{sources}} contributing sources',
+      expected_weekdays: 'Expected weekdays',
+      expected_weekdays_hint: 'Only selected weekdays count toward unknown dates.',
+      weekday_mon: 'Mon',
+      weekday_tue: 'Tue',
+      weekday_wed: 'Wed',
+      weekday_thu: 'Thu',
+      weekday_fri: 'Fri',
+      weekday_sat: 'Sat',
+      weekday_sun: 'Sun',
+      period_a: 'Period A',
+      period_b: 'Period B',
+      period_mode: 'Period selection',
+      period_mode_hint: 'Compare automatically detected calendar weeks or define custom date ranges.',
+      period_mode_weeks: 'Detected calendar weeks',
+      period_mode_custom: 'Custom periods',
+      calendar_week_select: 'Calendar week',
+      calendar_week_name: 'CW {{week}}/{{year}}',
+      calendar_week_summary: '{{count}} calendar weeks detected · {{start}} to {{end}}',
+      calendar_week_option: 'CW {{week}}/{{year}} · {{start}}–{{end}} · Rows: {{rows}}',
+      calendar_week_no_options: 'No calendar weeks detected',
+      period_name: 'Name',
+      period_start: 'Start date (inclusive)',
+      period_end: 'End date (inclusive)',
+      compare_periods: 'Compare periods',
+      reset_periods: 'Reset periods',
+      comparison_title: 'Comparison results',
+      comparison_intro: 'Compare key figures and article-level changes between the selected periods.',
+      edit_periods: 'Edit periods',
+      export_comparison: 'Export comparison',
+      comparison_search_placeholder: 'Article ID or description',
+      change_filter: 'Change',
+      change_all: 'All changes',
+      change_increased: 'Increased',
+      change_decreased: 'Decreased',
+      change_new: 'New',
+      change_inactive: 'Inactive',
+      change_incomplete: 'Incomplete data',
+      change_conflict: 'Selling-unit review',
+      sort_change: 'Largest quantity change',
+      sort_percent: 'Largest percent change',
+      column_sales_units: 'Colli',
+      comparison_change: 'Change',
+      comparison_quality: 'Data quality',
+      comparison_action: 'Action',
+      quantity_change: 'Quantity change',
+      percent_change: 'Percent change',
+      all_data_label: 'Reference view',
+      metric_sales_units: 'Selling units / Colli',
+      metric_sales_units_detail: 'Rows: {{rows}} · Partial sales: {{partials}} · Review notes: {{overages}}',
+      metric_sales_unit_relations: 'Partial sales: {{partials}} · Review notes: {{overages}}',
+      detail_sales_units: 'Selling units / Colli',
+      detail_quantity_per_sales_unit: 'Quantity per selling unit',
+      coverage_overview: '{{days}} observed days from {{start}} to {{end}} · {{dated}}/{{rows}} rows with a valid date',
+      coverage_no_dates: 'No valid order dates are available. Map and validate an order-date column first.',
+      coverage_complete: '{{observed}}/{{expected}} expected days observed · complete coverage',
+      coverage_partial: '{{observed}}/{{expected}} expected days observed · {{missing}} days unknown',
+      coverage_empty: '0/{{expected}} expected days observed · no imported rows in this period',
+      coverage_unavailable: 'Enter a valid start and end date.',
+      coverage_sources: '{{count}} source files',
+      period_invalid: 'Enter valid inclusive periods. The start date must not be after the end date.',
+      weekdays_required: 'Select at least one expected weekday.',
+      period_overlap: 'The periods overlap. The same rows can appear in both periods.',
+      comparison_period_summary: '{{start}} to {{end}} · {{coverage}}',
+      metric_period_lines: 'Order lines',
+      metric_period_quantity: 'Quantity',
+      metric_period_orders: 'Orders',
+      metric_period_customers: 'Customers',
+      metric_period_days: 'Active observed days',
+      metric_period_sales: 'Sales value',
+      metric_period_sales_units: 'Selling units / Colli',
+      metric_period_row_coverage: '{{rows}}/{{lines}} rows',
+      percent_unavailable: 'n/a',
+      comparison_empty: 'No articles match the current filters.',
+      comparison_page: 'Page {{page}} of {{pages}} · {{count}} articles on this page',
+      quality_ok: 'Complete',
+      quality_unknown_dates: 'Unknown dates',
+      quality_unit_conflict: 'Unit conflict',
+      quality_unit_partial: 'Partial sale',
+      quality_unit_exceeds: 'Selling-unit quantity exceeds total',
+      change_unchanged: 'Unchanged',
+      open_article: 'Open',
+      comparison_detail_label: 'Period-specific article evidence',
+      comparison_detail_close: 'Close details',
+      comparison_detail_period: 'Period',
+      comparison_detail_description: '{{name}} · {{sources}} sources · {{locations}} locations',
+      comparison_detail_conflict: 'Description variants: {{variants}}',
+      comparison_detail_page: 'Page {{page}} of {{pages}} · {{count}} period rows on this page',
+      mapping_help_sales_unit_count: 'Optional number of complete selling units; zero is valid for a pure partial sale. Total quantity remains authoritative.',
+      mapping_help_quantity_per_sales_unit: 'Optional content of one selling unit; used to identify full units and a possible partial remainder.',
+      comparison_export_filename: 'openslotting-period-comparison.csv'
     },
     de: {
       page_title: 'OpenSlotting – CSV-Analyse',
@@ -370,12 +506,15 @@
       no_detail_rows: 'Für diesen Artikel sind keine normalisierten Auftragszeilen verfügbar.',
       empty_value: '—',
       issues_title: 'Prüfhinweise',
-      issues_note: 'Blockierte Dateien und fehlerhafte Zeilen werden nicht aggregiert und bleiben über Quelldatei und Quellzeile nachvollziehbar.',
+      issues_note: 'Ausgeschlossene Zeilen werden nicht aggregiert. Hinweise zu optionalen Feldern bleiben einbezogen und über Quelldatei und Quellzeile nachvollziehbar.',
       issue_source_file: 'Quelldatei',
       issue_source_line: 'Quellzeile',
       issue_field: 'Feld',
       issue_code: 'Code',
       issue_message: 'Hinweis',
+      issue_status: 'Status',
+      issue_status_included: 'Zeile einbezogen',
+      issue_status_excluded: 'Zeile ausgeschlossen',
       footer_local: 'OpenSlotting verarbeitet die ausgewählten Dateien ausschließlich lokal.',
       reset_button: 'Arbeitsbereich leeren',
       not_mapped: '— nicht zugeordnet —',
@@ -424,7 +563,139 @@
       structure_field: 'Struktur',
       file_read_error: 'Die Datei konnte nicht gelesen werden.',
       empty_file: 'Die ausgewählte CSV-Datei ist leer oder enthält keine Kopfzeile.',
-      invalid_encoding: 'Die Dateikodierung wird nicht unterstützt. Bitte UTF-8, UTF-16 oder Windows-1252 verwenden.'
+      invalid_encoding: 'Die Dateikodierung wird nicht unterstützt. Bitte UTF-8, UTF-16 oder Windows-1252 verwenden.',
+      workflow_label: 'Analyseablauf',
+      nav_kicker: 'Arbeitsbereich',
+      nav_title: 'Analyse-Arbeitsbereich',
+      nav_local_note: 'Lokal · Quellen nachverfolgbar',
+      workflow_workspace: 'Arbeitsbereich',
+      workflow_import: 'CSV importieren',
+      workflow_mapping: 'Quellspalten & Hinweise',
+      workflow_coverage: 'Datenabdeckung',
+      workflow_comparison: 'Perioden & Vergleich',
+      workflow_analysis: 'Analyse',
+      page_status_ready: 'Bereit',
+      page_status_workspace: 'Arbeitsbereich verwalten',
+      page_status_import: 'Dateien importieren',
+      page_status_mapping: 'Spalten prüfen',
+      page_status_coverage: 'Datenabdeckung prüfen',
+      page_status_comparison: 'Perioden vergleichen',
+      page_status_analysis: 'Artikel analysieren',
+      step_4: 'Schritt 4',
+      step_5: 'Schritt 5',
+      required_label: 'Pflichtfeld',
+      optional_label: 'Optional',
+      coverage_title: 'Datenabdeckung & Perioden',
+      coverage_intro: 'Beobachtete Datumswerte prüfen und zwei inklusive Vergleichsperioden festlegen.',
+      coverage_unknown_note: 'Tage ohne importierte Zeilen bleiben unbekannte Abdeckung und gelten nicht als Nullabsatz.',
+      coverage_timeline_label: 'Beobachtete Datumsabdeckung',
+      coverage_sources_title: 'Abdeckung nach Quelle',
+      coverage_sources_intro: 'Zeiträume, gültige Zeilen, datierbare fehlerhafte Zeilen und VKU-Abdeckung je Quelle prüfen.',
+      coverage_dates_title: 'Abdeckung nach Datum',
+      coverage_dates_intro: 'Fehlerhafte Zeilen erscheinen nur dann bei einem Datum, wenn sie ein gültiges zugeordnetes Auftragsdatum enthalten.',
+      coverage_range: 'Beobachteter Zeitraum',
+      selling_unit_rows: 'VKU-Zeilen',
+      coverage_date_page: 'Seite {{page}} von {{pages}} · {{count}} Datumswerte auf dieser Seite',
+      coverage_view_evidence: 'Nachweise anzeigen',
+      coverage_drilldown_label: 'Abdeckungsnachweise',
+      coverage_drilldown_close: 'Nachweise schließen',
+      coverage_evidence_type: 'Typ',
+      coverage_valid_row: 'Gültige Zeile',
+      coverage_invalid_row: 'Ausgeschlossene Zeile',
+      coverage_advisory_row: 'Hinweis · Zeile einbezogen',
+      coverage_drilldown_date_title: 'Nachweise für {{date}}',
+      coverage_drilldown_source_title: 'Nachweise für {{source}}',
+      coverage_drilldown_summary: '{{valid}} gültige Zeilen · {{invalid}} fehlerhafte Quellzeilen · {{sources}} beitragende Quellen',
+      expected_weekdays: 'Erwartete Wochentage',
+      expected_weekdays_hint: 'Nur ausgewählte Wochentage zählen als unbekannte Tage.',
+      weekday_mon: 'Mo',
+      weekday_tue: 'Di',
+      weekday_wed: 'Mi',
+      weekday_thu: 'Do',
+      weekday_fri: 'Fr',
+      weekday_sat: 'Sa',
+      weekday_sun: 'So',
+      period_a: 'Periode A',
+      period_b: 'Periode B',
+      period_mode: 'Periodenauswahl',
+      period_mode_hint: 'Automatisch erkannte Kalenderwochen vergleichen oder eigene Zeiträume festlegen.',
+      period_mode_weeks: 'Erkannte Kalenderwochen',
+      period_mode_custom: 'Eigene Perioden',
+      calendar_week_select: 'Kalenderwoche',
+      calendar_week_name: 'KW{{week}}/{{year}}',
+      calendar_week_summary: '{{count}} Kalenderwochen erkannt · {{start}} bis {{end}}',
+      calendar_week_option: 'KW{{week}}/{{year}} · {{start}}–{{end}} · Zeilen: {{rows}}',
+      calendar_week_no_options: 'Keine Kalenderwochen erkannt',
+      period_name: 'Name',
+      period_start: 'Startdatum (inklusive)',
+      period_end: 'Enddatum (inklusive)',
+      compare_periods: 'Perioden vergleichen',
+      reset_periods: 'Perioden zurücksetzen',
+      comparison_title: 'Vergleichsergebnisse',
+      comparison_intro: 'Kennzahlen und Änderungen je Artikel zwischen den ausgewählten Perioden vergleichen.',
+      edit_periods: 'Perioden bearbeiten',
+      export_comparison: 'Vergleich exportieren',
+      comparison_search_placeholder: 'Artikel-ID oder Bezeichnung',
+      change_filter: 'Änderung',
+      change_all: 'Alle Änderungen',
+      change_increased: 'Gestiegen',
+      change_decreased: 'Gesunken',
+      change_new: 'Neu',
+      change_inactive: 'Inaktiv',
+      change_incomplete: 'Unvollständige Daten',
+      change_conflict: 'VKU-Prüfhinweis',
+      sort_change: 'Größte Mengenänderung',
+      sort_percent: 'Größte prozentuale Änderung',
+      column_sales_units: 'Colli',
+      comparison_change: 'Änderung',
+      comparison_quality: 'Datenqualität',
+      comparison_action: 'Aktion',
+      quantity_change: 'Mengenänderung',
+      percent_change: 'Prozentänderung',
+      all_data_label: 'Referenzansicht',
+      metric_sales_units: 'Verkaufseinheiten / Colli',
+      metric_sales_units_detail: 'Zeilen: {{rows}} · Teilmengen/Anbrüche: {{partials}} · Prüfhinweise: {{overages}}',
+      metric_sales_unit_relations: 'Teilmengen/Anbrüche: {{partials}} · Prüfhinweise: {{overages}}',
+      detail_sales_units: 'Verkaufseinheiten / Colli',
+      detail_quantity_per_sales_unit: 'Menge pro VKU',
+      coverage_overview: '{{days}} beobachtete Tage von {{start}} bis {{end}} · {{dated}}/{{rows}} Zeilen mit gültigem Datum',
+      coverage_no_dates: 'Es sind keine gültigen Auftragsdaten vorhanden. Bitte zuerst eine Datumsspalte zuordnen und validieren.',
+      coverage_complete: '{{observed}}/{{expected}} erwartete Tage vorhanden · vollständige Abdeckung',
+      coverage_partial: '{{observed}}/{{expected}} erwartete Tage vorhanden · {{missing}} Tage unbekannt',
+      coverage_empty: '0/{{expected}} erwartete Tage vorhanden · keine importierten Zeilen in dieser Periode',
+      coverage_unavailable: 'Bitte ein gültiges Start- und Enddatum eingeben.',
+      coverage_sources: '{{count}} Quelldateien',
+      period_invalid: 'Bitte gültige inklusive Perioden eingeben. Das Startdatum darf nicht nach dem Enddatum liegen.',
+      weekdays_required: 'Bitte mindestens einen erwarteten Wochentag auswählen.',
+      period_overlap: 'Die Perioden überschneiden sich. Dieselben Zeilen können in beiden Perioden enthalten sein.',
+      comparison_period_summary: '{{start}} bis {{end}} · {{coverage}}',
+      metric_period_lines: 'Auftragszeilen',
+      metric_period_quantity: 'Menge',
+      metric_period_orders: 'Aufträge',
+      metric_period_customers: 'Kunden',
+      metric_period_days: 'Aktive beobachtete Tage',
+      metric_period_sales: 'Umsatz',
+      metric_period_sales_units: 'Verkaufseinheiten / Colli',
+      metric_period_row_coverage: '{{rows}}/{{lines}} Zeilen',
+      percent_unavailable: 'k. A.',
+      comparison_empty: 'Keine Artikel entsprechen den aktuellen Filtern.',
+      comparison_page: 'Seite {{page}} von {{pages}} · {{count}} Artikel auf dieser Seite',
+      quality_ok: 'Vollständig',
+      quality_unknown_dates: 'Unbekannte Tage',
+      quality_unit_conflict: 'Einheitenkonflikt',
+      quality_unit_partial: 'Teilmenge/Anbruch',
+      quality_unit_exceeds: 'VKU-Menge größer als Gesamtmenge',
+      change_unchanged: 'Unverändert',
+      open_article: 'Öffnen',
+      comparison_detail_label: 'Periodenspezifische Artikelnachweise',
+      comparison_detail_close: 'Details schließen',
+      comparison_detail_period: 'Periode',
+      comparison_detail_description: '{{name}} · {{sources}} Quellen · {{locations}} Stellplätze',
+      comparison_detail_conflict: 'Bezeichnungsvarianten: {{variants}}',
+      comparison_detail_page: 'Seite {{page}} von {{pages}} · {{count}} Periodenzeilen auf dieser Seite',
+      mapping_help_sales_unit_count: 'Optionale Anzahl vollständiger Verkaufseinheiten; null ist bei reinem Anbruch zulässig. Die Gesamtmenge bleibt maßgeblich.',
+      mapping_help_quantity_per_sales_unit: 'Optionaler Inhalt einer Verkaufseinheit; dient zur Ermittlung vollständiger Einheiten und einer möglichen Teilmenge.',
+      comparison_export_filename: 'openslotting-periodenvergleich.csv'
     }
   };
 
@@ -447,11 +718,19 @@
     fileSelectionVersion: 0,
     result: null,
     analysis: null,
+    periodSettings: periods.normalizeSettings(),
+    comparison: null,
+    comparisonPage: 1,
+    coverageDatePage: 1,
+    coverageDrilldown: null,
+    selectedComparisonArticleId: null,
+    comparisonDetailPage: 1,
     sourceStatus: { key: 'no_file_selected', replacements: {}, error: false, text: '' },
     articlePage: 1,
     selectedArticleId: null,
     detailPage: 1,
-    issuePage: 1
+    issuePage: 1,
+    activePageTarget: 'workspace-panel'
   };
 
   const TABLE_PAGE_SIZE = 100;
@@ -482,7 +761,22 @@
     sqlite: 'runtime_capability_sqlite'
   };
 
+  const PAGE_CONFIG = {
+    'workspace-panel': { view: 'workspace-page', kicker: 'nav_kicker', title: 'workspace_title', status: 'page_status_workspace' },
+    'import-panel': { view: 'import-page', kicker: 'workflow_import', title: 'select_file_title', status: 'page_status_import' },
+    'mapping-panel': { view: 'import-page', kicker: 'workflow_mapping', title: 'mapping_title', status: 'page_status_mapping' },
+    'coverage-panel': { view: 'coverage-page', kicker: 'workflow_coverage', title: 'coverage_title', status: 'page_status_coverage' },
+    'comparison-panel': { view: 'comparison-page', kicker: 'workflow_comparison', title: 'comparison_title', status: 'page_status_comparison' },
+    'results-panel': { view: 'analysis-page', kicker: 'workflow_analysis', title: 'analysis_title', status: 'page_status_analysis' }
+  };
+
   const elements = {
+    headerWorkspaceName: document.getElementById('header-workspace-name'),
+    workflowSteps: Array.from(document.querySelectorAll('[data-workflow-target]')),
+    pageViews: Array.from(document.querySelectorAll('.app-page')),
+    pageContextKicker: document.getElementById('page-context-kicker'),
+    pageContextTitle: document.getElementById('page-context-title'),
+    pageContextStatus: document.getElementById('page-context-status'),
     runtimeBadge: document.getElementById('runtime-badge'),
     runtimeMode: document.getElementById('runtime-mode'),
     runtimeOrigin: document.getElementById('runtime-origin'),
@@ -512,6 +806,63 @@
     mappingGrid: document.getElementById('mapping-grid'),
     mappingMessage: document.getElementById('mapping-message'),
     analyzeButton: document.getElementById('analyze-button'),
+    coveragePanel: document.getElementById('coverage-panel'),
+    coverageOverview: document.getElementById('coverage-overview'),
+    coverageTimeline: document.getElementById('coverage-timeline'),
+    coverageSourceTableBody: document.getElementById('coverage-source-table-body'),
+    coverageDateTableBody: document.getElementById('coverage-date-table-body'),
+    coverageDatePagination: document.getElementById('coverage-date-pagination'),
+    coverageDatePrevious: document.getElementById('coverage-date-previous'),
+    coverageDateNext: document.getElementById('coverage-date-next'),
+    coverageDatePageStatus: document.getElementById('coverage-date-page-status'),
+    coverageDrilldown: document.getElementById('coverage-drilldown'),
+    coverageDrilldownTitle: document.getElementById('coverage-drilldown-title'),
+    coverageDrilldownSummary: document.getElementById('coverage-drilldown-summary'),
+    coverageDrilldownTableBody: document.getElementById('coverage-drilldown-table-body'),
+    coverageDrilldownClose: document.getElementById('coverage-drilldown-close'),
+    expectedWeekdays: Array.from(document.querySelectorAll('input[name="expected-weekday"]')),
+    periodModes: Array.from(document.querySelectorAll('input[name="period-mode"]')),
+    calendarWeekSummary: document.getElementById('calendar-week-summary'),
+    periodAWeekFields: document.getElementById('period-a-week-fields'),
+    periodAWeek: document.getElementById('period-a-week'),
+    periodACustomFields: document.getElementById('period-a-custom-fields'),
+    periodAName: document.getElementById('period-a-name'),
+    periodAStart: document.getElementById('period-a-start'),
+    periodAEnd: document.getElementById('period-a-end'),
+    periodAStatus: document.getElementById('period-a-status'),
+    periodBWeekFields: document.getElementById('period-b-week-fields'),
+    periodBWeek: document.getElementById('period-b-week'),
+    periodBCustomFields: document.getElementById('period-b-custom-fields'),
+    periodBName: document.getElementById('period-b-name'),
+    periodBStart: document.getElementById('period-b-start'),
+    periodBEnd: document.getElementById('period-b-end'),
+    periodBStatus: document.getElementById('period-b-status'),
+    periodMessage: document.getElementById('period-message'),
+    comparePeriods: document.getElementById('compare-periods'),
+    resetPeriods: document.getElementById('reset-periods'),
+    comparisonPanel: document.getElementById('comparison-panel'),
+    comparisonPeriodSummary: document.getElementById('comparison-period-summary'),
+    comparisonMetrics: document.getElementById('comparison-metrics'),
+    comparisonSearch: document.getElementById('comparison-search'),
+    comparisonFilter: document.getElementById('comparison-filter'),
+    comparisonSort: document.getElementById('comparison-sort'),
+    comparisonTableBody: document.getElementById('comparison-table-body'),
+    comparisonPagination: document.getElementById('comparison-pagination'),
+    comparisonPrevious: document.getElementById('comparison-previous'),
+    comparisonNext: document.getElementById('comparison-next'),
+    comparisonPageStatus: document.getElementById('comparison-page-status'),
+    editPeriods: document.getElementById('edit-periods'),
+    exportComparison: document.getElementById('export-comparison'),
+    comparisonDetail: document.getElementById('comparison-detail'),
+    comparisonDetailTitle: document.getElementById('comparison-detail-title'),
+    comparisonDetailDescription: document.getElementById('comparison-detail-description'),
+    comparisonDetailPeriods: document.getElementById('comparison-detail-periods'),
+    comparisonDetailTableBody: document.getElementById('comparison-detail-table-body'),
+    comparisonDetailClose: document.getElementById('comparison-detail-close'),
+    comparisonDetailPagination: document.getElementById('comparison-detail-pagination'),
+    comparisonDetailPrevious: document.getElementById('comparison-detail-previous'),
+    comparisonDetailNext: document.getElementById('comparison-detail-next'),
+    comparisonDetailPageStatus: document.getElementById('comparison-detail-page-status'),
     resultsPanel: document.getElementById('results-panel'),
     importSummary: document.getElementById('import-summary'),
     sourceFilesTableBody: document.getElementById('source-files-table-body'),
@@ -696,6 +1047,7 @@
   }
 
   function renderWorkspaceControls() {
+    setText(elements.headerWorkspaceName, state.activeWorkspace ? state.activeWorkspace.name : translate('workspace_none'));
     const selectedId = state.selectedWorkspaceId || '';
     elements.workspaceSelect.replaceChildren();
     const emptyOption = document.createElement('option');
@@ -743,6 +1095,7 @@
       }
     });
     renderWorkspaceProgress();
+    renderWorkflow();
     renderWorkspaceOverview();
   }
 
@@ -1045,13 +1398,16 @@
           const label = document.createElement('label');
           const selectId = 'mapping-' + file.id + '-' + definition.key;
           label.htmlFor = selectId;
-          label.textContent = core.getFieldLabel(definition.key, state.language);
-          if (definition.required) {
-            const requiredMarker = document.createElement('span');
-            requiredMarker.className = 'required-marker';
-            requiredMarker.textContent = ' · ' + translate('required_marker');
-            label.appendChild(requiredMarker);
-          }
+          const labelLine = document.createElement('span');
+          labelLine.className = 'field-label-line';
+          const fieldName = document.createElement('span');
+          setText(fieldName, core.getFieldLabel(definition.key, state.language));
+          const fieldBadge = document.createElement('span');
+          fieldBadge.className = 'field-badge ' + (definition.required ? 'required' : 'optional');
+          setText(fieldBadge, translate(definition.required ? 'required_label' : 'optional_label'));
+          labelLine.appendChild(fieldName);
+          labelLine.appendChild(fieldBadge);
+          label.appendChild(labelLine);
           const select = document.createElement('select');
           select.id = selectId;
           select.dataset.field = definition.key;
@@ -1066,6 +1422,13 @@
           }
           wrapper.appendChild(label);
           wrapper.appendChild(select);
+          if (definition.key === 'sales_unit_count' || definition.key === 'quantity_per_sales_unit') {
+            const help = document.createElement('small');
+            help.className = 'mapping-help';
+            const helpKey = 'mapping_help_' + definition.key;
+            setText(help, translate(helpKey));
+            wrapper.appendChild(help);
+          }
           fields.appendChild(wrapper);
         });
         section.appendChild(fields);
@@ -1138,8 +1501,12 @@
     }
     if (state.result && !(options && options.skipAnalysisRefresh)) {
       refreshAnalyzedResults(true);
+    } else if (state.result) {
+      renderCoverage();
+      renderComparison();
     }
     renderSourceStatus();
+    renderWorkflow();
   }
 
   function renderMetricCards(container, metrics) {
@@ -1172,8 +1539,797 @@
       [translate('metric_days'), formatNumber(analysis.active_days, 0), translate('metric_days_detail')],
       [translate('metric_average_line'), formatQuantity(analysis.average_quantity_per_line), translate('metric_average_line_detail')],
       [translate('metric_average_order'), formatQuantity(analysis.average_quantity_per_order), translate('metric_average_order_detail')],
-      [translate('metric_sales'), formatTotalSales(analysis), translate('metric_sales_detail', { count: analysis.sales_value_rows })]
+      [translate('metric_sales'), formatTotalSales(analysis), translate('metric_sales_detail', { count: analysis.sales_value_rows })],
+      [translate('metric_sales_units'), formatQuantity(analysis.total_sales_units), translate('metric_sales_units_detail', {
+        rows: analysis.sales_unit_rows,
+        partials: analysis.selling_unit_partial_rows,
+        overages: analysis.selling_unit_overage_rows
+      })]
     ]);
+  }
+
+  function renderWorkflow(activeTarget) {
+    const availability = {
+      'workspace-panel': Boolean(state.activeWorkspace),
+      'import-panel': Boolean(state.activeWorkspace),
+      'mapping-panel': state.files.length > 0,
+      'coverage-panel': Boolean(state.result && state.result.validRows > 0),
+      'comparison-panel': Boolean(state.comparison),
+      'results-panel': Boolean(state.result && state.result.validRows > 0)
+    };
+    const completion = {
+      'workspace-panel': Boolean(state.activeWorkspace),
+      'import-panel': state.files.length > 0,
+      'mapping-panel': Boolean(state.result && state.result.validRows > 0),
+      'coverage-panel': Boolean(state.comparison),
+      'comparison-panel': false,
+      'results-panel': false
+    };
+    const fallbackTarget = state.comparison
+      ? 'comparison-panel'
+      : state.result && state.result.validRows > 0
+        ? 'coverage-panel'
+        : state.files.length
+          ? 'mapping-panel'
+          : state.activeWorkspace
+            ? 'import-panel'
+            : 'workspace-panel';
+    const candidateTarget = activeTarget || state.activePageTarget;
+    const candidateAvailable = candidateTarget === 'workspace-panel' || availability[candidateTarget];
+    const requestedTarget = PAGE_CONFIG[candidateTarget] && candidateAvailable ? candidateTarget : fallbackTarget;
+    const config = PAGE_CONFIG[requestedTarget] || PAGE_CONFIG[fallbackTarget];
+    state.activePageTarget = requestedTarget;
+    elements.pageViews.forEach(function (view) {
+      view.classList.toggle('hidden', view.id !== config.view);
+    });
+    setText(elements.pageContextKicker, translate(config.kicker));
+    setText(elements.pageContextTitle, translate(config.title));
+    setText(elements.pageContextStatus, translate(config.status));
+    elements.workflowSteps.forEach(function (button) {
+      const target = button.dataset.workflowTarget;
+      button.classList.toggle('available', availability[target]);
+      button.classList.toggle('complete', completion[target]);
+      button.classList.toggle('active', target === requestedTarget);
+      button.disabled = !availability[target] && target !== 'workspace-panel';
+    });
+  }
+
+  function coverageText(coverage) {
+    if (!coverage || coverage.status === 'unavailable') {
+      return translate('coverage_unavailable');
+    }
+    if (coverage.status === 'empty') {
+      return translate('coverage_empty', { expected: coverage.expectedDayCount });
+    }
+    if (coverage.status === 'partial') {
+      return translate('coverage_partial', {
+        observed: coverage.observedDayCount,
+        expected: coverage.expectedDayCount,
+        missing: coverage.missingDayCount
+      });
+    }
+    return translate('coverage_complete', {
+      observed: coverage.observedDayCount,
+      expected: coverage.expectedDayCount
+    });
+  }
+
+  function formatCalendarDate(value) {
+    if (!periods.validDate(value)) {
+      return value || '';
+    }
+    return new Intl.DateTimeFormat(state.language === 'de' ? 'de-DE' : 'en-US', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: 'UTC'
+    }).format(new Date(value + 'T00:00:00Z'));
+  }
+
+  function selectedPeriodMode() {
+    const selected = elements.periodModes.find(function (input) { return input.checked; });
+    return selected && selected.value === 'custom' ? 'custom' : 'weeks';
+  }
+
+  function calendarWeekPeriod(week) {
+    const period = periods.periodFromCalendarWeek(week);
+    period.name = translate('calendar_week_name', {
+      week: String(week.week).padStart(2, '0'),
+      year: week.year
+    });
+    return period;
+  }
+
+  function periodSettingsFromControls() {
+    const mode = selectedPeriodMode();
+    const weeks = state.result ? periods.detectedCalendarWeeks(state.result.rows) : [];
+    const selectedWeekA = weeks.find(function (week) { return week.id === elements.periodAWeek.value; });
+    const selectedWeekB = weeks.find(function (week) { return week.id === elements.periodBWeek.value; });
+    const customPeriodA = {
+      name: elements.periodAName.value.trim() || translate('period_a'),
+      start: elements.periodAStart.value,
+      end: elements.periodAEnd.value
+    };
+    const customPeriodB = {
+      name: elements.periodBName.value.trim() || translate('period_b'),
+      start: elements.periodBStart.value,
+      end: elements.periodBEnd.value
+    };
+    return periods.normalizeSettings({
+      mode: mode,
+      expectedWeekdays: elements.expectedWeekdays.filter(function (input) { return input.checked; }).map(function (input) { return Number(input.value); }),
+      periodA: mode === 'weeks' && selectedWeekA ? calendarWeekPeriod(selectedWeekA) : customPeriodA,
+      periodB: mode === 'weeks' && selectedWeekB ? calendarWeekPeriod(selectedWeekB) : customPeriodB
+    });
+  }
+
+  function periodSettingsValid(settings) {
+    return settings.expectedWeekdays.length > 0 &&
+      periods.validDate(settings.periodA.start) && periods.validDate(settings.periodA.end) && settings.periodA.start <= settings.periodA.end &&
+      periods.validDate(settings.periodB.start) && periods.validDate(settings.periodB.end) && settings.periodB.start <= settings.periodB.end;
+  }
+
+  function periodSettingsStorable(settings) {
+    return settings.expectedWeekdays.length > 0 &&
+      (!settings.periodA.start || !settings.periodA.end || settings.periodA.start <= settings.periodA.end) &&
+      (!settings.periodB.start || !settings.periodB.end || settings.periodB.start <= settings.periodB.end);
+  }
+
+  function populateCalendarWeekSelect(select, weeks, period, fallbackWeek) {
+    select.replaceChildren();
+    if (weeks.length === 0) {
+      const option = document.createElement('option');
+      option.value = '';
+      setText(option, translate('calendar_week_no_options'));
+      select.appendChild(option);
+      select.disabled = true;
+      return;
+    }
+    weeks.forEach(function (week) {
+      const option = document.createElement('option');
+      option.value = week.id;
+      setText(option, translate('calendar_week_option', {
+        week: String(week.week).padStart(2, '0'),
+        year: week.year,
+        start: formatCalendarDate(week.start),
+        end: formatCalendarDate(week.end),
+        rows: week.rowCount
+      }));
+      select.appendChild(option);
+    });
+    const matchingWeek = weeks.find(function (week) {
+      return week.start === period.start && week.end === period.end;
+    });
+    select.value = (matchingWeek || fallbackWeek || weeks[0]).id;
+    select.disabled = false;
+  }
+
+  function renderPeriodControls() {
+    const settings = periods.normalizeSettings(state.periodSettings);
+    const weeks = state.result ? periods.detectedCalendarWeeks(state.result.rows) : [];
+    const fallbackB = weeks.length > 0 ? weeks[weeks.length - 1] : null;
+    const fallbackA = weeks.length > 1 ? weeks[weeks.length - 2] : fallbackB;
+    elements.periodModes.forEach(function (input) {
+      input.checked = input.value === settings.mode;
+    });
+    const customMode = settings.mode === 'custom';
+    elements.periodAWeekFields.classList.toggle('hidden', customMode);
+    elements.periodBWeekFields.classList.toggle('hidden', customMode);
+    elements.periodACustomFields.classList.toggle('hidden', !customMode);
+    elements.periodBCustomFields.classList.toggle('hidden', !customMode);
+    populateCalendarWeekSelect(elements.periodAWeek, weeks, settings.periodA, fallbackA);
+    populateCalendarWeekSelect(elements.periodBWeek, weeks, settings.periodB, fallbackB);
+    setText(elements.calendarWeekSummary, weeks.length > 0
+      ? translate('calendar_week_summary', {
+        count: weeks.length,
+        start: formatCalendarDate(weeks[0].start),
+        end: formatCalendarDate(weeks[weeks.length - 1].end)
+      })
+      : translate('calendar_week_no_options'));
+    elements.periodAName.value = settings.periodA.name;
+    elements.periodAStart.value = settings.periodA.start || '';
+    elements.periodAEnd.value = settings.periodA.end || '';
+    elements.periodBName.value = settings.periodB.name;
+    elements.periodBStart.value = settings.periodB.start || '';
+    elements.periodBEnd.value = settings.periodB.end || '';
+    elements.expectedWeekdays.forEach(function (input) {
+      input.checked = settings.expectedWeekdays.includes(Number(input.value));
+    });
+  }
+
+  function settingsForDetectedCalendarWeeks(settings, rows) {
+    const normalized = periods.normalizeSettings(settings);
+    if (normalized.mode !== 'weeks') {
+      return normalized;
+    }
+    const weeks = periods.detectedCalendarWeeks(rows);
+    if (weeks.length === 0) {
+      return normalized;
+    }
+    const periodMatchesWeek = function (period) {
+      return weeks.some(function (week) { return week.start === period.start && week.end === period.end; });
+    };
+    if (periodMatchesWeek(normalized.periodA) && periodMatchesWeek(normalized.periodB)) {
+      return normalized;
+    }
+    const defaults = periods.defaultSettings(rows);
+    defaults.expectedWeekdays = normalized.expectedWeekdays;
+    return defaults;
+  }
+
+  function renderCoverageTimeline(rows) {
+    const dates = Array.from(new Set(rows.map(function (row) { return periods.validDate(row.order_date) ? row.order_date : null; }).filter(Boolean))).sort();
+    elements.coverageTimeline.replaceChildren();
+    if (dates.length === 0) {
+      elements.coverageTimeline.classList.add('hidden');
+      return;
+    }
+    elements.coverageTimeline.classList.remove('hidden');
+    const first = new Date(dates[0] + 'T00:00:00Z');
+    const last = new Date(dates[dates.length - 1] + 'T00:00:00Z');
+    const dayCount = Math.max(1, Math.round((last - first) / 86400000) + 1);
+    const bucketSize = Math.max(1, Math.ceil(dayCount / 366));
+    const observed = new Set(dates);
+    const observedBuckets = new Set(Array.from(observed).map(function (value) {
+      const observedDate = new Date(value + 'T00:00:00Z');
+      const offset = Math.round((observedDate.getTime() - first.getTime()) / 86400000);
+      return Math.floor(offset / bucketSize);
+    }));
+    const bucketCount = Math.ceil(dayCount / bucketSize);
+    for (let bucketIndex = 0; bucketIndex < bucketCount; bucketIndex += 1) {
+      const offset = bucketIndex * bucketSize;
+      const bucketStart = new Date(first.getTime() + offset * 86400000);
+      const bucketEndOffset = Math.min(dayCount - 1, offset + bucketSize - 1);
+      const bucketEnd = new Date(first.getTime() + bucketEndOffset * 86400000);
+      const hasObserved = observedBuckets.has(bucketIndex);
+      const day = document.createElement('span');
+      day.className = 'coverage-day' + (hasObserved ? ' observed' : '');
+      day.title = bucketStart.toISOString().slice(0, 10) + (bucketSize > 1 ? ' – ' + bucketEnd.toISOString().slice(0, 10) : '');
+      elements.coverageTimeline.appendChild(day);
+    }
+  }
+
+  function buildCoverageData() {
+    const sourceMap = new Map((state.result.files || []).map(function (file) {
+      return [file.id, {
+        id: file.id,
+        label: file.label,
+        dateStart: file.dateStart,
+        dateEnd: file.dateEnd,
+        validRows: file.validRows,
+        invalidRows: file.invalidRows,
+        dates: new Set(),
+        salesUnitRows: 0
+      }];
+    }));
+    const dateMap = new Map();
+    function dateEntry(date) {
+      if (!dateMap.has(date)) {
+        dateMap.set(date, { date: date, validRows: 0, invalidLines: new Set(), sources: new Map() });
+      }
+      return dateMap.get(date);
+    }
+    state.result.rows.forEach(function (row) {
+      const source = sourceMap.get(row.source_file_id);
+      if (source && periods.validDate(row.order_date)) {
+        source.dates.add(row.order_date);
+        if (typeof row.sales_unit_count === 'bigint') {
+          source.salesUnitRows += 1;
+        }
+      }
+      if (periods.validDate(row.order_date)) {
+        const entry = dateEntry(row.order_date);
+        entry.validRows += 1;
+        if (row.source_file_id) {
+          entry.sources.set(row.source_file_id, row.source_file_label || row.source_file_name || row.source_file_id);
+        }
+      }
+    });
+    state.result.issues.forEach(function (issue) {
+      if (!core.issueIsBlocking(issue) || !periods.validDate(issue.orderDate) || !Number.isInteger(issue.sourceLine)) {
+        return;
+      }
+      const entry = dateEntry(issue.orderDate);
+      entry.invalidLines.add(String(issue.sourceFileId || '') + ':' + issue.sourceLine);
+      if (issue.sourceFileId) {
+        entry.sources.set(issue.sourceFileId, issue.sourceFileLabel || issue.sourceFileName || issue.sourceFileId);
+      }
+    });
+    return {
+      sources: Array.from(sourceMap.values()),
+      dates: Array.from(dateMap.values()).sort(function (left, right) { return left.date.localeCompare(right.date); })
+    };
+  }
+
+  function evidenceButton(datasetName, value) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'text-button';
+    button.dataset[datasetName] = value;
+    setText(button, translate('coverage_view_evidence'));
+    return button;
+  }
+
+  function renderCoverageSources(coverageData) {
+    elements.coverageSourceTableBody.replaceChildren();
+    coverageData.sources.forEach(function (source) {
+      const row = document.createElement('tr');
+      appendCell(row, source.label);
+      appendCell(row, source.dateStart && source.dateEnd ? source.dateStart + ' – ' + source.dateEnd : translate('empty_value'));
+      appendCell(row, formatNumber(source.dates.size, 0), 'number');
+      appendCell(row, formatNumber(source.validRows, 0), 'number');
+      appendCell(row, formatNumber(source.invalidRows, 0), 'number');
+      appendCell(row, formatNumber(source.salesUnitRows, 0), 'number');
+      const action = document.createElement('td');
+      action.appendChild(evidenceButton('coverageSourceId', source.id));
+      row.appendChild(action);
+      elements.coverageSourceTableBody.appendChild(row);
+    });
+  }
+
+  function renderCoverageDates(coverageData) {
+    const pageCount = Math.max(1, Math.ceil(coverageData.dates.length / TABLE_PAGE_SIZE));
+    state.coverageDatePage = Math.min(Math.max(state.coverageDatePage, 1), pageCount);
+    const pageStart = (state.coverageDatePage - 1) * TABLE_PAGE_SIZE;
+    const visible = coverageData.dates.slice(pageStart, pageStart + TABLE_PAGE_SIZE);
+    elements.coverageDateTableBody.replaceChildren();
+    visible.forEach(function (entry) {
+      const row = document.createElement('tr');
+      appendCell(row, entry.date);
+      appendCell(row, formatNumber(entry.validRows, 0), 'number');
+      appendCell(row, formatNumber(entry.invalidLines.size, 0), 'number');
+      appendCell(row, Array.from(entry.sources.values()).join(', ') || translate('empty_value'));
+      const action = document.createElement('td');
+      action.appendChild(evidenceButton('coverageDate', entry.date));
+      row.appendChild(action);
+      elements.coverageDateTableBody.appendChild(row);
+    });
+    elements.coverageDatePagination.classList.toggle('hidden', coverageData.dates.length <= TABLE_PAGE_SIZE);
+    elements.coverageDatePrevious.disabled = state.coverageDatePage <= 1;
+    elements.coverageDateNext.disabled = state.coverageDatePage >= pageCount;
+    setText(elements.coverageDatePageStatus, translate('coverage_date_page', {
+      page: state.coverageDatePage,
+      pages: pageCount,
+      count: visible.length
+    }));
+  }
+
+  function renderCoverageDrilldown() {
+    const selection = state.coverageDrilldown;
+    if (!selection || !state.result) {
+      elements.coverageDrilldown.classList.add('hidden');
+      return;
+    }
+    const isDate = selection.type === 'date';
+    const sourceSummary = state.result.files.find(function (source) { return source.id === selection.value; });
+    const validRows = state.result.rows.filter(function (row) {
+      return isDate ? row.order_date === selection.value : row.source_file_id === selection.value;
+    });
+    const issues = state.result.issues.filter(function (issue) {
+      return isDate ? issue.orderDate === selection.value : issue.sourceFileId === selection.value;
+    });
+    const invalidLines = new Set(issues.filter(function (issue) {
+      return core.issueIsBlocking(issue) && Number.isInteger(issue.sourceLine);
+    }).map(function (issue) {
+      return String(issue.sourceFileId || '') + ':' + issue.sourceLine;
+    }));
+    const sources = new Set();
+    validRows.forEach(function (row) { if (row.source_file_id) { sources.add(row.source_file_id); } });
+    issues.forEach(function (issue) { if (issue.sourceFileId) { sources.add(issue.sourceFileId); } });
+    setText(elements.coverageDrilldownTitle, translate(isDate ? 'coverage_drilldown_date_title' : 'coverage_drilldown_source_title', {
+      date: selection.value,
+      source: sourceSummary ? sourceSummary.label : selection.value
+    }));
+    setText(elements.coverageDrilldownSummary, translate('coverage_drilldown_summary', {
+      valid: validRows.length,
+      invalid: invalidLines.size,
+      sources: sources.size
+    }));
+    elements.coverageDrilldownTableBody.replaceChildren();
+    validRows.forEach(function (rowData) {
+      const row = document.createElement('tr');
+      appendCell(row, translate('coverage_valid_row'));
+      appendCell(row, optionalText(rowData.source_file_label || rowData.source_file_name));
+      appendCell(row, String(rowData.source_line), 'number');
+      appendCell(row, rowData.order_date);
+      appendCell(row, rowData.article_id);
+      appendCell(row, rowData.order_id + ' · ' + formatQuantity(rowData.quantity));
+      elements.coverageDrilldownTableBody.appendChild(row);
+    });
+    issues.forEach(function (issue) {
+      const row = document.createElement('tr');
+      appendCell(row, translate(core.issueIsBlocking(issue) ? 'coverage_invalid_row' : 'coverage_advisory_row'));
+      appendCell(row, optionalText(issue.sourceFileLabel || issue.sourceFileName));
+      appendCell(row, Number.isInteger(issue.sourceLine) ? String(issue.sourceLine) : translate('empty_value'), 'number');
+      appendCell(row, optionalText(issue.orderDate));
+      appendCell(row, translate('empty_value'));
+      appendCell(row, issue.message);
+      elements.coverageDrilldownTableBody.appendChild(row);
+    });
+    elements.coverageDrilldown.classList.remove('hidden');
+  }
+
+  function renderCoverage() {
+    if (!state.result || state.result.validRows === 0) {
+      elements.coveragePanel.classList.add('hidden');
+      return;
+    }
+    const rows = state.result.rows;
+    const dates = Array.from(new Set(rows.map(function (row) { return periods.validDate(row.order_date) ? row.order_date : null; }).filter(Boolean))).sort();
+    const datedRows = rows.filter(function (row) { return periods.validDate(row.order_date); }).length;
+    elements.coverageOverview.replaceChildren();
+    const summary = document.createElement('div');
+    summary.className = 'coverage-stat';
+    const summaryStrong = document.createElement('strong');
+    const summaryDetail = document.createElement('span');
+    if (dates.length > 0) {
+      setText(summaryStrong, translate('coverage_overview', {
+        days: dates.length,
+        start: dates[0],
+        end: dates[dates.length - 1],
+        dated: datedRows,
+        rows: rows.length
+      }));
+      setText(summaryDetail, translate('coverage_unknown_note'));
+    } else {
+      setText(summaryStrong, translate('coverage_no_dates'));
+      setText(summaryDetail, '');
+    }
+    summary.appendChild(summaryStrong);
+    summary.appendChild(summaryDetail);
+    elements.coverageOverview.appendChild(summary);
+    renderCoverageTimeline(rows);
+    const coverageData = buildCoverageData();
+    renderCoverageSources(coverageData);
+    renderCoverageDates(coverageData);
+    renderCoverageDrilldown();
+    renderPeriodControls();
+    const coverageA = periods.coverageForPeriod(rows, state.periodSettings.periodA, state.periodSettings.expectedWeekdays);
+    const coverageB = periods.coverageForPeriod(rows, state.periodSettings.periodB, state.periodSettings.expectedWeekdays);
+    const hasExpectedWeekdays = state.periodSettings.expectedWeekdays.length > 0;
+    elements.periodAStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageA.status : 'unavailable');
+    elements.periodBStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageB.status : 'unavailable');
+    setText(elements.periodAStatus, hasExpectedWeekdays
+      ? coverageText(coverageA) + ' · ' + translate('coverage_sources', { count: coverageA.sourceFiles.length })
+      : translate('weekdays_required'));
+    setText(elements.periodBStatus, hasExpectedWeekdays
+      ? coverageText(coverageB) + ' · ' + translate('coverage_sources', { count: coverageB.sourceFiles.length })
+      : translate('weekdays_required'));
+    elements.comparePeriods.disabled = dates.length === 0;
+    elements.coveragePanel.classList.remove('hidden');
+  }
+
+  function signedQuantity(value) {
+    if (value === 0n) {
+      return formatQuantity(value);
+    }
+    return (value > 0n ? '+' : '') + formatQuantity(value);
+  }
+
+  function signedNumber(value) {
+    return (value > 0 ? '+' : '') + formatNumber(value, 0);
+  }
+
+  function signedPercent(value) {
+    return value === null ? translate('percent_unavailable') : (value > 0 ? '+' : '') + formatNumber(value) + ' %';
+  }
+
+  function signedSales(value) {
+    const text = String(value || '0');
+    const formatted = core.formatSalesValue(text, state.language);
+    return text !== '0' && text[0] !== '-' ? '+' + formatted : formatted;
+  }
+
+  function metricComparisonCard(label, before, after, delta, className) {
+    const card = document.createElement('article');
+    card.className = 'comparison-metric';
+    const title = document.createElement('strong');
+    setText(title, label);
+    const values = document.createElement('dl');
+    [['A', before], ['B', after]].forEach(function (entry) {
+      const term = document.createElement('dt');
+      const definition = document.createElement('dd');
+      setText(term, entry[0]);
+      setText(definition, entry[1]);
+      values.appendChild(term);
+      values.appendChild(definition);
+    });
+    const change = document.createElement('span');
+    change.className = 'comparison-delta ' + (className || '');
+    setText(change, delta);
+    card.appendChild(title);
+    card.appendChild(values);
+    card.appendChild(change);
+    return card;
+  }
+
+  function filteredComparisonArticles() {
+    if (!state.comparison) {
+      return [];
+    }
+    const query = elements.comparisonSearch.value.trim().toLocaleLowerCase(state.language === 'de' ? 'de-DE' : 'en-US');
+    const filter = elements.comparisonFilter.value;
+    const incomplete = state.comparison.coverageA.status !== 'complete' || state.comparison.coverageB.status !== 'complete';
+    const articles = state.comparison.articles.filter(function (article) {
+      const locale = state.language === 'de' ? 'de-DE' : 'en-US';
+      const articleNameVariants = Array.from(new Set(
+        (article.period_a.article_name_variants || []).concat(article.period_b.article_name_variants || [])
+      ));
+      const searchMatch = !query || article.article_id.toLocaleLowerCase(locale).includes(query) ||
+        [article.article_name].concat(articleNameVariants).some(function (name) {
+          return String(name || '').toLocaleLowerCase(locale).includes(query);
+        });
+      if (!searchMatch || filter === 'all') {
+        return searchMatch;
+      }
+      if (filter === 'incomplete') {
+        return incomplete;
+      }
+      if (filter === 'conflict') {
+        return article.selling_unit_conflict;
+      }
+      return article.state === filter;
+    });
+    const sort = elements.comparisonSort.value;
+    return articles.sort(function (left, right) {
+      if (sort === 'article') {
+        return left.article_id.localeCompare(right.article_id);
+      }
+      if (sort === 'percent') {
+        const leftValue = left.quantity_percent_change === null ? -Infinity : Math.abs(left.quantity_percent_change);
+        const rightValue = right.quantity_percent_change === null ? -Infinity : Math.abs(right.quantity_percent_change);
+        return rightValue - leftValue || left.article_id.localeCompare(right.article_id);
+      }
+      const leftAbs = left.quantity_change < 0n ? -left.quantity_change : left.quantity_change;
+      const rightAbs = right.quantity_change < 0n ? -right.quantity_change : right.quantity_change;
+      return leftAbs === rightAbs ? left.article_id.localeCompare(right.article_id) : (leftAbs > rightAbs ? -1 : 1);
+    });
+  }
+
+  function appendComparisonPeriodSummary(period, coverage) {
+    const card = document.createElement('article');
+    card.className = 'comparison-period';
+    const title = document.createElement('strong');
+    const detail = document.createElement('span');
+    detail.className = 'coverage-' + coverage.status;
+    setText(title, period.name);
+    setText(detail, translate('comparison_period_summary', {
+      name: period.name,
+      start: period.start,
+      end: period.end,
+      coverage: coverageText(coverage)
+    }));
+    card.appendChild(title);
+    card.appendChild(detail);
+    elements.comparisonPeriodSummary.appendChild(card);
+  }
+
+  function appendComparisonQuality(row, article, incomplete) {
+    const cell = document.createElement('td');
+    cell.className = 'comparison-quality-cell';
+    const stateKey = 'change_' + article.state;
+    const labels = [[translate(stateKey), article.state === 'increased' || article.state === 'new' ? 'positive' : article.state === 'decreased' || article.state === 'inactive' ? 'excluded' : '']];
+    if (incomplete) {
+      labels.push([translate('quality_unknown_dates'), 'warning']);
+    }
+    if (article.selling_unit_conflict) {
+      labels.push([translate('quality_unit_conflict'), 'warning']);
+    }
+    if (article.selling_unit_partial) {
+      labels.push([translate('quality_unit_partial'), 'positive']);
+    }
+    if (article.selling_unit_overage) {
+      labels.push([translate('quality_unit_exceeds'), 'warning']);
+    }
+    if (labels.length === 1) {
+      labels.push([translate('quality_ok'), '']);
+    }
+    labels.forEach(function (label) {
+      const badge = document.createElement('span');
+      badge.className = 'status-badge' + (label[1] ? ' ' + label[1] : '');
+      setText(badge, label[0]);
+      cell.appendChild(badge);
+    });
+    row.appendChild(cell);
+  }
+
+  function appendComparisonDetailPeriod(periodName, article) {
+    const card = document.createElement('article');
+    card.className = 'comparison-detail-period';
+    const title = document.createElement('h4');
+    setText(title, periodName);
+    const metrics = document.createElement('dl');
+    [
+      [translate('metric_period_lines'), formatNumber(article.order_line_count, 0)],
+      [translate('metric_period_quantity'), formatQuantity(article.total_quantity)],
+      [translate('metric_period_orders'), formatNumber(article.distinct_orders, 0)],
+      [translate('metric_period_customers'), formatNumber(article.distinct_customers, 0)],
+      [translate('metric_period_days'), formatNumber(article.active_days, 0)],
+      [translate('metric_period_sales'), formatSalesValue(article.total_sales, article.total_sales_exact) + ' · ' + translate('metric_period_row_coverage', { rows: article.sales_value_rows, lines: article.order_line_count })],
+      [translate('metric_period_sales_units'), formatQuantity(article.total_sales_units) + ' · ' + translate('metric_period_row_coverage', { rows: article.sales_unit_rows, lines: article.order_line_count }) + ' · ' + translate('metric_sales_unit_relations', { partials: article.selling_unit_partial_rows, overages: article.selling_unit_overage_rows })]
+    ].forEach(function (metric) {
+      const term = document.createElement('dt');
+      const value = document.createElement('dd');
+      setText(term, metric[0]);
+      setText(value, metric[1]);
+      metrics.appendChild(term);
+      metrics.appendChild(value);
+    });
+    card.appendChild(title);
+    card.appendChild(metrics);
+    elements.comparisonDetailPeriods.appendChild(card);
+  }
+
+  function renderComparisonDetail() {
+    if (!state.comparison || !state.selectedComparisonArticleId) {
+      elements.comparisonDetail.classList.add('hidden');
+      return;
+    }
+    const article = state.comparison.articles.find(function (candidate) {
+      return candidate.article_id === state.selectedComparisonArticleId;
+    });
+    if (!article) {
+      state.selectedComparisonArticleId = null;
+      elements.comparisonDetail.classList.add('hidden');
+      return;
+    }
+    setText(elements.comparisonDetailTitle, article.article_id);
+    let description = translate('comparison_detail_description', {
+      name: optionalText(article.article_name),
+      sources: new Set((article.period_a.source_files || []).concat(article.period_b.source_files || [])).size,
+      locations: new Set((article.period_a.locations || []).concat(article.period_b.locations || [])).size
+    });
+    const variants = Array.from(new Set((article.period_a.article_name_variants || []).concat(article.period_b.article_name_variants || [])));
+    if (variants.length > 1) {
+      description += ' · ' + translate('comparison_detail_conflict', { variants: variants.join(' · ') });
+    }
+    setText(elements.comparisonDetailDescription, description);
+    elements.comparisonDetailPeriods.replaceChildren();
+    appendComparisonDetailPeriod(state.comparison.settings.periodA.name, article.period_a);
+    appendComparisonDetailPeriod(state.comparison.settings.periodB.name, article.period_b);
+    const rows = (article.period_a.order_lines || []).map(function (line) {
+      return { period: state.comparison.settings.periodA.name, line: line };
+    }).concat((article.period_b.order_lines || []).map(function (line) {
+      return { period: state.comparison.settings.periodB.name, line: line };
+    }));
+    const pageCount = Math.max(1, Math.ceil(rows.length / TABLE_PAGE_SIZE));
+    state.comparisonDetailPage = Math.min(Math.max(state.comparisonDetailPage, 1), pageCount);
+    const pageStart = (state.comparisonDetailPage - 1) * TABLE_PAGE_SIZE;
+    const visible = rows.slice(pageStart, pageStart + TABLE_PAGE_SIZE);
+    elements.comparisonDetailTableBody.replaceChildren();
+    visible.forEach(function (entry) {
+      const line = entry.line;
+      const row = document.createElement('tr');
+      appendCell(row, entry.period);
+      appendCell(row, optionalText(line.source_file_label || line.source_file_name));
+      appendCell(row, String(line.source_line), 'number');
+      appendCell(row, line.order_id);
+      appendCell(row, line.order_date);
+      appendCell(row, formatQuantity(line.quantity), 'number');
+      appendCell(row, line.sales_unit_count === null ? translate('empty_value') : formatQuantity(line.sales_unit_count), 'number');
+      appendCell(row, line.sales_value === null ? translate('empty_value') : formatSalesValue(line.sales_value, line.sales_value_exact), 'number');
+      appendCell(row, optionalText(line.location));
+      elements.comparisonDetailTableBody.appendChild(row);
+    });
+    elements.comparisonDetailPagination.classList.toggle('hidden', rows.length <= TABLE_PAGE_SIZE);
+    elements.comparisonDetailPrevious.disabled = state.comparisonDetailPage <= 1;
+    elements.comparisonDetailNext.disabled = state.comparisonDetailPage >= pageCount;
+    setText(elements.comparisonDetailPageStatus, translate('comparison_detail_page', {
+      page: state.comparisonDetailPage,
+      pages: pageCount,
+      count: visible.length
+    }));
+    elements.comparisonDetail.classList.remove('hidden');
+  }
+
+  function renderComparison() {
+    if (!state.comparison) {
+      elements.comparisonPanel.classList.add('hidden');
+      return;
+    }
+    const comparison = state.comparison;
+    elements.comparisonPeriodSummary.replaceChildren();
+    appendComparisonPeriodSummary(comparison.settings.periodA, comparison.coverageA);
+    appendComparisonPeriodSummary(comparison.settings.periodB, comparison.coverageB);
+    elements.comparisonMetrics.replaceChildren();
+    [
+      [translate('metric_period_lines'), formatNumber(comparison.analysisA.total_lines, 0), formatNumber(comparison.analysisB.total_lines, 0), signedNumber(comparison.summary.lineChange), comparison.summary.lineChange],
+      [translate('metric_period_quantity'), formatQuantity(comparison.analysisA.total_quantity), formatQuantity(comparison.analysisB.total_quantity), signedQuantity(comparison.summary.quantityChange) + ' · ' + signedPercent(comparison.summary.quantityPercentChange), comparison.summary.quantityChange],
+      [translate('metric_period_orders'), formatNumber(comparison.analysisA.distinct_orders, 0), formatNumber(comparison.analysisB.distinct_orders, 0), signedNumber(comparison.summary.orderChange), comparison.summary.orderChange],
+      [translate('metric_period_customers'), formatNumber(comparison.analysisA.distinct_customers, 0), formatNumber(comparison.analysisB.distinct_customers, 0), signedNumber(comparison.summary.customerChange), comparison.summary.customerChange],
+      [translate('metric_period_days'), formatNumber(comparison.analysisA.active_days, 0), formatNumber(comparison.analysisB.active_days, 0), signedNumber(comparison.summary.activeDayChange), comparison.summary.activeDayChange],
+      [translate('metric_period_sales'), formatSalesValue(comparison.analysisA.total_sales, comparison.analysisA.total_sales_exact) + ' · ' + translate('metric_period_row_coverage', { rows: comparison.analysisA.sales_value_rows, lines: comparison.analysisA.total_lines }), formatSalesValue(comparison.analysisB.total_sales, comparison.analysisB.total_sales_exact) + ' · ' + translate('metric_period_row_coverage', { rows: comparison.analysisB.sales_value_rows, lines: comparison.analysisB.total_lines }), signedSales(comparison.summary.salesChangeExact), Number(comparison.summary.salesChangeExact)],
+      [translate('metric_period_sales_units'), formatQuantity(comparison.analysisA.total_sales_units) + ' · ' + translate('metric_period_row_coverage', { rows: comparison.analysisA.sales_unit_rows, lines: comparison.analysisA.total_lines }), formatQuantity(comparison.analysisB.total_sales_units) + ' · ' + translate('metric_period_row_coverage', { rows: comparison.analysisB.sales_unit_rows, lines: comparison.analysisB.total_lines }), signedQuantity(comparison.summary.salesUnitChange), comparison.summary.salesUnitChange]
+    ].forEach(function (metric) {
+      elements.comparisonMetrics.appendChild(metricComparisonCard(metric[0], metric[1], metric[2], metric[3], metric[4] > 0 ? 'positive' : metric[4] < 0 ? 'negative' : ''));
+    });
+    const articles = filteredComparisonArticles();
+    const pageCount = Math.max(1, Math.ceil(articles.length / TABLE_PAGE_SIZE));
+    state.comparisonPage = Math.min(Math.max(state.comparisonPage, 1), pageCount);
+    const pageStart = (state.comparisonPage - 1) * TABLE_PAGE_SIZE;
+    const visible = articles.slice(pageStart, pageStart + TABLE_PAGE_SIZE);
+    elements.comparisonTableBody.replaceChildren();
+    if (visible.length === 0) {
+      const row = document.createElement('tr');
+      row.className = 'empty-row';
+      const cell = document.createElement('td');
+      cell.colSpan = 12;
+      setText(cell, translate('comparison_empty'));
+      row.appendChild(cell);
+      elements.comparisonTableBody.appendChild(row);
+    } else {
+      const incomplete = comparison.coverageA.status !== 'complete' || comparison.coverageB.status !== 'complete';
+      visible.forEach(function (article) {
+        const row = document.createElement('tr');
+        appendCell(row, article.article_id);
+        appendCell(row, optionalText(article.article_name), 'article-name-cell');
+        appendCell(row, formatNumber(article.period_a.order_line_count, 0), 'number');
+        appendCell(row, formatQuantity(article.period_a.total_quantity), 'number');
+        appendCell(row, formatQuantity(article.period_a.total_sales_units), 'number');
+        appendCell(row, formatNumber(article.period_b.order_line_count, 0), 'number');
+        appendCell(row, formatQuantity(article.period_b.total_quantity), 'number');
+        appendCell(row, formatQuantity(article.period_b.total_sales_units), 'number');
+        appendCell(row, signedQuantity(article.quantity_change), 'number ' + (article.quantity_change > 0n ? 'positive' : article.quantity_change < 0n ? 'negative' : ''));
+        appendCell(row, signedPercent(article.quantity_percent_change), 'number ' + (article.quantity_percent_change > 0 ? 'positive' : article.quantity_percent_change < 0 ? 'negative' : ''));
+        appendComparisonQuality(row, article, incomplete);
+        const actionCell = document.createElement('td');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'text-button';
+        button.dataset.comparisonArticleId = article.article_id;
+        setText(button, translate('open_article'));
+        actionCell.appendChild(button);
+        row.appendChild(actionCell);
+        elements.comparisonTableBody.appendChild(row);
+      });
+    }
+    elements.comparisonPagination.classList.toggle('hidden', articles.length <= TABLE_PAGE_SIZE);
+    elements.comparisonPrevious.disabled = state.comparisonPage <= 1;
+    elements.comparisonNext.disabled = state.comparisonPage >= pageCount;
+    setText(elements.comparisonPageStatus, translate('comparison_page', {
+      page: state.comparisonPage,
+      pages: pageCount,
+      count: visible.length
+    }));
+    elements.comparisonPanel.classList.remove('hidden');
+    elements.exportComparison.disabled = comparison.articles.length === 0;
+    renderComparisonDetail();
+  }
+
+  function showPeriodMessage(key, type) {
+    if (!key) {
+      elements.periodMessage.className = 'message hidden';
+      setText(elements.periodMessage, '');
+      return;
+    }
+    elements.periodMessage.className = 'message' + (type ? ' ' + type : '');
+    setText(elements.periodMessage, translate(key));
+  }
+
+  function compareSelectedPeriods() {
+    if (!state.result) {
+      return;
+    }
+    const settings = periodSettingsFromControls();
+    state.periodSettings = settings;
+    if (settings.expectedWeekdays.length === 0) {
+      showPeriodMessage('weekdays_required', 'warning-message');
+      return;
+    }
+    if (!periodSettingsValid(settings)) {
+      showPeriodMessage('period_invalid', 'warning-message');
+      return;
+    }
+    state.comparison = periods.comparePeriods(state.result.rows, settings, core.analyzeRows);
+    state.comparisonPage = 1;
+    state.selectedComparisonArticleId = null;
+    state.comparisonDetailPage = 1;
+    showPeriodMessage(state.comparison.overlapping ? 'period_overlap' : '', 'warning-message');
+    renderCoverage();
+    renderComparison();
+    renderWorkflow('comparison-panel');
+    persistActiveWorkspace().catch(function () {});
+    elements.comparisonPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function sortedArticles() {
@@ -1276,6 +2432,11 @@
       [translate('metric_customers'), formatNumber(article.distinct_customers, 0), translate('metric_customers_detail')],
       [translate('metric_days'), formatNumber(article.active_days, 0), translate('metric_days_detail')],
       [translate('metric_sales'), formatArticleSales(article), translate('metric_sales_detail', { count: article.sales_value_rows })],
+      [translate('metric_sales_units'), formatQuantity(article.total_sales_units), translate('metric_sales_units_detail', {
+        rows: article.sales_unit_rows,
+        partials: article.selling_unit_partial_rows,
+        overages: article.selling_unit_overage_rows
+      })],
       [translate('column_locations'), formatLocations(article.locations), '']
     ]);
   }
@@ -1310,7 +2471,7 @@
       const emptyRow = document.createElement('tr');
       emptyRow.className = 'empty-row';
       const emptyCell = document.createElement('td');
-      emptyCell.colSpan = 9;
+      emptyCell.colSpan = 11;
       setText(emptyCell, translate('no_detail_rows'));
       emptyRow.appendChild(emptyCell);
       elements.articleDetailTableBody.appendChild(emptyRow);
@@ -1322,6 +2483,8 @@
         appendCell(row, line.order_id);
         appendCell(row, line.order_date);
         appendCell(row, formatQuantity(line.quantity), 'number');
+        appendCell(row, line.sales_unit_count === null ? translate('empty_value') : formatQuantity(line.sales_unit_count), 'number');
+        appendCell(row, line.quantity_per_sales_unit === null ? translate('empty_value') : formatQuantity(line.quantity_per_sales_unit), 'number');
         appendCell(row, optionalText(line.customer_id));
         appendCell(row, line.sales_value === null ? translate('empty_value') : formatSalesValue(line.sales_value, line.sales_value_exact), 'number');
         appendCell(row, optionalText(line.location), 'location-cell');
@@ -1432,11 +2595,19 @@
     }));
     visibleIssues.forEach(function (issue) {
       const row = document.createElement('tr');
+      const blocking = core.issueIsBlocking(issue);
+      row.className = 'issue-row ' + (blocking ? 'blocking' : 'advisory');
       appendCell(row, optionalText(issue.sourceFileLabel || issue.sourceFileName));
       appendCell(row, issue.sourceLine === null ? translate('empty_value') : String(issue.sourceLine));
       appendCell(row, issue.field ? core.getFieldLabel(issue.field, state.language) : translate('structure_field'));
       appendCell(row, issue.code);
       appendCell(row, issue.message);
+      const statusCell = document.createElement('td');
+      const status = document.createElement('span');
+      status.className = 'status-badge ' + (blocking ? 'excluded' : 'warning');
+      setText(status, translate(blocking ? 'issue_status_excluded' : 'issue_status_included'));
+      statusCell.appendChild(status);
+      row.appendChild(statusCell);
       elements.issuesTableBody.appendChild(row);
     });
   }
@@ -1494,11 +2665,19 @@
     const preserveView = Boolean(options && options.preserveView);
     state.result = result;
     state.analysis = options && options.analysis ? options.analysis : core.analyzeRows(result.rows);
+    state.periodSettings = settingsForDetectedCalendarWeeks(state.periodSettings, result.rows);
+    if (state.comparison) {
+      state.comparison = periods.comparePeriods(result.rows, state.periodSettings, core.analyzeRows);
+    }
     if (!preserveView) {
       state.articlePage = 1;
       state.selectedArticleId = null;
       state.detailPage = 1;
       state.issuePage = 1;
+      state.coverageDatePage = 1;
+      state.coverageDrilldown = null;
+      state.selectedComparisonArticleId = null;
+      state.comparisonDetailPage = 1;
     }
     const hasIssues = result.invalidRows > 0 || result.excludedFiles > 0 || result.warnings.length > 0;
     elements.importSummary.className = 'import-summary' + (hasIssues ? ' warning' : '');
@@ -1528,8 +2707,11 @@
       showArticleOverview();
     }
     renderIssues(result.issues);
+    renderCoverage();
+    renderComparison();
     elements.exportButton.disabled = result.validRows === 0;
     elements.resultsPanel.classList.remove('hidden');
+    renderWorkflow(state.comparison ? 'comparison-panel' : 'coverage-panel');
   }
 
   function sourceContext(file) {
@@ -1561,6 +2743,12 @@
     const preserveMappings = Boolean(options && options.preserveMappings);
     state.result = null;
     state.analysis = null;
+    state.comparison = null;
+    state.comparisonPage = 1;
+    state.coverageDatePage = 1;
+    state.coverageDrilldown = null;
+    state.selectedComparisonArticleId = null;
+    state.comparisonDetailPage = 1;
     state.articlePage = 1;
     state.selectedArticleId = null;
     state.detailPage = 1;
@@ -1572,7 +2760,13 @@
       }
     });
     elements.resultsPanel.classList.add('hidden');
+    elements.coveragePanel.classList.add('hidden');
+    elements.comparisonPanel.classList.add('hidden');
+    elements.coverageDrilldown.classList.add('hidden');
+    elements.comparisonDetail.classList.add('hidden');
     elements.exportButton.disabled = true;
+    showPeriodMessage('');
+    renderWorkflow();
   }
 
   function updateSourceStatus() {
@@ -1877,6 +3071,7 @@
         updatedAt: validated.updatedAt,
         language: validated.language,
         analyzed: validated.analyzed,
+        periodSettings: validated.periodSettings,
         sourceCount: files.length,
         sourceBytes: files.reduce(function (sum, file) {
           return sum + (file.buffer instanceof ArrayBuffer ? file.buffer.byteLength : 0);
@@ -2190,6 +3385,7 @@
 
   function clearWorkspaceView() {
     state.files = [];
+    state.periodSettings = periods.normalizeSettings();
     state.fileSelectionVersion += 1;
     clearAnalysis();
     elements.fileInput.value = '';
@@ -2326,6 +3522,7 @@
         return workspace.id === workspaceId ? Object.assign({}, workspace, state.activeWorkspace) : workspace;
       });
       clearWorkspaceView();
+      state.periodSettings = periods.normalizeSettings(prepared.workspace.periodSettings);
       state.files = prepared.files;
       if (state.files.length > 0) {
         renderMapping();
@@ -2723,6 +3920,38 @@
     URL.revokeObjectURL(url);
   }
 
+  function exportPeriodComparison() {
+    if (!state.comparison || state.comparison.articles.length === 0) {
+      return;
+    }
+    downloadTextFile(
+      translate('comparison_export_filename'),
+      '\uFEFF' + periods.exportComparisonCsv(state.comparison, core),
+      'text/csv;charset=utf-8'
+    );
+  }
+
+  function handlePeriodSettingsChange() {
+    state.periodSettings = periodSettingsFromControls();
+    state.comparison = null;
+    state.comparisonPage = 1;
+    state.selectedComparisonArticleId = null;
+    state.comparisonDetailPage = 1;
+    if (state.periodSettings.expectedWeekdays.length === 0) {
+      showPeriodMessage('weekdays_required', 'warning-message');
+    } else if (!periodSettingsStorable(state.periodSettings)) {
+      showPeriodMessage('period_invalid', 'warning-message');
+    } else {
+      showPeriodMessage('');
+    }
+    renderCoverage();
+    renderComparison();
+    renderWorkflow('coverage-panel');
+    if (periodSettingsStorable(state.periodSettings)) {
+      persistActiveWorkspace().catch(function () {});
+    }
+  }
+
   function reset() {
     if (!state.activeWorkspace || state.files.length === 0) {
       return;
@@ -2861,6 +4090,124 @@
   });
   elements.analyzeButton.addEventListener('click', analyze);
   elements.exportButton.addEventListener('click', exportResults);
+  elements.comparePeriods.addEventListener('click', compareSelectedPeriods);
+  elements.exportComparison.addEventListener('click', exportPeriodComparison);
+  elements.resetPeriods.addEventListener('click', function () {
+    if (!state.result) {
+      return;
+    }
+    state.periodSettings = periods.defaultSettings(state.result.rows);
+    state.comparison = null;
+    state.comparisonPage = 1;
+    state.selectedComparisonArticleId = null;
+    state.comparisonDetailPage = 1;
+    showPeriodMessage('');
+    renderCoverage();
+    renderComparison();
+    renderWorkflow('coverage-panel');
+    persistActiveWorkspace().catch(function () {});
+  });
+  elements.editPeriods.addEventListener('click', function () {
+    renderWorkflow('coverage-panel');
+    elements.coveragePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    (state.periodSettings.mode === 'weeks' ? elements.periodAWeek : elements.periodAStart).focus();
+  });
+  elements.periodModes.forEach(function (control) {
+    control.addEventListener('change', handlePeriodSettingsChange);
+  });
+  [elements.periodAWeek, elements.periodBWeek].forEach(function (control) {
+    control.addEventListener('change', handlePeriodSettingsChange);
+  });
+  [elements.periodAName, elements.periodAStart, elements.periodAEnd, elements.periodBName, elements.periodBStart, elements.periodBEnd].forEach(function (control) {
+    control.addEventListener('change', handlePeriodSettingsChange);
+  });
+  elements.expectedWeekdays.forEach(function (control) {
+    control.addEventListener('change', handlePeriodSettingsChange);
+  });
+  elements.workflowSteps.forEach(function (button) {
+    button.addEventListener('click', function () {
+      const target = document.getElementById(button.dataset.workflowTarget);
+      if (button.disabled || !target || !PAGE_CONFIG[button.dataset.workflowTarget]) {
+        return;
+      }
+      renderWorkflow(button.dataset.workflowTarget);
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+  elements.comparisonSearch.addEventListener('input', function () {
+    state.comparisonPage = 1;
+    renderComparison();
+  });
+  elements.comparisonFilter.addEventListener('change', function () {
+    state.comparisonPage = 1;
+    renderComparison();
+  });
+  elements.comparisonSort.addEventListener('change', function () {
+    state.comparisonPage = 1;
+    renderComparison();
+  });
+  elements.comparisonPrevious.addEventListener('click', function () {
+    if (state.comparisonPage > 1) {
+      state.comparisonPage -= 1;
+      renderComparison();
+    }
+  });
+  elements.comparisonNext.addEventListener('click', function () {
+    state.comparisonPage += 1;
+    renderComparison();
+  });
+  elements.comparisonTableBody.addEventListener('click', function (event) {
+    const button = event.target.closest('button[data-comparison-article-id]');
+    if (!button || !elements.comparisonTableBody.contains(button)) {
+      return;
+    }
+    state.selectedComparisonArticleId = button.dataset.comparisonArticleId;
+    state.comparisonDetailPage = 1;
+    renderComparisonDetail();
+    elements.comparisonDetail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  elements.comparisonDetailClose.addEventListener('click', function () {
+    state.selectedComparisonArticleId = null;
+    state.comparisonDetailPage = 1;
+    renderComparisonDetail();
+  });
+  elements.comparisonDetailPrevious.addEventListener('click', function () {
+    if (state.comparisonDetailPage > 1) {
+      state.comparisonDetailPage -= 1;
+      renderComparisonDetail();
+    }
+  });
+  elements.comparisonDetailNext.addEventListener('click', function () {
+    state.comparisonDetailPage += 1;
+    renderComparisonDetail();
+  });
+  elements.coverageDatePrevious.addEventListener('click', function () {
+    if (state.coverageDatePage > 1) {
+      state.coverageDatePage -= 1;
+      renderCoverage();
+    }
+  });
+  elements.coverageDateNext.addEventListener('click', function () {
+    state.coverageDatePage += 1;
+    renderCoverage();
+  });
+  [elements.coverageSourceTableBody, elements.coverageDateTableBody].forEach(function (tableBody) {
+    tableBody.addEventListener('click', function (event) {
+      const button = event.target.closest('button[data-coverage-source-id], button[data-coverage-date]');
+      if (!button || !tableBody.contains(button)) {
+        return;
+      }
+      state.coverageDrilldown = button.dataset.coverageDate
+        ? { type: 'date', value: button.dataset.coverageDate }
+        : { type: 'source', value: button.dataset.coverageSourceId };
+      renderCoverageDrilldown();
+      elements.coverageDrilldown.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+  elements.coverageDrilldownClose.addEventListener('click', function () {
+    state.coverageDrilldown = null;
+    renderCoverageDrilldown();
+  });
   elements.articleFilter.addEventListener('input', function () {
     state.articlePage = 1;
     renderArticles();

@@ -16,7 +16,7 @@ It contains three object stores:
 
 | Store | Key | Purpose |
 | --- | --- | --- |
-| `workspaces` | `id` | Small workspace metadata used for listing and selection, including cached source-byte and normalized-row counts for newly saved records. |
+| `workspaces` | `id` | Small workspace metadata used for listing and selection, including period settings plus cached source-byte and normalized-row counts for newly saved records. |
 | `workspacePayloads` | `workspaceId` | Source bytes, mappings, normalized rows, validation results, and other workspace payload. |
 | `settings` | `key` | Browser-local application settings, including the last active workspace ID. |
 
@@ -33,12 +33,13 @@ Every workspace has:
 | Field | Type | Contract |
 | --- | --- | --- |
 | `id` | string | Stable browser-local identity. |
-| `schemaVersion` | integer | Stored-workspace schema version; currently `1`. |
+| `schemaVersion` | integer | Stored-workspace schema version; currently `2`. |
 | `name` | string | Trimmed, non-empty, at most 120 characters. Names do not have to be unique. |
 | `createdAt` | ISO timestamp | Creation time. |
 | `updatedAt` | ISO timestamp | Time of the latest successful snapshot. |
 | `language` | `en` or `de` | Interface language restored with the workspace. |
 | `analyzed` | boolean | Whether the saved source state had an analysis result. |
+| `periodSettings` | object | Selection mode (`weeks` or `custom`), expected weekdays, and the names and inclusive boundaries of Period A and Period B. Detected week options remain derived from normalized rows. |
 | `files` | array | Ordered and strictly workspace-local source records. |
 
 Source IDs must be unique within one workspace. The same source ID in another workspace has no relationship to it.
@@ -192,6 +193,6 @@ The restore worker returns the already validated persisted payload and prepared 
 
 ## Schema migration
 
-Workspace records carry `schemaVersion`. The current reader accepts version `1` and contains a baseline migration from the pre-release schema `0`, adding explicit language and analyzed-state defaults without changing source records. Versions newer than the current reader are rejected rather than guessed.
+Workspace records carry `schemaVersion`. The current reader uses version `2`. It migrates version `0` through the version `1` baseline and migrates version `1` by adding calendar-week selection mode, default expected weekdays, and empty Period A / Period B settings without changing source records. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
 
 Future migrations must produce a fully valid current workspace before saving it and require automated migration and backup-round-trip tests.
