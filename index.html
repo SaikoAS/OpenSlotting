@@ -30,13 +30,29 @@
     <main class="page-shell">
       <div class="app-layout">
         <nav class="workflow-rail" aria-label="Workflow" data-i18n-aria-label="workflow_label">
-          <button class="workflow-step active" type="button" data-workflow-target="workspace-panel"><span>1</span><strong data-i18n="workflow_workspace">Workspace</strong></button>
-          <button class="workflow-step" type="button" data-workflow-target="import-panel"><span>2</span><strong data-i18n="workflow_import">Import sources</strong></button>
-          <button class="workflow-step" type="button" data-workflow-target="mapping-panel"><span>3</span><strong data-i18n="workflow_mapping">Mapping &amp; quality</strong></button>
-          <button class="workflow-step" type="button" data-workflow-target="coverage-panel"><span>4</span><strong data-i18n="workflow_coverage">Coverage &amp; periods</strong></button>
-          <button class="workflow-step" type="button" data-workflow-target="comparison-panel"><span>5</span><strong data-i18n="workflow_comparison">Comparison results</strong></button>
+          <div class="rail-heading">
+            <span class="rail-kicker" data-i18n="nav_kicker">Workspace</span>
+            <strong data-i18n="nav_title">Analysis workspace</strong>
+          </div>
+          <div class="rail-nav-group">
+            <button class="workflow-step active" type="button" data-workflow-target="workspace-panel"><span aria-hidden="true">⌂</span><strong data-i18n="workflow_workspace">Workspace</strong></button>
+            <button class="workflow-step" type="button" data-workflow-target="import-panel"><span aria-hidden="true">⇧</span><strong data-i18n="workflow_import">CSV import</strong></button>
+            <button class="workflow-step" type="button" data-workflow-target="mapping-panel"><span aria-hidden="true">☷</span><strong data-i18n="workflow_mapping">Columns &amp; checks</strong></button>
+            <button class="workflow-step" type="button" data-workflow-target="coverage-panel"><span aria-hidden="true">▦</span><strong data-i18n="workflow_coverage">Data coverage</strong></button>
+            <button class="workflow-step" type="button" data-workflow-target="comparison-panel"><span aria-hidden="true">↔</span><strong data-i18n="workflow_comparison">Periods &amp; comparison</strong></button>
+            <button class="workflow-step" type="button" data-workflow-target="results-panel"><span aria-hidden="true">▥</span><strong data-i18n="workflow_analysis">Analysis</strong></button>
+          </div>
+          <div class="rail-footer-note" data-i18n="nav_local_note">Local-first · source traceable</div>
         </nav>
         <div class="workflow-content">
+      <div class="page-context" aria-live="polite">
+        <div>
+          <p id="page-context-kicker" class="step" data-i18n="workspace_eyebrow">Local workspace</p>
+          <h2 id="page-context-title" data-i18n="workspace_title">Workspaces</h2>
+        </div>
+        <span id="page-context-status" class="page-context-status" data-i18n="page_status_ready">Ready</span>
+      </div>
+      <div id="workspace-page" class="app-page">
       <section id="workspace-panel" class="panel workspace-panel" aria-labelledby="workspace-title">
         <div class="panel-heading">
           <div>
@@ -91,6 +107,10 @@
         <button id="workspace-recovery" class="secondary-button workspace-recovery hidden" type="button" data-i18n="workspace_recover_save_failure">Discard unsaved changes and reload</button>
       </section>
 
+      </div>
+
+      <div id="import-page" class="app-page hidden">
+
       <section id="import-panel" class="panel">
         <div class="panel-heading">
           <div>
@@ -119,6 +139,38 @@
         <div id="mapping-message" class="message hidden" role="alert"></div>
         <button id="analyze-button" class="primary-button" type="button" data-i18n="analyze_button">Validate and analyze data</button>
       </section>
+
+      <section id="issues-panel" class="panel issues-panel hidden" aria-labelledby="issues-title">
+        <div class="table-toolbar">
+          <div>
+            <h3 id="issues-title" data-i18n="issues_title">Validation notes</h3>
+            <p class="table-note" data-i18n="issues_note">Excluded rows are not aggregated. Advisory notes on optional fields remain included and traceable by source file and line.</p>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="issue_source_file">Source file</th>
+                <th data-i18n="issue_source_line">Source line</th>
+                <th data-i18n="issue_field">Field</th>
+                <th data-i18n="issue_code">Code</th>
+                <th data-i18n="issue_message">Message</th>
+                <th data-i18n="issue_status">Status</th>
+              </tr>
+            </thead>
+            <tbody id="issues-table-body"></tbody>
+          </table>
+        </div>
+        <div id="issue-pagination" class="table-pagination hidden" aria-live="polite">
+          <button id="issue-previous" class="secondary-button" type="button" disabled data-i18n="previous_page">Previous</button>
+          <span id="issue-page-status" class="table-note"></span>
+          <button id="issue-next" class="secondary-button" type="button" disabled data-i18n="next_page">Next</button>
+        </div>
+      </section>
+      </div>
+
+      <div id="coverage-page" class="app-page hidden">
 
       <section id="coverage-panel" class="panel hidden" aria-labelledby="coverage-title">
         <div class="panel-heading coverage-heading">
@@ -201,6 +253,10 @@
         <div class="coverage-actions"><button id="reset-periods" class="secondary-button" type="button" data-i18n="reset_periods">Reset periods</button><button id="compare-periods" class="primary-button" type="button" data-i18n="compare_periods">Compare periods</button></div>
       </section>
 
+      </div>
+
+      <div id="comparison-page" class="app-page hidden">
+
       <section id="comparison-panel" class="hidden" aria-labelledby="comparison-title">
         <div class="comparison-heading">
           <div>
@@ -239,6 +295,10 @@
           <div id="comparison-detail-pagination" class="table-pagination hidden" aria-live="polite"><button id="comparison-detail-previous" class="secondary-button" type="button" data-i18n="previous_page">Previous</button><span id="comparison-detail-page-status" class="table-note"></span><button id="comparison-detail-next" class="secondary-button" type="button" data-i18n="next_page">Next</button></div>
         </section>
       </section>
+
+      </div>
+
+      <div id="analysis-page" class="app-page hidden">
 
       <section id="results-panel" class="hidden" aria-labelledby="results-title">
         <div class="results-heading">
@@ -358,35 +418,8 @@
           </div>
         </section>
 
-        <section id="issues-panel" class="panel issues-panel hidden" aria-labelledby="issues-title">
-          <div class="table-toolbar">
-            <div>
-              <h3 id="issues-title" data-i18n="issues_title">Validation notes</h3>
-              <p class="table-note" data-i18n="issues_note">Excluded rows are not aggregated. Advisory notes on optional fields remain included and traceable by source file and line.</p>
-            </div>
-          </div>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th data-i18n="issue_source_file">Source file</th>
-                  <th data-i18n="issue_source_line">Source line</th>
-                  <th data-i18n="issue_field">Field</th>
-                  <th data-i18n="issue_code">Code</th>
-                  <th data-i18n="issue_message">Message</th>
-                  <th data-i18n="issue_status">Status</th>
-                </tr>
-              </thead>
-              <tbody id="issues-table-body"></tbody>
-            </table>
-          </div>
-          <div id="issue-pagination" class="table-pagination hidden" aria-live="polite">
-            <button id="issue-previous" class="secondary-button" type="button" disabled data-i18n="previous_page">Previous</button>
-            <span id="issue-page-status" class="table-note"></span>
-            <button id="issue-next" class="secondary-button" type="button" disabled data-i18n="next_page">Next</button>
-          </div>
-        </section>
       </section>
+      </div>
         </div>
       </div>
     </main>

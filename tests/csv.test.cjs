@@ -236,8 +236,17 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(indexSource, /id="file-input"[^>]*\bmultiple\b/);
   assert.match(indexSource, /data-i18n="detail_source_file"/);
   assert.match(indexSource, /data-i18n="issue_source_file"/);
+  ['workspace-page', 'import-page', 'coverage-page', 'comparison-page', 'analysis-page'].forEach((pageId) => {
+    assert.match(indexSource, new RegExp('id="' + pageId + '"'), pageId);
+  });
+  ['workspace-panel', 'import-panel', 'mapping-panel', 'coverage-panel', 'comparison-panel', 'results-panel'].forEach((target) => {
+    assert.match(indexSource, new RegExp('data-workflow-target="' + target + '"'), target);
+  });
   assert.match(appSource, /encoding\.SUPPORTED_ENCODINGS/);
   assert.match(appSource, /dataset\.encodingFileId/);
+  assert.match(appSource, /const PAGE_CONFIG =/);
+  assert.match(appSource, /activePageTarget: 'workspace-panel'/);
+  assert.match(appSource, /window\.scrollTo\(\{ top: 0, left: 0/);
   assert.match(appSource, /detail_source_file: 'Source file'/);
   assert.match(appSource, /detail_source_file: 'Quelldatei'/);
   assert.match(appSource, /warning_overlap:/);

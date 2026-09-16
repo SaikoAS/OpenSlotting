@@ -149,7 +149,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .detail-back { margin-bottom: 12px; }
 .detail-metric-grid { margin-top: 18px; }
 .compact-field { min-width: 150px; }
-.table-scroll { overflow-x: auto; }
+.table-scroll { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: thin; }
 .table-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }
 .table-pagination .secondary-button { padding: 8px 12px; }
 table { width: 100%; border-collapse: collapse; font-size: .9rem; }
@@ -379,4 +379,117 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   .coverage-heading { display: block; }
   .coverage-caution { margin-top: 12px; }
   .mapping-field { grid-template-columns: 1fr; }
+}
+
+/* Multi-page workspace shell */
+.app-layout { grid-template-columns: 248px minmax(0, 1fr); background: #f7fafc; overflow: visible; }
+.workflow-rail {
+  position: sticky;
+  top: 64px;
+  align-self: start;
+  height: calc(100vh - 64px);
+  max-height: calc(100vh - 64px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 24px 14px 18px;
+  color: #40516a;
+  background: var(--rail);
+  border-right: 1px solid var(--cool-line);
+}
+.rail-heading { display: grid; gap: 3px; padding: 0 12px 4px; }
+.rail-heading strong { color: var(--navy); font-size: .98rem; letter-spacing: -.01em; }
+.rail-kicker { color: var(--accent-dark); font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.rail-nav-group { display: grid; gap: 5px; }
+.workflow-step {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 46px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  color: #40516a;
+}
+.workflow-step::after { display: none; }
+.workflow-step span {
+  width: 28px;
+  height: 28px;
+  border: 1px solid #b7c5d3;
+  border-radius: 7px;
+  color: #51647c;
+  background: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.workflow-step strong { font-size: .84rem; font-weight: 750; }
+.workflow-step.available:hover:not(:disabled) { color: var(--navy); background: #e8f0f5; }
+.workflow-step.active { color: var(--accent-dark); background: transparent; box-shadow: none; }
+.workflow-step.active span { border-color: var(--accent); color: #fff; background: var(--accent); box-shadow: 0 0 0 4px rgba(11,110,105,.11); }
+.workflow-step.complete:not(.active) span { border-color: #9bd2ba; color: var(--success); background: var(--success-soft); }
+.workflow-step:disabled { color: #9aaabd; }
+.workflow-step:disabled span { color: #91a2b5; background: #f8fafc; }
+.rail-footer-note { margin-top: auto; padding: 14px 12px 4px; border-top: 1px solid #c7d3de; color: #61738a; font-size: .72rem; }
+.workflow-content { padding: 24px clamp(20px, 3vw, 44px) 56px; background: #f7fafc; }
+.page-context { display: flex; align-items: end; justify-content: space-between; gap: 18px; max-width: 1420px; margin: 0 auto 20px; padding: 4px 2px; }
+.page-context .step { margin-bottom: 5px; }
+.page-context h2 { margin: 0; font-size: clamp(1.45rem, 2vw, 1.9rem); }
+.page-context-status { padding: 7px 10px; border: 1px solid #cbe6e3; border-radius: 6px; color: var(--accent-dark); background: #eaf8f6; font-size: .76rem; font-weight: 800; white-space: nowrap; }
+.app-page { max-width: 1420px; margin: 0 auto; animation: page-enter .18s ease-out; }
+.app-page > .panel:first-child { margin-top: 0; }
+.app-page > .panel:last-child { margin-bottom: 0; }
+.app-page > #results-panel { padding-top: 4px; }
+.app-page > #comparison-panel { margin-top: 0; }
+@keyframes page-enter { from { opacity: .45; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+@media (min-width: 1051px) {
+  .app-layout { display: block; min-height: calc(100vh - 64px); }
+  .workflow-rail {
+    position: fixed;
+    top: 64px;
+    bottom: 0;
+    left: 0;
+    z-index: 15;
+    width: 248px;
+    height: auto;
+    max-height: none;
+  }
+  .workflow-content { width: calc(100% - 248px); max-width: none; min-height: calc(100vh - 64px); margin-left: 248px; }
+  .app-footer { margin-left: 248px; }
+}
+
+@media (max-width: 1050px) {
+  .app-layout { display: grid; grid-template-columns: minmax(0, 1fr); overflow-x: clip; }
+  .workflow-rail { position: sticky; top: 64px; left: auto; width: auto; height: auto; min-height: 0; max-height: none; display: block; padding: 10px 12px; overflow-x: hidden; overflow-y: visible; }
+  .workflow-content { min-height: 0; margin-left: 0; }
+  .app-footer { margin-left: 0; }
+  .rail-heading, .rail-footer-note { display: none; }
+  .rail-nav-group { display: flex; gap: 6px; overflow-x: auto; }
+  .workflow-step { flex: 0 0 auto; min-width: 148px; }
+}
+
+@media (max-width: 760px) {
+  .app-header { display: block; }
+  .header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  .workflow-content { padding: 16px 14px 40px; }
+  .page-context { align-items: flex-start; margin-bottom: 14px; }
+  .page-context-status { margin-top: 4px; }
+  .workflow-step { min-width: 138px; }
+  .workflow-rail { top: 0; }
+}
+
+@media (max-width: 900px) {
+  .panel-heading, .results-heading, .table-toolbar, .coverage-heading, .comparison-heading { display: block; }
+  .hint { margin-top: 10px; text-align: left; }
+  .coverage-caution, .comparison-actions { margin-top: 12px; }
+  .workspace-toolbar { display: block; }
+  .workspace-actions { width: 100%; min-width: 0; justify-content: flex-start; }
+  .workspace-actions button { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+  .coverage-detail-grid, .period-grid, .comparison-period-summary { grid-template-columns: 1fr; }
+  .comparison-period + .comparison-period { border-top: 1px solid var(--cool-line); border-left: 0; }
+  .comparison-toolbar { grid-template-columns: 1fr; }
+  .comparison-metrics { grid-template-columns: 1fr 1fr; }
+  .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .coverage-caution { max-width: none; overflow-wrap: anywhere; }
 }

@@ -221,11 +221,22 @@
       empty_file: 'The selected CSV file is empty or has no header row.',
       invalid_encoding: 'The file encoding is not supported. Use UTF-8, UTF-16, or Windows-1252.',
       workflow_label: 'Analysis workflow',
+      nav_kicker: 'Workspace',
+      nav_title: 'Analysis workspace',
+      nav_local_note: 'Local-first · source traceable',
       workflow_workspace: 'Workspace',
       workflow_import: 'Import sources',
       workflow_mapping: 'Mapping & quality',
       workflow_coverage: 'Coverage & periods',
       workflow_comparison: 'Comparison results',
+      workflow_analysis: 'Analysis',
+      page_status_ready: 'Ready',
+      page_status_workspace: 'Manage workspace',
+      page_status_import: 'Import files',
+      page_status_mapping: 'Review columns',
+      page_status_coverage: 'Check date coverage',
+      page_status_comparison: 'Compare periods',
+      page_status_analysis: 'Explore articles',
       step_4: 'Step 4',
       step_5: 'Step 5',
       required_label: 'Required',
@@ -554,11 +565,22 @@
       empty_file: 'Die ausgewählte CSV-Datei ist leer oder enthält keine Kopfzeile.',
       invalid_encoding: 'Die Dateikodierung wird nicht unterstützt. Bitte UTF-8, UTF-16 oder Windows-1252 verwenden.',
       workflow_label: 'Analyseablauf',
+      nav_kicker: 'Arbeitsbereich',
+      nav_title: 'Analyse-Arbeitsbereich',
+      nav_local_note: 'Lokal · Quellen nachverfolgbar',
       workflow_workspace: 'Arbeitsbereich',
-      workflow_import: 'Quellen importieren',
-      workflow_mapping: 'Zuordnung & Qualität',
-      workflow_coverage: 'Abdeckung & Perioden',
-      workflow_comparison: 'Vergleichsergebnisse',
+      workflow_import: 'CSV importieren',
+      workflow_mapping: 'Quellspalten & Hinweise',
+      workflow_coverage: 'Datenabdeckung',
+      workflow_comparison: 'Perioden & Vergleich',
+      workflow_analysis: 'Analyse',
+      page_status_ready: 'Bereit',
+      page_status_workspace: 'Arbeitsbereich verwalten',
+      page_status_import: 'Dateien importieren',
+      page_status_mapping: 'Spalten prüfen',
+      page_status_coverage: 'Datenabdeckung prüfen',
+      page_status_comparison: 'Perioden vergleichen',
+      page_status_analysis: 'Artikel analysieren',
       step_4: 'Schritt 4',
       step_5: 'Schritt 5',
       required_label: 'Pflichtfeld',
@@ -707,7 +729,8 @@
     articlePage: 1,
     selectedArticleId: null,
     detailPage: 1,
-    issuePage: 1
+    issuePage: 1,
+    activePageTarget: 'workspace-panel'
   };
 
   const TABLE_PAGE_SIZE = 100;
@@ -738,9 +761,22 @@
     sqlite: 'runtime_capability_sqlite'
   };
 
+  const PAGE_CONFIG = {
+    'workspace-panel': { view: 'workspace-page', kicker: 'nav_kicker', title: 'workspace_title', status: 'page_status_workspace' },
+    'import-panel': { view: 'import-page', kicker: 'workflow_import', title: 'select_file_title', status: 'page_status_import' },
+    'mapping-panel': { view: 'import-page', kicker: 'workflow_mapping', title: 'mapping_title', status: 'page_status_mapping' },
+    'coverage-panel': { view: 'coverage-page', kicker: 'workflow_coverage', title: 'coverage_title', status: 'page_status_coverage' },
+    'comparison-panel': { view: 'comparison-page', kicker: 'workflow_comparison', title: 'comparison_title', status: 'page_status_comparison' },
+    'results-panel': { view: 'analysis-page', kicker: 'workflow_analysis', title: 'analysis_title', status: 'page_status_analysis' }
+  };
+
   const elements = {
     headerWorkspaceName: document.getElementById('header-workspace-name'),
     workflowSteps: Array.from(document.querySelectorAll('[data-workflow-target]')),
+    pageViews: Array.from(document.querySelectorAll('.app-page')),
+    pageContextKicker: document.getElementById('page-context-kicker'),
+    pageContextTitle: document.getElementById('page-context-title'),
+    pageContextStatus: document.getElementById('page-context-status'),
     runtimeBadge: document.getElementById('runtime-badge'),
     runtimeMode: document.getElementById('runtime-mode'),
     runtimeOrigin: document.getElementById('runtime-origin'),
@@ -1518,20 +1554,42 @@
       'import-panel': Boolean(state.activeWorkspace),
       'mapping-panel': state.files.length > 0,
       'coverage-panel': Boolean(state.result && state.result.validRows > 0),
-      'comparison-panel': Boolean(state.comparison)
+      'comparison-panel': Boolean(state.comparison),
+      'results-panel': Boolean(state.result && state.result.validRows > 0)
     };
     const completion = {
       'workspace-panel': Boolean(state.activeWorkspace),
       'import-panel': state.files.length > 0,
       'mapping-panel': Boolean(state.result && state.result.validRows > 0),
       'coverage-panel': Boolean(state.comparison),
-      'comparison-panel': false
+      'comparison-panel': false,
+      'results-panel': false
     };
+    const fallbackTarget = state.comparison
+      ? 'comparison-panel'
+      : state.result
+        ? 'coverage-panel'
+        : state.files.length
+          ? 'mapping-panel'
+          : state.activeWorkspace
+            ? 'import-panel'
+            : 'workspace-panel';
+    const candidateTarget = activeTarget || state.activePageTarget;
+    const candidateAvailable = candidateTarget === 'workspace-panel' || availability[candidateTarget];
+    const requestedTarget = PAGE_CONFIG[candidateTarget] && candidateAvailable ? candidateTarget : fallbackTarget;
+    const config = PAGE_CONFIG[requestedTarget] || PAGE_CONFIG[fallbackTarget];
+    state.activePageTarget = requestedTarget;
+    elements.pageViews.forEach(function (view) {
+      view.classList.toggle('hidden', view.id !== config.view);
+    });
+    setText(elements.pageContextKicker, translate(config.kicker));
+    setText(elements.pageContextTitle, translate(config.title));
+    setText(elements.pageContextStatus, translate(config.status));
     elements.workflowSteps.forEach(function (button) {
       const target = button.dataset.workflowTarget;
       button.classList.toggle('available', availability[target]);
       button.classList.toggle('complete', completion[target]);
-      button.classList.toggle('active', target === (activeTarget || (state.comparison ? 'comparison-panel' : state.result ? 'coverage-panel' : state.files.length ? 'mapping-panel' : state.activeWorkspace ? 'import-panel' : 'workspace-panel')));
+      button.classList.toggle('active', target === requestedTarget);
       button.disabled = !availability[target] && target !== 'workspace-panel';
     });
   }
@@ -4062,11 +4120,11 @@
   elements.workflowSteps.forEach(function (button) {
     button.addEventListener('click', function () {
       const target = document.getElementById(button.dataset.workflowTarget);
-      if (!target || target.classList.contains('hidden')) {
+      if (button.disabled || !target || !PAGE_CONFIG[button.dataset.workflowTarget]) {
         return;
       }
       renderWorkflow(button.dataset.workflowTarget);
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
     });
   });
   elements.comparisonSearch.addEventListener('input', function () {
