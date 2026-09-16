@@ -309,7 +309,7 @@ function Assert-OpenSlottingLocalhostProcess {
         }
     }
     if ([string]::IsNullOrWhiteSpace($commandLine) -or
-        $executableName -notmatch '^(?i:python(?:\d+)?|py)\.exe$' -or
+        $executableName -notmatch '^(?i:python(?:[\d.]+)?|py)\.exe$' -or
         -not $scriptArgumentIsEntryPoint -or
         -not $commandLineRootMatches) {
         throw 'The process answering on the OpenSlotting port could not be verified.'

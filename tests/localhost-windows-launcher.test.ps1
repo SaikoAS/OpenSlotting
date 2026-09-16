@@ -35,6 +35,7 @@ Assert-True ($moduleSource.Contains('Get-NetTCPConnection -LocalAddress')) 'The 
 Assert-True ($moduleSource.Contains('Join-Path $ApplicationRoot $scriptArgument')) 'Relative server script arguments must resolve against the application root.'
 $pythonFunctionSource = [regex]::Match($moduleSource, 'function Find-OpenSlottingPythonCommand \{([\s\S]*?)\n\}').Groups[1].Value
 Assert-True ($pythonFunctionSource.Contains('Get-Command $candidate.Name -All')) 'All Python command candidates must be probed, including WindowsApps aliases.'
+Assert-True ($moduleSource.Contains('python(?:[\d.]+)?')) 'Versioned Python executables such as python3.13.exe must be accepted.'
 $postStartStopCount = ([regex]::Matches($serverFunctionSource, 'Stop-OpenSlottingProcessTree -RootProcessId \$process\.Id')).Count
 Assert-True ($postStartStopCount -ge 2) 'A server created by this invocation must be stopped when startup or verification fails.'
 Assert-True ($serverFunctionSource.Contains('Stop-Process -Id $healthProcessId')) 'A verified descendant server process must also be stopped during startup cleanup.'
