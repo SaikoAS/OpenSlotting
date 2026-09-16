@@ -96,6 +96,25 @@ shortcut, open Start, search for `OpenSlotting`, right-click it, and choose
 this reminder but does not modify taskbar policy or attempt unsupported shell
 automation.
 
+## Experimental localhost start
+
+This branch also contains an optional Python 3 localhost launcher for evaluating
+OpenSlotting under a stable HTTP origin. It installs neither OpenSlotting nor
+Python packages and builds no application executable. On Windows,
+`Start-OpenSlotting-Localhost.cmd` starts the server in the background when
+needed and opens Edge in app mode. `Install-OpenSlotting-Localhost.cmd` creates
+an OpenSlotting-managed Start menu and/or Desktop shortcut that performs the
+same combined start. Run `Stop-OpenSlotting-Localhost.cmd` to stop the background
+server. The default address is `http://127.0.0.1:8765/index.html`.
+
+The server binds only to loopback and serves an explicit runtime-file allowlist.
+Because browser storage is origin-specific, existing `file:///` workspaces do
+not automatically appear on localhost. Move them with workspace backup and
+restore. Requirements, options, and security boundaries are documented in
+[`docs/localhost-experiment.md`](docs/localhost-experiment.md). The shared
+runtime contract, capability registry, and Portable/Enhanced guarantees are
+documented in [`docs/runtime-profiles.md`](docs/runtime-profiles.md).
+
 The application interface is English by default. Users can switch the visible
 interface, validation messages, labels, and number formatting to German at any
 time. Internal field keys and exported column names remain stable in English so
@@ -242,7 +261,7 @@ complete local backup.
 
 Direct local file execution is a core compatibility requirement. The application must remain usable by opening `index.html` directly from the local filesystem through a `file:///` URL in a supported browser.
 
-Normal use must not require:
+Portable Mode and every core business workflow must not require:
 
 - A local web server or `localhost`
 - A backend service
@@ -402,7 +421,9 @@ Current implementation:
 - CSS
 - JavaScript
 - Client-side data processing
-- Direct `file:///` execution without a local web server
+- One shared browser runtime with centralized profile and capability detection
+- Portable Mode through direct `file:///` execution without a local web server
+- Optional Enhanced Local Mode through a loopback-only Python standard-library server
 - Local browser storage where compatible with `file:///`
 - No runtime backend requirement
 - No internet connection required for core functionality

@@ -32,9 +32,12 @@ Confirm that the commit printed by the script exactly matches the recorded candi
 - [ ] `node --check csv.js`
 - [ ] `node --check app.js`
 - [ ] `node --check encoding.js`
+- [ ] `node --check runtime.js`
 - [ ] `node --test tests/*.test.cjs`
 - [ ] `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows-launcher.test.ps1`
 - [ ] `pwsh -NoProfile -File tests/windows-launcher.test.ps1`
+- [ ] `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/localhost-windows-launcher.test.ps1`
+- [ ] `pwsh -NoProfile -File tests/localhost-windows-launcher.test.ps1`
 - [ ] `git diff --check` reports no whitespace errors
 - [ ] `CHANGELOG.md` contains the planned publication date instead of `Unreleased`
 - [ ] Required GitHub Actions check `quality` passes on the exact final PR head
@@ -49,6 +52,7 @@ Expected ZIP contents:
 OpenSlotting-v0.2.1/
 ├── index.html
 ├── app.css
+├── runtime.js
 ├── app.js
 ├── encoding.js
 ├── csv.js
@@ -59,6 +63,16 @@ OpenSlotting-v0.2.1/
 ├── Install-OpenSlotting.ps1
 ├── Remove-OpenSlotting.cmd
 ├── Remove-OpenSlotting.ps1
+├── OpenSlotting.Localhost.Windows.psm1
+├── Start-OpenSlotting-Localhost.cmd
+├── Start-OpenSlotting-Localhost.ps1
+├── Start-OpenSlotting-Localhost.py
+├── Stop-OpenSlotting-Localhost.cmd
+├── Stop-OpenSlotting-Localhost.ps1
+├── Install-OpenSlotting-Localhost.cmd
+├── Install-OpenSlotting-Localhost.ps1
+├── Remove-OpenSlotting-Localhost.cmd
+├── Remove-OpenSlotting-Localhost.ps1
 ├── OpenSlotting.ico (optional)
 ├── README.md
 ├── LICENSE
@@ -67,13 +81,16 @@ OpenSlotting-v0.2.1/
 ├── SECURITY.md
 └── docs/
     ├── data-format.md
+    ├── runtime-profiles.md
+    ├── localhost-experiment.md
+    ├── acceptance-runtime-profiles.md
     ├── acceptance-v0.2.md
     └── acceptance-v0.2.1.md
 ```
 
 ## Manual Microsoft Edge Desktop acceptance
 
-Run these checks on Windows in Microsoft Edge Desktop with the network unavailable. Extract the candidate ZIP into a new directory and open its `index.html` directly. Record failures with the candidate commit and source fixture; use only fully synthetic data. Complete the multi-export checks in `docs/acceptance-v0.2.md` and the launcher/shortcut checks in `docs/acceptance-v0.2.1.md` on this same candidate.
+Run these checks on Windows in Microsoft Edge Desktop with the network unavailable. Extract the candidate ZIP into a new directory and open its `index.html` directly. Record failures with the candidate commit and source fixture; use only fully synthetic data. Complete the multi-export checks in `docs/acceptance-v0.2.md`, the launcher/shortcut checks in `docs/acceptance-v0.2.1.md`, and both runtime profiles in `docs/acceptance-runtime-profiles.md` on this same candidate.
 
 The V0.2 and V0.2.1 source-tree acceptance checklists were confirmed by the user on 2026-09-11 for commit `ebb6d6ec8333e564e63079d1eec6a60f3ab52495`. Final acceptance of the dated release ZIP remains pending.
 
@@ -101,7 +118,7 @@ The V0.2 and V0.2.1 source-tree acceptance checklists were confirmed by the user
 22. [ ] Analysis CSV export works.
 23. [ ] Exported text remains protected against spreadsheet formula injection.
 24. [ ] The core workflow remains usable with the network unavailable.
-25. [ ] No localhost, backend, Node.js, or Python runtime is required.
+25. [ ] Portable Mode requires no localhost, backend, Node.js, or Python runtime.
 26. [ ] `Start-OpenSlotting.cmd` opens this extracted copy in Edge app mode.
 27. [ ] Start menu and Desktop shortcut setup work without administrator rights.
 28. [ ] Generated shortcuts target Edge directly and leave no console window open.

@@ -21,7 +21,7 @@
             <option value="de" data-i18n="language_german">Deutsch</option>
           </select>
         </label>
-        <span class="local-badge" data-i18n="local_badge">local · file:///</span>
+        <span id="runtime-badge" class="local-badge" data-i18n="runtime_badge_portable">Runtime · Portable</span>
       </div>
     </header>
 
@@ -59,6 +59,23 @@
         </div>
         <div id="workspace-overview" class="workspace-overview" aria-live="polite"></div>
         <div id="workspace-storage-status" class="storage-status" role="status"></div>
+        <details class="runtime-diagnostics">
+          <summary data-i18n="runtime_diagnostics_title">Runtime diagnostics</summary>
+          <dl class="runtime-diagnostics-grid">
+            <div>
+              <dt data-i18n="runtime_mode_label">Mode</dt>
+              <dd id="runtime-mode"></dd>
+            </div>
+            <div>
+              <dt data-i18n="runtime_origin_label">Origin</dt>
+              <dd id="runtime-origin"></dd>
+            </div>
+            <div class="runtime-capabilities-row">
+              <dt data-i18n="runtime_capabilities_label">Browser capabilities</dt>
+              <dd><ul id="runtime-capabilities" class="runtime-capabilities"></ul></dd>
+            </div>
+          </dl>
+        </details>
         <div id="workspace-message" class="workspace-message hidden" role="status"></div>
         <button id="workspace-recovery" class="secondary-button workspace-recovery hidden" type="button" data-i18n="workspace_recover_save_failure">Discard unsaved changes and reload</button>
       </section>
@@ -246,6 +263,7 @@
       <button id="reset-button" class="text-button" type="button" data-i18n="reset_button">Reset</button>
     </footer>
 
+    <script src="runtime.js"></script>
     <script src="encoding.js"></script>
     <script src="csv.js"></script>
     <script src="workspace.js"></script>

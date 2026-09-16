@@ -15,7 +15,7 @@ test('release version is defined centrally for the UI and package', () => {
 });
 
 test('runtime source has no mandatory network dependency', () => {
-  const runtimeFiles = ['index.html', 'app.css', 'app.js', 'encoding.js', 'csv.js', 'workspace.js', 'storage.js'];
+  const runtimeFiles = ['index.html', 'app.css', 'runtime.js', 'app.js', 'encoding.js', 'csv.js', 'workspace.js', 'storage.js'];
   const forbiddenPattern = /https?:\/\/|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\blocalhost\b|127\.0\.0\.1/;
 
   runtimeFiles.forEach((fileName) => {
@@ -30,7 +30,7 @@ test('persistent workspace runtime uses IndexedDB without localStorage payloads'
   const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
   const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8');
 
-  assert.match(indexSource, /<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="app\.js"><\/script>/);
+  assert.match(indexSource, /<script src="runtime\.js"><\/script>\s*<script src="encoding\.js"><\/script>\s*<script src="csv\.js"><\/script>\s*<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="app\.js"><\/script>/);
   assert.match(storageSource, /indexedDb\.open\(databaseName, DATABASE_VERSION\)/);
   assert.match(appSource, /workspaceRepository\.updateWorkspace/);
   assert.match(appSource, /workspaceRepository\.createWorkspace/);
@@ -201,6 +201,30 @@ test('release packaging includes the optional Windows launcher and setup', () =>
 test('release packaging includes persistent workspace runtime and documentation', () => {
   const packagingSource = fs.readFileSync(path.join(__dirname, '..', 'tools', 'package-release.ps1'), 'utf8');
   ['workspace.js', 'storage.js', 'docs/workspace-format.md', 'docs/acceptance-workspaces.md'].forEach((fileName) => {
+    assert.match(packagingSource, new RegExp("'" + fileName.replaceAll('.', '\\.') + "'"), fileName);
+  });
+});
+
+test('release packaging includes both runtime profiles from one codebase', () => {
+  const packagingSource = fs.readFileSync(path.join(__dirname, '..', 'tools', 'package-release.ps1'), 'utf8');
+  const enhancedLocalFiles = [
+    'runtime.js',
+    'OpenSlotting.Localhost.Windows.psm1',
+    'Start-OpenSlotting-Localhost.cmd',
+    'Start-OpenSlotting-Localhost.ps1',
+    'Start-OpenSlotting-Localhost.py',
+    'Stop-OpenSlotting-Localhost.cmd',
+    'Stop-OpenSlotting-Localhost.ps1',
+    'Install-OpenSlotting-Localhost.cmd',
+    'Install-OpenSlotting-Localhost.ps1',
+    'Remove-OpenSlotting-Localhost.cmd',
+    'Remove-OpenSlotting-Localhost.ps1',
+    'docs/runtime-profiles.md',
+    'docs/localhost-experiment.md',
+    'docs/acceptance-runtime-profiles.md'
+  ];
+
+  enhancedLocalFiles.forEach((fileName) => {
     assert.match(packagingSource, new RegExp("'" + fileName.replaceAll('.', '\\.') + "'"), fileName);
   });
 });
