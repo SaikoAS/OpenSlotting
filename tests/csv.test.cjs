@@ -172,6 +172,8 @@ test('responsive workflow handles empty results and shared-page navigation safel
 
   assert.match(appSource, /: state\.result && state\.result\.validRows > 0\s*\n\s*\? 'coverage-panel'/);
   assert.match(appSource, /target\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
+  assert.match(appSource, /article\.period_a\.article_name_variants/);
+  assert.match(appSource, /return article\.selling_unit_conflict;/);
   assert.doesNotMatch(appSource, /for \(let dayOffset = offset; dayOffset <= bucketEndOffset; dayOffset \+= 1\)/);
 });
 

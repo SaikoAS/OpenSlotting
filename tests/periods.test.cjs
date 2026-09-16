@@ -93,6 +93,28 @@ test('comparison export reports conflicts across period boundaries', () => {
   assert.match(articleLine, /^A-1;[^;]*;true;/);
 });
 
+test('comparison export uses ungrouped invariant numeric values', () => {
+  const comparison = periods.comparePeriods(fixtureRows(), {
+    expectedWeekdays: [0, 1, 2, 3, 4, 5, 6],
+    periodA: { name: 'Before', start: '2026-09-01', end: '2026-09-02' },
+    periodB: { name: 'After', start: '2026-09-03', end: '2026-09-04' }
+  }, csv.analyzeRows);
+  const article = comparison.articles[0];
+  article.period_a.total_quantity = 12345000000n;
+  article.period_b.total_quantity = 24679000000n;
+  article.period_a.total_sales_exact = '1234.56';
+  article.period_b.total_sales_exact = '9876.54';
+  article.period_a.total_sales_units = 12345000000n;
+  article.period_b.total_sales_units = 24679000000n;
+  article.quantity_change = 12334000000n;
+
+  const exported = periods.exportComparisonCsv(comparison, csv);
+  assert.match(exported, /;1234\.5;/);
+  assert.match(exported, /;1234\.56;/);
+  assert.match(exported, /;2467\.9;/);
+  assert.doesNotMatch(exported, /1,234|2,467|9,876/);
+});
+
 test('default periods use the detected ISO calendar week boundaries', () => {
   const settings = periods.defaultSettings(fixtureRows());
 
@@ -112,6 +134,29 @@ test('calendar-week detection follows ISO years and reports observed rows', () =
     { id: '2026-W53', year: 2026, week: 53, start: '2026-12-28', end: '2027-01-03', name: 'KW53/2026', rowCount: 2, observedDayCount: 2 },
     { id: '2027-W01', year: 2027, week: 1, start: '2027-01-04', end: '2027-01-10', name: 'KW01/2027', rowCount: 1, observedDayCount: 1 }
   ]);
+});
+
+test('calendar-week detection handles early ISO week-years without the Date.UTC 1900 offset', () => {
+  const weeks = periods.detectedCalendarWeeks([{ order_date: '0100-01-01' }]);
+
+  assert.equal(weeks.length, 1);
+  assert.equal(weeks[0].id, '0099-W53');
+  assert.equal(weeks[0].start, '0099-12-28');
+  assert.equal(weeks[0].end, '0100-01-03');
+});
+
+test('calendar-week detection keeps the upper supported date representable', () => {
+  const rows = [{ order_date: '9999-12-31' }];
+  const weeks = periods.detectedCalendarWeeks(rows);
+
+  assert.equal(weeks.length, 1);
+  assert.equal(weeks[0].start, '9999-12-27');
+  assert.equal(weeks[0].end, '9999-12-31');
+  assert.deepEqual(periods.defaultSettings(rows).periodB, {
+    name: weeks[0].name,
+    start: weeks[0].start,
+    end: weeks[0].end
+  });
 });
 
 test('default calendar-week comparison selects the latest two detected weeks', () => {

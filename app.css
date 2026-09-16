@@ -456,7 +456,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     max-height: none;
   }
   .workflow-content { width: calc(100% - 248px); max-width: none; min-height: calc(100vh - 64px); margin-left: 248px; }
-  .app-footer { margin-left: 248px; }
+  .app-footer { width: calc(100% - 248px); margin-left: 248px; }
 }
 
 @media (max-width: 1050px) {

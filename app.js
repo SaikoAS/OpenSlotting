@@ -2051,7 +2051,14 @@
     const filter = elements.comparisonFilter.value;
     const incomplete = state.comparison.coverageA.status !== 'complete' || state.comparison.coverageB.status !== 'complete';
     const articles = state.comparison.articles.filter(function (article) {
-      const searchMatch = !query || article.article_id.toLocaleLowerCase().includes(query) || String(article.article_name || '').toLocaleLowerCase().includes(query);
+      const locale = state.language === 'de' ? 'de-DE' : 'en-US';
+      const articleNameVariants = Array.from(new Set(
+        (article.period_a.article_name_variants || []).concat(article.period_b.article_name_variants || [])
+      ));
+      const searchMatch = !query || article.article_id.toLocaleLowerCase(locale).includes(query) ||
+        [article.article_name].concat(articleNameVariants).some(function (name) {
+          return String(name || '').toLocaleLowerCase(locale).includes(query);
+        });
       if (!searchMatch || filter === 'all') {
         return searchMatch;
       }
@@ -2059,7 +2066,7 @@
         return incomplete;
       }
       if (filter === 'conflict') {
-        return article.selling_unit_conflict || article.selling_unit_overage;
+        return article.selling_unit_conflict;
       }
       return article.state === filter;
     });

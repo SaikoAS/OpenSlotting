@@ -9,6 +9,7 @@
 
   const DEFAULT_WEEKDAYS = Object.freeze([0, 1, 2, 3, 4, 5, 6]);
   const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+  const MAX_SUPPORTED_DATE = '9999-12-31';
 
   function validDate(value) {
     if (typeof value !== 'string' || !ISO_DATE_PATTERN.test(value)) {
@@ -56,8 +57,21 @@
     }).filter(Boolean))).sort();
   }
 
+  function utcDate(year, month, day) {
+    const date = new Date(0);
+    date.setUTCFullYear(year, month, day);
+    date.setUTCHours(0, 0, 0, 0);
+    return date;
+  }
+
   function isoDate(date) {
-    return date.toISOString().slice(0, 10);
+    const year = date.getUTCFullYear();
+    if (year < 1 || year > 9999) {
+      return null;
+    }
+    return String(year).padStart(4, '0') + '-' +
+      String(date.getUTCMonth() + 1).padStart(2, '0') + '-' +
+      String(date.getUTCDate()).padStart(2, '0');
   }
 
   function calendarWeekForDate(value) {
@@ -71,7 +85,7 @@
     const thursday = new Date(monday);
     thursday.setUTCDate(monday.getUTCDate() + 3);
     const year = thursday.getUTCFullYear();
-    const januaryFourth = new Date(Date.UTC(year, 0, 4));
+    const januaryFourth = utcDate(year, 0, 4);
     const januaryFourthIsoDay = januaryFourth.getUTCDay() || 7;
     const firstMonday = new Date(januaryFourth);
     firstMonday.setUTCDate(januaryFourth.getUTCDate() - januaryFourthIsoDay + 1);
@@ -79,13 +93,17 @@
     const sunday = new Date(monday);
     sunday.setUTCDate(monday.getUTCDate() + 6);
     const number = String(week).padStart(2, '0');
+    const start = isoDate(monday);
+    if (!start) {
+      return null;
+    }
     return {
-      id: String(year) + '-W' + number,
+      id: String(year).padStart(4, '0') + '-W' + number,
       year: year,
       week: week,
-      start: isoDate(monday),
-      end: isoDate(sunday),
-      name: 'KW' + number + '/' + year
+      start: start,
+      end: isoDate(sunday) || MAX_SUPPORTED_DATE,
+      name: 'KW' + number + '/' + String(year).padStart(4, '0')
     };
   }
 
@@ -154,13 +172,11 @@
     if (daySpan > 36600) {
       return null;
     }
-    let guard = 0;
     while (current <= finish) {
       if (allowed.has(current.getUTCDay())) {
         dates.push(current.toISOString().slice(0, 10));
       }
       current.setUTCDate(current.getUTCDate() + 1);
-      guard += 1;
     }
     return dates;
   }
@@ -414,6 +430,12 @@
       'selling_unit_conflict', 'selling_unit_partial', 'selling_unit_overage', 'period_a_source_files', 'period_b_source_files'
     ];
     const lines = [headers.join(delimiter)];
+    function comparisonQuantity(value) {
+      return String(core.formatScaledQuantity(value, 'en')).replace(/,/g, '');
+    }
+    function comparisonSales(value) {
+      return String(core.formatSalesValue(value, 'en')).replace(/,/g, '');
+    }
     comparison.articles.forEach(function (article) {
       const articleNameVariants = Array.from(new Set(
         (article.period_a.article_name_variants || []).concat(article.period_b.article_name_variants || [])
@@ -427,29 +449,29 @@
         comparison.settings.periodA.start,
         comparison.settings.periodA.end,
         article.period_a.order_line_count,
-        core.formatScaledQuantity(article.period_a.total_quantity, 'en'),
+        comparisonQuantity(article.period_a.total_quantity),
         article.period_a.distinct_orders,
         article.period_a.distinct_customers,
         article.period_a.active_days,
-        core.formatSalesValue(article.period_a.total_sales_exact, 'en'),
+        comparisonSales(article.period_a.total_sales_exact),
         article.period_a.sales_value_rows,
-        core.formatScaledQuantity(article.period_a.total_sales_units, 'en'),
+        comparisonQuantity(article.period_a.total_sales_units),
         article.period_a.sales_unit_rows,
         protectSpreadsheetText(JSON.stringify(article.period_a.locations || [])),
         comparison.settings.periodB.start,
         comparison.settings.periodB.end,
         article.period_b.order_line_count,
-        core.formatScaledQuantity(article.period_b.total_quantity, 'en'),
+        comparisonQuantity(article.period_b.total_quantity),
         article.period_b.distinct_orders,
         article.period_b.distinct_customers,
         article.period_b.active_days,
-        core.formatSalesValue(article.period_b.total_sales_exact, 'en'),
+        comparisonSales(article.period_b.total_sales_exact),
         article.period_b.sales_value_rows,
-        core.formatScaledQuantity(article.period_b.total_sales_units, 'en'),
+        comparisonQuantity(article.period_b.total_sales_units),
         article.period_b.sales_unit_rows,
         protectSpreadsheetText(JSON.stringify(article.period_b.locations || [])),
         article.line_change,
-        core.formatScaledQuantity(article.quantity_change, 'en'),
+        comparisonQuantity(article.quantity_change),
         article.quantity_percent_change === null ? '' : article.quantity_percent_change,
         article.selling_unit_conflict ? 'true' : 'false',
         article.selling_unit_partial ? 'true' : 'false',
