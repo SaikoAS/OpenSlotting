@@ -2,6 +2,22 @@
 
 All notable changes to OpenSlotting are documented in this file.
 
+## Unreleased
+
+### Added
+
+- visible date coverage with expected-weekday configuration and unknown-day warnings
+- inclusive Period A / Period B comparison with summary metrics, article filters, detail links, and CSV export
+- automatic ISO-calendar-week detection with selectable comparison weeks and an optional custom-period mode
+- optional selling-unit / VKU / Colli and quantity-per-selling-unit import fields
+- exact selling-unit comparison and per-article conflict indicators without replacing authoritative total quantity
+- workspace schema version 2 for persisted period settings and migration from schema version 1
+
+### Changed
+
+- the interface now uses a compact five-step workflow rail and clearer required/optional mapping labels
+- zero selling units and partial sales are valid; invalid optional unit values are advisory-only, while unit quantities above total quantity remain visible review notes
+
 ## 0.2.1 - 2026-09-14
 
 ### Added

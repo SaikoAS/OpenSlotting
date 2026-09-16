@@ -15,7 +15,7 @@ test('release version is defined centrally for the UI and package', () => {
 });
 
 test('runtime source has no mandatory network dependency', () => {
-  const runtimeFiles = ['index.html', 'app.css', 'runtime.js', 'app.js', 'encoding.js', 'csv.js', 'workspace.js', 'storage.js'];
+  const runtimeFiles = ['index.html', 'app.css', 'runtime.js', 'app.js', 'encoding.js', 'csv.js', 'periods.js', 'workspace.js', 'storage.js'];
   const forbiddenPattern = /https?:\/\/|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\blocalhost\b|127\.0\.0\.1/;
 
   runtimeFiles.forEach((fileName) => {
@@ -30,7 +30,7 @@ test('persistent workspace runtime uses IndexedDB without localStorage payloads'
   const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
   const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8');
 
-  assert.match(indexSource, /<script src="runtime\.js"><\/script>\s*<script src="encoding\.js"><\/script>\s*<script src="csv\.js"><\/script>\s*<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="app\.js"><\/script>/);
+  assert.match(indexSource, /<script src="runtime\.js"><\/script>\s*<script src="encoding\.js"><\/script>\s*<script src="csv\.js"><\/script>\s*<script src="periods\.js"><\/script>\s*<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="app\.js"><\/script>/);
   assert.match(storageSource, /indexedDb\.open\(databaseName, DATABASE_VERSION\)/);
   assert.match(appSource, /workspaceRepository\.updateWorkspace/);
   assert.match(appSource, /workspaceRepository\.createWorkspace/);
@@ -200,7 +200,7 @@ test('release packaging includes the optional Windows launcher and setup', () =>
 
 test('release packaging includes persistent workspace runtime and documentation', () => {
   const packagingSource = fs.readFileSync(path.join(__dirname, '..', 'tools', 'package-release.ps1'), 'utf8');
-  ['workspace.js', 'storage.js', 'docs/workspace-format.md', 'docs/acceptance-workspaces.md'].forEach((fileName) => {
+  ['workspace.js', 'storage.js', 'periods.js', 'docs/workspace-format.md', 'docs/period-comparison.md', 'docs/acceptance-workspaces.md', 'docs/acceptance-period-comparison.md'].forEach((fileName) => {
     assert.match(packagingSource, new RegExp("'" + fileName.replaceAll('.', '\\.') + "'"), fileName);
   });
 });
@@ -606,12 +606,76 @@ test('compact German warehouse headers import automatically without ambiguous al
   assert.equal(result.rows[0].quantity, 25000000n);
   assert.equal(result.rows[0].location, 'Fach-Ä1');
 
-  ['Nummer', 'Preis', 'Einzelpreis', 'EAN', 'GTIN', 'Colli', 'Gebinde', 'VE', 'Lagerort', 'Fach']
+  assert.equal(csv.detectMapping(['Colli']).sales_unit_count, 0);
+
+  ['Nummer', 'Preis', 'Einzelpreis', 'EAN', 'GTIN', 'Gebinde', 'VE', 'Lagerort', 'Fach']
     .forEach((header) => assert.deepEqual(
       Object.values(csv.detectMapping([header])).filter(Number.isInteger),
       [],
       `${header} should remain unmapped`
     ));
+});
+
+test('selling-unit fields import with exact quantities and keep total quantity authoritative', () => {
+  const result = csv.importCsv([
+    'AuftragsNr;ArtNr;GMenge;Datum;Colli;Menge pro VKU',
+    'O-1;A-1;10;01.09.2026;2;5',
+    'O-2;A-1;11;02.09.2026;2;5',
+    'O-3;A-1;3;03.09.2026;0;5',
+    'O-4;A-1;9;04.09.2026;2;5'
+  ].join('\n') + '\n');
+
+  assert.equal(result.validRows, 4);
+  assert.equal(result.invalidRows, 0);
+  assert.equal(result.rows[0].sales_unit_count, 20000000n);
+  assert.equal(result.rows[0].quantity_per_sales_unit, 50000000n);
+  assert.equal(result.rows[0].sales_unit_quantity_matches, true);
+  assert.equal(result.rows[0].sales_unit_quantity_relation, 'exact');
+  assert.equal(result.rows[1].quantity, 110000000n);
+  assert.equal(result.rows[1].sales_unit_quantity_matches, false);
+  assert.equal(result.rows[1].sales_unit_quantity_relation, 'partial');
+  assert.equal(result.rows[2].sales_unit_count, 0n);
+  assert.equal(result.rows[2].sales_unit_quantity_relation, 'partial');
+  assert.equal(result.rows[3].sales_unit_quantity_relation, 'exceeds');
+
+  const analysis = csv.analyzeRows(result.rows);
+  assert.equal(analysis.total_quantity, 330000000n);
+  assert.equal(analysis.total_sales_units, 60000000n);
+  assert.equal(analysis.selling_unit_partial_rows, 2);
+  assert.equal(analysis.selling_unit_overage_rows, 1);
+  assert.equal(analysis.articles[0].selling_unit_conflict, false);
+  assert.equal(analysis.articles[0].selling_unit_partial_rows, 2);
+  assert.equal(analysis.articles[0].selling_unit_overage_rows, 1);
+});
+
+test('invalid optional selling-unit values remain traceable without excluding their rows', () => {
+  const text = [
+    'order_id;article_id;quantity;order_date;sales_unit_count;quantity_per_sales_unit',
+    'O-1;A-1;10;2026-09-01;0;5',
+    'O-2;A-2;10;2026-09-02;2;1.00000001',
+    'O-3;A-3;10;2026-09-03;-1;5',
+    'O-4;A-4;10;2026-09-04;invalid;5',
+    'O-5;A-5;10;2026-09-05;2;0'
+  ].join('\n') + '\n';
+  const result = csv.importCsv(text);
+  const parsedResult = csv.importParsedCsv(csv.parseCsv(text));
+
+  [result, parsedResult].forEach((importResult) => {
+    assert.equal(importResult.validRows, 5);
+    assert.equal(importResult.invalidRows, 0);
+    assert.equal(importResult.rows[0].sales_unit_count, 0n);
+    assert.equal(importResult.rows[0].sales_unit_quantity_relation, 'partial');
+    assert.equal(importResult.rows[1].quantity_per_sales_unit, null);
+    assert.equal(importResult.rows[2].sales_unit_count, null);
+    assert.equal(importResult.rows[3].sales_unit_count, null);
+    assert.equal(importResult.rows[4].quantity_per_sales_unit, null);
+    assert.ok(importResult.issues.every((issue) => issue.severity === 'warning' && issue.blocking === false));
+    assert.ok(importResult.issues.some((issue) => issue.sourceLine === 3 && issue.code === 'quantity_per_sales_unit_precision_exceeded' && issue.orderDate === '2026-09-02'));
+    assert.ok(importResult.issues.some((issue) => issue.sourceLine === 4 && issue.code === 'sales_unit_must_be_non_negative'));
+    assert.ok(importResult.issues.some((issue) => issue.sourceLine === 5 && issue.code === 'sales_unit_must_be_non_negative'));
+    assert.ok(importResult.issues.some((issue) => issue.sourceLine === 6 && issue.code === 'quantity_per_sales_unit_must_be_positive'));
+    assert.ok(!importResult.issues.some((issue) => issue.code === 'sales_unit_must_be_positive'));
+  });
 });
 
 test('article description aliases are detected in English and German', () => {
@@ -1064,7 +1128,7 @@ test('analysis CSV export includes per-article sales-value coverage', () => {
   const coveredArticle = exportedArticles.find((article) => article.article_id === 'A1');
   const uncoveredArticle = exportedArticles.find((article) => article.article_id === 'A2');
 
-  assert.match(exported, /total_sales;sales_value_rows;share_of_order_lines/);
+  assert.match(exported, /total_sales;sales_value_rows;total_sales_units;sales_unit_rows;quantity_per_sales_unit_values;selling_unit_conflict;selling_unit_partial_rows;selling_unit_overage_rows;share_of_order_lines/);
   assert.equal(coveredArticle.total_sales, '10');
   assert.equal(coveredArticle.sales_value_rows, '1');
   assert.equal(uncoveredArticle.total_sales, '0');

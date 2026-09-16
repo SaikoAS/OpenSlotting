@@ -25,6 +25,7 @@ RUNTIME_FILES = frozenset(
         "app.js",
         "encoding.js",
         "csv.js",
+        "periods.js",
         "workspace.js",
         "storage.js",
         "OpenSlotting.ico",

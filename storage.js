@@ -65,6 +65,7 @@
       updatedAt: workspace.updatedAt,
       language: workspace.language,
       analyzed: workspace.analyzed,
+      periodSettings: workspace.periodSettings,
       storageRevision: storageRevision,
       sourceCount: workspace.files.length,
       sourceBytes: sourceBytes,
@@ -83,6 +84,9 @@
     const values = summary || {};
     return Object.assign({}, metadata, {
       analyzed: Boolean(values.analyzed),
+      periodSettings: values.periodSettings
+        ? workspaceModel.normalizePeriodSettings(values.periodSettings)
+        : workspaceModel.normalizePeriodSettings(metadata.periodSettings),
       sourceCount: Number.isInteger(values.sourceCount) && values.sourceCount >= 0 ? values.sourceCount : metadata.sourceCount,
       sourceBytes: Number.isFinite(values.sourceBytes) && values.sourceBytes >= 0 ? values.sourceBytes : metadata.sourceBytes,
       normalizedRowCount: Number.isInteger(values.normalizedRowCount) && values.normalizedRowCount >= 0
@@ -103,6 +107,7 @@
       updatedAt: metadata.updatedAt,
       language: metadata.language,
       analyzed: metadata.analyzed,
+      periodSettings: metadata.periodSettings,
       files: payload.files
     });
     workspace.storageRevision = storageRevisionOf(metadata);
@@ -121,6 +126,7 @@
       updatedAt: metadata.updatedAt,
       language: metadata.language,
       analyzed: metadata.analyzed,
+      periodSettings: metadata.periodSettings,
       storageRevision: storageRevisionOf(metadata),
       files: payload.files
     };

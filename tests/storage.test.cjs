@@ -35,6 +35,12 @@ test('persists isolated workspaces and the active selection across repository in
   const first = storage.createRepository({ indexedDB, databaseName: 'isolation-test' });
   const north = workspaceWithSource('workspace-north', 'North', 'SKU-N');
   const south = workspaceWithSource('workspace-south', 'South', 'SKU-S');
+  north.periodSettings = {
+    mode: 'custom',
+    expectedWeekdays: [1, 2, 3, 4, 5],
+    periodA: { name: 'Before', start: '2026-09-01', end: '2026-09-05' },
+    periodB: { name: 'After', start: '2026-09-08', end: '2026-09-12' }
+  };
 
   await first.createWorkspace(north);
   await first.createWorkspace(south);
@@ -43,7 +49,9 @@ test('persists isolated workspaces and the active selection across repository in
 
   const reopened = storage.createRepository({ indexedDB, databaseName: 'isolation-test' });
   assert.equal(await reopened.getActiveWorkspaceId(), north.id);
-  assert.equal((await reopened.loadWorkspace(north.id)).files[0].name, 'SKU-N.csv');
+  const reopenedNorth = await reopened.loadWorkspace(north.id);
+  assert.equal(reopenedNorth.files[0].name, 'SKU-N.csv');
+  assert.deepEqual(reopenedNorth.periodSettings, north.periodSettings);
   assert.equal((await reopened.loadWorkspace(south.id)).files[0].name, 'SKU-S.csv');
 
   const listed = await reopened.listWorkspaces();

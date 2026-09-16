@@ -28,6 +28,8 @@ An unexpected quote in an unquoted field, a character after a closing quote, or 
 | `customer_id` | No | Customer identity used for distinct-customer counts. |
 | `sales_value` | No | Sales amount with at most two decimal places. |
 | `location` | No | Source storage-location text. |
+| `sales_unit_count` | No | Non-negative number of complete selling units, VKU, or Colli with at most seven decimal places. Zero is valid for a pure partial sale. |
+| `quantity_per_sales_unit` | No | Positive quantity per selling unit with at most seven decimal places. |
 
 Mapped text values are trimmed at their outer edges. Missing optional values normalize to `null`. A valid normalized row also retains all original fields by source position, a batch-local source-file ID, the original source filename, a display label, and the one-based physical source line on which its CSV record starts. This preserves duplicate headers, duplicate filenames, duplicate rows, and traceability. Only valid rows from included files are analyzed.
 
@@ -47,8 +49,10 @@ The following aliases are detected automatically:
 | `customer_id` | `customer_id`, `customer id`, `customer`, `kdnr`, `kundennummer`, `kundenid`, `debitor`, `debitornr`, `debitorennr` |
 | `sales_value` | `sales_value`, `sales value`, `sales`, `revenue`, `umsatz`, `wert`, `vkwert`, `verkaufswert`, `umsatzwert`, `positionswert`, `nettowert`, `positionsnettowert` |
 | `location` | `location`, `storage location`, `stellplatz`, `lagerplatz`, `lgpl`, `lagerfach`, `lagerfachnr`, `kommissionierplatz`, `pickplatz`, `entnahmeplatz` |
+| `sales_unit_count` | `sales_unit_count`, `sales unit count`, `sales units`, `selling units`, `verkaufseinheit`, `verkaufseinheiten`, `vku`, `colli` |
+| `quantity_per_sales_unit` | `quantity_per_sales_unit`, `quantity per sales unit`, `quantity per selling unit`, `menge pro vku`, `menge je vku`, `inhalt`, `inh` |
 
-The mapping screen permits an independent manual source-column selection for every file in the current batch. V0.2 does not persist mappings or reusable workspaces. Automatic detection assigns the first unused matching source column within that file. A source column cannot be mapped to more than one OpenSlotting field. A reused source column or a missing required mapping blocks that file; it does not block ready files in the same batch.
+The mapping screen permits an independent manual source-column selection for every file in the current batch. Mappings are persisted inside the active local workspace. Automatic detection assigns the first unused matching source column within that file. A source column cannot be mapped to more than one OpenSlotting field. A reused source column or a missing required mapping blocks that file; it does not block ready files in the same batch.
 
 ## Validation behavior
 
@@ -99,6 +103,17 @@ Leading and trailing whitespace is ignored. Internal whitespace is rejected. An 
 - Accepted values also retain an exact decimal representation, and totals are aggregated with exact decimal arithmetic.
 - The exported total is rounded to at most two decimal places and does not require trailing zeros.
 
+### Selling units and quantity per selling unit
+
+- Both fields are optional and independently mappable.
+- `sales_unit_count` may be zero or positive. Zero means that the authoritative total quantity consists only of a partial unit or remainder.
+- `quantity_per_sales_unit` must be greater than zero. Both optional values may contain at most seven decimal places.
+- Both values use the same exact fixed-point scale `10^7` as `quantity`.
+- `quantity` remains the authoritative total demand quantity and includes full selling units plus any partial unit or remainder.
+- When both optional fields are valid, OpenSlotting compares `sales_unit_count × quantity_per_sales_unit` with `quantity` exactly. A smaller product is a valid partial sale. Only a product greater than `quantity` is reported as a consistency warning.
+- An invalid optional selling-unit value is normalized to `null` and retained as an advisory note. It never excludes an otherwise valid row, and `quantity` remains part of the analysis.
+- More than one distinct non-empty `quantity_per_sales_unit` value for an article is reported as a selling-unit conflict.
+
 ## Dates
 
 The following calendar-date forms are accepted:
@@ -134,6 +149,12 @@ The analysis export uses semicolons and CRLF line endings by default. Its stable
 | `active_days` | Number of distinct normalized order dates. |
 | `total_sales` | Exact accepted sales total, rounded to at most two decimal places; `0` when no accepted sales values exist. |
 | `sales_value_rows` | Number of rows containing an accepted sales value. |
+| `total_sales_units` | Exact sum of mapped selling units / Colli. |
+| `sales_unit_rows` | Number of rows containing an accepted selling-unit value. |
+| `quantity_per_sales_unit_values` | JSON array of distinct exact quantities per selling unit. |
+| `selling_unit_conflict` | `true` when an article has more than one quantity-per-selling-unit value. |
+| `selling_unit_partial_rows` | Number of rows where complete selling units account for less than the authoritative total quantity; the difference is a valid partial unit or remainder. |
+| `selling_unit_overage_rows` | Number of rows where selling units multiplied by quantity per unit exceeds the authoritative total quantity. |
 | `share_of_order_lines` | Article line count divided by all valid order lines. |
 | `cumulative_share_of_order_lines` | Running line share in the current analysis order. |
 | `locations` | JSON array of distinct non-empty locations, or empty when none exist. |
@@ -145,3 +166,5 @@ Before export, untrusted text that starts, after optional whitespace, with `=`, 
 ## Runtime and privacy boundary
 
 Import and analysis calculations run locally in the browser. In the post-V0.2.1 development implementation, the active workspace retains original source bytes, mappings, normalized rows, validation results, and provenance in IndexedDB; derived article analysis is rebuilt when an analyzed workspace is reopened. Normal use requires no upload, backend, local server, internet connection, Node.js, or Python. Opening `index.html` directly through `file:///` remains the runtime model. See [workspace-format.md](workspace-format.md) for the persistent storage and backup contract and [SECURITY.md](../SECURITY.md) for repository and operational-data rules.
+
+Period coverage and comparison semantics are defined separately in [period-comparison.md](period-comparison.md).

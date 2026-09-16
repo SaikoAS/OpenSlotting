@@ -79,6 +79,8 @@ test('creates a versioned empty workspace with a stable identity', () => {
   assert.equal(record.name, 'September 2026');
   assert.equal(record.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
   assert.equal(record.language, 'de');
+  assert.equal(record.periodSettings.mode, 'weeks');
+  assert.deepEqual(record.periodSettings.expectedWeekdays, [0, 1, 2, 3, 4, 5, 6]);
   assert.deepEqual(record.files, []);
 });
 
@@ -90,11 +92,20 @@ test('captures source bytes, mappings, normalized rows, validation state, and ex
   const captured = workspace.captureWorkspace(metadata, {
     language: 'en',
     analysis: { total_lines: 1 },
+    periodSettings: {
+      mode: 'custom',
+      expectedWeekdays: [1, 2, 3, 4, 5],
+      periodA: { name: 'Before', start: '2026-08-01', end: '2026-08-31' },
+      periodB: { name: 'After', start: '2026-09-01', end: '2026-09-30' }
+    },
     files: [sourceFile('source-1', 'SKU-1')]
   }, { now: '2026-09-12T09:00:00.000Z' });
 
   assert.equal(captured.updatedAt, '2026-09-12T09:00:00.000Z');
   assert.equal(captured.analyzed, true);
+  assert.equal(captured.periodSettings.periodA.name, 'Before');
+  assert.equal(captured.periodSettings.mode, 'custom');
+  assert.deepEqual(captured.periodSettings.expectedWeekdays, [1, 2, 3, 4, 5]);
   assert.equal(captured.files[0].result.rows[0].quantity, 12500000n);
   assert.deepEqual(
     Array.from(new Uint8Array(captured.files[0].buffer)),
@@ -132,7 +143,7 @@ test('trusted runtime capture builds an autosave snapshot without traversing pay
 });
 
 test('captures and restores the real CSV importer result without changing provenance', () => {
-  const text = 'order_id;article_id;quantity;order_date\nO-1;SKU-REAL;0.3;2026-09-12\n';
+  const text = 'order_id;article_id;quantity;order_date;sales_unit_count;quantity_per_sales_unit\nO-1;SKU-REAL;0.3;2026-09-12;3;0.1\n';
   const bytes = new TextEncoder().encode(text);
   const source = {
     id: 'source-real',
@@ -145,8 +156,8 @@ test('captures and restores the real CSV importer result without changing proven
     activeEncoding: 'utf-8',
     detectedEncoding: 'utf-8',
     errorKey: null,
-    mapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
-    confirmedMapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3 }
+    mapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3, sales_unit_count: 4, quantity_per_sales_unit: 5 },
+    confirmedMapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3, sales_unit_count: 4, quantity_per_sales_unit: 5 }
   };
   source.result = csv.importParsedCsv(csv.parseCsv(text), source.mapping, {
     locale: 'en',
@@ -166,9 +177,13 @@ test('captures and restores the real CSV importer result without changing proven
   }));
 
   assert.equal(restored.files[0].result.rows[0].quantity, 3000000n);
+  assert.equal(restored.files[0].result.rows[0].sales_unit_count, 30000000n);
+  assert.equal(restored.files[0].result.rows[0].quantity_per_sales_unit, 1000000n);
+  assert.equal(restored.files[0].result.rows[0].sales_unit_quantity_matches, true);
+  assert.equal(restored.files[0].result.rows[0].sales_unit_quantity_relation, 'exact');
   assert.equal(restored.files[0].result.rows[0].source_file_id, source.id);
   assert.equal(restored.files[0].result.rows[0].source_line, 2);
-  assert.deepEqual(restored.files[0].result.rows[0].raw_values, ['O-1', 'SKU-REAL', '0.3', '2026-09-12']);
+  assert.deepEqual(restored.files[0].result.rows[0].raw_values, ['O-1', 'SKU-REAL', '0.3', '2026-09-12', '3', '0.1']);
 });
 
 test('backup round trip preserves original bytes, raw fields, mappings, and BigInt quantities', () => {
@@ -325,10 +340,49 @@ test('baseline schema migration upgrades a schema-zero workspace without losing 
   delete legacy.analyzed;
 
   const migrated = workspace.migrateWorkspace(legacy);
-  assert.equal(migrated.schemaVersion, 1);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.deepEqual(migrated.periodSettings.expectedWeekdays, [0, 1, 2, 3, 4, 5, 6]);
   assert.equal(migrated.language, 'en');
   assert.equal(migrated.analyzed, false);
   assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-OLD');
+});
+
+test('schema-one migration adds period settings without changing source data', () => {
+  const legacy = analyzedWorkspace('workspace-v1', 'Version one', 'SKU-V1');
+  legacy.schemaVersion = 1;
+  delete legacy.periodSettings;
+
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.deepEqual(migrated.periodSettings, {
+    mode: 'weeks',
+    expectedWeekdays: [0, 1, 2, 3, 4, 5, 6],
+    periodA: { name: 'Period A', start: null, end: null },
+    periodB: { name: 'Period B', start: null, end: null }
+  });
+  assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V1');
+});
+
+test('period settings without a mode preserve existing dated ranges as custom', () => {
+  const normalized = workspace.normalizePeriodSettings({
+    expectedWeekdays: [1, 2, 3, 4, 5],
+    periodA: { name: 'Before', start: '2026-08-01', end: '2026-08-31' },
+    periodB: { name: 'After', start: '2026-09-01', end: '2026-09-30' }
+  });
+
+  assert.equal(normalized.mode, 'custom');
+  assert.equal(normalized.periodA.name, 'Before');
+  assert.equal(normalized.periodB.end, '2026-09-30');
+});
+
+test('workspace validation rejects invalid period ranges and empty weekday sets', () => {
+  const invalidRange = analyzedWorkspace('workspace-period', 'Period', 'SKU-1');
+  invalidRange.periodSettings.periodA = { name: 'A', start: '2026-09-10', end: '2026-09-01' };
+  assert.throws(() => workspace.validateWorkspace(invalidRange), (error) => error.code === 'invalid_period_range');
+
+  const noWeekdays = analyzedWorkspace('workspace-weekdays', 'Weekdays', 'SKU-1');
+  noWeekdays.periodSettings.expectedWeekdays = [];
+  assert.throws(() => workspace.validateWorkspace(noWeekdays), (error) => error.code === 'invalid_expected_weekdays');
 });
 
 test('duplicate source IDs and cross-source normalized rows are rejected', () => {

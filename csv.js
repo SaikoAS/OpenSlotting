@@ -21,7 +21,9 @@
     { key: 'order_date', label: 'Order date', labels: { en: 'Order date', de: 'Auftragsdatum' }, required: true },
     { key: 'customer_id', label: 'Customer ID', labels: { en: 'Customer ID', de: 'Kunden-ID' }, required: false },
     { key: 'sales_value', label: 'Sales value', labels: { en: 'Sales value', de: 'Umsatz' }, required: false },
-    { key: 'location', label: 'Location', labels: { en: 'Location', de: 'Stellplatz' }, required: false }
+    { key: 'location', label: 'Location', labels: { en: 'Location', de: 'Stellplatz' }, required: false },
+    { key: 'sales_unit_count', label: 'Selling units / Colli', labels: { en: 'Selling units / Colli', de: 'Verkaufseinheiten / VKU / Colli' }, required: false },
+    { key: 'quantity_per_sales_unit', label: 'Quantity per selling unit', labels: { en: 'Quantity per selling unit', de: 'Menge pro VKU' }, required: false }
   ]);
 
   const MESSAGES = Object.freeze({
@@ -33,6 +35,10 @@
       positiveQuantity: 'Quantity must be a positive number.',
       quantityPrecision: 'Quantity supports at most {{digits}} decimal places.',
       salesPrecision: 'Sales value supports at most {{digits}} decimal places.',
+      salesUnitPrecision: 'Selling units support at most {{digits}} decimal places.',
+      quantityPerSalesUnitPrecision: 'Quantity per selling unit supports at most {{digits}} decimal places.',
+      nonNegativeSalesUnitCount: 'Selling units must be zero or a positive number. The optional value is ignored for this row.',
+      positiveQuantityPerSalesUnit: 'Quantity per selling unit must be a positive number.',
       invalidDate: 'The order date is invalid.',
       invalidNumber: 'The sales value must be a valid number.',
       bareQuote: 'A quote in an unquoted field is not allowed.',
@@ -49,6 +55,10 @@
       positiveQuantity: 'Die Menge muss eine positive Zahl sein.',
       quantityPrecision: 'Die Menge darf höchstens {{digits}} Nachkommastellen haben.',
       salesPrecision: 'Der Umsatz darf höchstens {{digits}} Nachkommastellen haben.',
+      salesUnitPrecision: 'Verkaufseinheiten dürfen höchstens {{digits}} Nachkommastellen haben.',
+      quantityPerSalesUnitPrecision: 'Die Menge pro VKU darf höchstens {{digits}} Nachkommastellen haben.',
+      nonNegativeSalesUnitCount: 'Die Anzahl Verkaufseinheiten muss null oder eine positive Zahl sein. Der optionale Wert wird für diese Zeile ignoriert.',
+      positiveQuantityPerSalesUnit: 'Die Menge pro VKU muss eine positive Zahl sein. Der optionale Wert wird für diese Zeile ignoriert.',
       invalidDate: 'Das Auftragsdatum ist ungültig.',
       invalidNumber: 'Der Umsatz muss eine gültige Zahl sein.',
       bareQuote: 'Ein Anführungszeichen in einem unquotierten Feld ist nicht zulässig.',
@@ -73,7 +83,9 @@
     order_date: ['order_date', 'order date', 'date', 'datum', 'bestelldatum', 'lfdat', 'lieferdatum'],
     customer_id: ['customer_id', 'customer id', 'customer', 'kdnr', 'kundennummer', 'kundenid', 'debitor', 'debitornr', 'debitorennr'],
     sales_value: ['sales_value', 'sales value', 'sales', 'revenue', 'umsatz', 'wert', 'vkwert', 'verkaufswert', 'umsatzwert', 'positionswert', 'nettowert', 'positionsnettowert'],
-    location: ['location', 'storage location', 'stellplatz', 'lagerplatz', 'lgpl', 'lagerfach', 'lagerfachnr', 'kommissionierplatz', 'pickplatz', 'entnahmeplatz']
+    location: ['location', 'storage location', 'stellplatz', 'lagerplatz', 'lgpl', 'lagerfach', 'lagerfachnr', 'kommissionierplatz', 'pickplatz', 'entnahmeplatz'],
+    sales_unit_count: ['sales_unit_count', 'sales unit count', 'sales units', 'selling units', 'verkaufseinheit', 'verkaufseinheiten', 'vku', 'colli'],
+    quantity_per_sales_unit: ['quantity_per_sales_unit', 'quantity per sales unit', 'quantity per selling unit', 'menge pro vku', 'menge je vku', 'inhalt', 'inh']
   });
 
   function isBlank(value) {
@@ -479,6 +491,34 @@
     });
   }
 
+  function issueIsBlocking(issue) {
+    return !issue || (issue.blocking !== false && issue.severity !== 'warning');
+  }
+
+  function advisoryIssue(details) {
+    return Object.assign({ severity: 'warning', blocking: false }, details);
+  }
+
+  function sellingUnitQuantityRelation(salesUnitCount, quantityPerSalesUnit, quantity) {
+    if (typeof salesUnitCount !== 'bigint' || typeof quantityPerSalesUnit !== 'bigint' || typeof quantity !== 'bigint') {
+      return null;
+    }
+    const sellingUnitQuantity = salesUnitCount * quantityPerSalesUnit;
+    const totalQuantity = quantity * QUANTITY_SCALE;
+    if (sellingUnitQuantity === totalQuantity) {
+      return 'exact';
+    }
+    return sellingUnitQuantity < totalQuantity ? 'partial' : 'exceeds';
+  }
+
+  function mappedOrderDate(values, mapping) {
+    const sourceIndex = mapping && mapping.order_date;
+    if (!Number.isInteger(sourceIndex) || !Array.isArray(values) || values[sourceIndex] === undefined) {
+      return null;
+    }
+    return normalizeDate(String(values[sourceIndex]).trim());
+  }
+
   function normalizeRecord(record, headers, mapping, locale, sourceFile) {
     const values = record.values;
     const issues = [];
@@ -557,6 +597,8 @@
     const customerIdRaw = rawValue('customer_id');
     const salesValueRaw = rawValue('sales_value');
     const locationRaw = rawValue('location');
+    const salesUnitCountRaw = rawValue('sales_unit_count');
+    const quantityPerSalesUnitRaw = rawValue('quantity_per_sales_unit');
     const salesValueResult = parseExactNumber(salesValueRaw, SALES_DECIMAL_PLACES);
     const salesValue = salesValueResult && !salesValueResult.precisionExceeded ? salesValueResult.number : null;
     if (salesValueRaw && salesValueResult === null) {
@@ -577,6 +619,59 @@
       });
     }
 
+    const salesUnitCountResult = parseQuantity(salesUnitCountRaw);
+    let salesUnitCount = salesUnitCountRaw && !salesUnitCountResult.precisionExceeded
+      ? salesUnitCountResult.value
+      : null;
+    if (salesUnitCountRaw && salesUnitCountResult.precisionExceeded) {
+      issues.push(advisoryIssue({
+        sourceLine: record.sourceLine,
+        field: 'sales_unit_count',
+        code: 'sales_unit_precision_exceeded',
+        rawValue: salesUnitCountRaw,
+        message: message(locale, 'salesUnitPrecision', { digits: QUANTITY_DECIMAL_PLACES })
+      }));
+    } else if (salesUnitCountRaw && (salesUnitCount === null || salesUnitCount < 0n)) {
+      issues.push(advisoryIssue({
+        sourceLine: record.sourceLine,
+        field: 'sales_unit_count',
+        code: 'sales_unit_must_be_non_negative',
+        rawValue: salesUnitCountRaw,
+        message: message(locale, 'nonNegativeSalesUnitCount')
+      }));
+      salesUnitCount = null;
+    }
+
+    const quantityPerSalesUnitResult = parseQuantity(quantityPerSalesUnitRaw);
+    let quantityPerSalesUnit = quantityPerSalesUnitRaw && !quantityPerSalesUnitResult.precisionExceeded
+      ? quantityPerSalesUnitResult.value
+      : null;
+    if (quantityPerSalesUnitRaw && quantityPerSalesUnitResult.precisionExceeded) {
+      issues.push(advisoryIssue({
+        sourceLine: record.sourceLine,
+        field: 'quantity_per_sales_unit',
+        code: 'quantity_per_sales_unit_precision_exceeded',
+        rawValue: quantityPerSalesUnitRaw,
+        message: message(locale, 'quantityPerSalesUnitPrecision', { digits: QUANTITY_DECIMAL_PLACES })
+      }));
+    } else if (quantityPerSalesUnitRaw && (quantityPerSalesUnit === null || quantityPerSalesUnit <= 0n)) {
+      issues.push(advisoryIssue({
+        sourceLine: record.sourceLine,
+        field: 'quantity_per_sales_unit',
+        code: 'quantity_per_sales_unit_must_be_positive',
+        rawValue: quantityPerSalesUnitRaw,
+        message: message(locale, 'positiveQuantityPerSalesUnit')
+      }));
+      quantityPerSalesUnit = null;
+    }
+
+    const salesUnitQuantityRelation = sellingUnitQuantityRelation(salesUnitCount, quantityPerSalesUnit, quantity);
+    const salesUnitQuantityMatches = salesUnitQuantityRelation === null ? null : salesUnitQuantityRelation === 'exact';
+
+    issues.forEach(function (issue) {
+      issue.orderDate = orderDate;
+    });
+
     return {
       record: {
         source_file_id: sourceFile.id,
@@ -595,7 +690,11 @@
         customer_id: customerIdRaw || null,
         sales_value: salesValue,
         sales_value_exact: salesValueResult ? salesValueResult.text : null,
-        location: locationRaw || null
+        location: locationRaw || null,
+        sales_unit_count: salesUnitCount,
+        quantity_per_sales_unit: quantityPerSalesUnit,
+        sales_unit_quantity_matches: salesUnitQuantityMatches,
+        sales_unit_quantity_relation: salesUnitQuantityRelation
       },
       issues: issues
     };
@@ -622,6 +721,7 @@
     const rows = [];
     const invalidLines = new Set();
     const structuralLines = new Set();
+    const dateByLine = new Map();
 
     const parsed = parseCsv(text, Object.assign({}, options, {
       retainRows: false,
@@ -643,6 +743,7 @@
             sourceLine: dataRow.sourceLine,
             field: null,
             code: 'column_count_mismatch',
+            orderDate: mappedOrderDate(dataRow.values, selectedMapping),
             message: message(locale, 'columnCount', { actual: dataRow.values.length, expected: headers.length })
           });
           return;
@@ -652,12 +753,18 @@
         }
 
         const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile);
+        if (normalized.record.order_date) {
+          dateByLine.set(dataRow.sourceLine, normalized.record.order_date);
+        }
         if (rowHasParserError) {
           invalidLines.add(dataRow.sourceLine);
         }
+        const blockingIssues = normalized.issues.filter(issueIsBlocking);
         if (normalized.issues.length > 0) {
-          invalidLines.add(dataRow.sourceLine);
           normalized.issues.forEach(function (issue) { issues.push(issue); });
+        }
+        if (blockingIssues.length > 0) {
+          invalidLines.add(dataRow.sourceLine);
         } else if (!rowHasParserError) {
           rows.push(normalized.record);
         }
@@ -668,6 +775,7 @@
         sourceLine: error.sourceLine,
         field: null,
         code: error.code,
+        orderDate: dateByLine.get(error.sourceLine) || null,
         message: parserErrorMessage(error, locale)
       };
     });
@@ -731,11 +839,13 @@
   function importParsedCsv(parsed, mapping, options) {
     const locale = normalizeLocale(options && options.locale);
     const sourceFile = normalizeSourceFile(options && options.sourceFile);
+    const dateByLine = new Map();
     const parserIssues = parsed.errors.map(function (error) {
       return {
         sourceLine: error.sourceLine,
         field: null,
         code: error.code,
+        orderDate: null,
         message: parserErrorMessage(error, locale)
       };
     });
@@ -806,22 +916,33 @@
           sourceLine: dataRow.sourceLine,
           field: null,
           code: 'column_count_mismatch',
+          orderDate: mappedOrderDate(dataRow.values, selectedMapping),
           message: message(locale, 'columnCount', { actual: dataRow.values.length, expected: headers.length })
         });
         return;
       }
 
       const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile);
+      if (normalized.record.order_date) {
+        dateByLine.set(dataRow.sourceLine, normalized.record.order_date);
+      }
       const rowIssues = normalized.issues;
       if (parserErrorLines.has(dataRow.sourceLine)) {
         invalidLines.add(dataRow.sourceLine);
       }
+      const blockingRowIssues = rowIssues.filter(issueIsBlocking);
       if (rowIssues.length > 0) {
-        invalidLines.add(dataRow.sourceLine);
         rowIssues.forEach(function (issue) { issues.push(issue); });
+      }
+      if (blockingRowIssues.length > 0) {
+        invalidLines.add(dataRow.sourceLine);
       } else if (!parserErrorLines.has(dataRow.sourceLine)) {
         rows.push(normalized.record);
       }
+    });
+
+    parserIssues.forEach(function (issue) {
+      issue.orderDate = dateByLine.get(issue.sourceLine) || null;
     });
 
     return {
@@ -1253,6 +1374,10 @@
     let totalQuantity = 0n;
     let totalSales = decimalZero();
     let salesValueRows = 0;
+    let totalSalesUnits = 0n;
+    let salesUnitRows = 0;
+    let sellingUnitPartialRows = 0;
+    let sellingUnitOverageRows = 0;
 
     rows.forEach(function (row) {
       if (typeof row.quantity !== 'bigint') {
@@ -1279,6 +1404,16 @@
         totalSales = addDecimals(totalSales, rowSales);
         salesValueRows += 1;
       }
+      if (typeof row.sales_unit_count === 'bigint') {
+        totalSalesUnits += row.sales_unit_count;
+        salesUnitRows += 1;
+      }
+      const unitRelation = sellingUnitQuantityRelation(row.sales_unit_count, row.quantity_per_sales_unit, row.quantity);
+      if (unitRelation === 'partial') {
+        sellingUnitPartialRows += 1;
+      } else if (unitRelation === 'exceeds') {
+        sellingUnitOverageRows += 1;
+      }
 
       if (!articleMap.has(row.article_id)) {
         articleMap.set(row.article_id, {
@@ -1292,6 +1427,11 @@
           active_days: new Set(),
           total_sales: decimalZero(),
           sales_value_rows: 0,
+          total_sales_units: 0n,
+          sales_unit_rows: 0,
+          quantity_per_sales_unit_values: new Set(),
+          selling_unit_partial_rows: 0,
+          selling_unit_overage_rows: 0,
           locations: new Set(),
           source_files: new Map(),
           order_lines: []
@@ -1315,6 +1455,18 @@
       if (rowSales !== null) {
         article.total_sales = addDecimals(article.total_sales, rowSales);
         article.sales_value_rows += 1;
+      }
+      if (typeof row.sales_unit_count === 'bigint') {
+        article.total_sales_units += row.sales_unit_count;
+        article.sales_unit_rows += 1;
+      }
+      if (typeof row.quantity_per_sales_unit === 'bigint') {
+        article.quantity_per_sales_unit_values.add(row.quantity_per_sales_unit);
+      }
+      if (unitRelation === 'partial') {
+        article.selling_unit_partial_rows += 1;
+      } else if (unitRelation === 'exceeds') {
+        article.selling_unit_overage_rows += 1;
       }
       if (row.location) {
         article.locations.add(row.location);
@@ -1346,6 +1498,12 @@
           total_sales: decimalToPublicValue(article.total_sales),
           total_sales_exact: totalSalesExact,
           sales_value_rows: article.sales_value_rows,
+          total_sales_units: article.total_sales_units,
+          sales_unit_rows: article.sales_unit_rows,
+          quantity_per_sales_unit_values: Array.from(article.quantity_per_sales_unit_values).sort(compareScaledQuantitiesDescending),
+          selling_unit_conflict: article.quantity_per_sales_unit_values.size > 1,
+          selling_unit_partial_rows: article.selling_unit_partial_rows,
+          selling_unit_overage_rows: article.selling_unit_overage_rows,
           locations: Array.from(article.locations).sort(),
           source_file_count: article.source_files.size,
           source_files: Array.from(article.source_files.values()),
@@ -1372,6 +1530,10 @@
       total_sales: decimalToPublicValue(totalSales),
       total_sales_exact: decimalToText(totalSales),
       sales_value_rows: salesValueRows,
+      total_sales_units: totalSalesUnits,
+      sales_unit_rows: salesUnitRows,
+      selling_unit_partial_rows: sellingUnitPartialRows,
+      selling_unit_overage_rows: sellingUnitOverageRows,
       average_quantity_per_line: divideScaledQuantity(totalQuantity, rows.length),
       average_quantity_per_order: divideScaledQuantity(totalQuantity, orderIds.size)
     };
@@ -1480,6 +1642,12 @@
       'active_days',
       'total_sales',
       'sales_value_rows',
+      'total_sales_units',
+      'sales_unit_rows',
+      'quantity_per_sales_unit_values',
+      'selling_unit_conflict',
+      'selling_unit_partial_rows',
+      'selling_unit_overage_rows',
       'share_of_order_lines',
       'cumulative_share_of_order_lines',
       'locations'
@@ -1504,6 +1672,12 @@
         article.active_days,
         serializeSalesValue(article.total_sales, article.total_sales_exact),
         article.sales_value_rows,
+        serializeQuantity(article.total_sales_units),
+        article.sales_unit_rows,
+        JSON.stringify((article.quantity_per_sales_unit_values || []).map(serializeQuantity)),
+        article.selling_unit_conflict ? 'true' : 'false',
+        article.selling_unit_partial_rows || 0,
+        article.selling_unit_overage_rows || 0,
         serializeShare(article.share_of_order_lines),
         serializeShare(article.cumulative_share_of_order_lines),
         serializeLocations(article.locations)
@@ -1534,6 +1708,7 @@
     importCsv: importCsv,
     importCsvStreaming: importCsvStreaming,
     importParsedCsv: importParsedCsv,
+    issueIsBlocking: issueIsBlocking,
     normalizeDate: normalizeDate,
     normalizeHeader: normalizeHeader,
     normalizeNumber: normalizeNumber,
