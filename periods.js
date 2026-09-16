@@ -150,6 +150,10 @@
     const dates = [];
     let current = new Date(start + 'T00:00:00Z');
     const finish = new Date(end + 'T00:00:00Z');
+    const daySpan = Math.floor((finish.getTime() - current.getTime()) / 86400000) + 1;
+    if (daySpan > 36600) {
+      return null;
+    }
     let guard = 0;
     while (current <= finish) {
       if (allowed.has(current.getUTCDay())) {
@@ -157,9 +161,6 @@
       }
       current.setUTCDate(current.getUTCDate() + 1);
       guard += 1;
-      if (guard > 36600) {
-        throw new RangeError('A comparison period cannot exceed 100 years.');
-      }
     }
     return dates;
   }
@@ -193,9 +194,6 @@
     const selectedRows = rowsForPeriod(rows, normalized);
     const observed = observedDates(selectedRows);
     const observedSet = new Set(observed);
-    const expected = dateRange(normalized.start, normalized.end, expectedWeekdays);
-    const missing = expected.filter(function (date) { return !observedSet.has(date); });
-    const observedExpected = expected.filter(function (date) { return observedSet.has(date); });
     const sources = new Map();
     selectedRows.forEach(function (row) {
       const id = row.source_file_id || row.source_file_label || row.source_file_name;
@@ -203,6 +201,24 @@
         sources.set(String(id), row.source_file_label || row.source_file_name || String(id));
       }
     });
+    const expected = dateRange(normalized.start, normalized.end, expectedWeekdays);
+    if (expected === null) {
+      return {
+        status: 'unavailable',
+        start: normalized.start,
+        end: normalized.end,
+        rowCount: selectedRows.length,
+        observedDates: observed,
+        observedDayCount: observed.length,
+        expectedDates: [],
+        expectedDayCount: 0,
+        missingDates: [],
+        missingDayCount: 0,
+        sourceFiles: Array.from(sources.values())
+      };
+    }
+    const missing = expected.filter(function (date) { return !observedSet.has(date); });
+    const observedExpected = expected.filter(function (date) { return observedSet.has(date); });
     let status = 'complete';
     if (selectedRows.length === 0) {
       status = 'empty';
@@ -334,7 +350,11 @@
         quantity_percent_change: percentageChange(periodA.total_quantity, periodB.total_quantity),
         line_change: periodB.order_line_count - periodA.order_line_count,
         state: articleState(periodA, periodB),
-        selling_unit_conflict: Boolean(periodA.selling_unit_conflict || periodB.selling_unit_conflict),
+        selling_unit_conflict: Boolean(
+          periodA.selling_unit_conflict ||
+          periodB.selling_unit_conflict ||
+          new Set((periodA.quantity_per_sales_unit_values || []).concat(periodB.quantity_per_sales_unit_values || [])).size > 1
+        ),
         selling_unit_partial: (periodA.selling_unit_partial_rows || 0) + (periodB.selling_unit_partial_rows || 0) > 0,
         selling_unit_overage: (periodA.selling_unit_overage_rows || 0) + (periodB.selling_unit_overage_rows || 0) > 0
       };
@@ -395,11 +415,14 @@
     ];
     const lines = [headers.join(delimiter)];
     comparison.articles.forEach(function (article) {
+      const articleNameVariants = Array.from(new Set(
+        (article.period_a.article_name_variants || []).concat(article.period_b.article_name_variants || [])
+      ));
       const values = [
         protectSpreadsheetText(article.article_id),
         protectSpreadsheetText(article.article_name),
-        article.period_a.article_name_conflict || article.period_b.article_name_conflict ? 'true' : 'false',
-        protectSpreadsheetText(JSON.stringify(Array.from(new Set((article.period_a.article_name_variants || []).concat(article.period_b.article_name_variants || []))))),
+        articleNameVariants.length > 1 ? 'true' : 'false',
+        protectSpreadsheetText(JSON.stringify(articleNameVariants)),
         article.state,
         comparison.settings.periodA.start,
         comparison.settings.periodA.end,

@@ -28,6 +28,17 @@ test('coverage reports missing expected days as unknown rather than zero demand'
   assert.equal(coverage.rowCount, 4);
 });
 
+test('coverage returns unavailable for periods longer than the supported window', () => {
+  const coverage = periods.coverageForPeriod(fixtureRows(), {
+    name: 'Too long',
+    start: '1900-01-01',
+    end: '2201-01-01'
+  }, [0, 1, 2, 3, 4, 5, 6]);
+
+  assert.equal(coverage.status, 'unavailable');
+  assert.equal(coverage.rowCount, 4);
+});
+
 test('period comparison keeps absolute and relative changes separate', () => {
   const comparison = periods.comparePeriods(fixtureRows(), {
     expectedWeekdays: [2, 3, 4, 5],
@@ -46,6 +57,7 @@ test('period comparison keeps absolute and relative changes separate', () => {
   assert.equal(articleOne.quantity_change, -70000000n);
   assert.equal(articleOne.quantity_percent_change, -46.66);
   assert.equal(articleOne.state, 'decreased');
+  assert.equal(articleOne.selling_unit_conflict, true);
   assert.equal(articleTwo.state, 'new');
   assert.equal(articleTwo.quantity_percent_change, null);
 });
@@ -63,6 +75,22 @@ test('comparison CSV exports period boundaries, unit metrics, and formula-safe t
   assert.match(exported, /period_b_orders;period_b_customers;period_b_active_days;period_b_sales;period_b_sales_rows/);
   assert.match(exported, /selling_unit_conflict;selling_unit_partial;selling_unit_overage;period_a_source_files;period_b_source_files/);
   assert.match(exported, /'=SUM\(A1:A2\)/);
+});
+
+test('comparison export reports conflicts across period boundaries', () => {
+  const rows = fixtureRows();
+  rows.find((row) => row.article_id === 'A-1' && row.order_date === '2026-09-04').article_name = 'Article one revised';
+  const comparison = periods.comparePeriods(rows, {
+    expectedWeekdays: [0, 1, 2, 3, 4, 5, 6],
+    periodA: { name: 'Before', start: '2026-09-01', end: '2026-09-02' },
+    periodB: { name: 'After', start: '2026-09-03', end: '2026-09-04' }
+  }, csv.analyzeRows);
+
+  const articleOne = comparison.articles.find((article) => article.article_id === 'A-1');
+  assert.equal(articleOne.selling_unit_conflict, true);
+  const exported = periods.exportComparisonCsv(comparison, csv);
+  const articleLine = exported.split('\r\n').find((line) => line.startsWith('A-1;'));
+  assert.match(articleLine, /^A-1;[^;]*;true;/);
 });
 
 test('default periods use the detected ISO calendar week boundaries', () => {

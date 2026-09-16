@@ -1567,7 +1567,7 @@
     };
     const fallbackTarget = state.comparison
       ? 'comparison-panel'
-      : state.result
+      : state.result && state.result.validRows > 0
         ? 'coverage-panel'
         : state.files.length
           ? 'mapping-panel'
@@ -1770,18 +1770,18 @@
     const dayCount = Math.max(1, Math.round((last - first) / 86400000) + 1);
     const bucketSize = Math.max(1, Math.ceil(dayCount / 366));
     const observed = new Set(dates);
-    for (let offset = 0; offset < dayCount; offset += bucketSize) {
-      let hasObserved = false;
+    const observedBuckets = new Set(Array.from(observed).map(function (value) {
+      const observedDate = new Date(value + 'T00:00:00Z');
+      const offset = Math.round((observedDate.getTime() - first.getTime()) / 86400000);
+      return Math.floor(offset / bucketSize);
+    }));
+    const bucketCount = Math.ceil(dayCount / bucketSize);
+    for (let bucketIndex = 0; bucketIndex < bucketCount; bucketIndex += 1) {
+      const offset = bucketIndex * bucketSize;
       const bucketStart = new Date(first.getTime() + offset * 86400000);
       const bucketEndOffset = Math.min(dayCount - 1, offset + bucketSize - 1);
       const bucketEnd = new Date(first.getTime() + bucketEndOffset * 86400000);
-      for (let dayOffset = offset; dayOffset <= bucketEndOffset; dayOffset += 1) {
-        const value = new Date(first.getTime() + dayOffset * 86400000).toISOString().slice(0, 10);
-        if (observed.has(value)) {
-          hasObserved = true;
-          break;
-        }
-      }
+      const hasObserved = observedBuckets.has(bucketIndex);
       const day = document.createElement('span');
       day.className = 'coverage-day' + (hasObserved ? ' observed' : '');
       day.title = bucketStart.toISOString().slice(0, 10) + (bucketSize > 1 ? ' – ' + bucketEnd.toISOString().slice(0, 10) : '');
@@ -4124,7 +4124,7 @@
         return;
       }
       renderWorkflow(button.dataset.workflowTarget);
-      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
   elements.comparisonSearch.addEventListener('input', function () {

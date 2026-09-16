@@ -167,6 +167,14 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(workspaceSource, /OpenSlottingWorkspaceFactory/);
 });
 
+test('responsive workflow handles empty results and shared-page navigation safely', () => {
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+
+  assert.match(appSource, /: state\.result && state\.result\.validRows > 0\s*\n\s*\? 'coverage-panel'/);
+  assert.match(appSource, /target\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
+  assert.doesNotMatch(appSource, /for \(let dayOffset = offset; dayOffset <= bucketEndOffset; dayOffset \+= 1\)/);
+});
+
 test('release packaging reads files from an explicit Git commit', () => {
   const packagingSource = fs.readFileSync(path.join(__dirname, '..', 'tools', 'package-release.ps1'), 'utf8');
 
@@ -246,7 +254,7 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /dataset\.encodingFileId/);
   assert.match(appSource, /const PAGE_CONFIG =/);
   assert.match(appSource, /activePageTarget: 'workspace-panel'/);
-  assert.match(appSource, /window\.scrollTo\(\{ top: 0, left: 0/);
+  assert.match(appSource, /target\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
   assert.match(appSource, /detail_source_file: 'Source file'/);
   assert.match(appSource, /detail_source_file: 'Quelldatei'/);
   assert.match(appSource, /warning_overlap:/);
