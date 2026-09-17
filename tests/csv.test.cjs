@@ -439,7 +439,20 @@ test('chunked parser preserves quoted fields and line provenance across boundari
   assert.equal(result.validRows, 2);
   assert.equal(result.rows[0].article_name, 'Multi\r\nline "quoted"');
   assert.equal(result.rows[0].source_line, 2);
-  assert.equal(result.rows[1].source_line, 5);
+  assert.equal(result.rows[1].source_line, 4);
+});
+
+test('chunked parser removes only a BOM at the beginning of the stream', () => {
+  const parsed = csv.parseCsvChunks(['\uFEFForder_id;article_id;quantity;order_date\n', 'O-1;SKU-\uFEFF1;1;2026-09-12\n'], { retainRows: false });
+  assert.deepEqual(parsed.headers, ['order_id', 'article_id', 'quantity', 'order_date']);
+  const result = csv.importCsvStreamingChunks(['\uFEFForder_id;article_id;quantity;order_date\n', 'O-1;SKU-\uFEFF1;1;2026-09-12\n'], {
+    order_id: 0,
+    article_id: 1,
+    quantity: 2,
+    order_date: 3
+  });
+  assert.equal(result.validRows, 1);
+  assert.equal(result.rows[0].article_id, 'SKU-\uFEFF1');
 });
 
 test('duplicate source filenames receive stable batch labels', () => {

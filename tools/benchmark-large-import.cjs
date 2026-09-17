@@ -20,9 +20,7 @@ for (let index = 0; index < rowCount; index += 1) {
 let text = lines.join('\n') + '\n';
 const sourceBytes = Buffer.from(text, 'utf8');
 lines.length = 0;
-if (mode === 'chunked') {
-  text = null;
-}
+text = null;
 const sourceFile = {
   id: 'synthetic-large-import',
   name: 'synthetic-large-import.csv',

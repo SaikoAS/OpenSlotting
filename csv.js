@@ -149,6 +149,8 @@
     let stopRequested = false;
     let quotePending = false;
     let skipLfAfterCr = false;
+    let suppressLfLineIncrement = false;
+    let firstChunk = true;
 
     function addParserError(error) {
       errors.push(error);
@@ -189,14 +191,21 @@
     }
 
     function push(source) {
-      const chunk = String(source === undefined || source === null ? '' : source).replace(/^\uFEFF/, '');
+      let chunk = String(source === undefined || source === null ? '' : source);
+      if (firstChunk) {
+        chunk = chunk.replace(/^\uFEFF/, '');
+        firstChunk = false;
+      }
       for (let index = 0; index < chunk.length && !stopRequested; index += 1) {
         const character = chunk[index];
 
         if (skipLfAfterCr) {
           skipLfAfterCr = false;
-          if (character === '\n' && !inQuotes) {
-            continue;
+          if (character === '\n') {
+            if (!inQuotes) {
+              continue;
+            }
+            suppressLfLineIncrement = true;
           }
         }
 
@@ -234,7 +243,10 @@
               line += 1;
               skipLfAfterCr = true;
             } else if (character === '\n') {
-              line += 1;
+              if (!suppressLfLineIncrement) {
+                line += 1;
+              }
+              suppressLfLineIncrement = false;
             }
           }
           continue;
