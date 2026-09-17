@@ -75,6 +75,8 @@ test('single-pass comparison matches the reference metrics and coverage', () => 
   const optimized = periods.comparePeriods(rows, settings, csv.analyzeRows);
   const referenceAnalyzer = (subset) => csv.analyzeRows(subset);
   const reference = periods.comparePeriods(rows, settings, referenceAnalyzer);
+  const compatibilityAnalyzer = (subset, options) => csv.analyzeRows(subset, options);
+  const compatibility = periods.comparePeriods(rows, settings, compatibilityAnalyzer);
   const comparablePeriod = (period) => {
     const copy = { ...period };
     delete copy.order_line_refs;
@@ -99,6 +101,9 @@ test('single-pass comparison matches the reference metrics and coverage', () => 
     }))
   });
   assert.deepEqual(comparable(optimized), comparable(reference));
+  const compatibilityArticle = compatibility.articles.find((article) => article.article_id === 'A-1');
+  assert.deepEqual(compatibilityArticle.period_a.order_line_refs, [0, 1]);
+  assert.deepEqual(compatibilityArticle.period_b.order_line_refs, [2]);
 });
 
 test('comparison CSV exports period boundaries, unit metrics, and formula-safe text', () => {

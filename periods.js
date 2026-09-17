@@ -392,10 +392,27 @@
       coverageA = coverageAccumulatorA.finish();
       coverageB = coverageAccumulatorB.finish();
     } else {
-      const rowsA = rowsForPeriod(rows, normalized.periodA);
-      const rowsB = rowsForPeriod(rows, normalized.periodB);
-      analysisA = analyzeRows(rowsA);
-      analysisB = analyzeRows(rowsB);
+      const rowsA = [];
+      const indexesA = [];
+      const rowsB = [];
+      const indexesB = [];
+      (rows || []).forEach(function (row, index) {
+        if (!row) {
+          return;
+        }
+        if (normalized.periodA && validDate(normalized.periodA.start) && validDate(normalized.periodA.end) &&
+          row.order_date >= normalized.periodA.start && row.order_date <= normalized.periodA.end) {
+          rowsA.push(row);
+          indexesA.push(index);
+        }
+        if (normalized.periodB && validDate(normalized.periodB.start) && validDate(normalized.periodB.end) &&
+          row.order_date >= normalized.periodB.start && row.order_date <= normalized.periodB.end) {
+          rowsB.push(row);
+          indexesB.push(index);
+        }
+      });
+      analysisA = analyzeRows(rowsA, { detailIndexes: indexesA });
+      analysisB = analyzeRows(rowsB, { detailIndexes: indexesB });
       coverageA = coverageForPeriod(rows, normalized.periodA, normalized.expectedWeekdays);
       coverageB = coverageForPeriod(rows, normalized.periodB, normalized.expectedWeekdays);
     }
