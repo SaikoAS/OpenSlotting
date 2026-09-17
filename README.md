@@ -31,6 +31,7 @@ The current implementation includes:
 - paginated article and validation-note rendering with 100 rows per page for large imports
 - paginated detail rows with 100 rows per page
 - true chunked CSV decoding, parser state across chunk boundaries, and streaming normalization for large imports
+- incremental article and global aggregation during normalization with a batch-compatible analysis wrapper
 - English as the default interface language, with German available from the language selector
 - multiple source files in one in-memory analysis batch
 - independent encoding selection, mapping, parsing, and validation per source file

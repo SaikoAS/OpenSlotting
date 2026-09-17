@@ -27,6 +27,7 @@ const sourceFile = {
   label: 'synthetic-large-import.csv'
 };
 const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
+const analysisAccumulator = csv.createAnalysisAccumulator();
 
 function megabytes(value) {
   return Math.round(value / 1024 / 1024 * 10) / 10;
@@ -52,13 +53,15 @@ const decoded = mode === 'baseline'
   ? encoding.decodeBufferDetailed(sourceBytes.buffer.slice(sourceBytes.byteOffset, sourceBytes.byteOffset + sourceBytes.byteLength), 'auto')
   : encoding.decodeBufferChunksDetailed(sourceBytes, 'auto', { chunkSize: 64 * 1024 });
 const imported = mode === 'baseline'
-  ? csv.importCsv(decoded.text, mapping, { sourceFile: sourceFile })
-  : csv.importCsvStreamingChunks(decoded.chunks, mapping, { sourceFile: sourceFile });
+  ? csv.importCsv(decoded.text, mapping, { sourceFile: sourceFile, analysisAccumulator: analysisAccumulator })
+  : csv.importCsvStreamingChunks(decoded.chunks, mapping, { sourceFile: sourceFile, analysisAccumulator: analysisAccumulator });
 const importedAt = process.hrtime.bigint();
 stageMemory.import = memory();
 const combined = csv.combineImportResults([{ ...sourceFile, result: imported }]);
 const combinedAt = process.hrtime.bigint();
 stageMemory.combine = memory();
+const incrementalAnalysis = analysisAccumulator.finish();
+const incrementalAnalyzedAt = process.hrtime.bigint();
 const analysis = csv.analyzeRows(combined.rows);
 const analyzedAt = process.hrtime.bigint();
 stageMemory.analyze = memory();
@@ -73,11 +76,12 @@ console.log(JSON.stringify({
   sourceBytes: sourceBytes.byteLength,
   importedRows: imported.validRows,
   combinedRows: combined.rows.length,
-  analyzedLines: analysis.total_lines,
+  analyzedLines: incrementalAnalysis.total_lines,
   timingsMs: {
     import: milliseconds(startedAt, importedAt),
     combine: milliseconds(importedAt, combinedAt),
-    analyze: milliseconds(combinedAt, analyzedAt),
+    analyzeIncremental: milliseconds(importedAt, incrementalAnalyzedAt),
+    analyzeBatchCompatibility: milliseconds(incrementalAnalyzedAt, analyzedAt),
     total: milliseconds(startedAt, analyzedAt)
   },
   memory: {

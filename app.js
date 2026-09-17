@@ -2800,17 +2800,20 @@
   }
 
   function refreshAnalyzedResults(preserveView) {
+    const analysisAccumulator = core.createAnalysisAccumulator();
     const batchFiles = state.files.map(function (file) {
       if (file.parsed && !file.errorKey) {
         const mapping = file.confirmedMapping || file.mapping;
         file.result = file.content === null || file.content === undefined
           ? importBufferStreaming(file, mapping, {
             locale: state.language,
-            sourceFile: sourceContext(file)
+            sourceFile: sourceContext(file),
+            analysisAccumulator: analysisAccumulator
           })
           : core.importCsvStreaming(file.content, mapping, {
             locale: state.language,
-            sourceFile: sourceContext(file)
+            sourceFile: sourceContext(file),
+            analysisAccumulator: analysisAccumulator
           });
       } else {
         file.result = null;
@@ -2819,7 +2822,7 @@
     });
     const result = core.combineImportResults(batchFiles);
     renderMapping();
-    renderResults(result, { preserveView: preserveView });
+    renderResults(result, { preserveView: preserveView, analysis: analysisAccumulator.finish() });
   }
 
   function clearAnalysis(options) {
@@ -3156,23 +3159,26 @@
     let analysis = null;
     if (validated.analyzed) {
       reportProgress({ phase: 'analysis' });
+      const analysisAccumulator = core.createAnalysisAccumulator();
       const batchFiles = files.map(function (file) {
         if (file.parsed && !file.errorKey) {
           const mapping = file.confirmedMapping || file.mapping;
           file.result = file.content
             ? core.importCsvStreaming(file.content, mapping, {
               locale: language,
-              sourceFile: { id: file.id, name: file.name, label: file.label }
+              sourceFile: { id: file.id, name: file.name, label: file.label },
+              analysisAccumulator: analysisAccumulator
             })
             : importBufferStreaming(file, mapping, {
               locale: language,
-              sourceFile: { id: file.id, name: file.name, label: file.label }
+              sourceFile: { id: file.id, name: file.name, label: file.label },
+              analysisAccumulator: analysisAccumulator
             });
         }
         return file;
       });
       result = core.combineImportResults(batchFiles);
-      analysis = core.analyzeRows(result.rows);
+      analysis = analysisAccumulator.finish();
     }
     files.forEach(function (file) {
       // The source bytes remain the durable source of truth. Do not retain a
