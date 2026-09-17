@@ -383,6 +383,7 @@
             throw storageError('workspace_conflict', 'Workspace payload belongs to another workspace.');
           }
           updated.schemaVersion = persisted.schemaVersion;
+          updated.language = persisted.language;
           stores.workspacePayloads.put(payloadFor(persisted));
         }
         stores.workspaces.put(updated);

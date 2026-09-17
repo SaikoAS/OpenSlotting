@@ -316,3 +316,54 @@ test('loading persisted schema zero records applies the workspace migration', as
   assert.equal(loaded.analyzed, false);
   assert.equal(loaded.files[0].name, 'SKU-OLD.csv');
 });
+
+test('workspace activation persists migrated schema-zero language metadata', async () => {
+  const indexedDB = createFakeIndexedDB();
+  const databaseName = 'migration-activation-language-test';
+  const initializer = storage.createRepository({ indexedDB, databaseName });
+  await initializer.open();
+  initializer.close();
+
+  const legacy = workspaceWithSource('workspace-language-legacy', 'Legacy language', 'SKU-LANGUAGE');
+  indexedDB.seedRecord(databaseName, 'workspaces', {
+    id: legacy.id,
+    name: legacy.name,
+    schemaVersion: 0,
+    createdAt: legacy.createdAt,
+    updatedAt: legacy.updatedAt,
+    analyzed: false,
+    periodSettings: legacy.periodSettings,
+    sourceCount: legacy.files.length,
+    sourceBytes: legacy.files[0].size,
+    normalizedRowCount: 0,
+    storageRevision: 0
+  });
+  indexedDB.seedRecord(databaseName, 'workspacePayloads', {
+    workspaceId: legacy.id,
+    files: legacy.files
+  });
+
+  const migrated = workspace.createWorkspace(legacy.name, {
+    id: legacy.id,
+    language: 'en',
+    now: legacy.createdAt,
+    periodSettings: legacy.periodSettings
+  });
+  migrated.files = legacy.files;
+  const repository = storage.createRepository({ indexedDB, databaseName });
+  await repository.commitWorkspaceActivation(legacy.id, {
+    analyzed: false,
+    periodSettings: migrated.periodSettings,
+    sourceCount: migrated.files.length,
+    sourceBytes: migrated.files[0].size,
+    normalizedRowCount: 0
+  }, {
+    expectedRevision: 0,
+    persistedWorkspace: migrated
+  });
+
+  const listed = (await repository.listWorkspaces())[0];
+  assert.equal(listed.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.equal(listed.language, 'en');
+  assert.equal((await repository.loadWorkspace(legacy.id)).language, 'en');
+});
