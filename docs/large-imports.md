@@ -19,6 +19,28 @@ Damit bleiben insbesondere diese Eigenschaften erhalten:
 - Mengen werden weiterhin als skalierte Ganzzahlen verarbeitet;
 - die ursprünglichen Quelldateien werden nicht an einen Dienst übertragen.
 
+## Chunked Workspace-Persistenz
+
+Beim Speichern werden Quellen, Originalbytes, normalisierte Zeilen und
+Validierungshinweise getrennt abgelegt. Zeilen und Hinweise werden in stabilen
+Chunks mit höchstens 5.000 Einträgen gespeichert. Änderungen an Sprache,
+Perioden oder Workspace-Namen schreiben deshalb nur Metadaten; unveränderte
+Quelldaten und Chunks bleiben bestehen. Ein einzelner IndexedDB-Read/Write-
+Vorgang umfasst weiterhin Manifest, Metadaten und alle betroffenen Chunks, so
+dass Quota- und Absturzfehler keine halbfertige Workspace-Version hinterlassen.
+
+Der Persistenz-Benchmark kann mit synthetischen Daten wiederholt werden:
+
+```text
+node tools/benchmark-workspace-storage.cjs 50000
+```
+
+Die Messung weist die Chunk-Anzahl, die größte einzelne Chunk-Größe, die
+Wiederherstellungszeilen und `metadataOnlyPayloadUnchanged: true` aus. Bei
+50.000 Zeilen entstehen zehn Zeilen-Chunks; ein Perioden-/Sprach-Update lässt
+die Payload-Stores unverändert. Die Messung ist ein reproduzierbarer Node-
+Vergleich und kein Nachweis der manuellen Microsoft-Edge-Akzeptanz.
+
 ## Reproduzierbare synthetische Messung
 
 Die Messung erzeugt keine Datei und verwendet keine Betriebsdaten. Sie gibt

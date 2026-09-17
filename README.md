@@ -41,6 +41,7 @@ The current implementation includes:
 - source-file coverage in the analysis export
 - optional Windows launch, current-user shortcut setup, and safe shortcut removal for Microsoft Edge app mode
 - persistent, strictly isolated browser-local workspaces backed by IndexedDB
+- chunked workspace persistence with independently stored sources, source bytes, normalized rows, and validation issues
 - automatic storage of original source bytes, mappings, normalized rows, validation results, and provenance
 - workspace creation, selection, rename, confirmed clearing, and confirmed deletion
 - metadata-first workspace overview without automatically loading the last large payload

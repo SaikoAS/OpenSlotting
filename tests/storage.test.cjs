@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const workspace = require('../workspace.js');
 const storage = require('../storage.js');
+const csv = require('../csv.js');
 const { createFakeIndexedDB } = require('./fake-indexeddb.cjs');
 
 function workspaceWithSource(id, name, articleId) {
@@ -26,6 +27,36 @@ function workspaceWithSource(id, name, articleId) {
     mapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
     confirmedMapping: null,
     result: null
+  });
+  return workspace.validateWorkspace(record);
+}
+
+function workspaceWithRows(id, rowCount) {
+  const lines = ['order_id;article_id;quantity;order_date'];
+  for (let index = 0; index < rowCount; index += 1) {
+    lines.push('O-' + index + ';SKU-' + index + ';1;2026-09-12');
+  }
+  const text = lines.join('\n') + '\n';
+  const bytes = new TextEncoder().encode(text);
+  const imported = csv.importCsv(text, { order_id: 0, article_id: 1, quantity: 2, order_date: 3 }, {
+    sourceFile: { id: 'source-1', name: 'rows.csv', label: 'rows.csv' }
+  });
+  const record = workspace.createWorkspace('Chunked', { id, now: '2026-09-12T08:00:00.000Z' });
+  record.analyzed = true;
+  record.files.push({
+    id: 'source-1',
+    name: 'rows.csv',
+    label: 'rows.csv',
+    size: bytes.byteLength,
+    lastModified: 1,
+    buffer: bytes.buffer,
+    encodingMode: 'auto',
+    activeEncoding: 'utf-8',
+    detectedEncoding: 'utf-8',
+    errorKey: null,
+    mapping: imported.mapping,
+    confirmedMapping: imported.mapping,
+    result: imported
   });
   return workspace.validateWorkspace(record);
 }
@@ -59,6 +90,26 @@ test('persists isolated workspaces and the active selection across repository in
   assert.ok(listed.every((item) => item.sourceCount === 1));
   assert.ok(listed.every((item) => item.sourceBytes > 0));
   assert.ok(listed.every((item) => item.normalizedRowCount === 0));
+  assert.equal(indexedDB.inspect('isolation-test', 'workspacePayloads').length, 0);
+  assert.equal(indexedDB.inspect('isolation-test', 'workspaceManifests').length, 2);
+});
+
+test('persists large results as independently addressable row and issue chunks', async () => {
+  const indexedDB = createFakeIndexedDB();
+  const databaseName = 'chunked-results-test';
+  const repository = storage.createRepository({ indexedDB, databaseName });
+  const original = workspaceWithRows('workspace-chunked', 10001);
+  await repository.createWorkspace(original);
+
+  assert.equal(indexedDB.inspect(databaseName, 'workspacePayloads').length, 0);
+  assert.equal(indexedDB.inspect(databaseName, 'workspaceSources').length, 1);
+  assert.equal(indexedDB.inspect(databaseName, 'workspaceSourceBytes').length, 1);
+  assert.equal(indexedDB.inspect(databaseName, 'workspaceRowChunks').length, 3);
+  assert.equal(indexedDB.inspect(databaseName, 'workspaceIssueChunks').length, 0);
+
+  const restored = await repository.loadWorkspace(original.id);
+  assert.equal(restored.files[0].result.rows.length, 10001);
+  assert.equal(restored.files[0].result.rows[10000].article_id, 'SKU-10000');
 });
 
 test('renaming and replacing one workspace does not alter another workspace', async () => {
@@ -91,7 +142,7 @@ test('renaming metadata does not load or rewrite the large workspace payload', a
   const repository = storage.createRepository({ indexedDB, databaseName });
   const record = workspaceWithSource('workspace-1', 'Before', 'SKU-1');
   const saved = await repository.createWorkspace(record);
-  const payloadBefore = indexedDB.inspect(databaseName, 'workspacePayloads')[0];
+  const payloadBefore = indexedDB.inspect(databaseName, 'workspaceManifests')[0];
 
   const renamed = await repository.renameWorkspace(record.id, 'After', {
     expectedRevision: saved.storageRevision,
@@ -99,18 +150,20 @@ test('renaming metadata does not load or rewrite the large workspace payload', a
   });
   await repository.updateWorkspaceSummary(record.id, {
     analyzed: true,
+    language: 'de',
     sourceCount: 1,
     sourceBytes: 1234,
     normalizedRowCount: 5678
   }, {
     expectedRevision: renamed.storageRevision
   });
-  const payloadAfter = indexedDB.inspect(databaseName, 'workspacePayloads')[0];
+  const payloadAfter = indexedDB.inspect(databaseName, 'workspaceManifests')[0];
   const listed = (await repository.listWorkspaces())[0];
 
   assert.equal(renamed.name, 'After');
   assert.deepEqual(payloadAfter, payloadBefore);
   assert.equal(listed.name, 'After');
+  assert.equal(listed.language, 'de');
   assert.equal(listed.sourceBytes, 1234);
   assert.equal(listed.normalizedRowCount, 5678);
 });
@@ -309,12 +362,30 @@ test('loading persisted schema zero records applies the workspace migration', as
 
   const repository = storage.createRepository({ indexedDB, databaseName });
   const raw = await repository.loadWorkspaceRaw(legacy.id);
-  assert.equal(raw.schemaVersion, 0);
+  assert.equal(raw.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
   const loaded = await repository.loadWorkspace(legacy.id);
   assert.equal(loaded.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
   assert.equal(loaded.language, 'en');
   assert.equal(loaded.analyzed, false);
   assert.equal(loaded.files[0].name, 'SKU-OLD.csv');
+});
+
+test('failed chunked updates leave the previous workspace version intact', async () => {
+  const indexedDB = createFakeIndexedDB();
+  const databaseName = 'chunked-failure-test';
+  const repository = storage.createRepository({ indexedDB, databaseName });
+  const original = workspaceWithRows('workspace-failure', 10001);
+  await repository.createWorkspace(original);
+  const before = indexedDB.inspect(databaseName, 'workspaceRowChunks');
+
+  indexedDB.failNextWrite('QuotaExceededError');
+  await assert.rejects(
+    repository.updateWorkspace(original, { expectedRevision: 1 }),
+    (error) => error.code === 'quota_exceeded'
+  );
+
+  assert.deepEqual(indexedDB.inspect(databaseName, 'workspaceRowChunks'), before);
+  assert.equal((await repository.loadWorkspace(original.id)).files[0].result.rows.length, 10001);
 });
 
 test('workspace activation persists migrated schema-zero language metadata', async () => {

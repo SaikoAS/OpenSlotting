@@ -8,8 +8,19 @@
   'use strict';
 
   const DATABASE_NAME = 'openslotting-workspaces';
-  const DATABASE_VERSION = 1;
+  const DATABASE_VERSION = 2;
   const ACTIVE_WORKSPACE_SETTING = 'active-workspace-id';
+  const ROW_CHUNK_SIZE = 5000;
+  const ISSUE_CHUNK_SIZE = 5000;
+  const CHUNKED_WORKSPACE_STORES = [
+    'workspaces',
+    'workspacePayloads',
+    'workspaceManifests',
+    'workspaceSources',
+    'workspaceSourceBytes',
+    'workspaceRowChunks',
+    'workspaceIssueChunks'
+  ];
 
   class WorkspaceStorageError extends Error {
     constructor(code, message, cause) {
@@ -73,16 +84,115 @@
     };
   }
 
-  function payloadFor(workspace) {
+  function sourceStorageKey(workspaceId, sourceId) {
+    return String(workspaceId) + '::' + String(sourceId);
+  }
+
+  function chunkStorageKey(workspaceId, sourceId, kind, index) {
+    return sourceStorageKey(workspaceId, sourceId) + '::' + kind + '::' + String(index);
+  }
+
+  function chunkValues(values, size) {
+    const chunks = [];
+    for (let index = 0; index < values.length; index += size) {
+      chunks.push(values.slice(index, index + size));
+    }
+    return chunks;
+  }
+
+  function appendChunkValues(target, chunk, field) {
+    const values = chunk && Array.isArray(chunk[field]) ? chunk[field] : [];
+    for (let index = 0; index < values.length; index += 1) {
+      target.push(values[index]);
+    }
+  }
+
+  function chunkedRecords(workspace) {
+    const sources = [];
+    const sourceRecords = [];
+    const sourceByteRecords = [];
+    const rowChunkRecords = [];
+    const issueChunkRecords = [];
+    workspace.files.forEach(function (file) {
+      const sourceKey = sourceStorageKey(workspace.id, file.id);
+      const result = file.result || null;
+      const resultMeta = result ? Object.keys(result).reduce(function (copy, key) {
+        if (key !== 'rows' && key !== 'issues') {
+          copy[key] = result[key];
+        }
+        return copy;
+      }, {}) : null;
+      const rows = result && Array.isArray(result.rows) ? result.rows : [];
+      const issues = result && Array.isArray(result.issues) ? result.issues : [];
+      const rowChunks = chunkValues(rows, ROW_CHUNK_SIZE);
+      const issueChunks = chunkValues(issues, ISSUE_CHUNK_SIZE);
+      sources.push({
+        sourceId: file.id,
+        sourceKey: sourceKey,
+        byteKey: sourceKey,
+        rowChunkKeys: rowChunks.map(function (_, index) { return chunkStorageKey(workspace.id, file.id, 'rows', index); }),
+        issueChunkKeys: issueChunks.map(function (_, index) { return chunkStorageKey(workspace.id, file.id, 'issues', index); })
+      });
+      sourceRecords.push({
+        key: sourceKey,
+        workspaceId: workspace.id,
+        sourceId: file.id,
+        name: file.name,
+        label: file.label,
+        size: file.size,
+        lastModified: file.lastModified,
+        encodingMode: file.encodingMode,
+        activeEncoding: file.activeEncoding,
+        detectedEncoding: file.detectedEncoding,
+        errorKey: file.errorKey,
+        mapping: file.mapping,
+        confirmedMapping: file.confirmedMapping,
+        resultMeta: resultMeta
+      });
+      if (file.buffer instanceof ArrayBuffer) {
+        sourceByteRecords.push({
+          key: sourceKey,
+          workspaceId: workspace.id,
+          sourceId: file.id,
+          buffer: file.buffer
+        });
+      }
+      rowChunks.forEach(function (chunk, index) {
+        rowChunkRecords.push({
+          key: chunkStorageKey(workspace.id, file.id, 'rows', index),
+          workspaceId: workspace.id,
+          sourceId: file.id,
+          index: index,
+          rows: chunk
+        });
+      });
+      issueChunks.forEach(function (chunk, index) {
+        issueChunkRecords.push({
+          key: chunkStorageKey(workspace.id, file.id, 'issues', index),
+          workspaceId: workspace.id,
+          sourceId: file.id,
+          index: index,
+          issues: chunk
+        });
+      });
+    });
     return {
-      workspaceId: workspace.id,
-      files: workspace.files
+      manifest: {
+        workspaceId: workspace.id,
+        schemaVersion: workspace.schemaVersion,
+        sources: sources
+      },
+      sourceRecords: sourceRecords,
+      sourceByteRecords: sourceByteRecords,
+      rowChunkRecords: rowChunkRecords,
+      issueChunkRecords: issueChunkRecords
     };
   }
 
   function metadataWithSummary(metadata, summary) {
     const values = summary || {};
     return Object.assign({}, metadata, {
+      language: values.language === 'de' || values.language === 'en' ? values.language : metadata.language,
       analyzed: Boolean(values.analyzed),
       periodSettings: values.periodSettings
         ? workspaceModel.normalizePeriodSettings(values.periodSettings)
@@ -95,23 +205,82 @@
     });
   }
 
-  function combineStoredWorkspace(metadata, payload) {
-    if (!metadata || !payload) {
-      return null;
-    }
-    const workspace = workspaceModel.migrateWorkspace({
-      id: metadata.id,
-      schemaVersion: metadata.schemaVersion,
-      name: metadata.name,
-      createdAt: metadata.createdAt,
-      updatedAt: metadata.updatedAt,
-      language: metadata.language,
-      analyzed: metadata.analyzed,
-      periodSettings: metadata.periodSettings,
-      files: payload.files
+  function putChunkedWorkspace(stores, workspace) {
+    const records = chunkedRecords(workspace);
+    stores.workspaceManifests.put(records.manifest);
+    records.sourceRecords.forEach(function (record) { stores.workspaceSources.put(record); });
+    records.sourceByteRecords.forEach(function (record) { stores.workspaceSourceBytes.put(record); });
+    records.rowChunkRecords.forEach(function (record) { stores.workspaceRowChunks.put(record); });
+    records.issueChunkRecords.forEach(function (record) { stores.workspaceIssueChunks.put(record); });
+    return records.manifest;
+  }
+
+  function clearChunkedWorkspace(stores, workspaceId) {
+    return requestPromise(stores.workspaceManifests.get(workspaceId)).then(function (manifest) {
+      if (!manifest) {
+        return;
+      }
+      (manifest.sources || []).forEach(function (source) {
+        stores.workspaceSources.delete(source.sourceKey);
+        stores.workspaceSourceBytes.delete(source.byteKey);
+        (source.rowChunkKeys || []).forEach(function (key) { stores.workspaceRowChunks.delete(key); });
+        (source.issueChunkKeys || []).forEach(function (key) { stores.workspaceIssueChunks.delete(key); });
+      });
+      stores.workspaceManifests.delete(workspaceId);
     });
-    workspace.storageRevision = storageRevisionOf(metadata);
-    return workspace;
+  }
+
+  function loadChunkedPayload(stores, metadata, manifest) {
+    const sourceEntries = manifest && Array.isArray(manifest.sources) ? manifest.sources : [];
+    const requests = sourceEntries.map(function (entry) {
+      const sourceRequest = requestPromise(stores.workspaceSources.get(entry.sourceKey));
+      const bytesRequest = requestPromise(stores.workspaceSourceBytes.get(entry.byteKey));
+      const rowRequests = (entry.rowChunkKeys || []).map(function (key) { return requestPromise(stores.workspaceRowChunks.get(key)); });
+      const issueRequests = (entry.issueChunkKeys || []).map(function (key) { return requestPromise(stores.workspaceIssueChunks.get(key)); });
+      return Promise.all([sourceRequest, bytesRequest, Promise.all(rowRequests), Promise.all(issueRequests)]).then(function (values) {
+        const source = values[0];
+        if (!source) {
+          return null;
+        }
+        const rows = [];
+        values[2].forEach(function (chunk) { appendChunkValues(rows, chunk, 'rows'); });
+        const issues = [];
+        values[3].forEach(function (chunk) { appendChunkValues(issues, chunk, 'issues'); });
+        const result = source.resultMeta ? Object.assign({}, source.resultMeta, { rows: rows, issues: issues }) : null;
+        return {
+          id: source.sourceId,
+          name: source.name,
+          label: source.label,
+          size: source.size,
+          lastModified: source.lastModified,
+          buffer: values[1] ? values[1].buffer : null,
+          encodingMode: source.encodingMode,
+          activeEncoding: source.activeEncoding,
+          detectedEncoding: source.detectedEncoding,
+          errorKey: source.errorKey,
+          mapping: source.mapping,
+          confirmedMapping: source.confirmedMapping,
+          result: result
+        };
+      });
+    });
+    return Promise.all(requests).then(function (files) {
+      if (files.some(function (file) { return file === null; })) {
+        return null;
+      }
+      return {
+        id: metadata.id,
+        schemaVersion: metadata.schemaVersion,
+        name: metadata.name,
+        createdAt: metadata.createdAt,
+        updatedAt: metadata.updatedAt,
+        language: metadata.language,
+        analyzed: metadata.analyzed,
+        periodSettings: metadata.periodSettings,
+        storageRevision: storageRevisionOf(metadata),
+        files: files
+      };
+    });
   }
 
   function combineStoredWorkspaceRaw(metadata, payload) {
@@ -168,6 +337,21 @@
           }
           if (!db.objectStoreNames.contains('workspacePayloads')) {
             db.createObjectStore('workspacePayloads', { keyPath: 'workspaceId' });
+          }
+          if (!db.objectStoreNames.contains('workspaceManifests')) {
+            db.createObjectStore('workspaceManifests', { keyPath: 'workspaceId' });
+          }
+          if (!db.objectStoreNames.contains('workspaceSources')) {
+            db.createObjectStore('workspaceSources', { keyPath: 'key' });
+          }
+          if (!db.objectStoreNames.contains('workspaceSourceBytes')) {
+            db.createObjectStore('workspaceSourceBytes', { keyPath: 'key' });
+          }
+          if (!db.objectStoreNames.contains('workspaceRowChunks')) {
+            db.createObjectStore('workspaceRowChunks', { keyPath: 'key' });
+          }
+          if (!db.objectStoreNames.contains('workspaceIssueChunks')) {
+            db.createObjectStore('workspaceIssueChunks', { keyPath: 'key' });
           }
           if (!db.objectStoreNames.contains('settings')) {
             db.createObjectStore('settings', { keyPath: 'key' });
@@ -249,7 +433,7 @@
     function writeWorkspace(workspace, mode, options) {
       const settings = options || {};
       const validated = settings.validated ? workspace : workspaceModel.validateWorkspace(workspace);
-      return transact(['workspaces', 'workspacePayloads'], 'readwrite', async function (stores) {
+      return transact(CHUNKED_WORKSPACE_STORES, 'readwrite', async function (stores) {
         const current = await requestPromise(stores.workspaces.get(validated.id));
         if (mode === 'create' && current) {
           throw storageError('workspace_conflict', 'Workspace already exists.');
@@ -263,7 +447,9 @@
         }
         const nextRevision = mode === 'create' ? 1 : currentRevision + 1;
         stores.workspaces.put(metadataFor(validated, nextRevision));
-        stores.workspacePayloads.put(payloadFor(validated));
+        await clearChunkedWorkspace(stores, validated.id);
+        stores.workspacePayloads.delete(validated.id);
+        putChunkedWorkspace(stores, validated);
         return Object.assign({}, validated, { storageRevision: nextRevision });
       });
     }
@@ -280,31 +466,69 @@
       return writeWorkspace(workspace, 'replace', options);
     }
 
-    function loadWorkspace(id) {
+    function readStoredWorkspace(id) {
       const workspaceId = String(id || '');
       if (!workspaceId) {
         return Promise.resolve(null);
       }
-      return transact(['workspaces', 'workspacePayloads'], 'readonly', async function (stores) {
-        const values = await Promise.all([
-          requestPromise(stores.workspaces.get(workspaceId)),
-          requestPromise(stores.workspacePayloads.get(workspaceId))
-        ]);
-        return combineStoredWorkspace(values[0], values[1]);
+      return transact(CHUNKED_WORKSPACE_STORES, 'readonly', async function (stores) {
+        const metadata = await requestPromise(stores.workspaces.get(workspaceId));
+        if (!metadata) {
+          return null;
+        }
+        const manifest = await requestPromise(stores.workspaceManifests.get(workspaceId));
+        if (manifest) {
+          return loadChunkedPayload(stores, metadata, manifest);
+        }
+        const payload = await requestPromise(stores.workspacePayloads.get(workspaceId));
+        if (!payload) {
+          return null;
+        }
+        return {
+          legacy: true,
+          workspace: combineStoredWorkspaceRaw(metadata, payload)
+        };
+      });
+    }
+
+    function migrateLegacyWorkspace(record) {
+      const workspace = workspaceModel.migrateWorkspace(record, { clonePayload: false });
+      return transact(CHUNKED_WORKSPACE_STORES, 'readwrite', async function (stores) {
+        const metadata = await requestPromise(stores.workspaces.get(workspace.id));
+        if (!metadata) {
+          throw storageError('workspace_not_found', 'Workspace does not exist.');
+        }
+        if (storageRevisionOf(metadata) !== storageRevisionOf(record)) {
+          throw storageError('workspace_conflict', 'Workspace changed in another browser tab.');
+        }
+        await clearChunkedWorkspace(stores, workspace.id);
+        stores.workspacePayloads.delete(workspace.id);
+        const nextRevision = storageRevisionOf(metadata) + 1;
+        stores.workspaces.put(metadataFor(workspace, nextRevision));
+        putChunkedWorkspace(stores, workspace);
+        return Object.assign({}, workspace, { storageRevision: nextRevision });
       });
     }
 
     function loadWorkspaceRaw(id) {
-      const workspaceId = String(id || '');
-      if (!workspaceId) {
-        return Promise.resolve(null);
-      }
-      return transact(['workspaces', 'workspacePayloads'], 'readonly', async function (stores) {
-        const values = await Promise.all([
-          requestPromise(stores.workspaces.get(workspaceId)),
-          requestPromise(stores.workspacePayloads.get(workspaceId))
-        ]);
-        return combineStoredWorkspaceRaw(values[0], values[1]);
+      return readStoredWorkspace(id).then(function (stored) {
+        if (!stored) {
+          return null;
+        }
+        if (!stored.legacy) {
+          return stored;
+        }
+        return migrateLegacyWorkspace(stored.workspace).then(function () {
+          return readStoredWorkspace(id).then(function (migrated) {
+            return migrated && migrated.legacy ? migrated.workspace : migrated;
+          });
+        });
+      });
+    }
+
+    function loadWorkspace(id) {
+      return loadWorkspaceRaw(id).then(function (record) {
+        return record ? workspaceModel.migrateWorkspace(record, { clonePayload: false }) : null;
       });
     }
 
@@ -366,7 +590,7 @@
     function commitWorkspaceActivation(id, summary, options) {
       const workspaceId = String(id || '');
       const settings = options || {};
-      return transact(['workspaces', 'workspacePayloads', 'settings'], 'readwrite', async function (stores) {
+      return transact(CHUNKED_WORKSPACE_STORES.concat(['settings']), 'readwrite', async function (stores) {
         const metadata = await requestPromise(stores.workspaces.get(workspaceId));
         if (!metadata) {
           throw storageError('workspace_not_found', 'Workspace does not exist.');
@@ -384,7 +608,9 @@
           }
           updated.schemaVersion = persisted.schemaVersion;
           updated.language = persisted.language;
-          stores.workspacePayloads.put(payloadFor(persisted));
+          await clearChunkedWorkspace(stores, workspaceId);
+          stores.workspacePayloads.delete(workspaceId);
+          putChunkedWorkspace(stores, persisted);
         }
         stores.workspaces.put(updated);
         stores.settings.put({ key: ACTIVE_WORKSPACE_SETTING, value: workspaceId });
@@ -395,7 +621,7 @@
     function deleteWorkspace(id, options) {
       const workspaceId = String(id || '');
       const settings = options || {};
-      return transact(['workspaces', 'workspacePayloads', 'settings'], 'readwrite', async function (stores) {
+      return transact(CHUNKED_WORKSPACE_STORES.concat(['settings']), 'readwrite', async function (stores) {
         const metadata = await requestPromise(stores.workspaces.get(workspaceId));
         if (!metadata) {
           throw storageError('workspace_not_found', 'Workspace does not exist.');
@@ -405,6 +631,7 @@
         }
         stores.workspaces.delete(workspaceId);
         stores.workspacePayloads.delete(workspaceId);
+        await clearChunkedWorkspace(stores, workspaceId);
         const active = await requestPromise(stores.settings.get(ACTIVE_WORKSPACE_SETTING));
         if (active && active.value === workspaceId) {
           stores.settings.delete(ACTIVE_WORKSPACE_SETTING);
@@ -490,6 +717,8 @@
   return {
     DATABASE_NAME: DATABASE_NAME,
     DATABASE_VERSION: DATABASE_VERSION,
+    ROW_CHUNK_SIZE: ROW_CHUNK_SIZE,
+    ISSUE_CHUNK_SIZE: ISSUE_CHUNK_SIZE,
     ACTIVE_WORKSPACE_SETTING: ACTIVE_WORKSPACE_SETTING,
     WorkspaceStorageError: WorkspaceStorageError,
     normalizeStorageError: normalizeStorageError,
