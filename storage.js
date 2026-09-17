@@ -376,14 +376,16 @@
         }
         const updated = metadataWithSummary(metadata, summary);
         updated.storageRevision = storageRevisionOf(metadata) + 1;
-        stores.workspaces.put(updated);
+        let persisted = null;
         if (settings.persistedWorkspace) {
-          const persisted = workspaceModel.validateWorkspace(settings.persistedWorkspace, { clonePayload: false });
+          persisted = workspaceModel.validateWorkspace(settings.persistedWorkspace, { clonePayload: false });
           if (persisted.id !== workspaceId) {
             throw storageError('workspace_conflict', 'Workspace payload belongs to another workspace.');
           }
+          updated.schemaVersion = persisted.schemaVersion;
           stores.workspacePayloads.put(payloadFor(persisted));
         }
+        stores.workspaces.put(updated);
         stores.settings.put({ key: ACTIVE_WORKSPACE_SETTING, value: workspaceId });
         return updated;
       });

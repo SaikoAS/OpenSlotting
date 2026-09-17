@@ -139,7 +139,9 @@ test('workspace activation commits its summary and active marker atomically', as
   });
 
   assert.equal(await repository.getActiveWorkspaceId(), second.id);
-  assert.equal((await repository.listWorkspaces()).find((item) => item.id === second.id).normalizedRowCount, 10);
+  const listedSecond = (await repository.listWorkspaces()).find((item) => item.id === second.id);
+  assert.equal(listedSecond.normalizedRowCount, 10);
+  assert.equal(listedSecond.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
   assert.equal((await repository.loadWorkspace(second.id)).files[0].label, 'compact-source.csv');
 
   await assert.rejects(
