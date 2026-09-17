@@ -10,6 +10,12 @@ The default selection mode groups valid `order_date` values into ISO calendar we
 
 The user can switch to custom periods at any time and edit the names and inclusive boundaries directly. The selection mode, configured period names, boundaries, and expected weekdays are stored in the active workspace and included in its backup. Comparison results themselves are derived and are recalculated from normalized rows.
 
+For the standard CSV analysis path, both period accumulators and their coverage
+accumulators consume the combined row stream in one pass. Rows that belong to
+both periods are sent to both accumulators, preserving overlap semantics. A
+compatibility fallback remains available for callers that provide an analysis
+function without the incremental accumulator contract.
+
 ## Coverage semantics
 
 The user selects which weekdays are expected to contain exported activity. All seven weekdays are selected by default. For each period OpenSlotting enumerates those expected calendar dates and compares them with distinct normalized `order_date` values.
