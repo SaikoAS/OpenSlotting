@@ -65,6 +65,47 @@ test('period comparison keeps absolute and relative changes separate', () => {
   assert.deepEqual(articleOne.period_b.order_line_refs.map((index) => rows[index].order_id), ['O-3']);
 });
 
+test('single-pass comparison matches the reference metrics and coverage', () => {
+  const rows = fixtureRows();
+  const settings = {
+    expectedWeekdays: [2, 3, 4, 5],
+    periodA: { name: 'Before', start: '2026-09-01', end: '2026-09-02' },
+    periodB: { name: 'After', start: '2026-09-03', end: '2026-09-04' }
+  };
+  const optimized = periods.comparePeriods(rows, settings, csv.analyzeRows);
+  const referenceAnalyzer = (subset) => csv.analyzeRows(subset);
+  const reference = periods.comparePeriods(rows, settings, referenceAnalyzer);
+  const compatibilityAnalyzer = (subset, options) => csv.analyzeRows(subset, options);
+  const compatibility = periods.comparePeriods(rows, settings, compatibilityAnalyzer);
+  const comparablePeriod = (period) => {
+    const copy = { ...period };
+    delete copy.order_line_refs;
+    return copy;
+  };
+  const comparable = (comparison) => ({
+    coverageA: comparison.coverageA,
+    coverageB: comparison.coverageB,
+    summary: comparison.summary,
+    articles: comparison.articles.map((article) => ({
+      article_id: article.article_id,
+      article_name: article.article_name,
+      quantity_change: article.quantity_change,
+      quantity_percent_change: article.quantity_percent_change,
+      line_change: article.line_change,
+      state: article.state,
+      selling_unit_conflict: article.selling_unit_conflict,
+      selling_unit_partial: article.selling_unit_partial,
+      selling_unit_overage: article.selling_unit_overage,
+      period_a: comparablePeriod(article.period_a),
+      period_b: comparablePeriod(article.period_b)
+    }))
+  });
+  assert.deepEqual(comparable(optimized), comparable(reference));
+  const compatibilityArticle = compatibility.articles.find((article) => article.article_id === 'A-1');
+  assert.deepEqual(compatibilityArticle.period_a.order_line_refs, [0, 1]);
+  assert.deepEqual(compatibilityArticle.period_b.order_line_refs, [2]);
+});
+
 test('comparison CSV exports period boundaries, unit metrics, and formula-safe text', () => {
   const comparison = periods.comparePeriods(fixtureRows(), {
     expectedWeekdays: [0, 1, 2, 3, 4, 5, 6],

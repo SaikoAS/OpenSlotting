@@ -192,68 +192,85 @@
 
   function coverageForPeriod(rows, period, expectedWeekdays) {
     const normalized = normalizePeriod(period, 'Period');
-    if (!normalized.start || !normalized.end || normalized.start > normalized.end) {
-      return {
-        status: 'unavailable',
-        start: normalized.start,
-        end: normalized.end,
-        rowCount: 0,
-        observedDates: [],
-        observedDayCount: 0,
-        expectedDates: [],
-        expectedDayCount: 0,
-        missingDates: [],
-        missingDayCount: 0,
-        sourceFiles: []
-      };
-    }
-    const selectedRows = rowsForPeriod(rows, normalized);
-    const observed = observedDates(selectedRows);
-    const observedSet = new Set(observed);
+    const accumulator = createCoverageAccumulator(normalized, expectedWeekdays);
+    (rows || []).forEach(function (row) {
+      accumulator.consume(row);
+    });
+    return accumulator.finish();
+  }
+
+  function createCoverageAccumulator(period, expectedWeekdays) {
+    const normalized = normalizePeriod(period, 'Period');
+    const validRange = Boolean(normalized.start && normalized.end && normalized.start <= normalized.end);
+    const expected = validRange ? dateRange(normalized.start, normalized.end, expectedWeekdays) : [];
+    const observedSet = new Set();
     const sources = new Map();
-    selectedRows.forEach(function (row) {
+    let rowCount = 0;
+
+    function consume(row) {
+      if (!validRange || !row || row.order_date < normalized.start || row.order_date > normalized.end) {
+        return;
+      }
+      rowCount += 1;
+      if (validDate(row.order_date)) {
+        observedSet.add(row.order_date);
+      }
       const id = row.source_file_id || row.source_file_label || row.source_file_name;
       if (id) {
         sources.set(String(id), row.source_file_label || row.source_file_name || String(id));
       }
-    });
-    const expected = dateRange(normalized.start, normalized.end, expectedWeekdays);
-    if (expected === null) {
+    }
+
+    function finish() {
+      if (!validRange) {
+        return {
+          status: 'unavailable',
+          start: normalized.start,
+          end: normalized.end,
+          rowCount: 0,
+          observedDates: [],
+          observedDayCount: 0,
+          expectedDates: [],
+          expectedDayCount: 0,
+          missingDates: [],
+          missingDayCount: 0,
+          sourceFiles: []
+        };
+      }
+      const observed = Array.from(observedSet).sort();
+      if (expected === null) {
+        return {
+          status: 'unavailable',
+          start: normalized.start,
+          end: normalized.end,
+          rowCount: rowCount,
+          observedDates: observed,
+          observedDayCount: observed.length,
+          expectedDates: [],
+          expectedDayCount: 0,
+          missingDates: [],
+          missingDayCount: 0,
+          sourceFiles: Array.from(sources.values())
+        };
+      }
+      const missing = expected.filter(function (date) { return !observedSet.has(date); });
+      const observedExpected = expected.filter(function (date) { return observedSet.has(date); });
       return {
-        status: 'unavailable',
+        status: rowCount === 0 ? 'empty' : (missing.length > 0 ? 'partial' : 'complete'),
         start: normalized.start,
         end: normalized.end,
-        rowCount: selectedRows.length,
+        rowCount: rowCount,
         observedDates: observed,
-        observedDayCount: observed.length,
-        expectedDates: [],
-        expectedDayCount: 0,
-        missingDates: [],
-        missingDayCount: 0,
+        observedDayCount: observedExpected.length,
+        expectedDates: expected,
+        expectedDayCount: expected.length,
+        missingDates: missing,
+        missingDayCount: missing.length,
         sourceFiles: Array.from(sources.values())
       };
     }
-    const missing = expected.filter(function (date) { return !observedSet.has(date); });
-    const observedExpected = expected.filter(function (date) { return observedSet.has(date); });
-    let status = 'complete';
-    if (selectedRows.length === 0) {
-      status = 'empty';
-    } else if (missing.length > 0) {
-      status = 'partial';
-    }
-    return {
-      status: status,
-      start: normalized.start,
-      end: normalized.end,
-      rowCount: selectedRows.length,
-      observedDates: observed,
-      observedDayCount: observedExpected.length,
-      expectedDates: expected,
-      expectedDayCount: expected.length,
-      missingDates: missing,
-      missingDayCount: missing.length,
-      sourceFiles: Array.from(sources.values())
-    };
+
+    return { consume: consume, finish: finish };
   }
 
   function emptyArticle(articleId, articleName) {
@@ -343,27 +360,62 @@
       throw new TypeError('An analyzeRows function is required.');
     }
     const normalized = normalizeSettings(settings);
-    const rowsA = [];
-    const indexesA = [];
-    const rowsB = [];
-    const indexesB = [];
-    (rows || []).forEach(function (row, index) {
-      if (!row) {
-        return;
-      }
-      if (normalized.periodA && validDate(normalized.periodA.start) && validDate(normalized.periodA.end) &&
-        row.order_date >= normalized.periodA.start && row.order_date <= normalized.periodA.end) {
-        rowsA.push(row);
-        indexesA.push(index);
-      }
-      if (normalized.periodB && validDate(normalized.periodB.start) && validDate(normalized.periodB.end) &&
-        row.order_date >= normalized.periodB.start && row.order_date <= normalized.periodB.end) {
-        rowsB.push(row);
-        indexesB.push(index);
-      }
-    });
-    const analysisA = analyzeRows(rowsA, { detailIndexes: indexesA });
-    const analysisB = analyzeRows(rowsB, { detailIndexes: indexesB });
+    const createAccumulator = analyzeRows && analyzeRows.createAnalysisAccumulator;
+    let analysisA;
+    let analysisB;
+    let coverageA;
+    let coverageB;
+    if (typeof createAccumulator === 'function') {
+      const accumulatorA = createAccumulator();
+      const accumulatorB = createAccumulator();
+      const coverageAccumulatorA = createCoverageAccumulator(normalized.periodA, normalized.expectedWeekdays);
+      const coverageAccumulatorB = createCoverageAccumulator(normalized.periodB, normalized.expectedWeekdays);
+      (rows || []).forEach(function (row, index) {
+        if (!row) {
+          return;
+        }
+        const inA = normalized.periodA && validDate(normalized.periodA.start) && validDate(normalized.periodA.end) &&
+          row.order_date >= normalized.periodA.start && row.order_date <= normalized.periodA.end;
+        const inB = normalized.periodB && validDate(normalized.periodB.start) && validDate(normalized.periodB.end) &&
+          row.order_date >= normalized.periodB.start && row.order_date <= normalized.periodB.end;
+        if (inA) {
+          accumulatorA.consume(row, index);
+        }
+        if (inB) {
+          accumulatorB.consume(row, index);
+        }
+        coverageAccumulatorA.consume(row);
+        coverageAccumulatorB.consume(row);
+      });
+      analysisA = accumulatorA.finish();
+      analysisB = accumulatorB.finish();
+      coverageA = coverageAccumulatorA.finish();
+      coverageB = coverageAccumulatorB.finish();
+    } else {
+      const rowsA = [];
+      const indexesA = [];
+      const rowsB = [];
+      const indexesB = [];
+      (rows || []).forEach(function (row, index) {
+        if (!row) {
+          return;
+        }
+        if (normalized.periodA && validDate(normalized.periodA.start) && validDate(normalized.periodA.end) &&
+          row.order_date >= normalized.periodA.start && row.order_date <= normalized.periodA.end) {
+          rowsA.push(row);
+          indexesA.push(index);
+        }
+        if (normalized.periodB && validDate(normalized.periodB.start) && validDate(normalized.periodB.end) &&
+          row.order_date >= normalized.periodB.start && row.order_date <= normalized.periodB.end) {
+          rowsB.push(row);
+          indexesB.push(index);
+        }
+      });
+      analysisA = analyzeRows(rowsA, { detailIndexes: indexesA });
+      analysisB = analyzeRows(rowsB, { detailIndexes: indexesB });
+      coverageA = coverageForPeriod(rows, normalized.periodA, normalized.expectedWeekdays);
+      coverageB = coverageForPeriod(rows, normalized.periodB, normalized.expectedWeekdays);
+    }
     const mapA = new Map(analysisA.articles.map(function (article) { return [article.article_id, article]; }));
     const mapB = new Map(analysisB.articles.map(function (article) { return [article.article_id, article]; }));
     const articleIds = Array.from(new Set(Array.from(mapA.keys()).concat(Array.from(mapB.keys()))));
@@ -396,8 +448,6 @@
       const rightAbs = right.quantity_change < 0n ? -right.quantity_change : right.quantity_change;
       return leftAbs === rightAbs ? left.article_id.localeCompare(right.article_id) : (leftAbs > rightAbs ? -1 : 1);
     });
-    const coverageA = coverageForPeriod(rows, normalized.periodA, normalized.expectedWeekdays);
-    const coverageB = coverageForPeriod(rows, normalized.periodB, normalized.expectedWeekdays);
     return {
       settings: normalized,
       coverageA: coverageA,
