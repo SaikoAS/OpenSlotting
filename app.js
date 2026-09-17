@@ -149,6 +149,12 @@
       column_share: 'Line share',
       article_detail: 'Article details',
       detail_back: 'Back to article overview',
+      detail_source_values_action: 'Show source',
+      detail_source_values_title: 'Original source values',
+      detail_source_values_summary: 'Source values reconstructed from {{file}} · line {{line}}.',
+      detail_source_values_unavailable: 'The original source row is unavailable.',
+      detail_source_values_header: 'Source column',
+      detail_source_values_value: 'Original value',
       detail_open: 'Open details for {{article}}',
       detail_conflict: 'Multiple article descriptions were found: {{variants}}',
       detail_page: 'Page {{page}} of {{pages}} · {{count}} order lines on this page',
@@ -493,6 +499,12 @@
       column_share: 'Anteil Zeilen',
       article_detail: 'Artikeldetails',
       detail_back: 'Zurück zur Artikelübersicht',
+      detail_source_values_action: 'Quelle anzeigen',
+      detail_source_values_title: 'Originale Quellwerte',
+      detail_source_values_summary: 'Quellwerte rekonstruiert aus {{file}} · Zeile {{line}}.',
+      detail_source_values_unavailable: 'Die ursprüngliche Quellzeile ist nicht verfügbar.',
+      detail_source_values_header: 'Quellspalte',
+      detail_source_values_value: 'Originalwert',
       detail_open: 'Details für {{article}} öffnen',
       detail_conflict: 'Es wurden mehrere Artikelbezeichnungen gefunden: {{variants}}',
       detail_page: 'Seite {{page}} von {{pages}} · {{count}} Auftragszeilen auf dieser Seite',
@@ -883,6 +895,9 @@
     articleDetailTitle: document.getElementById('article-detail-title'),
     articleDetailHeading: document.getElementById('article-detail-heading'),
     articleDetailWarning: document.getElementById('article-detail-warning'),
+    articleSourceInspection: document.getElementById('article-source-inspection'),
+    articleSourceInspectionSummary: document.getElementById('article-source-inspection-summary'),
+    articleSourceInspectionBody: document.getElementById('article-source-inspection-body'),
     articleDetailMetrics: document.getElementById('article-detail-metrics'),
     articleDetailTableBody: document.getElementById('article-detail-table-body'),
     articleDetailPagination: document.getElementById('article-detail-pagination'),
@@ -2413,6 +2428,49 @@
     row.appendChild(cell);
   }
 
+  function appendSourceInspectionCell(row, line) {
+    const cell = document.createElement('td');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'secondary-button source-inspection-button';
+    button.dataset.sourceInspectFileId = line.source_file_id || '';
+    button.dataset.sourceInspectLine = line.source_line === undefined ? '' : String(line.source_line);
+    button.textContent = translate('detail_source_values_action');
+    button.disabled = !line.source_file_id || !Number.isInteger(line.source_line);
+    cell.appendChild(button);
+    row.appendChild(cell);
+  }
+
+  function showArticleSourceValues(fileId, sourceLine) {
+    elements.articleSourceInspectionBody.replaceChildren();
+    elements.articleSourceInspection.classList.remove('hidden');
+    elements.articleSourceInspection.open = true;
+    const file = state.files.find(function (candidate) { return candidate.id === fileId; });
+    let reconstructed = null;
+    if (file && file.buffer) {
+      try {
+        const decoded = encoding.decodeBufferDetailed(file.buffer, file.activeEncoding || file.encodingMode || 'auto');
+        reconstructed = core.reconstructRawSource(decoded.text, sourceLine);
+      } catch (error) {
+        reconstructed = null;
+      }
+    }
+    if (!reconstructed) {
+      setText(elements.articleSourceInspectionSummary, translate('detail_source_values_unavailable'));
+      return;
+    }
+    setText(elements.articleSourceInspectionSummary, translate('detail_source_values_summary', {
+      file: file.label || file.name,
+      line: reconstructed.sourceLine
+    }));
+    reconstructed.raw_fields.forEach(function (field) {
+      const row = document.createElement('tr');
+      appendCell(row, field.header);
+      appendCell(row, field.value === '' ? translate('empty_value') : field.value);
+      elements.articleSourceInspectionBody.appendChild(row);
+    });
+  }
+
   function selectedArticle() {
     if (!state.analysis || !state.selectedArticleId) {
       return null;
@@ -2467,11 +2525,15 @@
     renderArticleDetailMetrics(article);
 
     elements.articleDetailTableBody.replaceChildren();
+    elements.articleSourceInspection.classList.add('hidden');
+    elements.articleSourceInspection.open = false;
+    elements.articleSourceInspectionBody.replaceChildren();
+    setText(elements.articleSourceInspectionSummary, '');
     if (visibleLines.length === 0) {
       const emptyRow = document.createElement('tr');
       emptyRow.className = 'empty-row';
       const emptyCell = document.createElement('td');
-      emptyCell.colSpan = 11;
+      emptyCell.colSpan = 12;
       setText(emptyCell, translate('no_detail_rows'));
       emptyRow.appendChild(emptyCell);
       elements.articleDetailTableBody.appendChild(emptyRow);
@@ -2489,6 +2551,7 @@
         appendCell(row, line.sales_value === null ? translate('empty_value') : formatSalesValue(line.sales_value, line.sales_value_exact), 'number');
         appendCell(row, optionalText(line.location), 'location-cell');
         appendCell(row, optionalText(line.article_name), 'article-name-cell');
+        appendSourceInspectionCell(row, line);
         elements.articleDetailTableBody.appendChild(row);
       });
     }
@@ -4235,6 +4298,13 @@
   elements.articleDetailBack.addEventListener('click', function () {
     const articleId = state.selectedArticleId;
     showArticleOverview(articleId);
+  });
+  elements.articleDetailTableBody.addEventListener('click', function (event) {
+    const button = event.target.closest('button[data-source-inspect-file-id]');
+    if (!button || !elements.articleDetailTableBody.contains(button) || button.disabled) {
+      return;
+    }
+    showArticleSourceValues(button.dataset.sourceInspectFileId, Number(button.dataset.sourceInspectLine));
   });
   elements.articleDetailPrevious.addEventListener('click', function () {
     if (state.detailPage > 1) {

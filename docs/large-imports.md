@@ -13,7 +13,9 @@ Damit bleiben insbesondere diese Eigenschaften erhalten:
 
 - jede gültige Zeile wird genau einmal normalisiert und gezählt;
 - `source_file_id`, `source_file_name`, `source_file_label` und `source_line`
-  bleiben an den Ergebniszeilen erhalten;
+  bleiben an den kompakten Ergebniszeilen erhalten;
+- Originale Quellfelder werden bei Bedarf aus Quellbytes und Quellzeile rekonstruiert,
+  statt in jeder Ergebniszeile doppelt gespeichert zu werden;
 - Mengen werden weiterhin als skalierte Ganzzahlen verarbeitet;
 - die ursprünglichen Quelldateien werden nicht an einen Dienst übertragen.
 
@@ -29,10 +31,12 @@ node --expose-gc --max-old-space-size=4096 tools/benchmark-large-import.cjs 7000
 ```
 
 Das Programm meldet Quellgröße, exakte Zeilenzahlen, Import-/Analysezeit und
-den aktuellen sowie den maximal gemessenen Node-Speicherstand. Eine Messung auf dem Entwicklungsrechner mit 700.000
-schmalen, gültigen Zeilen reduzierte den Spitzenbedarf des bisherigen
-Parser- plus Normalisierungspfads von ungefähr 944 MB auf ungefähr 777 MB RSS.
-Das ist ein reproduzierbarer Node-Vergleich, kein Nachweis der manuellen
+den aktuellen sowie den maximal gemessenen Node-Speicherstand. Eine Messung auf
+dem Entwicklungsrechner mit 700.000 schmalen, gültigen Zeilen reduzierte den
+Spitzenbedarf der normalisierten Zeilen von 830,9 MB (Schema mit Raw-Arrays) auf
+577,1 MB RSS (kompakte Zeilen, rund 30 % weniger). Die Messung wurde jeweils
+mit demselben Benchmark und Commit-Vergleich wiederholt. Das ist ein
+reproduzierbarer Node-Vergleich, kein Nachweis der manuellen
 Microsoft-Edge-Akzeptanz. Die Edge-Prüfung bleibt ein eigener Abnahmeschritt
 mit einer realistischen Datei- und Spaltenbreite.
 

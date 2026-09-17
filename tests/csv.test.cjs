@@ -256,6 +256,8 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /dataset\.encodingFileId/);
   assert.match(appSource, /const PAGE_CONFIG =/);
   assert.match(appSource, /activePageTarget: 'workspace-panel'/);
+  assert.match(appSource, /core\.reconstructRawSource/);
+  assert.match(indexSource, /id="article-source-inspection"/);
   assert.match(appSource, /target\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
   assert.match(appSource, /detail_source_file: 'Source file'/);
   assert.match(appSource, /detail_source_file: 'Quelldatei'/);
@@ -314,6 +316,31 @@ test('basic fixture matches its documented metrics', () => {
   assert.equal(analysis.distinct_orders, 11);
   assert.equal(analysis.distinct_customers, 6);
   assert.equal(analysis.active_days, 6);
+});
+
+test('normalized rows keep compact provenance and reconstruct source fields on demand', () => {
+  const text = [
+    'order_id;article_id;quantity;order_date;note;note',
+    'O-1;SKU-1;1;2026-09-12;"first;value";A',
+    'O-2;SKU-2;2;2026-09-13;"multi',
+    'line";B'
+  ].join('\n');
+  const result = csv.importCsv(text, {
+    order_id: 0,
+    article_id: 1,
+    quantity: 2,
+    order_date: 3
+  }, { sourceFile: { id: 'compact-source', name: 'compact.csv', label: 'compact.csv' } });
+
+  assert.equal(Object.hasOwn(result.rows[0], 'raw_values'), false);
+  assert.equal(Object.hasOwn(result.rows[0], 'raw_fields'), false);
+  const reconstructed = csv.reconstructRawSource(text, 3);
+  assert.deepEqual(reconstructed.raw_values, ['O-2', 'SKU-2', '2', '2026-09-13', 'multi\nline', 'B']);
+  assert.deepEqual(reconstructed.raw_fields.slice(-2), [
+    { position: 5, header: 'note', value: 'multi\nline' },
+    { position: 6, header: 'note', value: 'B' }
+  ]);
+  assert.equal(csv.reconstructRawSource(text, 99), null);
 });
 
 test('streaming import keeps large batches stack-safe and source-complete', () => {

@@ -31,7 +31,7 @@ An unexpected quote in an unquoted field, a character after a closing quote, or 
 | `sales_unit_count` | No | Non-negative number of complete selling units, VKU, or Colli with at most seven decimal places. Zero is valid for a pure partial sale. |
 | `quantity_per_sales_unit` | No | Positive quantity per selling unit with at most seven decimal places. |
 
-Mapped text values are trimmed at their outer edges. Missing optional values normalize to `null`. A valid normalized row also retains all original fields by source position, a batch-local source-file ID, the original source filename, a display label, and the one-based physical source line on which its CSV record starts. This preserves duplicate headers, duplicate filenames, duplicate rows, and traceability. Only valid rows from included files are analyzed.
+Mapped text values are trimmed at their outer edges. Missing optional values normalize to `null`. A valid normalized row retains a batch-local source-file ID, the original source filename, a display label, and the one-based physical source line on which its CSV record starts. Original source fields are reconstructed on demand from the retained source bytes and headers, preserving duplicate headers, duplicate filenames, duplicate rows, and traceability without duplicating raw field arrays on every row. Only valid rows from included files are analyzed.
 
 ## Column mapping
 

@@ -22,7 +22,7 @@ The current implementation includes:
 - ISO and German date normalization
 - decimal-point and decimal-comma number parsing
 - validation with source file, source line, and field information
-- preservation of raw field positions, including duplicate rows
+- on-demand reconstruction of raw field positions, including duplicate headers and rows
 - optional article descriptions with English and German column aliases
 - stable article grouping by ID with visible description-conflict detection
 - article aggregation with quantity and order-line frequency kept separate

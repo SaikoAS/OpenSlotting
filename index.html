@@ -390,6 +390,11 @@
             </div>
           </div>
           <div id="article-detail-warning" class="message warning-message hidden" role="status"></div>
+          <details id="article-source-inspection" class="source-inspection hidden">
+            <summary data-i18n="detail_source_values_title">Original source values</summary>
+            <p id="article-source-inspection-summary" class="table-note"></p>
+            <div class="table-scroll"><table><thead><tr><th data-i18n="detail_source_values_header">Source column</th><th data-i18n="detail_source_values_value">Original value</th></tr></thead><tbody id="article-source-inspection-body"></tbody></table></div>
+          </details>
           <div id="article-detail-metrics" class="metric-grid detail-metric-grid"></div>
           <div class="table-scroll">
             <table>
@@ -406,6 +411,7 @@
                   <th class="number" data-i18n="detail_sales_value">Sales value</th>
                   <th data-i18n="detail_location">Location</th>
                   <th data-i18n="column_article_name">Article description</th>
+                  <th data-i18n="detail_source_values_action">Show source</th>
                 </tr>
               </thead>
               <tbody id="article-detail-table-body"></tbody>

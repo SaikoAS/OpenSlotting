@@ -50,7 +50,7 @@ Run this checklist on the exact feature or release candidate in Microsoft Edge D
 
 13. [ ] Import and analyze `multi-export-a.csv` and `multi-export-b.csv` in one workspace.
 14. [ ] Close Edge completely, reopen the application, explicitly open the marked workspace, and confirm that both sources and the analysis return.
-15. [ ] Mapping, detected encoding, valid/invalid counts, validation notes, raw values, source-file labels, and physical source lines remain equivalent.
+15. [ ] Mapping, detected encoding, valid/invalid counts, validation notes, reconstructed raw values, source-file labels, and physical source lines remain equivalent.
 16. [ ] Exact quantity `0.3` for `SKU-MULTI` survives restart without floating-point artifacts.
 17. [ ] Changing a mapping is saved automatically and survives restart.
 18. [ ] Changing a source encoding is saved automatically and survives restart.

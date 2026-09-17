@@ -33,7 +33,7 @@ Every workspace has:
 | Field | Type | Contract |
 | --- | --- | --- |
 | `id` | string | Stable browser-local identity. |
-| `schemaVersion` | integer | Stored-workspace schema version; currently `2`. |
+| `schemaVersion` | integer | Stored-workspace schema version; currently `3`. |
 | `name` | string | Trimmed, non-empty, at most 120 characters. Names do not have to be unique. |
 | `createdAt` | ISO timestamp | Creation time. |
 | `updatedAt` | ISO timestamp | Time of the latest successful snapshot. |
@@ -57,7 +57,8 @@ Each source retains:
 - normalized valid rows
 - parser, mapping, structural, and row-validation results
 - source-file and physical source-line provenance
-- raw field values and positional raw fields, including duplicate headers
+- compact normalized rows with source-file and physical source-line provenance
+- original raw field values are reconstructed on demand from the retained bytes and decoded headers, including duplicate headers
 
 The browser `File` object, DOM nodes, object URLs, rendered tables, filters, page numbers, and other transient UI objects are not stored.
 
@@ -140,7 +141,7 @@ The complete backup is parsed, decoded, migrated, and validated before IndexedDB
 - stored row counts
 - source ownership of normalized rows and validation issues
 - positive exact scaled quantities
-- required normalized identities, dates, raw values, and raw fields
+- required normalized identities and dates, plus compact source provenance
 - rejection of unsafe object property names
 
 An invalid, truncated, unsupported, or unsafe backup changes no stored workspace.
@@ -193,6 +194,6 @@ The restore worker returns the already validated persisted payload and prepared 
 
 ## Schema migration
 
-Workspace records carry `schemaVersion`. The current reader uses version `2`. It migrates version `0` through the version `1` baseline and migrates version `1` by adding calendar-week selection mode, default expected weekdays, and empty Period A / Period B settings without changing source records. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
+Workspace records carry `schemaVersion`. The current reader uses version `3`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, and upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
 
 Future migrations must produce a fully valid current workspace before saving it and require automated migration and backup-round-trip tests.
