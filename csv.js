@@ -1428,9 +1428,10 @@
       if (included) {
         includedFiles += 1;
         normalizedRows.forEach(function (row) {
+          const detailIndex = rows.length;
           rows.push(row);
           if (analysisAccumulator && typeof analysisAccumulator.consume === 'function') {
-            analysisAccumulator.consume(row);
+            analysisAccumulator.consume(row, detailIndex);
           }
         });
       }
@@ -1482,18 +1483,16 @@
     let sellingUnitPartialRows = 0;
     let sellingUnitOverageRows = 0;
     let totalLines = 0;
+    let nextDetailIndex = 0;
 
-    function detailReference(row) {
-      const sourceId = row.source_file_id === undefined || row.source_file_id === null
-        ? (row.source_file_label || row.source_file_name || '')
-        : String(row.source_file_id);
-      return sourceId + '::' + String(row.source_line === undefined || row.source_line === null ? '' : row.source_line);
-    }
-
-    function consume(row) {
+    function consume(row, detailIndex) {
       if (typeof row.quantity !== 'bigint') {
         throw new TypeError('Normalized rows must store quantity as a scaled integer.');
       }
+      const resolvedDetailIndex = Number.isInteger(detailIndex) && detailIndex >= 0
+        ? detailIndex
+        : nextDetailIndex;
+      nextDetailIndex += 1;
       totalLines += 1;
       orderIds.add(row.order_id);
       if (row.customer_id) {
@@ -1586,7 +1585,7 @@
       if (sourceFileKey) {
         article.source_files.set(sourceFileKey, sourceFileLabel);
       }
-      article.order_line_refs.push(detailReference(row));
+      article.order_line_refs.push(resolvedDetailIndex);
     }
 
     function finish() {
@@ -1654,9 +1653,15 @@
     return { consume: consume, finish: finish };
   }
 
-  function analyzeRows(rows) {
+  function analyzeRows(rows, options) {
     const analysis = createAnalysisAccumulator();
-    (rows || []).forEach(function (row) { analysis.consume(row); });
+    const detailIndexes = options && Array.isArray(options.detailIndexes) ? options.detailIndexes : null;
+    (rows || []).forEach(function (row, index) {
+      const detailIndex = detailIndexes && Number.isInteger(detailIndexes[index])
+        ? detailIndexes[index]
+        : index;
+      analysis.consume(row, detailIndex);
+    });
     return analysis.finish();
   }
 

@@ -729,7 +729,7 @@
     files: [],
     fileSelectionVersion: 0,
     result: null,
-    detailRowsByRef: new Map(),
+    detailRowsByRef: [],
     analysis: null,
     periodSettings: periods.normalizeSettings(),
     comparison: null,
@@ -2221,15 +2221,26 @@
     elements.comparisonDetailPeriods.replaceChildren();
     appendComparisonDetailPeriod(state.comparison.settings.periodA.name, article.period_a);
     appendComparisonDetailPeriod(state.comparison.settings.periodB.name, article.period_b);
-    const rows = detailRowsForReferences(article.period_a.order_line_refs).map(function (line) {
-      return { period: state.comparison.settings.periodA.name, line: line };
-    }).concat(detailRowsForReferences(article.period_b.order_line_refs).map(function (line) {
-      return { period: state.comparison.settings.periodB.name, line: line };
-    }));
-    const pageCount = Math.max(1, Math.ceil(rows.length / TABLE_PAGE_SIZE));
+    const referencesA = Array.isArray(article.period_a.order_line_refs) ? article.period_a.order_line_refs : [];
+    const referencesB = Array.isArray(article.period_b.order_line_refs) ? article.period_b.order_line_refs : [];
+    const totalRows = referencesA.length + referencesB.length;
+    const pageCount = Math.max(1, Math.ceil(totalRows / TABLE_PAGE_SIZE));
     state.comparisonDetailPage = Math.min(Math.max(state.comparisonDetailPage, 1), pageCount);
     const pageStart = (state.comparisonDetailPage - 1) * TABLE_PAGE_SIZE;
-    const visible = rows.slice(pageStart, pageStart + TABLE_PAGE_SIZE);
+    const pageEnd = pageStart + TABLE_PAGE_SIZE;
+    const visible = [];
+    const appendVisible = function (references, periodName, offset) {
+      const start = Math.max(0, pageStart - offset);
+      const end = Math.min(references.length, pageEnd - offset);
+      if (start >= end) {
+        return;
+      }
+      detailRowsForReferences(references, start, end).forEach(function (line) {
+        visible.push({ period: periodName, line: line });
+      });
+    };
+    appendVisible(referencesA, state.comparison.settings.periodA.name, 0);
+    appendVisible(referencesB, state.comparison.settings.periodB.name, referencesA.length);
     elements.comparisonDetailTableBody.replaceChildren();
     visible.forEach(function (entry) {
       const line = entry.line;
@@ -2245,7 +2256,7 @@
       appendCell(row, optionalText(line.location));
       elements.comparisonDetailTableBody.appendChild(row);
     });
-    elements.comparisonDetailPagination.classList.toggle('hidden', rows.length <= TABLE_PAGE_SIZE);
+    elements.comparisonDetailPagination.classList.toggle('hidden', totalRows <= TABLE_PAGE_SIZE);
     elements.comparisonDetailPrevious.disabled = state.comparisonDetailPage <= 1;
     elements.comparisonDetailNext.disabled = state.comparisonDetailPage >= pageCount;
     setText(elements.comparisonDetailPageStatus, translate('comparison_detail_page', {
@@ -2525,11 +2536,11 @@
       return;
     }
 
-    const lines = detailRowsForReferences(article.order_line_refs);
-    const pageCount = Math.max(1, Math.ceil(lines.length / TABLE_PAGE_SIZE));
+    const references = Array.isArray(article.order_line_refs) ? article.order_line_refs : [];
+    const pageCount = Math.max(1, Math.ceil(references.length / TABLE_PAGE_SIZE));
     state.detailPage = Math.min(Math.max(state.detailPage, 1), pageCount);
     const pageStart = (state.detailPage - 1) * TABLE_PAGE_SIZE;
-    const visibleLines = lines.slice(pageStart, pageStart + TABLE_PAGE_SIZE);
+    const visibleLines = detailRowsForReferences(references, pageStart, pageStart + TABLE_PAGE_SIZE);
 
     setText(elements.articleDetailHeading, article.article_id + ' · ' + optionalText(article.article_name));
     if (article.article_name_conflict) {
@@ -2746,13 +2757,7 @@
   function renderResults(result, options) {
     const preserveView = Boolean(options && options.preserveView);
     state.result = result;
-    state.detailRowsByRef = new Map((result.rows || []).map(function (row) {
-      const sourceId = row.source_file_id === undefined || row.source_file_id === null
-        ? (row.source_file_label || row.source_file_name || '')
-        : String(row.source_file_id);
-      const sourceLine = row.source_line === undefined || row.source_line === null ? '' : row.source_line;
-      return [sourceId + '::' + String(sourceLine), row];
-    }));
+    state.detailRowsByRef = Array.isArray(result.rows) ? result.rows : [];
     state.analysis = options && options.analysis ? options.analysis : core.analyzeRows(result.rows);
     state.periodSettings = settingsForDetectedCalendarWeeks(state.periodSettings, result.rows);
     if (state.comparison) {
@@ -2807,9 +2812,27 @@
     return { id: file.id, name: file.name, label: file.label };
   }
 
-  function detailRowsForReferences(references) {
-    return (references || []).map(function (reference) {
-      return state.detailRowsByRef.get(reference);
+  function detailRowsForReferences(references, start, end) {
+    const values = Array.isArray(references) ? references : [];
+    const first = Number.isInteger(start) ? Math.max(0, start) : 0;
+    const last = Number.isInteger(end) ? Math.min(values.length, end) : values.length;
+    return values.slice(first, last).map(function (reference) {
+      if (Number.isInteger(reference) && reference >= 0) {
+        return state.detailRowsByRef[reference] || null;
+      }
+      // Compatibility for analyses created before compact numeric references.
+      if (typeof reference === 'string') {
+        const separator = reference.lastIndexOf('::');
+        const sourceId = separator >= 0 ? reference.slice(0, separator) : reference;
+        const sourceLine = separator >= 0 ? reference.slice(separator + 2) : '';
+        return state.detailRowsByRef.find(function (row) {
+          const rowSourceId = row.source_file_id === undefined || row.source_file_id === null
+            ? (row.source_file_label || row.source_file_name || '')
+            : String(row.source_file_id);
+          return rowSourceId === sourceId && String(row.source_line === undefined || row.source_line === null ? '' : row.source_line) === sourceLine;
+        }) || null;
+      }
+      return null;
     }).filter(function (row) { return Boolean(row); });
   }
 
@@ -2840,6 +2863,7 @@
   function clearAnalysis(options) {
     const preserveMappings = Boolean(options && options.preserveMappings);
     state.result = null;
+    state.detailRowsByRef = [];
     state.analysis = null;
     state.comparison = null;
     state.comparisonPage = 1;

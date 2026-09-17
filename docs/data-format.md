@@ -130,11 +130,13 @@ The date must exist in the calendar. Accepted dates normalize to `YYYY-MM-DD`. T
 
 For each article ID, the first non-empty description in source order becomes the primary displayed description. All distinct, non-empty, case-sensitive descriptions are retained in source order as variants. More than one variant sets the description-conflict flag. Empty descriptions do not create a conflict. Article search covers the article ID, the primary description, and every retained description variant.
 
-Article analysis objects keep compact `order_line_refs` (`source_file_id` plus
-source line) instead of retaining complete normalized row objects. The detail
-view resolves these references against the current result rows only when an
-article is opened; aggregate metrics and source coverage remain immediately
-available.
+Article analysis objects keep compact numeric `order_line_refs` (zero-based
+indexes into the current combined result-row array) instead of retaining
+complete normalized row objects or repeating provenance strings. The detail
+view resolves only the requested page of references against the current result
+rows when an article is opened; aggregate metrics and source coverage remain
+immediately available. Older composite `source_file_id::source_line`
+references are still accepted by the UI as a compatibility fallback.
 
 ## Analysis CSV export
 
