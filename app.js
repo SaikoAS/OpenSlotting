@@ -2018,8 +2018,12 @@
     renderCoverageDates(coverageData);
     renderCoverageDrilldown();
     renderPeriodControls();
-    const coverageA = periods.coverageForPeriod(rows, state.periodSettings.periodA, state.periodSettings.expectedWeekdays);
-    const coverageB = periods.coverageForPeriod(rows, state.periodSettings.periodB, state.periodSettings.expectedWeekdays);
+    const coverageA = state.comparison
+      ? state.comparison.coverageA
+      : periods.coverageForPeriod(rows, state.periodSettings.periodA, state.periodSettings.expectedWeekdays);
+    const coverageB = state.comparison
+      ? state.comparison.coverageB
+      : periods.coverageForPeriod(rows, state.periodSettings.periodB, state.periodSettings.expectedWeekdays);
     const hasExpectedWeekdays = state.periodSettings.expectedWeekdays.length > 0;
     elements.periodAStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageA.status : 'unavailable');
     elements.periodBStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageB.status : 'unavailable');
