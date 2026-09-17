@@ -1223,26 +1223,57 @@
     return comparison === 0 ? 0 : -comparison;
   }
 
-  function articleMatchesQuery(article, query, locale) {
+  function normalizeSearchQuery(query, locale) {
     const languageTag = normalizeLocale(locale) === 'de' ? 'de-DE' : 'en-US';
-    const normalizedQuery = String(query === undefined || query === null ? '' : query)
+    return String(query === undefined || query === null ? '' : query)
       .trim()
       .toLocaleLowerCase(languageTag);
-    if (!normalizedQuery) {
-      return true;
-    }
+  }
 
+  function buildArticleSearchText(article, locale) {
+    const languageTag = normalizeLocale(locale) === 'de' ? 'de-DE' : 'en-US';
     const descriptionVariants = article && Array.isArray(article.article_name_variants)
       ? article.article_name_variants
       : [];
-    const searchableValues = [article && article.article_id, article && article.article_name]
-      .concat(descriptionVariants);
+    return [article && article.article_id, article && article.article_name]
+      .concat(descriptionVariants)
+      .map(function (value) {
+        return String(value === undefined || value === null ? '' : value)
+          .toLocaleLowerCase(languageTag);
+      })
+      .join('\u0000');
+  }
 
-    return searchableValues.some(function (value) {
-      return String(value === undefined || value === null ? '' : value)
-        .toLocaleLowerCase(languageTag)
-        .indexOf(normalizedQuery) >= 0;
+  function prepareArticleSearchProjection(article, locale) {
+    if (!article || typeof article !== 'object') {
+      return article;
+    }
+    const normalizedLocale = normalizeLocale(locale);
+    article.search_text = buildArticleSearchText(article, normalizedLocale);
+    article.search_text_locale = normalizedLocale;
+    return article;
+  }
+
+  function prepareArticleSearchProjections(articles, locale) {
+    (articles || []).forEach(function (article) {
+      prepareArticleSearchProjection(article, locale);
     });
+    return articles;
+  }
+
+  function articleMatchesNormalizedQuery(article, normalizedQuery, locale) {
+    if (!normalizedQuery) {
+      return true;
+    }
+    const normalizedLocale = normalizeLocale(locale);
+    if (!article || typeof article !== 'object' || article.search_text_locale !== normalizedLocale) {
+      prepareArticleSearchProjection(article, normalizedLocale);
+    }
+    return Boolean(article && String(article.search_text || '').indexOf(normalizedQuery) >= 0);
+  }
+
+  function articleMatchesQuery(article, query, locale) {
+    return articleMatchesNormalizedQuery(article, normalizeSearchQuery(query, locale), locale);
   }
 
   function assignSourceFileLabels(files) {
@@ -1469,7 +1500,8 @@
     };
   }
 
-  function createAnalysisAccumulator() {
+  function createAnalysisAccumulator(options) {
+    const defaultLocale = normalizeLocale(options && options.locale);
     const articleMap = new Map();
     const orderIds = new Set();
     const customerIds = new Set();
@@ -1588,7 +1620,8 @@
       article.order_line_refs.push(resolvedDetailIndex);
     }
 
-    function finish() {
+    function finish(options) {
+      const locale = normalizeLocale(options && options.locale || defaultLocale);
       const articles = Array.from(articleMap.values())
         .sort(function (left, right) {
           return right.order_line_count - left.order_line_count ||
@@ -1596,7 +1629,7 @@
             left.article_id.localeCompare(right.article_id);
         })
         .map(function (article) {
-          return {
+          const output = {
             article_id: article.article_id,
             article_name: article.article_name,
             article_name_variants: Array.from(article.article_name_variants),
@@ -1621,6 +1654,8 @@
             order_line_refs: article.order_line_refs,
             share_of_order_lines: totalLines === 0 ? 0 : article.order_line_count / totalLines
           };
+          prepareArticleSearchProjection(output, locale);
+          return output;
         });
 
       let cumulativeLineCount = 0;
@@ -1654,7 +1689,7 @@
   }
 
   function analyzeRows(rows, options) {
-    const analysis = createAnalysisAccumulator();
+    const analysis = createAnalysisAccumulator(options);
     const detailIndexes = options && Array.isArray(options.detailIndexes) ? options.detailIndexes : null;
     (rows || []).forEach(function (row, index) {
       const detailIndex = detailIndexes && Number.isInteger(detailIndexes[index])
@@ -1662,7 +1697,7 @@
         : index;
       analysis.consume(row, detailIndex);
     });
-    return analysis.finish();
+    return analysis.finish(options);
   }
 
   function escapeCsvValue(value, delimiter) {
@@ -1825,6 +1860,8 @@
     detectBatchWarnings: detectBatchWarnings,
     analyzeRows: analyzeRows,
     articleMatchesQuery: articleMatchesQuery,
+    articleMatchesNormalizedQuery: articleMatchesNormalizedQuery,
+    buildArticleSearchText: buildArticleSearchText,
     compareSalesValuesDescending: compareSalesValuesDescending,
     createAnalysisAccumulator: createAnalysisAccumulator,
     compareScaledQuantitiesDescending: compareScaledQuantitiesDescending,
@@ -1832,6 +1869,9 @@
     formatSalesValue: formatSalesValue,
     formatScaledQuantity: formatScaledQuantity,
     getFieldLabel: getFieldLabel,
+    normalizeSearchQuery: normalizeSearchQuery,
+    prepareArticleSearchProjection: prepareArticleSearchProjection,
+    prepareArticleSearchProjections: prepareArticleSearchProjections,
     importCsv: importCsv,
     importCsvStreaming: importCsvStreaming,
     importCsvStreamingChunks: importCsvStreamingChunks,

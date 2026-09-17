@@ -373,10 +373,14 @@
       const articleName = (existingB && existingB.article_name) || (existingA && existingA.article_name) || null;
       const periodA = existingA || emptyArticle(articleId, articleName);
       const periodB = existingB || emptyArticle(articleId, articleName);
+      const articleNameVariants = Array.from(new Set(
+        (periodA.article_name_variants || []).concat(periodB.article_name_variants || [])
+      ));
       const quantityChange = periodB.total_quantity - periodA.total_quantity;
       return {
         article_id: articleId,
         article_name: articleName,
+        article_name_variants: articleNameVariants,
         period_a: periodA,
         period_b: periodB,
         quantity_change: quantityChange,

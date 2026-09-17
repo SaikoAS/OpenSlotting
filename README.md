@@ -57,7 +57,7 @@ The current implementation includes:
 - automatic ISO-calendar-week selection plus optional custom, workspace-persisted comparison periods
 - article-level comparison filters, data-quality indicators, detail links, and CSV export
 
-The complete import, normalization, validation, and analysis-export contract is documented in [`docs/data-format.md`](docs/data-format.md). Period coverage and comparison semantics are documented in [`docs/period-comparison.md`](docs/period-comparison.md). Large-import measurements and the synthetic benchmark are documented in [`docs/large-imports.md`](docs/large-imports.md). Persistent storage, backup, restore, and migration are documented in [`docs/workspace-format.md`](docs/workspace-format.md).
+The complete import, normalization, validation, and analysis-export contract is documented in [`docs/data-format.md`](docs/data-format.md). Period coverage and comparison semantics are documented in [`docs/period-comparison.md`](docs/period-comparison.md). Large-import measurements and the synthetic benchmark are documented in [`docs/large-imports.md`](docs/large-imports.md). Search and sort projection measurements are documented in [`docs/search-performance.md`](docs/search-performance.md). Persistent storage, backup, restore, and migration are documented in [`docs/workspace-format.md`](docs/workspace-format.md).
 
 The published V0.1 release was accepted in Microsoft Edge Desktop on Windows with `index.html` opened directly through `file:///`. V0.2 retains the same acceptance target and requires a separate multi-file Edge run before release using [`docs/acceptance-v0.2.md`](docs/acceptance-v0.2.md). Other browsers may work but are not part of the compatibility claim unless tested separately.
 
