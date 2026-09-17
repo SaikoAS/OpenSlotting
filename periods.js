@@ -279,7 +279,7 @@
       locations: [],
       source_file_count: 0,
       source_files: [],
-      order_lines: []
+      order_line_refs: []
     };
   }
 

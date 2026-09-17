@@ -1483,6 +1483,13 @@
     let sellingUnitOverageRows = 0;
     let totalLines = 0;
 
+    function detailReference(row) {
+      const sourceId = row.source_file_id === undefined || row.source_file_id === null
+        ? (row.source_file_label || row.source_file_name || '')
+        : String(row.source_file_id);
+      return sourceId + '::' + String(row.source_line === undefined || row.source_line === null ? '' : row.source_line);
+    }
+
     function consume(row) {
       if (typeof row.quantity !== 'bigint') {
         throw new TypeError('Normalized rows must store quantity as a scaled integer.');
@@ -1539,7 +1546,7 @@
           selling_unit_overage_rows: 0,
           locations: new Set(),
           source_files: new Map(),
-          order_lines: []
+          order_line_refs: []
         });
       }
 
@@ -1579,7 +1586,7 @@
       if (sourceFileKey) {
         article.source_files.set(sourceFileKey, sourceFileLabel);
       }
-      article.order_lines.push(row);
+      article.order_line_refs.push(detailReference(row));
     }
 
     function finish() {
@@ -1612,7 +1619,7 @@
             locations: Array.from(article.locations).sort(),
             source_file_count: article.source_files.size,
             source_files: Array.from(article.source_files.values()),
-            order_lines: article.order_lines,
+            order_line_refs: article.order_line_refs,
             share_of_order_lines: totalLines === 0 ? 0 : article.order_line_count / totalLines
           };
         });

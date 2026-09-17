@@ -729,6 +729,7 @@
     files: [],
     fileSelectionVersion: 0,
     result: null,
+    detailRowsByRef: new Map(),
     analysis: null,
     periodSettings: periods.normalizeSettings(),
     comparison: null,
@@ -2220,9 +2221,9 @@
     elements.comparisonDetailPeriods.replaceChildren();
     appendComparisonDetailPeriod(state.comparison.settings.periodA.name, article.period_a);
     appendComparisonDetailPeriod(state.comparison.settings.periodB.name, article.period_b);
-    const rows = (article.period_a.order_lines || []).map(function (line) {
+    const rows = detailRowsForReferences(article.period_a.order_line_refs).map(function (line) {
       return { period: state.comparison.settings.periodA.name, line: line };
-    }).concat((article.period_b.order_lines || []).map(function (line) {
+    }).concat(detailRowsForReferences(article.period_b.order_line_refs).map(function (line) {
       return { period: state.comparison.settings.periodB.name, line: line };
     }));
     const pageCount = Math.max(1, Math.ceil(rows.length / TABLE_PAGE_SIZE));
@@ -2524,7 +2525,7 @@
       return;
     }
 
-    const lines = Array.isArray(article.order_lines) ? article.order_lines : [];
+    const lines = detailRowsForReferences(article.order_line_refs);
     const pageCount = Math.max(1, Math.ceil(lines.length / TABLE_PAGE_SIZE));
     state.detailPage = Math.min(Math.max(state.detailPage, 1), pageCount);
     const pageStart = (state.detailPage - 1) * TABLE_PAGE_SIZE;
@@ -2745,6 +2746,13 @@
   function renderResults(result, options) {
     const preserveView = Boolean(options && options.preserveView);
     state.result = result;
+    state.detailRowsByRef = new Map((result.rows || []).map(function (row) {
+      const sourceId = row.source_file_id === undefined || row.source_file_id === null
+        ? (row.source_file_label || row.source_file_name || '')
+        : String(row.source_file_id);
+      const sourceLine = row.source_line === undefined || row.source_line === null ? '' : row.source_line;
+      return [sourceId + '::' + String(sourceLine), row];
+    }));
     state.analysis = options && options.analysis ? options.analysis : core.analyzeRows(result.rows);
     state.periodSettings = settingsForDetectedCalendarWeeks(state.periodSettings, result.rows);
     if (state.comparison) {
@@ -2797,6 +2805,12 @@
 
   function sourceContext(file) {
     return { id: file.id, name: file.name, label: file.label };
+  }
+
+  function detailRowsForReferences(references) {
+    return (references || []).map(function (reference) {
+      return state.detailRowsByRef.get(reference);
+    }).filter(function (row) { return Boolean(row); });
   }
 
   function refreshAnalyzedResults(preserveView) {
