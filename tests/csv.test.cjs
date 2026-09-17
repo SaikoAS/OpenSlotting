@@ -314,6 +314,20 @@ function parseAnalysisExport(articles) {
   };
 }
 
+function resolveArticleRows(article, rows) {
+  if ((article.order_line_refs || []).every((reference) => Number.isInteger(reference))) {
+    return (article.order_line_refs || []).map((reference) => (rows || [])[reference]).filter(Boolean);
+  }
+  const byReference = new Map((rows || []).map((row) => {
+    const sourceId = row.source_file_id === undefined || row.source_file_id === null
+      ? (row.source_file_label || row.source_file_name || '')
+      : String(row.source_file_id);
+    const sourceLine = row.source_line === undefined || row.source_line === null ? '' : row.source_line;
+    return [sourceId + '::' + String(sourceLine), row];
+  }));
+  return (article.order_line_refs || []).map((reference) => byReference.get(reference)).filter(Boolean);
+}
+
 test('basic fixture matches its documented metrics', () => {
   const result = csv.importCsv(fixture('basic-orders.csv'));
   const analysis = csv.analyzeRows(result.rows);
@@ -365,7 +379,7 @@ test('incremental analysis consumes provenance finalized by batch combination', 
   const analysis = accumulator.finish();
   assert.deepEqual(analysis, csv.analyzeRows(combined.rows));
   assert.deepEqual(analysis.source_files, ['catalog.csv']);
-  assert.equal(analysis.articles[0].order_lines[0].source_file_name, 'catalog.csv');
+  assert.equal(resolveArticleRows(analysis.articles[0], combined.rows)[0].source_file_name, 'catalog.csv');
 });
 
 test('normalized rows keep compact provenance and reconstruct source fields on demand', () => {
@@ -578,7 +592,9 @@ test('multiple imports combine exact values while preserving file and line prove
   assert.deepEqual(article.article_name_variants, ['Primary', 'Special']);
   assert.equal(article.source_file_count, 2);
   assert.deepEqual(article.source_files, ['orders-a.csv', 'orders-b.csv']);
-  assert.deepEqual(article.order_lines.map((row) => [row.source_file_id, row.source_file_label, row.source_line]), [
+  assert.equal(Object.hasOwn(article, 'order_lines'), false);
+  assert.ok(article.order_line_refs.every((reference) => Number.isInteger(reference)));
+  assert.deepEqual(resolveArticleRows(article, batch.rows).map((row) => [row.source_file_id, row.source_file_label, row.source_line]), [
     ['source-1', 'orders-a.csv', 2],
     ['source-1', 'orders-a.csv', 3],
     ['source-2', 'orders-b.csv', 2]
@@ -897,9 +913,10 @@ test('article descriptions remain metadata while conflicts and source rows stay 
   assert.equal(conflicting.article_name, 'Citrus Juice 1L');
   assert.deepEqual(conflicting.article_name_variants, ['Citrus Juice 1L', 'Citrus Juice; "Special" 1 L']);
   assert.equal(conflicting.article_name_conflict, true);
-  assert.deepEqual(conflicting.order_lines.map((row) => row.source_line), [2, 3, 4, 5]);
-  assert.ok(conflicting.order_lines.every((row) => row.article_id === 'SKU-ALPHA'));
-  assert.equal(conflicting.order_lines[0], result.rows[0]);
+  const conflictingRows = resolveArticleRows(conflicting, result.rows);
+  assert.deepEqual(conflictingRows.map((row) => row.source_line), [2, 3, 4, 5]);
+  assert.ok(conflictingRows.every((row) => row.article_id === 'SKU-ALPHA'));
+  assert.equal(conflictingRows[0], result.rows[0]);
 
   assert.equal(stable.article_name, 'Steel Bottle');
   assert.deepEqual(stable.article_name_variants, ['Steel Bottle']);

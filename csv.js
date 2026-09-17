@@ -1428,9 +1428,10 @@
       if (included) {
         includedFiles += 1;
         normalizedRows.forEach(function (row) {
+          const detailIndex = rows.length;
           rows.push(row);
           if (analysisAccumulator && typeof analysisAccumulator.consume === 'function') {
-            analysisAccumulator.consume(row);
+            analysisAccumulator.consume(row, detailIndex);
           }
         });
       }
@@ -1482,11 +1483,16 @@
     let sellingUnitPartialRows = 0;
     let sellingUnitOverageRows = 0;
     let totalLines = 0;
+    let nextDetailIndex = 0;
 
-    function consume(row) {
+    function consume(row, detailIndex) {
       if (typeof row.quantity !== 'bigint') {
         throw new TypeError('Normalized rows must store quantity as a scaled integer.');
       }
+      const resolvedDetailIndex = Number.isInteger(detailIndex) && detailIndex >= 0
+        ? detailIndex
+        : nextDetailIndex;
+      nextDetailIndex += 1;
       totalLines += 1;
       orderIds.add(row.order_id);
       if (row.customer_id) {
@@ -1539,7 +1545,7 @@
           selling_unit_overage_rows: 0,
           locations: new Set(),
           source_files: new Map(),
-          order_lines: []
+          order_line_refs: []
         });
       }
 
@@ -1579,7 +1585,7 @@
       if (sourceFileKey) {
         article.source_files.set(sourceFileKey, sourceFileLabel);
       }
-      article.order_lines.push(row);
+      article.order_line_refs.push(resolvedDetailIndex);
     }
 
     function finish() {
@@ -1612,7 +1618,7 @@
             locations: Array.from(article.locations).sort(),
             source_file_count: article.source_files.size,
             source_files: Array.from(article.source_files.values()),
-            order_lines: article.order_lines,
+            order_line_refs: article.order_line_refs,
             share_of_order_lines: totalLines === 0 ? 0 : article.order_line_count / totalLines
           };
         });
@@ -1647,9 +1653,15 @@
     return { consume: consume, finish: finish };
   }
 
-  function analyzeRows(rows) {
+  function analyzeRows(rows, options) {
     const analysis = createAnalysisAccumulator();
-    (rows || []).forEach(function (row) { analysis.consume(row); });
+    const detailIndexes = options && Array.isArray(options.detailIndexes) ? options.detailIndexes : null;
+    (rows || []).forEach(function (row, index) {
+      const detailIndex = detailIndexes && Number.isInteger(detailIndexes[index])
+        ? detailIndexes[index]
+        : index;
+      analysis.consume(row, detailIndex);
+    });
     return analysis.finish();
   }
 

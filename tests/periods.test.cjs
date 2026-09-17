@@ -40,7 +40,8 @@ test('coverage returns unavailable for periods longer than the supported window'
 });
 
 test('period comparison keeps absolute and relative changes separate', () => {
-  const comparison = periods.comparePeriods(fixtureRows(), {
+  const rows = fixtureRows();
+  const comparison = periods.comparePeriods(rows, {
     expectedWeekdays: [2, 3, 4, 5],
     periodA: { name: 'Before', start: '2026-09-01', end: '2026-09-02' },
     periodB: { name: 'After', start: '2026-09-03', end: '2026-09-04' }
@@ -60,6 +61,8 @@ test('period comparison keeps absolute and relative changes separate', () => {
   assert.equal(articleOne.selling_unit_conflict, true);
   assert.equal(articleTwo.state, 'new');
   assert.equal(articleTwo.quantity_percent_change, null);
+  assert.deepEqual(articleOne.period_a.order_line_refs.map((index) => rows[index].order_id), ['O-1', 'O-2']);
+  assert.deepEqual(articleOne.period_b.order_line_refs.map((index) => rows[index].order_id), ['O-3']);
 });
 
 test('comparison CSV exports period boundaries, unit metrics, and formula-safe text', () => {

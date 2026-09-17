@@ -279,7 +279,7 @@
       locations: [],
       source_file_count: 0,
       source_files: [],
-      order_lines: []
+      order_line_refs: []
     };
   }
 
@@ -343,10 +343,27 @@
       throw new TypeError('An analyzeRows function is required.');
     }
     const normalized = normalizeSettings(settings);
-    const rowsA = rowsForPeriod(rows, normalized.periodA);
-    const rowsB = rowsForPeriod(rows, normalized.periodB);
-    const analysisA = analyzeRows(rowsA);
-    const analysisB = analyzeRows(rowsB);
+    const rowsA = [];
+    const indexesA = [];
+    const rowsB = [];
+    const indexesB = [];
+    (rows || []).forEach(function (row, index) {
+      if (!row) {
+        return;
+      }
+      if (normalized.periodA && validDate(normalized.periodA.start) && validDate(normalized.periodA.end) &&
+        row.order_date >= normalized.periodA.start && row.order_date <= normalized.periodA.end) {
+        rowsA.push(row);
+        indexesA.push(index);
+      }
+      if (normalized.periodB && validDate(normalized.periodB.start) && validDate(normalized.periodB.end) &&
+        row.order_date >= normalized.periodB.start && row.order_date <= normalized.periodB.end) {
+        rowsB.push(row);
+        indexesB.push(index);
+      }
+    });
+    const analysisA = analyzeRows(rowsA, { detailIndexes: indexesA });
+    const analysisB = analyzeRows(rowsB, { detailIndexes: indexesB });
     const mapA = new Map(analysisA.articles.map(function (article) { return [article.article_id, article]; }));
     const mapB = new Map(analysisB.articles.map(function (article) { return [article.article_id, article]; }));
     const articleIds = Array.from(new Set(Array.from(mapA.keys()).concat(Array.from(mapB.keys()))));

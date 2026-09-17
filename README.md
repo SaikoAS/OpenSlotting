@@ -28,6 +28,7 @@ The current implementation includes:
 - article aggregation with quantity and order-line frequency kept separate
 - filtering by article ID or description, sorting, and analysis CSV export
 - article details with aggregate metrics and source-line traceability
+- compact article detail references with on-demand source-row resolution
 - paginated article and validation-note rendering with 100 rows per page for large imports
 - paginated detail rows with 100 rows per page
 - true chunked CSV decoding, parser state across chunk boundaries, and streaming normalization for large imports
