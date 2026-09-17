@@ -1354,7 +1354,8 @@
     return warnings;
   }
 
-  function combineImportResults(files) {
+  function combineImportResults(files, options) {
+    const analysisAccumulator = options && options.analysisAccumulator;
     const rows = [];
     const issues = [];
     let totalRows = 0;
@@ -1426,7 +1427,12 @@
       structuralRows += result ? result.structuralRows : 0;
       if (included) {
         includedFiles += 1;
-        normalizedRows.forEach(function (row) { rows.push(row); });
+        normalizedRows.forEach(function (row) {
+          rows.push(row);
+          if (analysisAccumulator && typeof analysisAccumulator.consume === 'function') {
+            analysisAccumulator.consume(row);
+          }
+        });
       }
       normalizedIssues.forEach(function (issue) { issues.push(issue); });
 
@@ -1462,7 +1468,7 @@
     };
   }
 
-  function analyzeRows(rows) {
+  function createAnalysisAccumulator() {
     const articleMap = new Map();
     const orderIds = new Set();
     const customerIds = new Set();
@@ -1475,11 +1481,13 @@
     let salesUnitRows = 0;
     let sellingUnitPartialRows = 0;
     let sellingUnitOverageRows = 0;
+    let totalLines = 0;
 
-    rows.forEach(function (row) {
+    function consume(row) {
       if (typeof row.quantity !== 'bigint') {
         throw new TypeError('Normalized rows must store quantity as a scaled integer.');
       }
+      totalLines += 1;
       orderIds.add(row.order_id);
       if (row.customer_id) {
         customerIds.add(row.customer_id);
@@ -1572,68 +1580,77 @@
         article.source_files.set(sourceFileKey, sourceFileLabel);
       }
       article.order_lines.push(row);
-    });
+    }
 
-    const articles = Array.from(articleMap.values())
-      .sort(function (left, right) {
-        return right.order_line_count - left.order_line_count ||
-          compareScaledQuantitiesDescending(left.total_quantity, right.total_quantity) ||
-          left.article_id.localeCompare(right.article_id);
-      })
-      .map(function (article) {
-        const totalSalesExact = decimalToText(article.total_sales);
-        return {
-          article_id: article.article_id,
-          article_name: article.article_name,
-          article_name_variants: Array.from(article.article_name_variants),
-          article_name_conflict: article.article_name_variants.size > 1,
-          order_line_count: article.order_line_count,
-          total_quantity: article.total_quantity,
-          distinct_orders: article.order_ids.size,
-          distinct_customers: article.customer_ids.size,
-          active_days: article.active_days.size,
-          total_sales: decimalToPublicValue(article.total_sales),
-          total_sales_exact: totalSalesExact,
-          sales_value_rows: article.sales_value_rows,
-          total_sales_units: article.total_sales_units,
-          sales_unit_rows: article.sales_unit_rows,
-          quantity_per_sales_unit_values: Array.from(article.quantity_per_sales_unit_values).sort(compareScaledQuantitiesDescending),
-          selling_unit_conflict: article.quantity_per_sales_unit_values.size > 1,
-          selling_unit_partial_rows: article.selling_unit_partial_rows,
-          selling_unit_overage_rows: article.selling_unit_overage_rows,
-          locations: Array.from(article.locations).sort(),
-          source_file_count: article.source_files.size,
-          source_files: Array.from(article.source_files.values()),
-          order_lines: article.order_lines,
-          share_of_order_lines: rows.length === 0 ? 0 : article.order_line_count / rows.length
-        };
+    function finish() {
+      const articles = Array.from(articleMap.values())
+        .sort(function (left, right) {
+          return right.order_line_count - left.order_line_count ||
+            compareScaledQuantitiesDescending(left.total_quantity, right.total_quantity) ||
+            left.article_id.localeCompare(right.article_id);
+        })
+        .map(function (article) {
+          return {
+            article_id: article.article_id,
+            article_name: article.article_name,
+            article_name_variants: Array.from(article.article_name_variants),
+            article_name_conflict: article.article_name_variants.size > 1,
+            order_line_count: article.order_line_count,
+            total_quantity: article.total_quantity,
+            distinct_orders: article.order_ids.size,
+            distinct_customers: article.customer_ids.size,
+            active_days: article.active_days.size,
+            total_sales: decimalToPublicValue(article.total_sales),
+            total_sales_exact: decimalToText(article.total_sales),
+            sales_value_rows: article.sales_value_rows,
+            total_sales_units: article.total_sales_units,
+            sales_unit_rows: article.sales_unit_rows,
+            quantity_per_sales_unit_values: Array.from(article.quantity_per_sales_unit_values).sort(compareScaledQuantitiesDescending),
+            selling_unit_conflict: article.quantity_per_sales_unit_values.size > 1,
+            selling_unit_partial_rows: article.selling_unit_partial_rows,
+            selling_unit_overage_rows: article.selling_unit_overage_rows,
+            locations: Array.from(article.locations).sort(),
+            source_file_count: article.source_files.size,
+            source_files: Array.from(article.source_files.values()),
+            order_lines: article.order_lines,
+            share_of_order_lines: totalLines === 0 ? 0 : article.order_line_count / totalLines
+          };
+        });
+
+      let cumulativeLineCount = 0;
+      articles.forEach(function (article) {
+        cumulativeLineCount += article.order_line_count;
+        article.cumulative_share_of_order_lines = totalLines === 0 ? 0 : cumulativeLineCount / totalLines;
       });
 
-    let cumulativeLineCount = 0;
-    articles.forEach(function (article) {
-      cumulativeLineCount += article.order_line_count;
-      article.cumulative_share_of_order_lines = rows.length === 0 ? 0 : cumulativeLineCount / rows.length;
-    });
+      return {
+        articles: articles,
+        total_lines: totalLines,
+        total_quantity: totalQuantity,
+        distinct_orders: orderIds.size,
+        distinct_customers: customerIds.size,
+        active_days: activeDays.size,
+        source_file_count: sourceFiles.size,
+        source_files: Array.from(sourceFiles.values()),
+        total_sales: decimalToPublicValue(totalSales),
+        total_sales_exact: decimalToText(totalSales),
+        sales_value_rows: salesValueRows,
+        total_sales_units: totalSalesUnits,
+        sales_unit_rows: salesUnitRows,
+        selling_unit_partial_rows: sellingUnitPartialRows,
+        selling_unit_overage_rows: sellingUnitOverageRows,
+        average_quantity_per_line: divideScaledQuantity(totalQuantity, totalLines),
+        average_quantity_per_order: divideScaledQuantity(totalQuantity, orderIds.size)
+      };
+    }
 
-    return {
-      articles: articles,
-      total_lines: rows.length,
-      total_quantity: totalQuantity,
-      distinct_orders: orderIds.size,
-      distinct_customers: customerIds.size,
-      active_days: activeDays.size,
-      source_file_count: sourceFiles.size,
-      source_files: Array.from(sourceFiles.values()),
-      total_sales: decimalToPublicValue(totalSales),
-      total_sales_exact: decimalToText(totalSales),
-      sales_value_rows: salesValueRows,
-      total_sales_units: totalSalesUnits,
-      sales_unit_rows: salesUnitRows,
-      selling_unit_partial_rows: sellingUnitPartialRows,
-      selling_unit_overage_rows: sellingUnitOverageRows,
-      average_quantity_per_line: divideScaledQuantity(totalQuantity, rows.length),
-      average_quantity_per_order: divideScaledQuantity(totalQuantity, orderIds.size)
-    };
+    return { consume: consume, finish: finish };
+  }
+
+  function analyzeRows(rows) {
+    const analysis = createAnalysisAccumulator();
+    (rows || []).forEach(function (row) { analysis.consume(row); });
+    return analysis.finish();
   }
 
   function escapeCsvValue(value, delimiter) {
@@ -1797,6 +1814,7 @@
     analyzeRows: analyzeRows,
     articleMatchesQuery: articleMatchesQuery,
     compareSalesValuesDescending: compareSalesValuesDescending,
+    createAnalysisAccumulator: createAnalysisAccumulator,
     compareScaledQuantitiesDescending: compareScaledQuantitiesDescending,
     exportAnalysisCsv: exportAnalysisCsv,
     formatSalesValue: formatSalesValue,

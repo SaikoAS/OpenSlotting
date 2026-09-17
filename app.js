@@ -2800,6 +2800,7 @@
   }
 
   function refreshAnalyzedResults(preserveView) {
+    const analysisAccumulator = core.createAnalysisAccumulator();
     const batchFiles = state.files.map(function (file) {
       if (file.parsed && !file.errorKey) {
         const mapping = file.confirmedMapping || file.mapping;
@@ -2817,9 +2818,9 @@
       }
       return file;
     });
-    const result = core.combineImportResults(batchFiles);
+    const result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator });
     renderMapping();
-    renderResults(result, { preserveView: preserveView });
+    renderResults(result, { preserveView: preserveView, analysis: analysisAccumulator.finish() });
   }
 
   function clearAnalysis(options) {
@@ -3156,6 +3157,7 @@
     let analysis = null;
     if (validated.analyzed) {
       reportProgress({ phase: 'analysis' });
+      const analysisAccumulator = core.createAnalysisAccumulator();
       const batchFiles = files.map(function (file) {
         if (file.parsed && !file.errorKey) {
           const mapping = file.confirmedMapping || file.mapping;
@@ -3171,8 +3173,8 @@
         }
         return file;
       });
-      result = core.combineImportResults(batchFiles);
-      analysis = core.analyzeRows(result.rows);
+      result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator });
+      analysis = analysisAccumulator.finish();
     }
     files.forEach(function (file) {
       // The source bytes remain the durable source of truth. Do not retain a

@@ -27,6 +27,7 @@ const sourceFile = {
   label: 'synthetic-large-import.csv'
 };
 const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
+const analysisAccumulator = csv.createAnalysisAccumulator();
 
 function megabytes(value) {
   return Math.round(value / 1024 / 1024 * 10) / 10;
@@ -56,9 +57,11 @@ const imported = mode === 'baseline'
   : csv.importCsvStreamingChunks(decoded.chunks, mapping, { sourceFile: sourceFile });
 const importedAt = process.hrtime.bigint();
 stageMemory.import = memory();
-const combined = csv.combineImportResults([{ ...sourceFile, result: imported }]);
+const combined = csv.combineImportResults([{ ...sourceFile, result: imported }], { analysisAccumulator: analysisAccumulator });
 const combinedAt = process.hrtime.bigint();
 stageMemory.combine = memory();
+const incrementalAnalysis = analysisAccumulator.finish();
+const incrementalAnalyzedAt = process.hrtime.bigint();
 const analysis = csv.analyzeRows(combined.rows);
 const analyzedAt = process.hrtime.bigint();
 stageMemory.analyze = memory();
@@ -73,11 +76,12 @@ console.log(JSON.stringify({
   sourceBytes: sourceBytes.byteLength,
   importedRows: imported.validRows,
   combinedRows: combined.rows.length,
-  analyzedLines: analysis.total_lines,
+  analyzedLines: incrementalAnalysis.total_lines,
   timingsMs: {
     import: milliseconds(startedAt, importedAt),
     combine: milliseconds(importedAt, combinedAt),
-    analyze: milliseconds(combinedAt, analyzedAt),
+    analyzeIncremental: milliseconds(combinedAt, incrementalAnalyzedAt),
+    analyzeBatchCompatibility: milliseconds(incrementalAnalyzedAt, analyzedAt),
     total: milliseconds(startedAt, analyzedAt)
   },
   memory: {

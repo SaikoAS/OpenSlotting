@@ -64,10 +64,18 @@ ist ein reproduzierbarer Node-Vergleich, kein Nachweis der manuellen
 Microsoft-Edge-Akzeptanz. Die Edge-Prüfung bleibt ein eigener Abnahmeschritt
 mit einer realistischen Datei- und Spaltenbreite.
 
+Die Analyse verwendet während der Normalisierung einen inkrementellen
+Accumulator. `timingsMs.analyzeIncremental` misst dessen Abschluss; der
+zusätzliche `analyzeBatchCompatibility`-Wert zeigt separat die weiterhin
+verfügbare Kompatibilitätsberechnung über `analyzeRows()`.
+
 Beispielmessung mit 700.000 schmalen Zeilen auf dem Entwicklungsrechner:
-`chunked` erreichte 481,7 MB Spitzen-RSS gegenüber 517,6 MB im `baseline`-Modus
-(rund 6,9 % weniger). Die absolute Differenz hängt von Node-Version,
-Betriebssystem und Ergebnisbreite ab.
+Der inkrementelle Analyseabschluss lag bei rund 8 ms; der separate
+Kompatibilitätsdurchlauf über `analyzeRows()` benötigte rund 578 ms. Die
+Spitzen-RSS lag in diesem Lauf bei 576,1 MB im `chunked`- und 526,5 MB im
+`baseline`-Modus. RSS hängt stark von Node-Version, Garbage Collection,
+Betriebssystem und Ergebnisbreite ab; der belastbare Vorteil dieses Issues ist
+die vermiedene redundante Analysepassage.
 
 Die frühere Messung auf dem Entwicklungsrechner mit 700.000 schmalen, gültigen
 Zeilen reduzierte den Spitzenbedarf der normalisierten Zeilen von 830,9 MB
