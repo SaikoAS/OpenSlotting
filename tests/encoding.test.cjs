@@ -63,6 +63,14 @@ test('does not hide unsupported embedded NUL data behind the Windows-1252 fallba
   assert.throws(() => encoding.decodeBuffer(Uint8Array.from([0x41, 0x00, 0x42, 0xFF, 0x43])), /NUL/);
 });
 
+test('streams decoded chunks without constructing one full source string', () => {
+  const source = 'Ä;Größe\r\n1;Öl\r\n';
+  const detailed = encoding.decodeBufferChunksDetailed(Buffer.from(source, 'utf8'), 'auto', { chunkSize: 2 });
+  assert.equal(detailed.encoding, 'utf-8');
+  assert.equal(detailed.automatic, true);
+  assert.deepEqual(Array.from(detailed.chunks).join(''), source);
+});
+
 test('manual mapping remains independent of input encoding', () => {
   const csv = require('../csv.js');
   const text = encoding.decodeBuffer(Uint8Array.from([0x58, 0x3B, 0x59, 0x3B, 0x5A, 0x3B, 0x44, 0x0A, 0x4F, 0x31, 0x3B, 0xC4, 0x31, 0x3B, 0x31, 0x3B, 0x32, 0x30, 0x32, 0x36, 0x2D, 0x30, 0x39, 0x2D, 0x31, 0x30]));

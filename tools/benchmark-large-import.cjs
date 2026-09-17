@@ -1,10 +1,15 @@
 'use strict';
 
 const csv = require('../csv.js');
+const encoding = require('../encoding.js');
 
 const rowCount = Number(process.argv[2] || 700000);
+const mode = process.argv[3] || 'chunked';
 if (!Number.isInteger(rowCount) || rowCount < 1) {
   throw new Error('Usage: node tools/benchmark-large-import.cjs [positive row count]');
+}
+if (mode !== 'baseline' && mode !== 'chunked') {
+  throw new Error('Mode must be baseline or chunked.');
 }
 
 const lines = new Array(rowCount + 1);
@@ -12,7 +17,10 @@ lines[0] = 'order_id;article_id;quantity;order_date';
 for (let index = 0; index < rowCount; index += 1) {
   lines[index + 1] = 'O-' + index + ';SKU-' + (index % 1000) + ';1;2026-09-12';
 }
-const text = lines.join('\n') + '\n';
+let text = lines.join('\n') + '\n';
+const sourceBytes = Buffer.from(text, 'utf8');
+lines.length = 0;
+text = null;
 const sourceFile = {
   id: 'synthetic-large-import',
   name: 'synthetic-large-import.csv',
@@ -40,7 +48,12 @@ function memory() {
 
 const startedAt = process.hrtime.bigint();
 const stageMemory = { fixture: memory() };
-const imported = csv.importCsv(text, mapping, { sourceFile: sourceFile });
+const decoded = mode === 'baseline'
+  ? encoding.decodeBufferDetailed(sourceBytes.buffer.slice(sourceBytes.byteOffset, sourceBytes.byteOffset + sourceBytes.byteLength), 'auto')
+  : encoding.decodeBufferChunksDetailed(sourceBytes, 'auto', { chunkSize: 64 * 1024 });
+const imported = mode === 'baseline'
+  ? csv.importCsv(decoded.text, mapping, { sourceFile: sourceFile })
+  : csv.importCsvStreamingChunks(decoded.chunks, mapping, { sourceFile: sourceFile });
 const importedAt = process.hrtime.bigint();
 stageMemory.import = memory();
 const combined = csv.combineImportResults([{ ...sourceFile, result: imported }]);
@@ -56,7 +69,8 @@ function milliseconds(start, end) {
 
 console.log(JSON.stringify({
   rows: rowCount,
-  sourceBytes: Buffer.byteLength(text),
+  mode: mode,
+  sourceBytes: sourceBytes.byteLength,
   importedRows: imported.validRows,
   combinedRows: combined.rows.length,
   analyzedLines: analysis.total_lines,

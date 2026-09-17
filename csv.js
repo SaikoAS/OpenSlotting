@@ -125,7 +125,7 @@
       .replace(/[^a-z0-9]/g, '');
   }
 
-  function parseCsv(text, options) {
+  function createCsvParser(options) {
     const delimiter = options && options.delimiter ? options.delimiter : ';';
     const locale = normalizeLocale(options && options.locale);
     const retainRows = !(options && options.retainRows === false);
@@ -134,7 +134,6 @@
       throw new Error(message(locale, 'delimiter'));
     }
 
-    const source = String(text === undefined || text === null ? '' : text).replace(/^\uFEFF/, '');
     const rows = [];
     const errors = [];
     let recordErrors = [];
@@ -148,6 +147,10 @@
     let headerValues = null;
     let dataRowCount = 0;
     let stopRequested = false;
+    let quotePending = false;
+    let skipLfAfterCr = false;
+    let suppressLfLineIncrement = false;
+    let firstChunk = true;
 
     function addParserError(error) {
       errors.push(error);
@@ -187,97 +190,153 @@
       recordStartLine = line;
     }
 
-    for (let index = 0; index < source.length && !stopRequested; index += 1) {
-      const character = source[index];
-
-      if (character !== '\r' && character !== '\n') {
-        recordHasContent = true;
+    function push(source) {
+      let chunk = String(source === undefined || source === null ? '' : source);
+      if (firstChunk) {
+        chunk = chunk.replace(/^\uFEFF/, '');
+        firstChunk = false;
       }
+      for (let index = 0; index < chunk.length && !stopRequested; index += 1) {
+        const character = chunk[index];
 
-      if (inQuotes) {
-        if (character === '"') {
-          if (source[index + 1] === '"') {
-            field += '"';
-            index += 1;
-          } else {
-            inQuotes = false;
-            afterClosingQuote = true;
-          }
-        } else {
-          field += character;
-          if (character === '\r' && source[index + 1] !== '\n') {
-            line += 1;
-          } else if (character === '\n') {
-            line += 1;
+        if (skipLfAfterCr) {
+          skipLfAfterCr = false;
+          if (character === '\n') {
+            if (!inQuotes) {
+              continue;
+            }
+            suppressLfLineIncrement = true;
           }
         }
-        continue;
-      }
 
-      if (afterClosingQuote) {
+        if (quotePending) {
+          quotePending = false;
+          if (character === '"') {
+            field += '"';
+            inQuotes = true;
+            continue;
+          }
+          inQuotes = false;
+          afterClosingQuote = true;
+        }
+
+        if (character !== '\r' && character !== '\n') {
+          recordHasContent = true;
+        }
+
+        if (inQuotes) {
+          if (character === '"') {
+            if (index + 1 < chunk.length) {
+              if (chunk[index + 1] === '"') {
+                field += '"';
+                index += 1;
+              } else {
+                inQuotes = false;
+                afterClosingQuote = true;
+              }
+            } else {
+              quotePending = true;
+            }
+          } else {
+            field += character;
+            if (character === '\r') {
+              line += 1;
+              skipLfAfterCr = true;
+            } else if (character === '\n') {
+              if (!suppressLfLineIncrement) {
+                line += 1;
+              }
+              suppressLfLineIncrement = false;
+            }
+          }
+          continue;
+        }
+
+        if (afterClosingQuote) {
+          if (character === delimiter) {
+            flushField();
+            afterClosingQuote = false;
+          } else if (character === '\r') {
+            finishLine();
+            skipLfAfterCr = true;
+          } else if (character === '\n') {
+            finishLine();
+          } else {
+            addParserError({
+              sourceLine: recordStartLine,
+              code: 'unexpected_character_after_quote',
+              message: message(locale, 'unexpectedQuote')
+            });
+            field += character;
+            afterClosingQuote = false;
+          }
+          continue;
+        }
+
         if (character === delimiter) {
           flushField();
-          afterClosingQuote = false;
+        } else if (character === '"' && field === '') {
+          inQuotes = true;
+        } else if (character === '"') {
+          addParserError({
+            sourceLine: recordStartLine,
+            code: 'unexpected_quote_in_unquoted_field',
+            message: message(locale, 'bareQuote')
+          });
+          field += character;
         } else if (character === '\r') {
-          if (source[index + 1] === '\n') {
-            index += 1;
-          }
           finishLine();
+          skipLfAfterCr = true;
         } else if (character === '\n') {
           finishLine();
         } else {
-          addParserError({
-            sourceLine: recordStartLine,
-            code: 'unexpected_character_after_quote',
-            message: message(locale, 'unexpectedQuote')
-          });
           field += character;
-          afterClosingQuote = false;
         }
-        continue;
       }
+      return !stopRequested;
+    }
 
-      if (character === delimiter) {
-        flushField();
-      } else if (character === '"' && field === '') {
-        inQuotes = true;
-      } else if (character === '"') {
+    function finish() {
+      if (quotePending) {
+        quotePending = false;
+        inQuotes = false;
+        afterClosingQuote = true;
+      }
+      if (!stopRequested && inQuotes) {
         addParserError({
           sourceLine: recordStartLine,
-          code: 'unexpected_quote_in_unquoted_field',
-          message: message(locale, 'bareQuote')
+          code: 'unterminated_quote',
+          message: message(locale, 'unterminatedQuote')
         });
-        field += character;
-      } else if (character === '\r') {
-        if (source[index + 1] === '\n') {
-          index += 1;
-        }
-        finishLine();
-      } else if (character === '\n') {
-        finishLine();
-      } else {
-        field += character;
+      }
+      if (!stopRequested && (field !== '' || fields.length > 0 || recordHasContent)) {
+        flushRow();
+      }
+      const result = { rows: rows, errors: errors };
+      if (!retainRows) {
+        result.headers = headerValues || [];
+        result.dataRowCount = dataRowCount;
+      }
+      return result;
+    }
+
+    return { push: push, finish: finish };
+  }
+
+  function parseCsv(text, options) {
+    const parser = createCsvParser(options);
+    parser.push(text);
+    return parser.finish();
+  }
+
+  function parseCsvChunks(chunks, options) {
+    const parser = createCsvParser(options);
+    for (const chunk of chunks || []) {
+      if (!parser.push(chunk)) {
+        break;
       }
     }
-
-    if (!stopRequested && inQuotes) {
-      addParserError({
-        sourceLine: recordStartLine,
-        code: 'unterminated_quote',
-        message: message(locale, 'unterminatedQuote')
-      });
-    }
-
-    if (!stopRequested && (field !== '' || fields.length > 0 || recordHasContent)) {
-      flushRow();
-    }
-
-    const result = { rows: rows, errors: errors };
-    if (!retainRows) {
-      result.headers = headerValues || [];
-      result.dataRowCount = dataRowCount;
-    }
-    return result;
+    return parser.finish();
   }
 
   function detectMapping(headers) {
@@ -707,6 +766,10 @@
   }
 
   function importCsvStreaming(text, mapping, options) {
+    return importCsvStreamingChunks([text], mapping, options);
+  }
+
+  function importCsvStreamingChunks(chunks, mapping, options) {
     const locale = normalizeLocale(options && options.locale);
     const sourceFile = normalizeSourceFile(options && options.sourceFile);
     let headers = null;
@@ -720,7 +783,7 @@
     const structuralLines = new Set();
     const dateByLine = new Map();
 
-    const parsed = parseCsv(text, Object.assign({}, options, {
+    const parsed = parseCsvChunks(chunks, Object.assign({}, options, {
       retainRows: false,
       onRow: function (dataRow, parserErrors) {
         if (headers === null) {
@@ -1741,12 +1804,14 @@
     getFieldLabel: getFieldLabel,
     importCsv: importCsv,
     importCsvStreaming: importCsvStreaming,
+    importCsvStreamingChunks: importCsvStreamingChunks,
     importParsedCsv: importParsedCsv,
     issueIsBlocking: issueIsBlocking,
     normalizeDate: normalizeDate,
     normalizeHeader: normalizeHeader,
     normalizeNumber: normalizeNumber,
     parseCsv: parseCsv,
+    parseCsvChunks: parseCsvChunks,
     reconstructRawSource: reconstructRawSource,
     validateMapping: validateMapping
   };

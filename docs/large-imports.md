@@ -1,13 +1,15 @@
 # Große CSV-Importe
 
 OpenSlotting verarbeitet CSV-Quellen weiterhin vollständig offline im Browser.
-Der Importpfad baut die normalisierten Zeilen während des Parsens auf, statt
-zuerst eine zweite vollständige Liste aller Parserzeilen zu behalten. Die
-Quellbytes bleiben für Wiederöffnung, Mapping-Änderungen und die
-Quellzeilen-Nachvollziehbarkeit erhalten; dekodierter Text und Parserzeilen
-werden nach der Vorbereitung verworfen. Auch das Zusammenführen eines Batches
-kopiert normalisierte Zeilen nur noch dann, wenn die Provenienz ergänzt werden
-muss.
+Der Importpfad dekodiert und parst die Quellbytes jetzt in begrenzten Chunks;
+der Parser behält nur den aktuellen Datensatz, Quote-Zustand und Zeilennummern.
+Normalisierte Zeilen werden während des Parsens aufgebaut, statt zuerst eine
+zweite vollständige Liste aller Parserzeilen oder einen vollständigen
+dekodierten Quelltext zu behalten. Die Quellbytes bleiben für Wiederöffnung,
+Mapping-Änderungen und die Quellzeilen-Nachvollziehbarkeit erhalten; dekodierter
+Text und Parserzeilen werden nach der Vorbereitung verworfen. Auch das
+Zusammenführen eines Batches kopiert normalisierte Zeilen nur noch dann, wenn
+die Provenienz ergänzt werden muss.
 
 Damit bleiben insbesondere diese Eigenschaften erhalten:
 
@@ -49,18 +51,29 @@ zusätzlich die vom Betriebssystem gemeldete maximale RSS-Nutzung über
 aus:
 
 ```text
-node --expose-gc --max-old-space-size=4096 tools/benchmark-large-import.cjs 700000
+node --expose-gc --max-old-space-size=4096 tools/benchmark-large-import.cjs 700000 chunked
+node --expose-gc --max-old-space-size=4096 tools/benchmark-large-import.cjs 700000 baseline
 ```
 
-Das Programm meldet Quellgröße, exakte Zeilenzahlen, Import-/Analysezeit und
-den aktuellen sowie den maximal gemessenen Node-Speicherstand. Eine Messung auf
-dem Entwicklungsrechner mit 700.000 schmalen, gültigen Zeilen reduzierte den
-Spitzenbedarf der normalisierten Zeilen von 830,9 MB (Schema mit Raw-Arrays) auf
-577,1 MB RSS (kompakte Zeilen, rund 30 % weniger). Die Messung wurde jeweils
-mit demselben Benchmark und Commit-Vergleich wiederholt. Das ist ein
-reproduzierbarer Node-Vergleich, kein Nachweis der manuellen
+Das Programm meldet Modus, Quellgröße, exakte Zeilenzahlen, Import-/Analysezeit
+und den aktuellen sowie den maximal gemessenen Node-Speicherstand. Der
+`chunked`-Modus dekodiert und parst inkrementell; `baseline` dekodiert den
+vollständigen Quelltext vor dem Parsen. Beide Läufe müssen in getrennten
+Prozessen ausgeführt und anhand von `memory.peakRssMb` verglichen werden. Das
+ist ein reproduzierbarer Node-Vergleich, kein Nachweis der manuellen
 Microsoft-Edge-Akzeptanz. Die Edge-Prüfung bleibt ein eigener Abnahmeschritt
 mit einer realistischen Datei- und Spaltenbreite.
+
+Beispielmessung mit 700.000 schmalen Zeilen auf dem Entwicklungsrechner:
+`chunked` erreichte 481,7 MB Spitzen-RSS gegenüber 517,6 MB im `baseline`-Modus
+(rund 6,9 % weniger). Die absolute Differenz hängt von Node-Version,
+Betriebssystem und Ergebnisbreite ab.
+
+Die frühere Messung auf dem Entwicklungsrechner mit 700.000 schmalen, gültigen
+Zeilen reduzierte den Spitzenbedarf der normalisierten Zeilen von 830,9 MB
+(Schema mit Raw-Arrays) auf 577,1 MB RSS (kompakte Zeilen, rund 30 % weniger).
+Die Messung wurde jeweils mit demselben Benchmark und Commit-Vergleich
+wiederholt.
 
 Der reguläre Testlauf enthält zusätzlich einen 130.000-Zeilen-Test, der die
 Zeilenzählung, Provenienz und das stack-sichere Zusammenführen prüft. Die
