@@ -2807,20 +2807,18 @@
         file.result = file.content === null || file.content === undefined
           ? importBufferStreaming(file, mapping, {
             locale: state.language,
-            sourceFile: sourceContext(file),
-            analysisAccumulator: analysisAccumulator
+            sourceFile: sourceContext(file)
           })
           : core.importCsvStreaming(file.content, mapping, {
             locale: state.language,
-            sourceFile: sourceContext(file),
-            analysisAccumulator: analysisAccumulator
+            sourceFile: sourceContext(file)
           });
       } else {
         file.result = null;
       }
       return file;
     });
-    const result = core.combineImportResults(batchFiles);
+    const result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator });
     renderMapping();
     renderResults(result, { preserveView: preserveView, analysis: analysisAccumulator.finish() });
   }
@@ -3166,18 +3164,16 @@
           file.result = file.content
             ? core.importCsvStreaming(file.content, mapping, {
               locale: language,
-              sourceFile: { id: file.id, name: file.name, label: file.label },
-              analysisAccumulator: analysisAccumulator
+              sourceFile: { id: file.id, name: file.name, label: file.label }
             })
             : importBufferStreaming(file, mapping, {
               locale: language,
-              sourceFile: { id: file.id, name: file.name, label: file.label },
-              analysisAccumulator: analysisAccumulator
+              sourceFile: { id: file.id, name: file.name, label: file.label }
             });
         }
         return file;
       });
-      result = core.combineImportResults(batchFiles);
+      result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator });
       analysis = analysisAccumulator.finish();
     }
     files.forEach(function (file) {

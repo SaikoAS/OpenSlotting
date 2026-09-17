@@ -772,7 +772,6 @@
   function importCsvStreamingChunks(chunks, mapping, options) {
     const locale = normalizeLocale(options && options.locale);
     const sourceFile = normalizeSourceFile(options && options.sourceFile);
-    const analysisAccumulator = options && options.analysisAccumulator;
     let headers = null;
     let totalRows = 0;
     let selectedMapping = mapping || null;
@@ -827,9 +826,6 @@
         if (blockingIssues.length > 0) {
           invalidLines.add(dataRow.sourceLine);
         } else if (!rowHasParserError) {
-          if (analysisAccumulator && typeof analysisAccumulator.consume === 'function') {
-            analysisAccumulator.consume(normalized.record);
-          }
           rows.push(normalized.record);
         }
       }
@@ -1358,7 +1354,8 @@
     return warnings;
   }
 
-  function combineImportResults(files) {
+  function combineImportResults(files, options) {
+    const analysisAccumulator = options && options.analysisAccumulator;
     const rows = [];
     const issues = [];
     let totalRows = 0;
@@ -1430,7 +1427,12 @@
       structuralRows += result ? result.structuralRows : 0;
       if (included) {
         includedFiles += 1;
-        normalizedRows.forEach(function (row) { rows.push(row); });
+        normalizedRows.forEach(function (row) {
+          rows.push(row);
+          if (analysisAccumulator && typeof analysisAccumulator.consume === 'function') {
+            analysisAccumulator.consume(row);
+          }
+        });
       }
       normalizedIssues.forEach(function (issue) { issues.push(issue); });
 

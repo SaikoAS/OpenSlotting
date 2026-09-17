@@ -70,9 +70,9 @@ zusätzliche `analyzeBatchCompatibility`-Wert zeigt separat die weiterhin
 verfügbare Kompatibilitätsberechnung über `analyzeRows()`.
 
 Beispielmessung mit 700.000 schmalen Zeilen auf dem Entwicklungsrechner:
-Der inkrementelle Analyseabschluss lag bei rund 33 ms; der separate
-Kompatibilitätsdurchlauf über `analyzeRows()` benötigte rund 625 ms. Die
-Spitzen-RSS lag in diesem Lauf bei 550,8 MB im `chunked`- und 538,5 MB im
+Der inkrementelle Analyseabschluss lag bei rund 8 ms; der separate
+Kompatibilitätsdurchlauf über `analyzeRows()` benötigte rund 578 ms. Die
+Spitzen-RSS lag in diesem Lauf bei 576,1 MB im `chunked`- und 526,5 MB im
 `baseline`-Modus. RSS hängt stark von Node-Version, Garbage Collection,
 Betriebssystem und Ergebnisbreite ab; der belastbare Vorteil dieses Issues ist
 die vermiedene redundante Analysepassage.

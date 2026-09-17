@@ -53,11 +53,11 @@ const decoded = mode === 'baseline'
   ? encoding.decodeBufferDetailed(sourceBytes.buffer.slice(sourceBytes.byteOffset, sourceBytes.byteOffset + sourceBytes.byteLength), 'auto')
   : encoding.decodeBufferChunksDetailed(sourceBytes, 'auto', { chunkSize: 64 * 1024 });
 const imported = mode === 'baseline'
-  ? csv.importCsv(decoded.text, mapping, { sourceFile: sourceFile, analysisAccumulator: analysisAccumulator })
-  : csv.importCsvStreamingChunks(decoded.chunks, mapping, { sourceFile: sourceFile, analysisAccumulator: analysisAccumulator });
+  ? csv.importCsv(decoded.text, mapping, { sourceFile: sourceFile })
+  : csv.importCsvStreamingChunks(decoded.chunks, mapping, { sourceFile: sourceFile });
 const importedAt = process.hrtime.bigint();
 stageMemory.import = memory();
-const combined = csv.combineImportResults([{ ...sourceFile, result: imported }]);
+const combined = csv.combineImportResults([{ ...sourceFile, result: imported }], { analysisAccumulator: analysisAccumulator });
 const combinedAt = process.hrtime.bigint();
 stageMemory.combine = memory();
 const incrementalAnalysis = analysisAccumulator.finish();
@@ -80,7 +80,7 @@ console.log(JSON.stringify({
   timingsMs: {
     import: milliseconds(startedAt, importedAt),
     combine: milliseconds(importedAt, combinedAt),
-    analyzeIncremental: milliseconds(importedAt, incrementalAnalyzedAt),
+    analyzeIncremental: milliseconds(combinedAt, incrementalAnalyzedAt),
     analyzeBatchCompatibility: milliseconds(incrementalAnalyzedAt, analyzedAt),
     total: milliseconds(startedAt, analyzedAt)
   },

@@ -330,30 +330,42 @@ test('incremental analysis accumulator matches batch analysis', () => {
   const text = fixture('basic-orders.csv');
   const accumulator = csv.createAnalysisAccumulator();
   const result = csv.importCsvStreaming(text, undefined, {
-    sourceFile: { id: 'incremental-source', name: 'basic-orders.csv', label: 'basic-orders.csv' },
-    analysisAccumulator: accumulator
+    sourceFile: { id: 'incremental-source', name: 'basic-orders.csv', label: 'basic-orders.csv' }
   });
-
-  assert.deepEqual(accumulator.finish(), csv.analyzeRows(result.rows));
+  const combined = csv.combineImportResults([
+    { id: 'incremental-source', name: 'basic-orders.csv', label: 'basic-orders.csv', result: result }
+  ], { analysisAccumulator: accumulator });
+  assert.deepEqual(accumulator.finish(), csv.analyzeRows(combined.rows));
 });
 
 test('incremental analysis keeps multi-source provenance and ordering deterministic', () => {
   const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
   const accumulator = csv.createAnalysisAccumulator();
   const first = csv.importCsvStreaming('order_id;article_id;quantity;order_date\nO-1;SKU-A;1;2026-09-12\n', mapping, {
-    sourceFile: { id: 'source-a', name: 'a.csv', label: 'a.csv' },
-    analysisAccumulator: accumulator
+    sourceFile: { id: 'source-a', name: 'a.csv', label: 'a.csv' }
   });
   const second = csv.importCsvStreaming('order_id;article_id;quantity;order_date\nO-2;SKU-A;2;2026-09-13\n', mapping, {
-    sourceFile: { id: 'source-b', name: 'b.csv', label: 'b.csv' },
-    analysisAccumulator: accumulator
+    sourceFile: { id: 'source-b', name: 'b.csv', label: 'b.csv' }
   });
   const combined = csv.combineImportResults([
     { id: 'source-a', name: 'a.csv', label: 'a.csv', result: first },
     { id: 'source-b', name: 'b.csv', label: 'b.csv', result: second }
-  ]);
+  ], { analysisAccumulator: accumulator });
   assert.deepEqual(accumulator.finish(), csv.analyzeRows(combined.rows));
   assert.deepEqual(accumulator.finish().articles[0].source_files, ['a.csv', 'b.csv']);
+});
+
+test('incremental analysis consumes provenance finalized by batch combination', () => {
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
+  const result = csv.importCsvStreaming('order_id;article_id;quantity;order_date\nO-1;SKU-C;1;2026-09-12\n', mapping);
+  const accumulator = csv.createAnalysisAccumulator();
+  const combined = csv.combineImportResults([
+    { id: 'source-c', name: 'catalog.csv', label: 'catalog.csv', result: result }
+  ], { analysisAccumulator: accumulator });
+  const analysis = accumulator.finish();
+  assert.deepEqual(analysis, csv.analyzeRows(combined.rows));
+  assert.deepEqual(analysis.source_files, ['catalog.csv']);
+  assert.equal(analysis.articles[0].order_lines[0].source_file_name, 'catalog.csv');
 });
 
 test('normalized rows keep compact provenance and reconstruct source fields on demand', () => {
