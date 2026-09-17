@@ -148,6 +148,10 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .detail-heading { margin-bottom: 18px; }
 .detail-back { margin-bottom: 12px; }
 .detail-metric-grid { margin-top: 18px; }
+.source-inspection { margin: 18px 0; padding: 12px 14px; border: 1px solid var(--cool-line); border-radius: 8px; background: #f8fbfd; }
+.source-inspection summary { color: var(--accent-dark); cursor: pointer; font-size: .84rem; font-weight: 800; }
+.source-inspection .table-scroll { margin-top: 12px; }
+.source-inspection-button { padding: 6px 9px; font-size: .76rem; white-space: nowrap; }
 .compact-field { min-width: 150px; }
 .table-scroll { width: 100%; max-width: 100%; min-width: 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: thin; }
 .table-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; }

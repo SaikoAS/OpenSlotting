@@ -28,13 +28,6 @@ function sourceFile(id, articleId) {
         source_file_name: id + '.csv',
         source_file_label: id + '.csv',
         source_line: 2,
-        raw_values: ['O-1', articleId, '1.25', '2026-09-12'],
-        raw_fields: [
-          { position: 1, header: 'order_id', value: 'O-1' },
-          { position: 2, header: 'article_id', value: articleId },
-          { position: 3, header: 'quantity', value: '1.25' },
-          { position: 4, header: 'order_date', value: '2026-09-12' }
-        ],
         order_id: 'O-1',
         article_id: articleId,
         article_name: null,
@@ -183,17 +176,18 @@ test('captures and restores the real CSV importer result without changing proven
   assert.equal(restored.files[0].result.rows[0].sales_unit_quantity_relation, 'exact');
   assert.equal(restored.files[0].result.rows[0].source_file_id, source.id);
   assert.equal(restored.files[0].result.rows[0].source_line, 2);
-  assert.deepEqual(restored.files[0].result.rows[0].raw_values, ['O-1', 'SKU-REAL', '0.3', '2026-09-12', '3', '0.1']);
+  assert.equal(Object.hasOwn(restored.files[0].result.rows[0], 'raw_values'), false);
+  assert.deepEqual(csv.reconstructRawSource(text, 2).raw_values, ['O-1', 'SKU-REAL', '0.3', '2026-09-12', '3', '0.1']);
 });
 
-test('backup round trip preserves original bytes, raw fields, mappings, and BigInt quantities', () => {
+test('backup round trip preserves original bytes, reconstructable source fields, mappings, and BigInt quantities', () => {
   const original = analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1');
   const text = workspace.stringifyBackup(original, { now: '2026-09-12T10:00:00.000Z' });
   const restored = workspace.parseBackup(text);
 
   assert.equal(restored.id, original.id);
   assert.equal(restored.files[0].result.rows[0].quantity, 12500000n);
-  assert.deepEqual(restored.files[0].result.rows[0].raw_fields, original.files[0].result.rows[0].raw_fields);
+  assert.equal(Object.hasOwn(restored.files[0].result.rows[0], 'raw_fields'), false);
   assert.deepEqual(
     Array.from(new Uint8Array(restored.files[0].buffer)),
     Array.from(new Uint8Array(original.files[0].buffer))
@@ -361,6 +355,21 @@ test('schema-one migration adds period settings without changing source data', (
     periodB: { name: 'Period B', start: null, end: null }
   });
   assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V1');
+});
+
+test('schema-two migration removes redundant raw row payloads', () => {
+  const legacy = analyzedWorkspace('workspace-v2', 'Version two', 'SKU-V2');
+  legacy.schemaVersion = 2;
+  legacy.files[0].result.rows[0].raw_values = ['O-1', 'SKU-V2', '1.25', '2026-09-12'];
+  legacy.files[0].result.rows[0].raw_fields = [
+    { position: 1, header: 'order_id', value: 'O-1' },
+    { position: 2, header: 'article_id', value: 'SKU-V2' }
+  ];
+
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.equal(Object.hasOwn(migrated.files[0].result.rows[0], 'raw_values'), false);
+  assert.equal(Object.hasOwn(migrated.files[0].result.rows[0], 'raw_fields'), false);
 });
 
 test('period settings without a mode preserve existing dated ranges as custom', () => {

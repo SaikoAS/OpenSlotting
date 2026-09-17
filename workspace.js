@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 2;
+  const WORKSPACE_SCHEMA_VERSION = 3;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -249,10 +249,12 @@
     if (typeof row.order_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.order_date)) {
       validationError('invalid_normalized_row', 'Normalized row contains an invalid date.');
     }
-    if (!Array.isArray(row.raw_values) || !Array.isArray(row.raw_fields)) {
-      validationError('invalid_normalized_row', 'Normalized row is missing raw source fields.');
+    const normalized = cloneValue(row, options);
+    if (normalized && typeof normalized === 'object') {
+      delete normalized.raw_values;
+      delete normalized.raw_fields;
     }
-    return cloneValue(row, options);
+    return normalized;
   }
 
   function normalizeImportResult(result, sourceId, options) {
@@ -429,7 +431,7 @@
       validationError('invalid_workspace', 'Workspace must be an object.');
     }
     const schemaVersion = Number(workspace.schemaVersion);
-    if (schemaVersion === 0 || schemaVersion === 1) {
+    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2) {
       const migrated = cloneValue(workspace, options);
       const migrationTarget = options && options.clonePayload === false ? Object.assign({}, migrated) : migrated;
       if (schemaVersion === 0) {
@@ -450,7 +452,7 @@
           return migratedFile;
         }) : [];
       }
-      migrationTarget.schemaVersion = 2;
+      migrationTarget.schemaVersion = 3;
       migrationTarget.periodSettings = normalizePeriodSettings(migrationTarget.periodSettings);
       return validateWorkspace(migrationTarget, options);
     }

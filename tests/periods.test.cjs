@@ -191,8 +191,6 @@ test('large period comparisons remain stack-safe and exact', () => {
       source_file_name: 'large.csv',
       source_file_label: 'large.csv',
       source_line: index + 2,
-      raw_values: [],
-      raw_fields: {}
     });
   }
 

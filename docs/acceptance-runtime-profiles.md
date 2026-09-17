@@ -43,7 +43,7 @@ experimental status.
 
 - [ ] A Portable workspace is not silently visible in Enhanced Local Mode.
 - [ ] Portable backup -> Enhanced Local restore preserves sources, mappings,
-      normalized rows, analysis state, raw fields, and provenance.
+      normalized rows, analysis state, reconstructed raw fields, and provenance.
 - [ ] Enhanced Local backup -> Portable restore preserves the same contract.
 - [ ] A malformed backup is rejected before changing either origin.
 - [ ] Failure or absence of an enhanced capability leaves the supported

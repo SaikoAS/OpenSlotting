@@ -147,6 +147,7 @@
     let recordStartLine = 1;
     let headerValues = null;
     let dataRowCount = 0;
+    let stopRequested = false;
 
     function addParserError(error) {
       errors.push(error);
@@ -168,7 +169,7 @@
           dataRowCount += 1;
         }
         if (onRow) {
-          onRow(row, recordErrors);
+          stopRequested = onRow(row, recordErrors) === false;
         }
         if (retainRows) {
           rows.push(row);
@@ -186,7 +187,7 @@
       recordStartLine = line;
     }
 
-    for (let index = 0; index < source.length; index += 1) {
+    for (let index = 0; index < source.length && !stopRequested; index += 1) {
       const character = source[index];
 
       if (character !== '\r' && character !== '\n') {
@@ -259,7 +260,7 @@
       }
     }
 
-    if (inQuotes) {
+    if (!stopRequested && inQuotes) {
       addParserError({
         sourceLine: recordStartLine,
         code: 'unterminated_quote',
@@ -267,7 +268,7 @@
       });
     }
 
-    if (field !== '' || fields.length > 0 || recordHasContent) {
+    if (!stopRequested && (field !== '' || fields.length > 0 || recordHasContent)) {
       flushRow();
     }
 
@@ -678,10 +679,6 @@
         source_file_name: sourceFile.name,
         source_file_label: sourceFile.label,
         source_line: record.sourceLine,
-        raw_values: values.slice(),
-        raw_fields: headers.map(function (header, index) {
-          return { position: index + 1, header: header, value: values[index] === undefined ? '' : values[index] };
-        }),
         order_id: orderId,
         article_id: articleId,
         article_name: articleNameRaw || null,
@@ -956,6 +953,43 @@
       mapping: selectedMapping,
       sourceFile: sourceFile,
       blocking: false
+    };
+  }
+
+  function reconstructRawSource(text, sourceLine, options) {
+    const targetLine = Number(sourceLine);
+    if (!Number.isInteger(targetLine) || targetLine < 1) {
+      return null;
+    }
+
+    let headers = null;
+    let values = null;
+    parseCsv(text, Object.assign({}, options, {
+      retainRows: false,
+      onRow: function (row) {
+        if (headers === null) {
+          headers = row.values.map(function (value) { return String(value).trim(); });
+          return;
+        }
+        if (row.sourceLine === targetLine) {
+          values = row.values.slice();
+          return false;
+        }
+      }
+    }));
+    if (!headers || !values) {
+      return null;
+    }
+    return {
+      sourceLine: targetLine,
+      raw_values: values,
+      raw_fields: headers.map(function (header, index) {
+        return {
+          position: index + 1,
+          header: header,
+          value: values[index] === undefined ? '' : values[index]
+        };
+      })
     };
   }
 
@@ -1713,6 +1747,7 @@
     normalizeHeader: normalizeHeader,
     normalizeNumber: normalizeNumber,
     parseCsv: parseCsv,
+    reconstructRawSource: reconstructRawSource,
     validateMapping: validateMapping
   };
 }));
