@@ -743,6 +743,8 @@
     selectedArticleId: null,
     detailPage: 1,
     issuePage: 1,
+    articleViewCache: null,
+    comparisonViewCache: null,
     activePageTarget: 'workspace-panel'
   };
 
@@ -919,6 +921,11 @@
   let workspaceSavePending = 0;
   let workspaceSaveRevision = 0;
   let workspaceSaveGeneration = 0;
+
+  function invalidateViewCaches() {
+    state.articleViewCache = null;
+    state.comparisonViewCache = null;
+  }
   let workspaceLoadRevision = 0;
   let workspaceWorkerTask = null;
   let storageEstimateTimer = null;
@@ -2085,18 +2092,17 @@
     if (!state.comparison) {
       return [];
     }
-    const query = elements.comparisonSearch.value.trim().toLocaleLowerCase(state.language === 'de' ? 'de-DE' : 'en-US');
+    const query = core.normalizeSearchQuery(elements.comparisonSearch.value, state.language);
     const filter = elements.comparisonFilter.value;
+    const sort = elements.comparisonSort.value;
+    const cached = state.comparisonViewCache;
+    if (cached && cached.comparison === state.comparison && cached.language === state.language &&
+      cached.query === query && cached.filter === filter && cached.sort === sort) {
+      return cached.articles;
+    }
     const incomplete = state.comparison.coverageA.status !== 'complete' || state.comparison.coverageB.status !== 'complete';
     const articles = state.comparison.articles.filter(function (article) {
-      const locale = state.language === 'de' ? 'de-DE' : 'en-US';
-      const articleNameVariants = Array.from(new Set(
-        (article.period_a.article_name_variants || []).concat(article.period_b.article_name_variants || [])
-      ));
-      const searchMatch = !query || article.article_id.toLocaleLowerCase(locale).includes(query) ||
-        [article.article_name].concat(articleNameVariants).some(function (name) {
-          return String(name || '').toLocaleLowerCase(locale).includes(query);
-        });
+      const searchMatch = core.articleMatchesNormalizedQuery(article, query, state.language);
       if (!searchMatch || filter === 'all') {
         return searchMatch;
       }
@@ -2108,8 +2114,7 @@
       }
       return article.state === filter;
     });
-    const sort = elements.comparisonSort.value;
-    return articles.sort(function (left, right) {
+    const sorted = articles.sort(function (left, right) {
       if (sort === 'article') {
         return left.article_id.localeCompare(right.article_id);
       }
@@ -2122,6 +2127,15 @@
       const rightAbs = right.quantity_change < 0n ? -right.quantity_change : right.quantity_change;
       return leftAbs === rightAbs ? left.article_id.localeCompare(right.article_id) : (leftAbs > rightAbs ? -1 : 1);
     });
+    state.comparisonViewCache = {
+      comparison: state.comparison,
+      language: state.language,
+      query: query,
+      filter: filter,
+      sort: sort,
+      articles: sorted
+    };
+    return sorted;
   }
 
   function appendComparisonPeriodSummary(period, coverage) {
@@ -2370,6 +2384,8 @@
       return;
     }
     state.comparison = periods.comparePeriods(state.result.rows, settings, core.analyzeRows);
+    core.prepareArticleSearchProjections(state.comparison.articles, state.language);
+    invalidateViewCaches();
     state.comparisonPage = 1;
     state.selectedComparisonArticleId = null;
     state.comparisonDetailPage = 1;
@@ -2385,12 +2401,17 @@
     if (!state.analysis) {
       return [];
     }
-    const query = elements.articleFilter.value;
-    const articles = state.analysis.articles.filter(function (article) {
-      return core.articleMatchesQuery(article, query, state.language);
-    });
+    const query = core.normalizeSearchQuery(elements.articleFilter.value, state.language);
     const sort = elements.articleSort.value;
-    return articles.sort(function (left, right) {
+    const cached = state.articleViewCache;
+    if (cached && cached.analysis === state.analysis && cached.language === state.language &&
+      cached.query === query && cached.sort === sort) {
+      return cached.articles;
+    }
+    const articles = state.analysis.articles.filter(function (article) {
+      return core.articleMatchesNormalizedQuery(article, query, state.language);
+    });
+    const sorted = articles.sort(function (left, right) {
       if (sort === 'quantity') {
         return core.compareScaledQuantitiesDescending(left.total_quantity, right.total_quantity) || left.article_id.localeCompare(right.article_id);
       }
@@ -2409,6 +2430,14 @@
         core.compareScaledQuantitiesDescending(left.total_quantity, right.total_quantity) ||
         left.article_id.localeCompare(right.article_id);
     });
+    state.articleViewCache = {
+      analysis: state.analysis,
+      language: state.language,
+      query: query,
+      sort: sort,
+      articles: sorted
+    };
+    return sorted;
   }
 
   function appendCell(row, value, className) {
@@ -2763,9 +2792,13 @@
     state.result = result;
     state.detailRowsByRef = Array.isArray(result.rows) ? result.rows : [];
     state.analysis = options && options.analysis ? options.analysis : core.analyzeRows(result.rows);
+    core.prepareArticleSearchProjections(state.analysis.articles, state.language);
+    invalidateViewCaches();
     state.periodSettings = settingsForDetectedCalendarWeeks(state.periodSettings, result.rows);
     if (state.comparison) {
       state.comparison = periods.comparePeriods(result.rows, state.periodSettings, core.analyzeRows);
+      core.prepareArticleSearchProjections(state.comparison.articles, state.language);
+      invalidateViewCaches();
     }
     if (!preserveView) {
       state.articlePage = 1;
@@ -2861,7 +2894,7 @@
     });
     const result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator });
     renderMapping();
-    renderResults(result, { preserveView: preserveView, analysis: analysisAccumulator.finish() });
+    renderResults(result, { preserveView: preserveView, analysis: analysisAccumulator.finish({ locale: state.language }) });
   }
 
   function clearAnalysis(options) {
@@ -2870,6 +2903,7 @@
     state.detailRowsByRef = [];
     state.analysis = null;
     state.comparison = null;
+    invalidateViewCaches();
     state.comparisonPage = 1;
     state.coverageDatePage = 1;
     state.coverageDrilldown = null;
@@ -3216,7 +3250,7 @@
         return file;
       });
       result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator });
-      analysis = analysisAccumulator.finish();
+      analysis = analysisAccumulator.finish({ locale: language });
     }
     files.forEach(function (file) {
       // The source bytes remain the durable source of truth. Do not retain a
@@ -4108,6 +4142,7 @@
   function handlePeriodSettingsChange() {
     state.periodSettings = periodSettingsFromControls();
     state.comparison = null;
+    invalidateViewCaches();
     state.comparisonPage = 1;
     state.selectedComparisonArticleId = null;
     state.comparisonDetailPage = 1;
@@ -4259,6 +4294,7 @@
   });
   elements.languageSelect.addEventListener('change', function () {
     state.language = elements.languageSelect.value === 'de' ? 'de' : 'en';
+    invalidateViewCaches();
     applyLanguage();
     persistActiveWorkspace(undefined, { metadataOnly: true }).catch(function () {});
   });
@@ -4272,6 +4308,7 @@
     }
     state.periodSettings = periods.defaultSettings(state.result.rows);
     state.comparison = null;
+    invalidateViewCaches();
     state.comparisonPage = 1;
     state.selectedComparisonArticleId = null;
     state.comparisonDetailPage = 1;

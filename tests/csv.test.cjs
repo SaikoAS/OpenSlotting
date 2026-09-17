@@ -939,6 +939,26 @@ test('article search matches IDs and descriptions', () => {
   assert.equal(csv.articleMatchesQuery(article, '', 'de'), true);
 });
 
+test('article search projections include variants and refresh for locale changes', () => {
+  const analysis = csv.analyzeRows(csv.importCsv(fixture('article-descriptions.csv')).rows, { locale: 'en' });
+  const article = analysis.articles.find((item) => item.article_id === 'SKU-ALPHA');
+
+  assert.equal(article.search_text_locale, 'en');
+  assert.match(article.search_text, /sku-alpha/);
+  assert.match(article.search_text, /special/);
+  assert.equal(csv.articleMatchesNormalizedQuery(article, 'special', 'en'), true);
+
+  const englishProjection = article.search_text;
+  csv.prepareArticleSearchProjection(article, 'de');
+  assert.equal(article.search_text_locale, 'de');
+  assert.equal(typeof englishProjection, 'string');
+  assert.equal(csv.articleMatchesNormalizedQuery(article, csv.normalizeSearchQuery('SPECIAL', 'de'), 'de'), true);
+
+  article.article_name_variants.push('Neue Variante');
+  csv.prepareArticleSearchProjection(article, 'de');
+  assert.equal(csv.articleMatchesQuery(article, 'neue variante', 'de'), true);
+});
+
 test('analysis export includes protected article descriptions and conflict metadata', () => {
   const analysis = csv.analyzeRows(csv.importCsv(fixture('article-descriptions.csv')).rows);
   const exported = parseAnalysisExport(analysis.articles);

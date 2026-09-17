@@ -130,6 +130,11 @@ The date must exist in the calendar. Accepted dates normalize to `YYYY-MM-DD`. T
 
 For each article ID, the first non-empty description in source order becomes the primary displayed description. All distinct, non-empty, case-sensitive descriptions are retained in source order as variants. More than one variant sets the description-conflict flag. Empty descriptions do not create a conflict. Article search covers the article ID, the primary description, and every retained description variant.
 
+After analysis, the runtime adds a derived `search_text` projection containing
+those same values normalized for the active `en` or `de` locale. It is a view
+cache only and is rebuilt when the analysis or locale changes; it is not part
+of the normalized source-row contract or CSV export.
+
 Article analysis objects keep compact numeric `order_line_refs` (zero-based
 indexes into the current combined result-row array) instead of retaining
 complete normalized row objects or repeating provenance strings. The detail
