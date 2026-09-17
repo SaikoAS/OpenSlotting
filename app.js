@@ -2803,13 +2803,15 @@
     const batchFiles = state.files.map(function (file) {
       if (file.parsed && !file.errorKey) {
         const mapping = file.confirmedMapping || file.mapping;
-        const text = file.content === null || file.content === undefined
-          ? encoding.decodeBufferDetailed(file.buffer, file.encodingMode || 'auto').text
-          : file.content;
-        file.result = core.importCsvStreaming(text, mapping, {
-          locale: state.language,
-          sourceFile: sourceContext(file)
-        });
+        file.result = file.content === null || file.content === undefined
+          ? importBufferStreaming(file, mapping, {
+            locale: state.language,
+            sourceFile: sourceContext(file)
+          })
+          : core.importCsvStreaming(file.content, mapping, {
+            locale: state.language,
+            sourceFile: sourceContext(file)
+          });
       } else {
         file.result = null;
       }
@@ -2884,8 +2886,32 @@
     file.result = null;
     file.activeEncoding = null;
     try {
-      const decoded = encoding.decodeBufferDetailed(file.buffer, file.encodingMode || 'auto');
-      const parsed = core.parseCsv(decoded.text, streaming ? { retainRows: false } : undefined);
+      const decoded = streaming
+        ? encoding.decodeBufferChunksDetailed(file.buffer, file.encodingMode || 'auto', { chunkSize: 64 * 1024 })
+        : encoding.decodeBufferDetailed(file.buffer, file.encodingMode || 'auto');
+      let parsed;
+      let contentFingerprint = null;
+      if (streaming) {
+        let first = 2166136261;
+        let second = 2246822519;
+        let length = 0;
+        const chunks = (function* () {
+          for (const chunk of decoded.chunks) {
+            for (let index = 0; index < chunk.length; index += 1) {
+              const code = chunk.charCodeAt(index);
+              first = Math.imul(first ^ code, 16777619) >>> 0;
+              second = Math.imul(second ^ (code + length), 3266489917) >>> 0;
+              length += 1;
+            }
+            yield chunk;
+          }
+        }());
+        parsed = core.parseCsvChunks(chunks, { retainRows: false });
+        contentFingerprint = length + ':' + first.toString(16) + ':' + second.toString(16);
+      } else {
+        parsed = core.parseCsv(decoded.text);
+        contentFingerprint = fingerprint(decoded.text);
+      }
       const headers = streaming
         ? (parsed.headers || []).map(function (header) { return String(header).trim(); })
         : (parsed.rows.length > 0 ? parsed.rows[0].values.map(function (header) { return String(header).trim(); }) : []);
@@ -2894,8 +2920,8 @@
         emptyError.translationKey = 'empty_file';
         throw emptyError;
       }
-      file.content = decoded.text;
-      file.contentFingerprint = fingerprint(decoded.text);
+      file.content = streaming ? null : decoded.text;
+      file.contentFingerprint = contentFingerprint;
       file.activeEncoding = decoded.encoding;
       if (decoded.automatic) {
         file.detectedEncoding = decoded.encoding;
@@ -2910,6 +2936,15 @@
     } catch (error) {
       file.errorKey = error && error.translationKey ? error.translationKey : 'invalid_encoding';
     }
+  }
+
+  function importBufferStreaming(file, mapping, options) {
+    const decoded = encoding.decodeBufferChunksDetailed(file.buffer, file.encodingMode || 'auto', { chunkSize: 64 * 1024 });
+    file.activeEncoding = decoded.encoding;
+    if (decoded.automatic) {
+      file.detectedEncoding = decoded.encoding;
+    }
+    return core.importCsvStreamingChunks(decoded.chunks, mapping, options);
   }
 
   async function handleFileChange() {
@@ -3124,10 +3159,15 @@
       const batchFiles = files.map(function (file) {
         if (file.parsed && !file.errorKey) {
           const mapping = file.confirmedMapping || file.mapping;
-          file.result = core.importCsvStreaming(file.content || '', mapping, {
-            locale: language,
-            sourceFile: { id: file.id, name: file.name, label: file.label }
-          });
+          file.result = file.content
+            ? core.importCsvStreaming(file.content, mapping, {
+              locale: language,
+              sourceFile: { id: file.id, name: file.name, label: file.label }
+            })
+            : importBufferStreaming(file, mapping, {
+              locale: language,
+              sourceFile: { id: file.id, name: file.name, label: file.label }
+            });
         }
         return file;
       });
@@ -3282,6 +3322,7 @@
       'const core = (' + window.OpenSlottingCsvFactory.toString() + ')();',
       'const workspaceModel = (' + window.OpenSlottingWorkspaceFactory.toString() + ')();',
       decodeFileEntry.toString(),
+      importBufferStreaming.toString(),
       runtimeFileFromStored.toString(),
       persistPreparedWorkspace.toString(),
       prepareWorkspaceRecord.toString(),

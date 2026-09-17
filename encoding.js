@@ -126,6 +126,83 @@
     }
   }
 
+  function canDecode(bytes, encoding) {
+    try {
+      const decoder = new TextDecoder(encoding, { fatal: true });
+      const chunkSize = 64 * 1024;
+      for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+        decoder.decode(bytes.subarray(offset, Math.min(bytes.length, offset + chunkSize)), { stream: true });
+      }
+      decoder.decode();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function resolveEncoding(bytes, preferredEncoding) {
+    if (preferredEncoding && preferredEncoding !== 'auto') {
+      if (SUPPORTED_ENCODINGS.indexOf(preferredEncoding) < 0) {
+        throw new RangeError('Unsupported encoding selection.');
+      }
+      return { encoding: preferredEncoding, automatic: false };
+    }
+
+    let encoding = null;
+    if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+      encoding = 'utf-8';
+    } else if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
+      encoding = 'utf-16le';
+    } else if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
+      encoding = 'utf-16be';
+    } else {
+      encoding = detectBomlessUtf16(bytes);
+    }
+    if (encoding) {
+      return { encoding: encoding, automatic: true };
+    }
+    if (bytes.some(function (byte) { return byte === 0; })) {
+      throw new TypeError('The byte sequence contains unsupported embedded NUL bytes.');
+    }
+    if (canDecode(bytes, 'utf-8')) {
+      return { encoding: 'utf-8', automatic: true };
+    }
+    return { encoding: 'windows-1252', automatic: true };
+  }
+
+  function decodeBufferChunksDetailed(buffer, preferredEncoding, options) {
+    const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    const resolved = resolveEncoding(bytes, preferredEncoding || 'auto');
+    const requestedChunkSize = Number(options && options.chunkSize);
+    const chunkSize = Number.isInteger(requestedChunkSize) && requestedChunkSize > 0
+      ? requestedChunkSize
+      : 64 * 1024;
+    function* chunks() {
+      const decoder = new TextDecoder(resolved.encoding, { fatal: true });
+      for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+        const text = decoder.decode(bytes.subarray(offset, Math.min(bytes.length, offset + chunkSize)), { stream: true });
+        if (text.indexOf('\u0000') >= 0) {
+          throw new TypeError('The decoded text contains unsupported embedded NUL characters.');
+        }
+        if (text) {
+          yield text;
+        }
+      }
+      const tail = decoder.decode();
+      if (tail.indexOf('\u0000') >= 0) {
+        throw new TypeError('The decoded text contains unsupported embedded NUL characters.');
+      }
+      if (tail) {
+        yield tail;
+      }
+    }
+    return {
+      encoding: resolved.encoding,
+      automatic: resolved.automatic,
+      chunks: chunks()
+    };
+  }
+
   function decodeBuffer(buffer) {
     return decodeBufferDetailed(buffer, 'auto').text;
   }
@@ -134,6 +211,7 @@
     SUPPORTED_ENCODINGS: SUPPORTED_ENCODINGS,
     decodeBuffer: decodeBuffer,
     decodeBufferDetailed: decodeBufferDetailed,
+    decodeBufferChunksDetailed: decodeBufferChunksDetailed,
     detectBomlessUtf16: detectBomlessUtf16
   };
 }));

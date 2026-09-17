@@ -267,6 +267,8 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /metadataOnly/);
   assert.match(storageSource, /workspaceRowChunks/);
   assert.match(storageSource, /workspaceIssueChunks/);
+  assert.match(appSource, /decodeBufferChunksDetailed/);
+  assert.match(appSource, /importCsvStreamingChunks/);
 
   const referencedIds = [...appSource.matchAll(/document\.getElementById\('([^']+)'\)/g)].map((match) => match[1]);
   referencedIds.forEach((id) => {
@@ -411,6 +413,33 @@ test('streaming import handles parser errors per row without rescanning history'
   assert.equal(result.invalidRows, malformedRows);
   assert.equal(result.rows[0].order_id, 'O-valid-0');
   assert.equal(result.issues.filter((issue) => issue.code === 'unexpected_character_after_quote').length, malformedRows);
+});
+
+test('chunked parser preserves quoted fields and line provenance across boundaries', () => {
+  const text = 'order_id;article_id;quantity;order_date;article_name\r\n'
+    + 'O-1;SKU-1;1;2026-09-12;"Multi\r\nline ""quoted"""\r\n'
+    + 'O-2;SKU-2;2;2026-09-13;Plain\n';
+  const chunks = [];
+  for (let index = 0; index < text.length; index += 1) {
+    chunks.push(text.slice(index, index + 1));
+  }
+  const parsed = csv.parseCsvChunks(chunks, { retainRows: false });
+  assert.deepEqual(parsed.headers, ['order_id', 'article_id', 'quantity', 'order_date', 'article_name']);
+  assert.equal(parsed.dataRowCount, 2);
+  assert.equal(parsed.rows.length, 0);
+  assert.deepEqual(parsed.errors, []);
+
+  const result = csv.importCsvStreamingChunks(chunks, {
+    order_id: 0,
+    article_id: 1,
+    quantity: 2,
+    order_date: 3,
+    article_name: 4
+  }, { sourceFile: { id: 'chunked', name: 'chunked.csv', label: 'chunked.csv' } });
+  assert.equal(result.validRows, 2);
+  assert.equal(result.rows[0].article_name, 'Multi\r\nline "quoted"');
+  assert.equal(result.rows[0].source_line, 2);
+  assert.equal(result.rows[1].source_line, 5);
 });
 
 test('duplicate source filenames receive stable batch labels', () => {
