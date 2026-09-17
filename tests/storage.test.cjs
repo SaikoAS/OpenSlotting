@@ -125,17 +125,22 @@ test('workspace activation commits its summary and active marker atomically', as
   await repository.createWorkspace(second);
   await repository.setActiveWorkspace(first.id);
 
+  const persistedWorkspace = workspaceWithSource(second.id, 'Second compact', 'SKU-COMPACT');
+  persistedWorkspace.files[0].label = 'compact-source.csv';
+
   await repository.commitWorkspaceActivation(second.id, {
     analyzed: true,
     sourceCount: 1,
     sourceBytes: 222,
     normalizedRowCount: 10
   }, {
-    expectedRevision: 1
+    expectedRevision: 1,
+    persistedWorkspace
   });
 
   assert.equal(await repository.getActiveWorkspaceId(), second.id);
   assert.equal((await repository.listWorkspaces()).find((item) => item.id === second.id).normalizedRowCount, 10);
+  assert.equal((await repository.loadWorkspace(second.id)).files[0].label, 'compact-source.csv');
 
   await assert.rejects(
     repository.commitWorkspaceActivation(second.id, {

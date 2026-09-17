@@ -3495,6 +3495,7 @@
       return;
     }
     const revision = workspaceLoadRevision + 1;
+    const needsWorkspaceMigration = Number(listedWorkspace.schemaVersion) < workspaceModel.WORKSPACE_SCHEMA_VERSION;
     const previousActiveId = state.activeWorkspace ? state.activeWorkspace.id : state.lastActiveWorkspaceId;
     workspaceLoadRevision = revision;
     state.selectedWorkspaceId = workspaceId;
@@ -3568,9 +3569,11 @@
       if (revision !== workspaceLoadRevision) {
         throw workspaceLoadError('workspace_load_cancelled');
       }
-      const committedMetadata = await workspaceRepository.commitWorkspaceActivation(workspaceId, prepared.workspace, {
-        expectedRevision: targetStorageRevision
-      });
+      const activationCommitOptions = { expectedRevision: targetStorageRevision };
+      if (needsWorkspaceMigration) {
+        activationCommitOptions.persistedWorkspace = persistPreparedWorkspace(prepared);
+      }
+      const committedMetadata = await workspaceRepository.commitWorkspaceActivation(workspaceId, prepared.workspace, activationCommitOptions);
       if (revision !== workspaceLoadRevision) {
         await workspaceRepository.setActiveWorkspace(previousActiveId || null);
         throw workspaceLoadError('workspace_load_cancelled');

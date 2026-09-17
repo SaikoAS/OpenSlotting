@@ -366,7 +366,7 @@
     function commitWorkspaceActivation(id, summary, options) {
       const workspaceId = String(id || '');
       const settings = options || {};
-      return transact(['workspaces', 'settings'], 'readwrite', async function (stores) {
+      return transact(['workspaces', 'workspacePayloads', 'settings'], 'readwrite', async function (stores) {
         const metadata = await requestPromise(stores.workspaces.get(workspaceId));
         if (!metadata) {
           throw storageError('workspace_not_found', 'Workspace does not exist.');
@@ -377,6 +377,13 @@
         const updated = metadataWithSummary(metadata, summary);
         updated.storageRevision = storageRevisionOf(metadata) + 1;
         stores.workspaces.put(updated);
+        if (settings.persistedWorkspace) {
+          const persisted = workspaceModel.validateWorkspace(settings.persistedWorkspace, { clonePayload: false });
+          if (persisted.id !== workspaceId) {
+            throw storageError('workspace_conflict', 'Workspace payload belongs to another workspace.');
+          }
+          stores.workspacePayloads.put(payloadFor(persisted));
+        }
         stores.settings.put({ key: ACTIVE_WORKSPACE_SETTING, value: workspaceId });
         return updated;
       });

@@ -147,6 +147,7 @@
     let recordStartLine = 1;
     let headerValues = null;
     let dataRowCount = 0;
+    let stopRequested = false;
 
     function addParserError(error) {
       errors.push(error);
@@ -168,7 +169,7 @@
           dataRowCount += 1;
         }
         if (onRow) {
-          onRow(row, recordErrors);
+          stopRequested = onRow(row, recordErrors) === false;
         }
         if (retainRows) {
           rows.push(row);
@@ -186,7 +187,7 @@
       recordStartLine = line;
     }
 
-    for (let index = 0; index < source.length; index += 1) {
+    for (let index = 0; index < source.length && !stopRequested; index += 1) {
       const character = source[index];
 
       if (character !== '\r' && character !== '\n') {
@@ -259,7 +260,7 @@
       }
     }
 
-    if (inQuotes) {
+    if (!stopRequested && inQuotes) {
       addParserError({
         sourceLine: recordStartLine,
         code: 'unterminated_quote',
@@ -267,7 +268,7 @@
       });
     }
 
-    if (field !== '' || fields.length > 0 || recordHasContent) {
+    if (!stopRequested && (field !== '' || fields.length > 0 || recordHasContent)) {
       flushRow();
     }
 
@@ -972,6 +973,7 @@
         }
         if (row.sourceLine === targetLine) {
           values = row.values.slice();
+          return false;
         }
       }
     }));

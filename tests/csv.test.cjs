@@ -343,6 +343,26 @@ test('normalized rows keep compact provenance and reconstruct source fields on d
   assert.equal(csv.reconstructRawSource(text, 99), null);
 });
 
+test('source reconstruction stops parsing after the requested row', () => {
+  const text = [
+    'order_id;article_id;quantity;order_date',
+    'O-1;SKU-1;1;2026-09-12',
+    'O-2;SKU-2;2;2026-09-13',
+    'O-3;SKU-3;3;2026-09-14'
+  ].join('\n');
+  const visited = [];
+  const parsed = csv.parseCsv(text, {
+    retainRows: false,
+    onRow: (row) => {
+      visited.push(row.sourceLine);
+      return row.sourceLine < 3;
+    }
+  });
+
+  assert.deepEqual(visited, [1, 2, 3]);
+  assert.equal(parsed.dataRowCount, 2);
+});
+
 test('streaming import keeps large batches stack-safe and source-complete', () => {
   const rowCount = 130000;
   const lines = ['order_id;article_id;quantity;order_date'];
