@@ -82,6 +82,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(indexSource, /id="workspace-recovery"[^>]*data-i18n="workspace_recover_save_failure"/);
   assert.doesNotMatch(initializeBody[1], /activateWorkspace\(/);
   assert.match(appSource, /workspaceRepository\.loadWorkspaceRaw/);
+  assert.match(activateBody[1], /loadWorkspaceRaw\(workspaceId, \{ includeResults: false \}\)/);
   assert.match(appSource, /new Worker\(url\)/);
   assert.match(appSource, /new Blob\(\[source\]/);
   assert.match(appSource, /task\.worker\.terminate\(\)/);
@@ -242,6 +243,7 @@ test('release packaging includes both runtime profiles from one codebase', () =>
 test('browser UI declares multi-file selection and bilingual source traceability', () => {
   const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
 
   assert.match(indexSource, /id="file-input"[^>]*\bmultiple\b/);
   assert.match(indexSource, /data-i18n="detail_source_file"/);
@@ -262,6 +264,9 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /detail_source_file: 'Source file'/);
   assert.match(appSource, /detail_source_file: 'Quelldatei'/);
   assert.match(appSource, /warning_overlap:/);
+  assert.match(appSource, /metadataOnly/);
+  assert.match(storageSource, /workspaceRowChunks/);
+  assert.match(storageSource, /workspaceIssueChunks/);
 
   const referencedIds = [...appSource.matchAll(/document\.getElementById\('([^']+)'\)/g)].map((match) => match[1]);
   referencedIds.forEach((id) => {

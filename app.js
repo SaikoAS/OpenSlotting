@@ -1173,9 +1173,23 @@
       showWorkspaceError(state.workspaceSaveFailure.error);
       return Promise.reject(state.workspaceSaveFailure.error);
     }
+    const metadataOnly = Boolean(options && options.metadataOnly);
     let snapshot;
     try {
-      snapshot = captureActiveWorkspace();
+      snapshot = metadataOnly
+        ? {
+          id: state.activeWorkspace.id,
+          name: state.activeWorkspace.name,
+          language: state.language,
+          analyzed: Boolean(state.analysis),
+          periodSettings: periods.normalizeSettings(state.periodSettings),
+          sourceCount: state.files.length,
+          sourceBytes: state.files.reduce(function (sum, file) {
+            return sum + (file.buffer instanceof ArrayBuffer ? file.buffer.byteLength : 0);
+          }, 0),
+          normalizedRowCount: state.result && Array.isArray(state.result.rows) ? state.result.rows.length : 0
+        }
+        : captureActiveWorkspace();
     } catch (error) {
       showWorkspaceError(error);
       return Promise.reject(error);
@@ -1194,10 +1208,14 @@
         const current = state.activeWorkspace && state.activeWorkspace.id === snapshot.id
           ? state.activeWorkspace
           : state.workspaces.find(function (workspace) { return workspace.id === snapshot.id; });
-        return workspaceRepository.updateWorkspace(snapshot, {
-          validated: true,
+        const saveOptions = {
           expectedRevision: current ? current.storageRevision : null
-        });
+        };
+        if (metadataOnly) {
+          return workspaceRepository.updateWorkspaceSummary(snapshot.id, snapshot, saveOptions);
+        }
+        saveOptions.validated = true;
+        return workspaceRepository.updateWorkspace(snapshot, saveOptions);
       })
       .then(async function (saved) {
         if (generation !== workspaceSaveGeneration) {
@@ -2343,7 +2361,7 @@
     renderCoverage();
     renderComparison();
     renderWorkflow('comparison-panel');
-    persistActiveWorkspace().catch(function () {});
+    persistActiveWorkspace(undefined, { metadataOnly: true }).catch(function () {});
     elements.comparisonPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -3495,7 +3513,7 @@
       return;
     }
     const revision = workspaceLoadRevision + 1;
-    const needsWorkspaceMigration = Number(listedWorkspace.schemaVersion) < workspaceModel.WORKSPACE_SCHEMA_VERSION;
+    let needsWorkspaceMigration = Number(listedWorkspace.schemaVersion) < workspaceModel.WORKSPACE_SCHEMA_VERSION;
     const previousActiveId = state.activeWorkspace ? state.activeWorkspace.id : state.lastActiveWorkspaceId;
     workspaceLoadRevision = revision;
     state.selectedWorkspaceId = workspaceId;
@@ -3515,7 +3533,10 @@
         ? prepared.workspace.language
         : null;
       if (!prepared) {
-        let record = await workspaceRepository.loadWorkspaceRaw(workspaceId);
+        // Activation rebuilds analysis from the durable source bytes. Avoid
+        // loading stored row/issue chunks into the browser thread; the worker
+        // performs migration, validation and parsing for this path.
+        let record = await workspaceRepository.loadWorkspaceRaw(workspaceId, { includeResults: false });
         if (revision !== workspaceLoadRevision) {
           throw workspaceLoadError('workspace_load_cancelled');
         }
@@ -3523,6 +3544,7 @@
           throw new storageApi.WorkspaceStorageError('workspace_not_found', 'Workspace does not exist.');
         }
         targetStorageRevision = record.storageRevision;
+        needsWorkspaceMigration = Number(record.schemaVersion) < workspaceModel.WORKSPACE_SCHEMA_VERSION;
         record = omitStoredResultsForRebuild(record);
         targetLanguage = Number(record.schemaVersion) === 0
           ? (record.language === 'de' ? 'de' : 'en')
@@ -3544,11 +3566,12 @@
           };
           renderWorkspaceProgress();
           await nextBrowserPaint();
-          record = await workspaceRepository.loadWorkspaceRaw(workspaceId);
+          record = await workspaceRepository.loadWorkspaceRaw(workspaceId, { includeResults: false });
           if (!record || revision !== workspaceLoadRevision) {
             throw workspaceLoadError('workspace_load_cancelled');
           }
           targetStorageRevision = record.storageRevision;
+          needsWorkspaceMigration = Number(record.schemaVersion) < workspaceModel.WORKSPACE_SCHEMA_VERSION;
           targetLanguage = Number(record.schemaVersion) === 0
             ? (record.language === 'de' ? 'de' : 'en')
             : record.language;
@@ -4014,7 +4037,7 @@
     renderComparison();
     renderWorkflow('coverage-panel');
     if (periodSettingsStorable(state.periodSettings)) {
-      persistActiveWorkspace().catch(function () {});
+      persistActiveWorkspace(undefined, { metadataOnly: true }).catch(function () {});
     }
   }
 
@@ -4152,7 +4175,7 @@
   elements.languageSelect.addEventListener('change', function () {
     state.language = elements.languageSelect.value === 'de' ? 'de' : 'en';
     applyLanguage();
-    persistActiveWorkspace().catch(function () {});
+    persistActiveWorkspace(undefined, { metadataOnly: true }).catch(function () {});
   });
   elements.analyzeButton.addEventListener('click', analyze);
   elements.exportButton.addEventListener('click', exportResults);
@@ -4171,7 +4194,7 @@
     renderCoverage();
     renderComparison();
     renderWorkflow('coverage-panel');
-    persistActiveWorkspace().catch(function () {});
+    persistActiveWorkspace(undefined, { metadataOnly: true }).catch(function () {});
   });
   elements.editPeriods.addEventListener('click', function () {
     renderWorkflow('coverage-panel');

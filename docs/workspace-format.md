@@ -10,17 +10,22 @@ Browser-local data is not an application file beside `index.html`. Moving the ap
 
 ## Database contract
 
-The IndexedDB database is named `openslotting-workspaces` and currently uses database version `1`.
+The IndexedDB database is named `openslotting-workspaces` and currently uses database version `2`.
 
-It contains three object stores:
+It contains the metadata/settings stores plus independently persisted workspace stores:
 
 | Store | Key | Purpose |
 | --- | --- | --- |
 | `workspaces` | `id` | Small workspace metadata used for listing and selection, including period settings plus cached source-byte and normalized-row counts for newly saved records. |
-| `workspacePayloads` | `workspaceId` | Source bytes, mappings, normalized rows, validation results, and other workspace payload. |
+| `workspacePayloads` | `workspaceId` | Legacy monolithic payload retained only as a migration source for version-1 databases. New writes do not use it. |
+| `workspaceManifests` | `workspaceId` | Ordered source/chunk keys for one workspace. |
+| `workspaceSources` | `key` | One source's metadata, mappings, and result summary without row or issue arrays. |
+| `workspaceSourceBytes` | `key` | Original bytes for one source. |
+| `workspaceRowChunks` | `key` | Up to 5,000 normalized rows for one source per record. |
+| `workspaceIssueChunks` | `key` | Up to 5,000 validation issues for one source per record. |
 | `settings` | `key` | Browser-local application settings, including the last active workspace ID. |
 
-Saving a workspace writes its metadata and payload in one IndexedDB read/write transaction. A failed or quota-exceeded transaction must not leave one half updated.
+Saving a workspace writes its metadata, manifest, source records, source bytes, row chunks, and issue chunks in one IndexedDB read/write transaction. A failed or quota-exceeded transaction must not leave one half updated. Metadata-only changes such as renaming, language, or period settings use the metadata store alone and do not rewrite source bytes or row chunks.
 
 Autosaves capture the already validated live runtime into the persisted shape without walking every normalized row again. New sources, mappings, encodings, and analyses are validated at their import or edit boundaries; backup and storage restore paths retain the full validation walk before committing.
 
@@ -70,7 +75,8 @@ This prevents a stale stored aggregate from becoming a second source of truth. E
 
 Application startup reads only the `workspaces` metadata store and marks the
 last-used workspace without automatically reading its payload. After explicit
-selection, IndexedDB returns the payload asynchronously. Validation, source
+selection, IndexedDB returns the manifest and independently stored source,
+byte, row, and issue chunks asynchronously. Validation, source
 decoding, CSV parsing, normalization, and article aggregation run in a dedicated
 worker created from a local `blob:` URL. The worker source is assembled from the
 already loaded local module factories, so direct `file:///` execution does not
@@ -194,6 +200,6 @@ The restore worker returns the already validated persisted payload and prepared 
 
 ## Schema migration
 
-Workspace records carry `schemaVersion`. The current reader uses version `3`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, and upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
+Workspace records carry `schemaVersion`. The current reader uses version `3`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, and upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties. IndexedDB database version `2` creates the chunk stores. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis is rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
 
 Future migrations must produce a fully valid current workspace before saving it and require automated migration and backup-round-trip tests.
