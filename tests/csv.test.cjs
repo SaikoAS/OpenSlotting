@@ -82,6 +82,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(indexSource, /id="workspace-recovery"[^>]*data-i18n="workspace_recover_save_failure"/);
   assert.doesNotMatch(initializeBody[1], /activateWorkspace\(/);
   assert.match(appSource, /workspaceRepository\.loadWorkspaceRaw/);
+  assert.match(activateBody[1], /loadWorkspaceRaw\(workspaceId, \{ includeResults: false \}\)/);
   assert.match(appSource, /new Worker\(url\)/);
   assert.match(appSource, /new Blob\(\[source\]/);
   assert.match(appSource, /task\.worker\.terminate\(\)/);

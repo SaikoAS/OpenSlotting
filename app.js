@@ -3533,7 +3533,10 @@
         ? prepared.workspace.language
         : null;
       if (!prepared) {
-        let record = await workspaceRepository.loadWorkspaceRaw(workspaceId);
+        // Activation rebuilds analysis from the durable source bytes. Avoid
+        // loading stored row/issue chunks into the browser thread; the worker
+        // performs migration, validation and parsing for this path.
+        let record = await workspaceRepository.loadWorkspaceRaw(workspaceId, { includeResults: false });
         if (revision !== workspaceLoadRevision) {
           throw workspaceLoadError('workspace_load_cancelled');
         }
@@ -3563,7 +3566,7 @@
           };
           renderWorkspaceProgress();
           await nextBrowserPaint();
-          record = await workspaceRepository.loadWorkspaceRaw(workspaceId);
+          record = await workspaceRepository.loadWorkspaceRaw(workspaceId, { includeResults: false });
           if (!record || revision !== workspaceLoadRevision) {
             throw workspaceLoadError('workspace_load_cancelled');
           }

@@ -230,23 +230,32 @@
     });
   }
 
-  function loadChunkedPayload(stores, metadata, manifest) {
+  function loadChunkedPayload(stores, metadata, manifest, options) {
+    const settings = options || {};
+    const includeResults = settings.includeResults !== false;
     const sourceEntries = manifest && Array.isArray(manifest.sources) ? manifest.sources : [];
     const requests = sourceEntries.map(function (entry) {
       const sourceRequest = requestPromise(stores.workspaceSources.get(entry.sourceKey));
       const bytesRequest = requestPromise(stores.workspaceSourceBytes.get(entry.byteKey));
-      const rowRequests = (entry.rowChunkKeys || []).map(function (key) { return requestPromise(stores.workspaceRowChunks.get(key)); });
-      const issueRequests = (entry.issueChunkKeys || []).map(function (key) { return requestPromise(stores.workspaceIssueChunks.get(key)); });
+      const rowRequests = includeResults
+        ? (entry.rowChunkKeys || []).map(function (key) { return requestPromise(stores.workspaceRowChunks.get(key)); })
+        : [];
+      const issueRequests = includeResults
+        ? (entry.issueChunkKeys || []).map(function (key) { return requestPromise(stores.workspaceIssueChunks.get(key)); })
+        : [];
       return Promise.all([sourceRequest, bytesRequest, Promise.all(rowRequests), Promise.all(issueRequests)]).then(function (values) {
         const source = values[0];
         if (!source) {
           return null;
         }
-        const rows = [];
-        values[2].forEach(function (chunk) { appendChunkValues(rows, chunk, 'rows'); });
-        const issues = [];
-        values[3].forEach(function (chunk) { appendChunkValues(issues, chunk, 'issues'); });
-        const result = source.resultMeta ? Object.assign({}, source.resultMeta, { rows: rows, issues: issues }) : null;
+        let result = null;
+        if (includeResults && source.resultMeta) {
+          const rows = [];
+          values[2].forEach(function (chunk) { appendChunkValues(rows, chunk, 'rows'); });
+          const issues = [];
+          values[3].forEach(function (chunk) { appendChunkValues(issues, chunk, 'issues'); });
+          result = Object.assign({}, source.resultMeta, { rows: rows, issues: issues });
+        }
         return {
           id: source.sourceId,
           name: source.name,
@@ -283,10 +292,16 @@
     });
   }
 
-  function combineStoredWorkspaceRaw(metadata, payload) {
+  function combineStoredWorkspaceRaw(metadata, payload, options) {
     if (!metadata || !payload) {
       return null;
     }
+    const files = Array.isArray(payload.files) ? payload.files.map(function (file) {
+      if (!options || options.includeResults !== false) {
+        return file;
+      }
+      return Object.assign({}, file, { result: null });
+    }) : [];
     return {
       id: metadata.id,
       schemaVersion: metadata.schemaVersion,
@@ -297,7 +312,7 @@
       analyzed: metadata.analyzed,
       periodSettings: metadata.periodSettings,
       storageRevision: storageRevisionOf(metadata),
-      files: payload.files
+      files: files
     };
   }
 
@@ -466,7 +481,7 @@
       return writeWorkspace(workspace, 'replace', options);
     }
 
-    function readStoredWorkspace(id) {
+    function readStoredWorkspace(id, options) {
       const workspaceId = String(id || '');
       if (!workspaceId) {
         return Promise.resolve(null);
@@ -478,7 +493,7 @@
         }
         const manifest = await requestPromise(stores.workspaceManifests.get(workspaceId));
         if (manifest) {
-          return loadChunkedPayload(stores, metadata, manifest);
+          return loadChunkedPayload(stores, metadata, manifest, options);
         }
         const payload = await requestPromise(stores.workspacePayloads.get(workspaceId));
         if (!payload) {
@@ -486,43 +501,20 @@
         }
         return {
           legacy: true,
-          workspace: combineStoredWorkspaceRaw(metadata, payload)
+          workspace: combineStoredWorkspaceRaw(metadata, payload, options)
         };
       });
     }
 
-    function migrateLegacyWorkspace(record) {
-      const workspace = workspaceModel.migrateWorkspace(record, { clonePayload: false });
-      return transact(CHUNKED_WORKSPACE_STORES, 'readwrite', async function (stores) {
-        const metadata = await requestPromise(stores.workspaces.get(workspace.id));
-        if (!metadata) {
-          throw storageError('workspace_not_found', 'Workspace does not exist.');
-        }
-        if (storageRevisionOf(metadata) !== storageRevisionOf(record)) {
-          throw storageError('workspace_conflict', 'Workspace changed in another browser tab.');
-        }
-        await clearChunkedWorkspace(stores, workspace.id);
-        stores.workspacePayloads.delete(workspace.id);
-        const nextRevision = storageRevisionOf(metadata) + 1;
-        stores.workspaces.put(metadataFor(workspace, nextRevision));
-        putChunkedWorkspace(stores, workspace);
-        return Object.assign({}, workspace, { storageRevision: nextRevision });
-      });
-    }
-
-    function loadWorkspaceRaw(id) {
-      return readStoredWorkspace(id).then(function (stored) {
+    function loadWorkspaceRaw(id, options) {
+      return readStoredWorkspace(id, options).then(function (stored) {
         if (!stored) {
           return null;
         }
         if (!stored.legacy) {
           return stored;
         }
-        return migrateLegacyWorkspace(stored.workspace).then(function () {
-          return readStoredWorkspace(id).then(function (migrated) {
-            return migrated && migrated.legacy ? migrated.workspace : migrated;
-          });
-        });
+        return stored.workspace;
       });
     }
 
@@ -581,6 +573,7 @@
           throw storageError('workspace_conflict', 'Workspace changed in another browser tab.');
         }
         const updated = metadataWithSummary(metadata, summary);
+        updated.updatedAt = settings.now || new Date().toISOString();
         updated.storageRevision = storageRevisionOf(metadata) + 1;
         stores.workspaces.put(updated);
         return updated;

@@ -155,7 +155,8 @@ test('renaming metadata does not load or rewrite the large workspace payload', a
     sourceBytes: 1234,
     normalizedRowCount: 5678
   }, {
-    expectedRevision: renamed.storageRevision
+    expectedRevision: renamed.storageRevision,
+    now: '2026-09-12T10:00:00.000Z'
   });
   const payloadAfter = indexedDB.inspect(databaseName, 'workspaceManifests')[0];
   const listed = (await repository.listWorkspaces())[0];
@@ -163,6 +164,7 @@ test('renaming metadata does not load or rewrite the large workspace payload', a
   assert.equal(renamed.name, 'After');
   assert.deepEqual(payloadAfter, payloadBefore);
   assert.equal(listed.name, 'After');
+  assert.equal(listed.updatedAt, '2026-09-12T10:00:00.000Z');
   assert.equal(listed.language, 'de');
   assert.equal(listed.sourceBytes, 1234);
   assert.equal(listed.normalizedRowCount, 5678);
@@ -339,7 +341,7 @@ test('storage estimates report values, unavailable APIs, and failures without in
   assert.deepEqual(await failed.estimateStorage(), { available: false, reason: 'failed' });
 });
 
-test('loading persisted schema zero records applies the workspace migration', async () => {
+test('loading persisted schema zero records leaves raw migration for the caller', async () => {
   const indexedDB = createFakeIndexedDB();
   const databaseName = 'migration-test';
   const initializer = storage.createRepository({ indexedDB, databaseName });
@@ -362,12 +364,25 @@ test('loading persisted schema zero records applies the workspace migration', as
 
   const repository = storage.createRepository({ indexedDB, databaseName });
   const raw = await repository.loadWorkspaceRaw(legacy.id);
-  assert.equal(raw.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.equal(raw.schemaVersion, 0);
   const loaded = await repository.loadWorkspace(legacy.id);
   assert.equal(loaded.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
   assert.equal(loaded.language, 'en');
   assert.equal(loaded.analyzed, false);
   assert.equal(loaded.files[0].name, 'SKU-OLD.csv');
+});
+
+test('activation load can omit stored result chunks while retaining source bytes', async () => {
+  const indexedDB = createFakeIndexedDB();
+  const databaseName = 'source-only-load-test';
+  const repository = storage.createRepository({ indexedDB, databaseName });
+  await repository.createWorkspace(workspaceWithRows('workspace-source-only', 10001));
+
+  const sourceOnly = await repository.loadWorkspaceRaw('workspace-source-only', { includeResults: false });
+  assert.equal(sourceOnly.files[0].result, null);
+  assert.ok(sourceOnly.files[0].buffer instanceof ArrayBuffer);
+  const full = await repository.loadWorkspaceRaw('workspace-source-only');
+  assert.equal(full.files[0].result.rows.length, 10001);
 });
 
 test('failed chunked updates leave the previous workspace version intact', async () => {
