@@ -35,6 +35,8 @@
       delimiter: 'The CSV delimiter must be exactly one character long.',
       requiredMapping: 'The required field “{{label}}” is not mapped to a source column.',
       duplicateMapping: 'The source column mapped to “{{first}}” is also mapped to “{{second}}”. Each source column can be mapped only once.',
+      customFieldUnknown: 'Custom field is not available for mapping.',
+      sourceColumnReused: 'A source column can be mapped only once.',
       requiredValue: 'A required value for “{{label}}” is missing.',
       positiveQuantity: 'Quantity must be a positive number.',
       quantityPrecision: 'Quantity supports at most {{digits}} decimal places.',
@@ -55,6 +57,8 @@
       delimiter: 'Der CSV-Trenner muss genau ein Zeichen lang sein.',
       requiredMapping: 'Das erforderliche Feld „{{label}}“ ist keiner Quellspalte zugeordnet.',
       duplicateMapping: 'Die Quellspalte von „{{first}}“ ist auch „{{second}}“ zugeordnet. Jede Quellspalte darf nur einmal zugeordnet werden.',
+      customFieldUnknown: 'Das benutzerdefinierte Feld ist für diese Zuordnung nicht verfügbar.',
+      sourceColumnReused: 'Eine Quellspalte darf nur einmal zugeordnet werden.',
       requiredValue: 'Erforderlicher Wert für „{{label}}“ fehlt.',
       positiveQuantity: 'Die Menge muss eine positive Zahl sein.',
       quantityPrecision: 'Die Menge darf höchstens {{digits}} Nachkommastellen haben.',
@@ -773,16 +777,16 @@
     Object.keys(mapping || {}).forEach(function (fieldId) {
       const field = byId.get(fieldId);
       if (!field) {
-        issues.push({ sourceLine: null, field: fieldId, code: 'custom_field_unknown', message: 'Custom field is not available for mapping.' });
+        issues.push({ sourceLine: null, field: fieldId, code: 'custom_field_unknown', message: message(locale, 'customFieldUnknown') });
         return;
       }
       if (field.active === false) return;
       const position = mapping[fieldId];
       if (!Number.isInteger(position)) return;
       if (coreMapping && Object.keys(coreMapping).some(function (key) { return coreMapping[key] === position; })) {
-        issues.push({ sourceLine: null, field: fieldId, code: 'source_column_reused', message: 'A source column can be mapped only once.' });
+        issues.push({ sourceLine: null, field: fieldId, code: 'source_column_reused', message: message(locale, 'sourceColumnReused') });
       } else if (used.has(position)) {
-        issues.push({ sourceLine: null, field: fieldId, code: 'source_column_reused', message: 'A source column can be mapped only once.' });
+        issues.push({ sourceLine: null, field: fieldId, code: 'source_column_reused', message: message(locale, 'sourceColumnReused') });
       } else {
         used.set(position, fieldId);
       }

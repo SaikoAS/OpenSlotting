@@ -1154,9 +1154,11 @@
       if (field.active !== false) {
         const rename = document.createElement('button');
         rename.type = 'button'; rename.className = 'text-button'; rename.dataset.renameCustomField = field.id;
+        rename.disabled = state.workspaceLoading;
         setText(rename, translate('custom_field_rename'));
         const remove = document.createElement('button');
         remove.type = 'button'; remove.className = 'text-button danger-button'; remove.dataset.removeCustomField = field.id;
+        remove.disabled = state.workspaceLoading;
         setText(remove, translate('custom_field_remove'));
         row.appendChild(rename); row.appendChild(remove);
       }
@@ -4155,7 +4157,14 @@
     if (!state.activeWorkspace) return;
     const file = state.files.find(function (item) { return item.id === fileId; });
     if (!file || !Array.isArray(file.headers)) return;
-    const used = new Set(Object.keys(file.mapping || {}).map(function (key) { return file.mapping[key]; }).concat(Object.keys(file.customFieldMapping || {}).map(function (key) { return file.customFieldMapping[key]; })));
+    const activeCustomFieldIds = new Set((state.customFields || [])
+      .filter(function (field) { return field && field.active !== false; })
+      .map(function (field) { return String(field.id); }));
+    const used = new Set(Object.keys(file.mapping || {}).map(function (key) { return file.mapping[key]; }).concat(
+      Object.keys(file.customFieldMapping || {})
+        .filter(function (key) { return activeCustomFieldIds.has(String(key)); })
+        .map(function (key) { return file.customFieldMapping[key]; })
+    ));
     const position = file.headers.findIndex(function (_, index) { return !used.has(index); });
     if (position < 0) return;
     const name = window.prompt(translate('custom_field_name_prompt'), file.headers[position] || 'Custom field');
@@ -4174,7 +4183,7 @@
   }
 
   async function renameCustomField(fieldId) {
-    if (!state.activeWorkspace) return;
+    if (!state.activeWorkspace || state.workspaceLoading) return;
     const field = state.customFields.find(function (item) { return item.id === fieldId; });
     if (!field) return;
     const name = window.prompt(translate('custom_field_name_prompt'), field.name);
@@ -4190,7 +4199,7 @@
   }
 
   async function removeCustomField(fieldId) {
-    if (!state.activeWorkspace) return;
+    if (!state.activeWorkspace || state.workspaceLoading) return;
     const field = state.customFields.find(function (item) { return item.id === fieldId; });
     if (!field || !window.confirm(translate('custom_field_remove_confirm', { name: field.name }))) return;
     try {
