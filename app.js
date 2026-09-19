@@ -1876,7 +1876,7 @@
       'mapping-panel': state.files.length > 0,
       'coverage-panel': Boolean(state.result && analysisRowCount(state.result) > 0),
       'comparison-panel': Boolean(state.comparison),
-      'results-panel': Boolean(state.result && analysisRowCount(state.result) > 0)
+      'results-panel': Boolean(state.result && resultHasRetainedData(state.result))
     };
     const completion = {
       'workspace-panel': Boolean(state.activeWorkspace),
@@ -1890,6 +1890,8 @@
       ? 'comparison-panel'
       : state.result && analysisRowCount(state.result) > 0
         ? 'coverage-panel'
+        : state.result && resultHasRetainedData(state.result)
+          ? 'results-panel'
         : state.files.length
           ? 'mapping-panel'
           : state.activeWorkspace
@@ -3142,6 +3144,13 @@
       return 0;
     }
     return Number.isInteger(result.analysisRows) ? result.analysisRows : Number(result.validRows || 0);
+  }
+
+  function resultHasRetainedData(result) {
+    if (!result) {
+      return false;
+    }
+    return Number(result.validRows || 0) > 0 || (Array.isArray(result.issues) && result.issues.length > 0);
   }
 
   function refreshColumnCatalogOwnership(file) {

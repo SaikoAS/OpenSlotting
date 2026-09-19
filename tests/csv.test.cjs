@@ -179,6 +179,8 @@ test('responsive workflow handles empty results and shared-page navigation safel
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
   assert.match(appSource, /: state\.result && analysisRowCount\(state\.result\) > 0\s*\n\s*\? 'coverage-panel'/);
+  assert.match(appSource, /'results-panel': Boolean\(state\.result && resultHasRetainedData\(state\.result\)\)/);
+  assert.match(appSource, /: state\.result && resultHasRetainedData\(state\.result\)\s*\n\s*\? 'results-panel'/);
   assert.match(appSource, /target\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
   assert.match(appSource, /article\.period_a\.article_name_variants/);
   assert.match(appSource, /return article\.selling_unit_conflict;/);
