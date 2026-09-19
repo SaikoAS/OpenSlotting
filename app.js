@@ -1229,7 +1229,7 @@
     elements.filePicker.classList.toggle('disabled', !hasWorkspace);
     elements.languageSelect.disabled = editsLocked;
     elements.analyzeButton.disabled = editsLocked || !state.activeWorkspace || !state.files.some(function (file) { return Boolean(file.parsed); });
-    elements.exportButton.disabled = editsLocked || !state.result || state.result.validRows === 0;
+    elements.exportButton.disabled = editsLocked || !state.result || analysisRowCount(state.result) === 0;
     elements.mappingGrid.querySelectorAll('select, button').forEach(function (control) {
       const fileId = control.dataset.encodingFileId || control.dataset.removeFileId || control.dataset.fileId;
       const file = state.files.find(function (item) { return item.id === fileId; });
@@ -1874,21 +1874,21 @@
       'workspace-panel': Boolean(state.activeWorkspace),
       'import-panel': Boolean(state.activeWorkspace),
       'mapping-panel': state.files.length > 0,
-      'coverage-panel': Boolean(state.result && state.result.validRows > 0),
+      'coverage-panel': Boolean(state.result && analysisRowCount(state.result) > 0),
       'comparison-panel': Boolean(state.comparison),
-      'results-panel': Boolean(state.result && state.result.validRows > 0)
+      'results-panel': Boolean(state.result && analysisRowCount(state.result) > 0)
     };
     const completion = {
       'workspace-panel': Boolean(state.activeWorkspace),
       'import-panel': state.files.length > 0,
-      'mapping-panel': Boolean(state.result && state.result.validRows > 0),
+      'mapping-panel': Boolean(state.result && analysisRowCount(state.result) > 0),
       'coverage-panel': Boolean(state.comparison),
       'comparison-panel': false,
       'results-panel': false
     };
     const fallbackTarget = state.comparison
       ? 'comparison-panel'
-      : state.result && state.result.validRows > 0
+      : state.result && analysisRowCount(state.result) > 0
         ? 'coverage-panel'
         : state.files.length
           ? 'mapping-panel'
@@ -2271,7 +2271,7 @@
   }
 
   function renderCoverage() {
-    if (!state.result || state.result.validRows === 0) {
+    if (!state.result || analysisRowCount(state.result) === 0) {
       elements.coveragePanel.classList.add('hidden');
       return;
     }
@@ -3120,7 +3120,7 @@
     renderIssues(result.issues);
     renderCoverage();
     renderComparison();
-    elements.exportButton.disabled = result.validRows === 0;
+    elements.exportButton.disabled = analysisRowCount(result) === 0;
     elements.resultsPanel.classList.remove('hidden');
     renderWorkflow(state.comparison ? 'comparison-panel' : 'coverage-panel');
   }
@@ -3132,6 +3132,13 @@
       label: file.label,
       sourceType: workspaceModel.normalizeSourceType(file.sourceType)
     };
+  }
+
+  function analysisRowCount(result) {
+    if (!result) {
+      return 0;
+    }
+    return Number.isInteger(result.analysisRows) ? result.analysisRows : Number(result.validRows || 0);
   }
 
   function refreshColumnCatalogOwnership(file) {
@@ -4691,7 +4698,6 @@
       return;
     }
     file.sourceType = workspaceModel.normalizeSourceType(select.value);
-    file.mapping = file.headers && file.headers.length ? core.detectMapping(file.headers) : {};
     file.confirmedMapping = null;
     file.confirmedCustomFieldMapping = null;
     file.result = null;

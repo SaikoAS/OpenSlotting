@@ -91,7 +91,8 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   ]);
   const completed = messages.find((message) => message.type === 'complete');
   assert.ok(completed);
-  assert.equal(completed.prepared.result.validRows, 0);
+  assert.equal(completed.prepared.result.validRows, 1);
+  assert.equal(completed.prepared.result.analysisRows, 0);
   assert.equal(completed.prepared.files[0].result.validRows, 1);
   assert.equal(completed.prepared.files[0].result.rows[0].quantity, 3000000n);
   assert.equal(completed.prepared.analysis.total_lines, 0);

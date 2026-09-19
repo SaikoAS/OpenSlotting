@@ -118,7 +118,7 @@ The browser creates one in-memory batch from the current file selection. Duplica
 
 A file is excluded when it cannot be read or decoded, has no header, has a parser error in its header, or has an invalid required mapping. For `order-lines`, the required mapping is `order_id`, `article_id`, `quantity`, and `order_date`; for `article-master`, only `article_id` is required. Excluded files contribute no rows. A mapped file remains included even when all its data rows are invalid; those rows are reported and excluded under the ordinary row-validation rules.
 
-Valid normalized rows from included files are concatenated in file-selection order and source-record order. Existing article, order, customer, date, quantity, and sales aggregation then runs over this complete row list. Exact fixed-point quantities and exact accepted sales decimals therefore remain exact across files.
+Valid normalized rows from included files are retained in file-selection order and source-record order. The combined result exposes the retained rows separately from the order-line analysis rows: article-master rows remain valid and persisted, but only order-line rows feed article, order, customer, date, quantity, and sales aggregation. Exact fixed-point quantities and exact accepted sales decimals therefore remain exact across files. Date-overlap warnings are evaluated only between order-line sources.
 
 OpenSlotting never automatically deduplicates rows across files. Legitimate repeated rows remain part of the analysis. The UI reports risk without changing the data when:
 

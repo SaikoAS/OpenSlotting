@@ -1748,6 +1748,9 @@
     let start = null;
     let end = null;
     (rows || []).forEach(function (row) {
+      if (row.source_type === 'article-master') {
+        return;
+      }
       if (!row.order_date) {
         return;
       }
@@ -1794,7 +1797,8 @@
 
         const leftResult = left.result;
         const rightResult = right.result;
-        if (!leftResult || leftResult.blocking || !rightResult || rightResult.blocking) {
+        if (left.sourceType === 'article-master' || right.sourceType === 'article-master' ||
+          !leftResult || leftResult.blocking || !rightResult || rightResult.blocking) {
           continue;
         }
         const leftRange = dateRangeForRows(leftResult.rows);
@@ -1821,6 +1825,7 @@
   function combineImportResults(files, options) {
     const analysisAccumulator = options && options.analysisAccumulator;
     const rows = [];
+    const retainedRows = [];
     const issues = [];
     let totalRows = 0;
     let invalidRows = 0;
@@ -1909,6 +1914,7 @@
       if (included) {
         includedFiles += 1;
         normalizedRows.forEach(function (row) {
+          retainedRows.push(row);
           const isArticleMaster = source.sourceType === 'article-master' || row.source_type === 'article-master';
           // Article-master rows are retained in their source result for persistence,
           // but never participate in the existing order-line analysis until
@@ -1946,9 +1952,11 @@
 
     return {
       rows: rows,
+      retainedRows: retainedRows,
       issues: issues,
       totalRows: totalRows,
-      validRows: rows.length,
+      validRows: retainedRows.length,
+      analysisRows: rows.length,
       invalidRows: invalidRows,
       structuralRows: structuralRows,
       selectedFiles: fileSummaries.length,
