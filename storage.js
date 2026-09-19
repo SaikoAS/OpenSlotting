@@ -147,6 +147,7 @@
         errorKey: file.errorKey,
         mapping: file.mapping,
         confirmedMapping: file.confirmedMapping,
+        columnCatalog: file.columnCatalog,
         resultMeta: resultMeta,
         sourceType: workspaceModel.normalizeSourceType(file.sourceType)
       });
@@ -270,6 +271,7 @@
           errorKey: source.errorKey,
           mapping: source.mapping,
           confirmedMapping: source.confirmedMapping,
+          columnCatalog: Array.isArray(source.columnCatalog) ? source.columnCatalog : [],
           result: result,
           sourceType: workspaceModel.normalizeSourceType(source.sourceType)
         };

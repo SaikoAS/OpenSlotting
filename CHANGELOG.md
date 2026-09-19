@@ -17,6 +17,7 @@ All notable changes to OpenSlotting are documented in this file.
 - chunked CSV decoding, streaming normalization, incremental analysis, and lazy article details
 - single-pass period aggregation and cached article search/sort projections
 - explicit `order-lines` and `article-master` source types with legacy defaulting and workspace migration
+- generic ordered source-column catalogs that preserve duplicate headers and physical positions
 
 ### Changed
 

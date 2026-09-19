@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 4;
+  const WORKSPACE_SCHEMA_VERSION = 5;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -189,6 +189,44 @@
     return normalized;
   }
 
+  function normalizeColumnCatalog(catalog, sourceId, options) {
+    if (catalog === undefined || catalog === null) {
+      return [];
+    }
+    if (!Array.isArray(catalog)) {
+      validationError('invalid_column_catalog', 'Source column catalog must be an array.');
+    }
+    const normalizedSourceId = String(sourceId || '');
+    return catalog.map(function (entry, index) {
+      if (!isPlainObject(entry)) {
+        validationError('invalid_column_catalog', 'Source column catalog entries must be objects.');
+      }
+      if (!Number.isInteger(entry.position) || entry.position !== index || entry.position < 0) {
+        validationError('invalid_column_catalog', 'Source column catalog positions must be contiguous.');
+      }
+      const occurrence = Number(entry.occurrence);
+      if (!Number.isInteger(occurrence) || occurrence < 1) {
+        validationError('invalid_column_catalog', 'Source column catalog occurrence is invalid.');
+      }
+      const sourceFileId = entry.sourceFileId === undefined || entry.sourceFileId === null
+        ? normalizedSourceId
+        : String(entry.sourceFileId);
+      if (sourceFileId !== normalizedSourceId) {
+        validationError('invalid_column_catalog', 'Source column catalog belongs to another source file.');
+      }
+      return {
+        position: index,
+        header: entry.header === undefined || entry.header === null ? '' : String(entry.header),
+        normalizedHeader: entry.normalizedHeader === undefined || entry.normalizedHeader === null ? '' : String(entry.normalizedHeader),
+        occurrence: occurrence,
+        isDuplicate: occurrence > 1,
+        sourceFileId: sourceFileId,
+        sourceFileName: entry.sourceFileName === undefined || entry.sourceFileName === null ? null : String(entry.sourceFileName),
+        sourceFileLabel: entry.sourceFileLabel === undefined || entry.sourceFileLabel === null ? null : String(entry.sourceFileLabel)
+      };
+    });
+  }
+
   function validateMappingRange(mapping, headerCount) {
     const normalized = normalizeMapping(mapping);
     if (!Number.isInteger(headerCount) || headerCount < 0) {
@@ -285,6 +323,9 @@
     normalized.rows = result.rows.map(function (row) { return normalizeRow(row, sourceId, options); });
     normalized.issues = result.issues.map(function (issue) { return normalizeIssue(issue, sourceId, options); });
     normalized.mapping = normalizeMapping(result.mapping);
+    if (result.columnCatalog !== undefined) {
+      normalized.columnCatalog = normalizeColumnCatalog(result.columnCatalog, sourceId, options);
+    }
     if (normalized.sourceFile && String(normalized.sourceFile.id || '') !== sourceId) {
       validationError('invalid_import_result', 'Stored import result belongs to another source file.');
     }
@@ -326,6 +367,7 @@
       validationError('invalid_source_encoding', 'Detected source encoding is not supported.');
     }
     const result = normalizeImportResult(file.result, id, options);
+    let columnCatalog = normalizeColumnCatalog(file.columnCatalog, id, options);
     let mapping = normalizeMapping(file.mapping);
     let confirmedMapping = file.confirmedMapping === null || file.confirmedMapping === undefined
       ? null
@@ -337,6 +379,15 @@
       mapping = validateMappingRange(mapping, result.headers.length);
       confirmedMapping = confirmedMapping ? validateMappingRange(confirmedMapping, result.headers.length) : null;
       result.mapping = validateMappingRange(result.mapping, result.headers.length);
+      if (result.columnCatalog !== undefined) {
+        result.columnCatalog = normalizeColumnCatalog(result.columnCatalog, id, options);
+      }
+      if (columnCatalog.length === 0 && result.columnCatalog) {
+        columnCatalog = result.columnCatalog;
+      }
+      if (columnCatalog.length > 0 && columnCatalog.length !== result.headers.length) {
+        validationError('invalid_column_catalog', 'Source column catalog does not match the decoded headers.');
+      }
     }
     const buffer = copyArrayBuffer(file.buffer, options);
     if (buffer !== null && (!Number.isInteger(size) || size < 0 || size !== buffer.byteLength)) {
@@ -355,6 +406,7 @@
       errorKey: file.errorKey ? String(file.errorKey) : null,
       mapping: mapping,
       confirmedMapping: confirmedMapping,
+      columnCatalog: columnCatalog,
       result: result,
       sourceType: normalizeSourceType(file.sourceType)
     };
@@ -444,7 +496,7 @@
       validationError('invalid_workspace', 'Workspace must be an object.');
     }
     const schemaVersion = Number(workspace.schemaVersion);
-    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3) {
+    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4) {
       const migrated = cloneValue(workspace, options);
       const migrationTarget = options && options.clonePayload === false ? Object.assign({}, migrated) : migrated;
       if (schemaVersion === 0) {
@@ -465,11 +517,14 @@
           return migratedFile;
         }) : [];
       }
-      if (schemaVersion <= 3) {
+      if (schemaVersion <= 4) {
         migrationTarget.files = Array.isArray(migrationTarget.files) ? migrationTarget.files.map(function (file) {
           const migratedFile = isPlainObject(file) ? file : {};
           if (migratedFile.sourceType === undefined || migratedFile.sourceType === null || migratedFile.sourceType === '') {
             migratedFile.sourceType = DEFAULT_SOURCE_TYPE;
+          }
+          if (migratedFile.columnCatalog === undefined || migratedFile.columnCatalog === null) {
+            migratedFile.columnCatalog = [];
           }
           return migratedFile;
         }) : [];
@@ -523,6 +578,7 @@
         errorKey: file.errorKey || null,
         mapping: file.mapping,
         confirmedMapping: file.confirmedMapping,
+        columnCatalog: normalizeColumnCatalog(file.columnCatalog, file.id, settings),
         result: file.result,
         sourceType: normalizeSourceType(file.sourceType)
       };
@@ -709,6 +765,7 @@
     createId: createId,
     createWorkspace: createWorkspace,
     validateMappingRange: validateMappingRange,
+    normalizeColumnCatalog: normalizeColumnCatalog,
     validateWorkspace: validateWorkspace,
     migrateWorkspace: migrateWorkspace,
     captureWorkspace: captureWorkspace,

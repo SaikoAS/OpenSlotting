@@ -2964,6 +2964,7 @@
     file.headers = [];
     file.mapping = {};
     file.confirmedMapping = null;
+    file.columnCatalog = [];
     file.dataRowCount = 0;
     file.hasParseErrors = false;
     file.result = null;
@@ -3011,6 +3012,12 @@
       }
       file.parsed = parsed;
       file.headers = headers;
+      file.columnCatalog = core.buildColumnCatalog(file.headers, {
+        id: file.id,
+        name: file.name,
+        label: file.label,
+        sourceType: file.sourceType
+      });
       file.mapping = core.detectMapping(file.headers);
       file.dataRowCount = streaming
         ? Number(parsed.dataRowCount || 0)
@@ -3085,6 +3092,7 @@
         headers: [],
         mapping: {},
         confirmedMapping: null,
+        columnCatalog: [],
         dataRowCount: 0,
         hasParseErrors: false,
         result: null,
@@ -3182,6 +3190,7 @@
       headers: [],
       mapping: {},
       confirmedMapping: null,
+      columnCatalog: Array.isArray(stored.columnCatalog) ? stored.columnCatalog : [],
       dataRowCount: 0,
       hasParseErrors: false,
       result: null,
@@ -3217,6 +3226,7 @@
         errorKey: file.errorKey,
         mapping: file.mapping,
         confirmedMapping: file.confirmedMapping,
+        columnCatalog: file.columnCatalog,
         result: file.result,
         sourceType: workspaceModel.normalizeSourceType(file.sourceType)
       };

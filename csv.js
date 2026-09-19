@@ -125,6 +125,27 @@
       .replace(/[^a-z0-9]/g, '');
   }
 
+  function buildColumnCatalog(headers, sourceFile) {
+    const source = normalizeSourceFile(sourceFile);
+    const occurrences = new Map();
+    return (Array.isArray(headers) ? headers : []).map(function (header, position) {
+      const originalHeader = String(header === undefined || header === null ? '' : header);
+      const normalizedHeader = normalizeHeader(originalHeader);
+      const occurrence = (occurrences.get(normalizedHeader) || 0) + 1;
+      occurrences.set(normalizedHeader, occurrence);
+      return {
+        position: position,
+        header: originalHeader,
+        normalizedHeader: normalizedHeader,
+        occurrence: occurrence,
+        isDuplicate: occurrence > 1,
+        sourceFileId: source.id,
+        sourceFileName: source.name,
+        sourceFileLabel: source.label
+      };
+    });
+  }
+
   function createCsvParser(options) {
     const delimiter = options && options.delimiter ? options.delimiter : ';';
     const locale = normalizeLocale(options && options.locale);
@@ -778,6 +799,7 @@
     let headers = null;
     let totalRows = 0;
     let selectedMapping = mapping || null;
+    let columnCatalog = [];
     let mappingIssues = null;
     let headerHasParserError = false;
     const issues = [];
@@ -791,6 +813,7 @@
       onRow: function (dataRow, parserErrors) {
         if (headers === null) {
           headers = dataRow.values.map(function (header) { return String(header).trim(); });
+          columnCatalog = buildColumnCatalog(headers, sourceFile);
           headerHasParserError = parserErrors.length > 0;
           selectedMapping = selectedMapping || detectMapping(headers);
           mappingIssues = validateMapping(selectedMapping, locale);
@@ -846,6 +869,7 @@
     if (finalHeaders.length === 0) {
       return {
         headers: [],
+        columnCatalog: [],
         rows: [],
         issues: addSourceToIssues(parserIssues.concat([{ sourceLine: null, field: null, code: 'header_missing', message: message(locale, 'headerMissing') }]), sourceFile),
         totalRows: 0,
@@ -860,6 +884,7 @@
     if (headerHasParserError) {
       return {
         headers: finalHeaders,
+        columnCatalog: columnCatalog,
         rows: [],
         issues: addSourceToIssues(parserIssues, sourceFile),
         totalRows: totalRows,
@@ -874,6 +899,7 @@
     if (mappingIssues && mappingIssues.length > 0) {
       return {
         headers: finalHeaders,
+        columnCatalog: columnCatalog,
         rows: [],
         issues: addSourceToIssues(parserIssues.concat(mappingIssues), sourceFile),
         totalRows: totalRows,
@@ -887,6 +913,7 @@
     }
     return {
       headers: finalHeaders,
+      columnCatalog: columnCatalog,
       rows: rows,
       issues: addSourceToIssues(parserIssues.concat(issues), sourceFile),
       totalRows: totalRows,
@@ -916,6 +943,7 @@
     if (parsed.rows.length === 0) {
       return {
         headers: [],
+        columnCatalog: [],
         rows: [],
         issues: addSourceToIssues(parserIssues.concat([{ sourceLine: null, field: null, code: 'header_missing', message: message(locale, 'headerMissing') }]), sourceFile),
         totalRows: 0,
@@ -929,6 +957,7 @@
     }
 
     const headers = parsed.rows[0].values.map(function (header) { return String(header).trim(); });
+    const columnCatalog = buildColumnCatalog(headers, sourceFile);
     const dataRows = parsed.rows.slice(1);
     const headerSourceLine = parsed.rows[0].sourceLine;
     const headerHasParserError = parsed.errors.some(function (error) {
@@ -937,6 +966,7 @@
     if (headerHasParserError) {
       return {
         headers: headers,
+        columnCatalog: columnCatalog,
         rows: [],
         issues: addSourceToIssues(parserIssues, sourceFile),
         totalRows: dataRows.length,
@@ -953,6 +983,7 @@
     if (mappingIssues.length > 0) {
       return {
         headers: headers,
+        columnCatalog: columnCatalog,
         rows: [],
         issues: addSourceToIssues(parserIssues.concat(mappingIssues), sourceFile),
         totalRows: dataRows.length,
@@ -1010,6 +1041,7 @@
 
     return {
       headers: headers,
+      columnCatalog: columnCatalog,
       rows: rows,
       issues: addSourceToIssues(issues, sourceFile),
       totalRows: dataRows.length,
@@ -1415,6 +1447,9 @@
         sourceType: file.sourceType
       });
       const result = file.result || null;
+      const columnCatalog = Array.isArray(file.columnCatalog)
+        ? file.columnCatalog
+        : (result && Array.isArray(result.columnCatalog) ? result.columnCatalog : []);
       const included = Boolean(result && !result.blocking);
       const resultRows = included && Array.isArray(result.rows)
         ? result.rows
@@ -1455,6 +1490,7 @@
         name: source.name,
         label: source.label,
         sourceType: source.sourceType,
+        columnCatalog: columnCatalog,
         result: result ? Object.assign({}, result, {
           rows: normalizedRows,
           issues: normalizedIssues,
@@ -1483,6 +1519,7 @@
         name: source.name,
         label: source.label,
         sourceType: source.sourceType,
+        columnCatalog: columnCatalog,
         included: included,
         blocking: !included,
         errorCode: file.errorCode || file.errorKey || null,
@@ -1867,6 +1904,7 @@
     QUANTITY_SCALE: QUANTITY_SCALE,
     SALES_DECIMAL_PLACES: SALES_DECIMAL_PLACES,
     assignSourceFileLabels: assignSourceFileLabels,
+    buildColumnCatalog: buildColumnCatalog,
     detectMapping: detectMapping,
     combineImportResults: combineImportResults,
     detectBatchWarnings: detectBatchWarnings,

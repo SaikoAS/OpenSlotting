@@ -371,6 +371,47 @@ test('incremental analysis keeps multi-source provenance and ordering determinis
   assert.deepEqual(accumulator.finish().articles[0].source_files, ['a.csv', 'b.csv']);
 });
 
+test('source column catalogs preserve duplicate, empty, German, and source ownership metadata', () => {
+  const catalog = csv.buildColumnCatalog(
+    ['Artikelnummer', 'Menge', 'Menge', '', 'Änderung'],
+    { id: 'source-catalog', name: 'catalog.csv', label: 'catalog.csv' }
+  );
+
+  assert.deepEqual(catalog.map((entry) => entry.position), [0, 1, 2, 3, 4]);
+  assert.equal(catalog[0].header, 'Artikelnummer');
+  assert.equal(catalog[0].normalizedHeader, 'artikelnummer');
+  assert.equal(catalog[1].occurrence, 1);
+  assert.equal(catalog[2].occurrence, 2);
+  assert.equal(catalog[2].isDuplicate, true);
+  assert.equal(catalog[3].header, '');
+  assert.equal(catalog[3].normalizedHeader, '');
+  assert.equal(catalog[4].normalizedHeader, 'aenderung');
+  assert.ok(catalog.every((entry) => entry.sourceFileId === 'source-catalog'));
+});
+
+test('multi-source imports keep independent ordered column catalogs', () => {
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
+  const first = csv.importCsv('order_id;article_id;quantity;order_date\nO-1;SKU-A;1;2026-09-12\n', mapping, {
+    sourceFile: { id: 'source-a', name: 'a.csv', label: 'a.csv' }
+  });
+  const second = csv.importCsv('order_id;article_id;quantity;order_date;quantity\nO-2;SKU-B;2;2026-09-13;2\n', mapping, {
+    sourceFile: { id: 'source-b', name: 'b.csv', label: 'b.csv' }
+  });
+
+  const combined = csv.combineImportResults([
+    { id: 'source-a', name: 'a.csv', label: 'a.csv', result: first },
+    { id: 'source-b', name: 'b.csv', label: 'b.csv', result: second }
+  ]);
+
+  assert.equal(second.validRows, 1);
+  assert.equal(combined.rows[1].article_id, 'SKU-B');
+  assert.equal(combined.files[0].columnCatalog.length, 4);
+  assert.equal(combined.files[1].columnCatalog.length, 5);
+  assert.equal(combined.files[1].columnCatalog[4].occurrence, 2);
+  assert.equal(combined.files[0].columnCatalog[0].sourceFileId, 'source-a');
+  assert.equal(combined.files[1].columnCatalog[0].sourceFileId, 'source-b');
+});
+
 test('import and combined results retain the explicit source type', () => {
   const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
   const result = csv.importCsv(

@@ -10,6 +10,14 @@ Every imported source carries a stable `sourceType`. The supported values are
 current implementation, but the source type is preserved through mapping,
 storage, backup, restore, and worker preparation for future use.
 
+Every readable source also exposes an ordered `columnCatalog`. Each entry uses
+the zero-based physical `position`, the trimmed source `header`, its
+`normalizedHeader` used by automatic mapping, a one-based `occurrence` within
+that normalized header, and `isDuplicate`. Source ownership is retained with
+`sourceFileId`, `sourceFileName`, and `sourceFileLabel`. Empty headers remain
+catalog entries, and duplicate headers remain independently addressable by
+position; the catalog stores metadata only and never copies row values.
+
 ## Input file
 
 The browser interface accepts one or more CSV files encoded as UTF-8, UTF-16, or Windows-1252. Every file is decoded and parsed independently. Decoding first honors UTF-8 and UTF-16 byte-order marks, then detects plausible BOM-less UTF-16, attempts strict UTF-8, and finally falls back to Windows-1252 when UTF-8 decoding fails. The detected encoding is shown for each file. Users can explicitly retry that file as UTF-8, UTF-16 LE, UTF-16 BE, or Windows-1252; changing one encoding does not reprocess another file. Other legacy encodings are not supported. The default delimiter is a semicolon (`;`). The first parsed record in each file is required as that file's header row.
