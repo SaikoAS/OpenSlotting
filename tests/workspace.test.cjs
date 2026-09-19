@@ -105,6 +105,25 @@ test('captures source bytes, mappings, normalized rows, validation state, and ex
     Array.from(new Uint8Array(sourceFile('source-1', 'SKU-1').buffer))
   );
   assert.equal(Object.hasOwn(captured.files[0], 'browserFile'), false);
+  assert.equal(captured.files[0].sourceType, workspace.DEFAULT_SOURCE_TYPE);
+});
+
+test('source types are explicit, constrained, and available for future import kinds', () => {
+  const record = analyzedWorkspace('workspace-source-types', 'Source types', 'SKU-1');
+
+  assert.deepEqual(workspace.SOURCE_TYPES, ['order-lines', 'article-master']);
+  assert.equal(record.files[0].sourceType, 'order-lines');
+
+  record.files[0].sourceType = 'article-master';
+  const articleMaster = workspace.validateWorkspace(record);
+  assert.equal(articleMaster.files[0].sourceType, 'article-master');
+
+  const invalid = analyzedWorkspace('workspace-invalid-source-type', 'Invalid source type', 'SKU-2');
+  invalid.files[0].sourceType = 'catalog';
+  assert.throws(
+    () => workspace.validateWorkspace(invalid),
+    (error) => error.code === 'invalid_source_type'
+  );
 });
 
 test('trusted validation can retain large payload references without copying them', () => {
@@ -182,11 +201,13 @@ test('captures and restores the real CSV importer result without changing proven
 
 test('backup round trip preserves original bytes, reconstructable source fields, mappings, and BigInt quantities', () => {
   const original = analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1');
+  original.files[0].sourceType = 'article-master';
   const text = workspace.stringifyBackup(original, { now: '2026-09-12T10:00:00.000Z' });
   const restored = workspace.parseBackup(text);
 
   assert.equal(restored.id, original.id);
   assert.equal(restored.files[0].result.rows[0].quantity, 12500000n);
+  assert.equal(restored.files[0].sourceType, 'article-master');
   assert.equal(Object.hasOwn(restored.files[0].result.rows[0], 'raw_fields'), false);
   assert.deepEqual(
     Array.from(new Uint8Array(restored.files[0].buffer)),
@@ -370,6 +391,20 @@ test('schema-two migration removes redundant raw row payloads', () => {
   assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
   assert.equal(Object.hasOwn(migrated.files[0].result.rows[0], 'raw_values'), false);
   assert.equal(Object.hasOwn(migrated.files[0].result.rows[0], 'raw_fields'), false);
+});
+
+test('schema-three migration adds the explicit default source type', () => {
+  const legacy = analyzedWorkspace('workspace-v3', 'Version three', 'SKU-V3');
+  legacy.schemaVersion = 3;
+  delete legacy.files[0].sourceType;
+
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.equal(migrated.files[0].sourceType, 'order-lines');
+
+  legacy.files[0].sourceType = 'article-master';
+  const preserved = workspace.migrateWorkspace(legacy);
+  assert.equal(preserved.files[0].sourceType, 'article-master');
 });
 
 test('period settings without a mode preserve existing dated ranges as custom', () => {

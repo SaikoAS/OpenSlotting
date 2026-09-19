@@ -76,6 +76,7 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
     "  encodingMode: 'auto', activeEncoding: 'utf-8', detectedEncoding: 'utf-8', errorKey: null,",
     '  mapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },',
     '  confirmedMapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },',
+    "  sourceType: 'article-master',",
     '  result: null',
     '});',
     "self.onmessage({ data: { record: workerRecord, language: 'en' } });"
@@ -93,6 +94,8 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.equal(completed.prepared.result.validRows, 1);
   assert.equal(completed.prepared.result.rows[0].quantity, 3000000n);
   assert.equal(completed.prepared.analysis.total_lines, 1);
+  assert.equal(completed.prepared.files[0].sourceType, 'article-master');
+  assert.equal(completed.prepared.files[0].result.sourceFile.sourceType, 'article-master');
   assert.equal(completed.prepared.files[0].parsed.rows.length, 0);
   assert.equal(completed.prepared.files[0].parsed.dataRowCount, 1);
   assert.deepEqual(Array.from(completed.prepared.files[0].parsed.headers), ['order_id', 'article_id', 'quantity', 'order_date']);
@@ -106,6 +109,7 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.ok(backupCompleted);
   assert.equal(backupCompleted.prepared.workspace.id, 'workspace-backup-worker');
   assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].result.validRows, 1);
+  assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].sourceType, 'article-master');
   assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].buffer.byteLength, new TextEncoder().encode(text).byteLength);
   assert.ok(backupCompleted.prepared.runtime);
   assert.equal(backupCompleted.prepared.runtime.files[0].parsed.rows.length, 0);

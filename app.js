@@ -2847,7 +2847,12 @@
   }
 
   function sourceContext(file) {
-    return { id: file.id, name: file.name, label: file.label };
+    return {
+      id: file.id,
+      name: file.name,
+      label: file.label,
+      sourceType: workspaceModel.normalizeSourceType(file.sourceType)
+    };
   }
 
   function detailRowsForReferences(references, start, end) {
@@ -3082,7 +3087,8 @@
         confirmedMapping: null,
         dataRowCount: 0,
         hasParseErrors: false,
-        result: null
+        result: null,
+        sourceType: workspaceModel.DEFAULT_SOURCE_TYPE
       };
     });
     state.files = state.files.concat(newEntries);
@@ -3178,7 +3184,8 @@
       confirmedMapping: null,
       dataRowCount: 0,
       hasParseErrors: false,
-      result: null
+      result: null,
+      sourceType: workspaceModel.normalizeSourceType(stored.sourceType)
     };
     if (file.buffer) {
       decodeFileEntry(file, { streaming: true });
@@ -3210,7 +3217,8 @@
         errorKey: file.errorKey,
         mapping: file.mapping,
         confirmedMapping: file.confirmedMapping,
-        result: file.result
+        result: file.result,
+        sourceType: workspaceModel.normalizeSourceType(file.sourceType)
       };
     });
     return workspaceModel.validateWorkspace(Object.assign({}, prepared.workspace, { files: files }), {
@@ -3219,6 +3227,14 @@
   }
 
   function prepareWorkspaceRecord(record, language, reportProgress) {
+    function sourceContext(file) {
+      return {
+        id: file.id,
+        name: file.name,
+        label: file.label,
+        sourceType: workspaceModel.normalizeSourceType(file.sourceType)
+      };
+    }
     reportProgress({ phase: 'validating' });
     const validated = workspaceModel.migrateWorkspace(record, { clonePayload: false });
     const files = validated.files.map(function (stored, index) {
@@ -3241,11 +3257,11 @@
           file.result = file.content
             ? core.importCsvStreaming(file.content, mapping, {
               locale: language,
-              sourceFile: { id: file.id, name: file.name, label: file.label }
+              sourceFile: sourceContext(file)
             })
             : importBufferStreaming(file, mapping, {
               locale: language,
-              sourceFile: { id: file.id, name: file.name, label: file.label }
+              sourceFile: sourceContext(file)
             });
         }
         return file;
@@ -3402,6 +3418,7 @@
       'const workspaceModel = (' + window.OpenSlottingWorkspaceFactory.toString() + ')();',
       decodeFileEntry.toString(),
       importBufferStreaming.toString(),
+      sourceContext.toString(),
       runtimeFileFromStored.toString(),
       persistPreparedWorkspace.toString(),
       prepareWorkspaceRecord.toString(),

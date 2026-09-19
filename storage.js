@@ -147,7 +147,8 @@
         errorKey: file.errorKey,
         mapping: file.mapping,
         confirmedMapping: file.confirmedMapping,
-        resultMeta: resultMeta
+        resultMeta: resultMeta,
+        sourceType: workspaceModel.normalizeSourceType(file.sourceType)
       });
       if (file.buffer instanceof ArrayBuffer) {
         sourceByteRecords.push({
@@ -269,7 +270,8 @@
           errorKey: source.errorKey,
           mapping: source.mapping,
           confirmedMapping: source.confirmedMapping,
-          result: result
+          result: result,
+          sourceType: workspaceModel.normalizeSourceType(source.sourceType)
         };
       });
     });

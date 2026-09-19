@@ -16,6 +16,7 @@ All notable changes to OpenSlotting are documented in this file.
 - chunked IndexedDB workspace persistence and reduced normalized-row memory usage
 - chunked CSV decoding, streaming normalization, incremental analysis, and lazy article details
 - single-pass period aggregation and cached article search/sort projections
+- explicit `order-lines` and `article-master` source types with legacy defaulting and workspace migration
 
 ### Changed
 
