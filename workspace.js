@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 5;
+  const WORKSPACE_SCHEMA_VERSION = 6;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -17,6 +17,10 @@
   const DEFAULT_SOURCE_TYPE = 'order-lines';
   const SOURCE_ID_PATTERN = /^source-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
   const MAX_SOURCE_ID_LENGTH = 128;
+  const COLUMN_PROFILE_SAMPLE_LIMIT = 5;
+  const COLUMN_PROFILE_DISTINCT_LIMIT = 256;
+  const COLUMN_PROFILE_FREQUENT_LIMIT = 5;
+  const COLUMN_PROFILE_VALUE_LIMIT = 256;
 
   class WorkspaceValidationError extends Error {
     constructor(code, message) {
@@ -189,6 +193,75 @@
     return normalized;
   }
 
+  function normalizeColumnProfile(profile) {
+    const source = profile === undefined || profile === null ? {} : profile;
+    if (!isPlainObject(source)) {
+      validationError('invalid_column_catalog', 'Source column profile must be an object.');
+    }
+    const integerFields = [
+      'totalRows',
+      'nonEmptyCount',
+      'emptyCount',
+      'numericCompatibleCount',
+      'dateCompatibleCount',
+      'textCompatibleCount',
+      'incompatibleCount',
+      'distinctValueCount'
+    ];
+    const values = {};
+    integerFields.forEach(function (field) {
+      const value = source[field] === undefined || source[field] === null ? 0 : Number(source[field]);
+      if (!Number.isInteger(value) || value < 0) {
+        validationError('invalid_column_catalog', 'Source column profile contains an invalid count.');
+      }
+      values[field] = value;
+    });
+    if (values.totalRows !== values.nonEmptyCount + values.emptyCount || values.nonEmptyCount > values.totalRows) {
+      validationError('invalid_column_catalog', 'Source column profile row counts are inconsistent.');
+    }
+    if (values.distinctValueCount > COLUMN_PROFILE_DISTINCT_LIMIT) {
+      validationError('invalid_column_catalog', 'Source column profile distinct-value count is too large.');
+    }
+    const exact = source.distinctValueCountExact === undefined ? true : Boolean(source.distinctValueCountExact);
+    const sampleValues = Array.isArray(source.sampleValues) ? source.sampleValues : [];
+    const frequentValues = Array.isArray(source.frequentValues) ? source.frequentValues : [];
+    if (sampleValues.length > COLUMN_PROFILE_SAMPLE_LIMIT || frequentValues.length > COLUMN_PROFILE_FREQUENT_LIMIT) {
+      validationError('invalid_column_catalog', 'Source column profile evidence is too large.');
+    }
+    function normalizeEvidence(entry, withCount) {
+      if (!isPlainObject(entry)) {
+        validationError('invalid_column_catalog', 'Source column profile evidence is invalid.');
+      }
+      const value = entry.value === undefined || entry.value === null ? '' : String(entry.value);
+      if (value.length > COLUMN_PROFILE_VALUE_LIMIT) {
+        validationError('invalid_column_catalog', 'Source column profile evidence value is too long.');
+      }
+      const normalized = { value: value, truncated: Boolean(entry.truncated) };
+      if (withCount) {
+        const count = Number(entry.count);
+        if (!Number.isInteger(count) || count < 1) {
+          validationError('invalid_column_catalog', 'Source column profile frequency is invalid.');
+        }
+        normalized.count = count;
+      }
+      return normalized;
+    }
+    return {
+      totalRows: values.totalRows,
+      nonEmptyCount: values.nonEmptyCount,
+      emptyCount: values.emptyCount,
+      numericCompatibleCount: values.numericCompatibleCount,
+      dateCompatibleCount: values.dateCompatibleCount,
+      textCompatibleCount: values.textCompatibleCount,
+      incompatibleCount: values.incompatibleCount,
+      distinctValueCount: values.distinctValueCount,
+      distinctValueCountExact: exact,
+      distinctValueLimit: COLUMN_PROFILE_DISTINCT_LIMIT,
+      sampleValues: sampleValues.map(function (entry) { return normalizeEvidence(entry, false); }),
+      frequentValues: frequentValues.map(function (entry) { return normalizeEvidence(entry, true); })
+    };
+  }
+
   function normalizeColumnCatalog(catalog, sourceId, options) {
     if (catalog === undefined || catalog === null) {
       return [];
@@ -222,7 +295,8 @@
         isDuplicate: occurrence > 1,
         sourceFileId: sourceFileId,
         sourceFileName: entry.sourceFileName === undefined || entry.sourceFileName === null ? null : String(entry.sourceFileName),
-        sourceFileLabel: entry.sourceFileLabel === undefined || entry.sourceFileLabel === null ? null : String(entry.sourceFileLabel)
+        sourceFileLabel: entry.sourceFileLabel === undefined || entry.sourceFileLabel === null ? null : String(entry.sourceFileLabel),
+        profile: normalizeColumnProfile(entry.profile)
       };
     });
   }
@@ -496,7 +570,7 @@
       validationError('invalid_workspace', 'Workspace must be an object.');
     }
     const schemaVersion = Number(workspace.schemaVersion);
-    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4) {
+    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5) {
       const migrated = cloneValue(workspace, options);
       const migrationTarget = options && options.clonePayload === false ? Object.assign({}, migrated) : migrated;
       if (schemaVersion === 0) {
@@ -517,7 +591,7 @@
           return migratedFile;
         }) : [];
       }
-      if (schemaVersion <= 4) {
+      if (schemaVersion <= 5) {
         migrationTarget.files = Array.isArray(migrationTarget.files) ? migrationTarget.files.map(function (file) {
           const migratedFile = isPlainObject(file) ? file : {};
           if (migratedFile.sourceType === undefined || migratedFile.sourceType === null || migratedFile.sourceType === '') {

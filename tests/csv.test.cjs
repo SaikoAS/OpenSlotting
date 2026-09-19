@@ -412,6 +412,49 @@ test('multi-source imports keep independent ordered column catalogs', () => {
   assert.equal(combined.files[1].columnCatalog[0].sourceFileId, 'source-b');
 });
 
+test('streaming imports profile every source column with bounded evidence', () => {
+  const result = csv.importCsvStreaming([
+    'article_id;order_id;quantity;order_date;note',
+    'A-1;O-1;1;2026-01-02;alpha',
+    ';O-2;2;not-a-date;beta',
+    'A-1;O-3;3;2026-01-03;alpha'
+  ].join('\n'), null, { sourceFile: { id: 'source-profile', name: 'profile.csv' } });
+
+  const article = result.columnCatalog[0].profile;
+  assert.equal(article.totalRows, 3);
+  assert.equal(article.nonEmptyCount, 2);
+  assert.equal(article.emptyCount, 1);
+  assert.equal(article.distinctValueCount, 1);
+  assert.equal(article.distinctValueCountExact, true);
+  assert.deepEqual(article.sampleValues.map((entry) => entry.value), ['A-1']);
+  assert.equal(article.frequentValues[0].value, 'A-1');
+  assert.equal(article.frequentValues[0].count, 2);
+
+  const quantity = result.columnCatalog[2].profile;
+  assert.equal(quantity.numericCompatibleCount, 3);
+  assert.equal(quantity.dateCompatibleCount, 0);
+  assert.equal(quantity.incompatibleCount, 0);
+
+  const date = result.columnCatalog[3].profile;
+  assert.equal(date.dateCompatibleCount, 2);
+  assert.equal(date.incompatibleCount, 1);
+});
+
+test('column profile samples and distinct tracking remain bounded for high-cardinality sources', () => {
+  const rows = ['article_id;order_id;quantity;order_date'];
+  for (let index = 0; index < 400; index += 1) {
+    rows.push('A-' + index + ';O-' + index + ';1;2026-01-02');
+  }
+  const result = csv.importCsvStreaming(rows.join('\n'), null, { sourceFile: { id: 'source-bounded', name: 'bounded.csv' } });
+  const profile = result.columnCatalog[0].profile;
+  assert.equal(profile.totalRows, 400);
+  assert.equal(profile.distinctValueCount, 256);
+  assert.equal(profile.distinctValueCountExact, false);
+  assert.equal(profile.sampleValues.length, 5);
+  assert.equal(profile.frequentValues.length, 5);
+  assert.ok(profile.sampleValues.every((entry) => entry.value.length <= 256));
+});
+
 test('import and combined results retain the explicit source type', () => {
   const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
   const result = csv.importCsv(

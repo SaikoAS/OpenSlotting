@@ -437,6 +437,25 @@ test('schema-four migration adds an empty source column catalog', () => {
   assert.deepEqual(migrated.files[0].columnCatalog, []);
 });
 
+test('schema-five migration keeps source catalogs and adds empty profiles', () => {
+  const legacy = analyzedWorkspace('workspace-v5', 'Version five', 'SKU-V5');
+  legacy.schemaVersion = 5;
+  legacy.files[0].columnCatalog = ['order_id', 'article_id', 'quantity', 'order_date'].map((header, position) => ({
+    position,
+    header,
+    normalizedHeader: header,
+    occurrence: 1,
+    isDuplicate: false,
+    sourceFileId: 'source-1',
+    sourceFileName: 'source-1.csv',
+    sourceFileLabel: 'source-1.csv'
+  }));
+
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.deepEqual(migrated.files[0].columnCatalog[0].profile.sampleValues, []);
+});
+
 test('period settings without a mode preserve existing dated ranges as custom', () => {
   const normalized = workspace.normalizePeriodSettings({
     expectedWeekdays: [1, 2, 3, 4, 5],

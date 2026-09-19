@@ -38,7 +38,7 @@ Every workspace has:
 | Field | Type | Contract |
 | --- | --- | --- |
 | `id` | string | Stable browser-local identity. |
-| `schemaVersion` | integer | Stored-workspace schema version; currently `5`. |
+| `schemaVersion` | integer | Stored-workspace schema version; currently `6`. |
 | `name` | string | Trimmed, non-empty, at most 120 characters. Names do not have to be unique. |
 | `createdAt` | ISO timestamp | Creation time. |
 | `updatedAt` | ISO timestamp | Time of the latest successful snapshot. |
@@ -55,7 +55,7 @@ Each source retains:
 
 - batch-local source ID, original filename, display label, byte size, and modification time
 - stable `sourceType`, currently `order-lines` or `article-master`; missing values from older workspaces default to `order-lines`
-- ordered `columnCatalog` entries for readable sources, including physical position, original and normalized header, duplicate occurrence, and source ownership
+- ordered `columnCatalog` entries for readable sources, including physical position, original and normalized header, duplicate occurrence, source ownership, and bounded streaming profile evidence
 - the complete original file bytes as an `ArrayBuffer`
 - automatic or manually selected decoding mode
 - detected and active encoding
@@ -202,6 +202,6 @@ The restore worker returns the already validated persisted payload and prepared 
 
 ## Schema migration
 
-Workspace records carry `schemaVersion`. The current reader uses version `5`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, and adds an empty source-column catalog to version `4` records when no catalog was persisted. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `2` creates the chunk stores. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis is rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
+Workspace records carry `schemaVersion`. The current reader uses version `6`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, and accepts version `5` catalogs without profiles by supplying an empty profile. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `2` creates the chunk stores. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis is rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
 
 Future migrations must produce a fully valid current workspace before saving it and require automated migration and backup-round-trip tests.

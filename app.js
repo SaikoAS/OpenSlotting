@@ -2893,6 +2893,9 @@
             locale: state.language,
             sourceFile: sourceContext(file)
           });
+        if (file.result && Array.isArray(file.result.columnCatalog)) {
+          file.columnCatalog = file.result.columnCatalog;
+        }
       } else {
         file.result = null;
       }
@@ -3273,6 +3276,9 @@
               locale: language,
               sourceFile: sourceContext(file)
             });
+          if (file.result && Array.isArray(file.result.columnCatalog)) {
+            file.columnCatalog = file.result.columnCatalog;
+          }
         }
         return file;
       });

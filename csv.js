@@ -12,6 +12,10 @@
   const QUANTITY_DECIMAL_PLACES = 7;
   const QUANTITY_SCALE = 10000000n;
   const SALES_DECIMAL_PLACES = 2;
+  const COLUMN_PROFILE_SAMPLE_LIMIT = 5;
+  const COLUMN_PROFILE_DISTINCT_LIMIT = 256;
+  const COLUMN_PROFILE_FREQUENT_LIMIT = 5;
+  const COLUMN_PROFILE_VALUE_LIMIT = 256;
 
   const FIELD_DEFINITIONS = Object.freeze([
     { key: 'order_id', label: 'Order ID', labels: { en: 'Order ID', de: 'Auftrags-ID' }, required: true },
@@ -141,8 +145,139 @@
         isDuplicate: occurrence > 1,
         sourceFileId: source.id,
         sourceFileName: source.name,
-        sourceFileLabel: source.label
+        sourceFileLabel: source.label,
+        profile: emptyColumnProfile()
       };
+    });
+  }
+
+  function emptyColumnProfile() {
+    return {
+      totalRows: 0,
+      nonEmptyCount: 0,
+      emptyCount: 0,
+      numericCompatibleCount: 0,
+      dateCompatibleCount: 0,
+      textCompatibleCount: 0,
+      incompatibleCount: 0,
+      distinctValueCount: 0,
+      distinctValueCountExact: true,
+      distinctValueLimit: COLUMN_PROFILE_DISTINCT_LIMIT,
+      sampleValues: [],
+      frequentValues: []
+    };
+  }
+
+  function createColumnProfileStates(columnCount) {
+    return Array.from({ length: columnCount }, function () {
+      return {
+        totalRows: 0,
+        nonEmptyCount: 0,
+        emptyCount: 0,
+        numericCompatibleCount: 0,
+        dateCompatibleCount: 0,
+        textCompatibleCount: 0,
+        incompatibleCount: 0,
+        samples: [],
+        sampleKeys: new Set(),
+        distinctValues: new Map(),
+        distinctLimitReached: false,
+        truncatedValueSeen: false
+      };
+    });
+  }
+
+  function boundedProfileValue(value) {
+    const text = String(value);
+    if (text.length <= COLUMN_PROFILE_VALUE_LIMIT) {
+      return { value: text, truncated: false };
+    }
+    return {
+      value: text.slice(0, COLUMN_PROFILE_VALUE_LIMIT),
+      truncated: true
+    };
+  }
+
+  function observeColumnProfile(state, value) {
+    state.totalRows += 1;
+    const text = String(value === undefined || value === null ? '' : value);
+    const trimmed = text.trim();
+    if (trimmed === '') {
+      state.emptyCount += 1;
+      return;
+    }
+
+    state.nonEmptyCount += 1;
+    state.textCompatibleCount += 1;
+    const numericValue = normalizeNumericText(trimmed);
+    const dateValue = normalizeDate(trimmed);
+    if (numericValue !== null) {
+      state.numericCompatibleCount += 1;
+    }
+    if (dateValue !== null) {
+      state.dateCompatibleCount += 1;
+    }
+    if (numericValue === null && dateValue === null) {
+      state.incompatibleCount += 1;
+    }
+
+    const bounded = boundedProfileValue(text);
+    if (bounded.truncated) {
+      state.truncatedValueSeen = true;
+    }
+    const key = bounded.value + (bounded.truncated ? '\u0000truncated' : '');
+    if (!state.sampleKeys.has(key) && state.samples.length < COLUMN_PROFILE_SAMPLE_LIMIT) {
+      state.sampleKeys.add(key);
+      state.samples.push(bounded);
+    }
+    if (state.distinctValues.has(key)) {
+      const current = state.distinctValues.get(key);
+      current.count += 1;
+      return;
+    }
+    if (state.distinctValues.size >= COLUMN_PROFILE_DISTINCT_LIMIT) {
+      state.distinctLimitReached = true;
+      return;
+    }
+    state.distinctValues.set(key, { value: bounded.value, truncated: bounded.truncated, count: 1 });
+  }
+
+  function finalizeColumnProfiles(catalog, states) {
+    return catalog.map(function (entry, index) {
+      const state = states && states[index];
+      if (!state) {
+        return Object.assign({}, entry, { profile: emptyColumnProfile() });
+      }
+      const frequentValues = Array.from(state.distinctValues.values())
+        .sort(function (left, right) {
+          if (right.count !== left.count) {
+            return right.count - left.count;
+          }
+          return left.value.localeCompare(right.value);
+        })
+        .slice(0, COLUMN_PROFILE_FREQUENT_LIMIT);
+      return Object.assign({}, entry, {
+        profile: {
+          totalRows: state.totalRows,
+          nonEmptyCount: state.nonEmptyCount,
+          emptyCount: state.emptyCount,
+          numericCompatibleCount: state.numericCompatibleCount,
+          dateCompatibleCount: state.dateCompatibleCount,
+          textCompatibleCount: state.textCompatibleCount,
+          incompatibleCount: state.incompatibleCount,
+          distinctValueCount: state.distinctValues.size,
+          distinctValueCountExact: !state.distinctLimitReached && !state.truncatedValueSeen,
+          distinctValueLimit: COLUMN_PROFILE_DISTINCT_LIMIT,
+          sampleValues: state.samples.map(function (sample) { return Object.assign({}, sample); }),
+          frequentValues: frequentValues.map(function (value) { return Object.assign({}, value); })
+        }
+      });
+    });
+  }
+
+  function observeColumnProfiles(states, values) {
+    states.forEach(function (state, index) {
+      observeColumnProfile(state, values && values[index]);
     });
   }
 
@@ -800,6 +935,7 @@
     let totalRows = 0;
     let selectedMapping = mapping || null;
     let columnCatalog = [];
+    let columnProfileStates = [];
     let mappingIssues = null;
     let headerHasParserError = false;
     const issues = [];
@@ -814,6 +950,7 @@
         if (headers === null) {
           headers = dataRow.values.map(function (header) { return String(header).trim(); });
           columnCatalog = buildColumnCatalog(headers, sourceFile);
+          columnProfileStates = createColumnProfileStates(headers.length);
           headerHasParserError = parserErrors.length > 0;
           selectedMapping = selectedMapping || detectMapping(headers);
           mappingIssues = validateMapping(selectedMapping, locale);
@@ -821,6 +958,7 @@
         }
 
         totalRows += 1;
+        observeColumnProfiles(columnProfileStates, dataRow.values);
         const rowHasParserError = parserErrors.length > 0;
         if (dataRow.values.length !== headers.length) {
           structuralLines.add(dataRow.sourceLine);
@@ -866,6 +1004,7 @@
       };
     });
     const finalHeaders = headers || parsed.headers || [];
+    columnCatalog = finalizeColumnProfiles(columnCatalog, columnProfileStates);
     if (finalHeaders.length === 0) {
       return {
         headers: [],
@@ -958,6 +1097,7 @@
 
     const headers = parsed.rows[0].values.map(function (header) { return String(header).trim(); });
     const columnCatalog = buildColumnCatalog(headers, sourceFile);
+    const columnProfileStates = createColumnProfileStates(headers.length);
     const dataRows = parsed.rows.slice(1);
     const headerSourceLine = parsed.rows[0].sourceLine;
     const headerHasParserError = parsed.errors.some(function (error) {
@@ -1003,6 +1143,7 @@
     const structuralLines = new Set();
 
     dataRows.forEach(function (dataRow) {
+      observeColumnProfiles(columnProfileStates, dataRow.values);
       if (dataRow.values.length !== headers.length) {
         structuralLines.add(dataRow.sourceLine);
         invalidLines.add(dataRow.sourceLine);
@@ -1041,7 +1182,7 @@
 
     return {
       headers: headers,
-      columnCatalog: columnCatalog,
+      columnCatalog: finalizeColumnProfiles(columnCatalog, columnProfileStates),
       rows: rows,
       issues: addSourceToIssues(issues, sourceFile),
       totalRows: dataRows.length,
@@ -1450,6 +1591,13 @@
       const columnCatalog = Array.isArray(file.columnCatalog)
         ? file.columnCatalog
         : (result && Array.isArray(result.columnCatalog) ? result.columnCatalog : []);
+      const normalizedCatalog = columnCatalog.map(function (entry) {
+        return Object.assign({}, entry, {
+          sourceFileId: source.id,
+          sourceFileName: source.name,
+          sourceFileLabel: source.label
+        });
+      });
       const included = Boolean(result && !result.blocking);
       const resultRows = included && Array.isArray(result.rows)
         ? result.rows
@@ -1490,7 +1638,7 @@
         name: source.name,
         label: source.label,
         sourceType: source.sourceType,
-        columnCatalog: columnCatalog,
+        columnCatalog: normalizedCatalog,
         result: result ? Object.assign({}, result, {
           rows: normalizedRows,
           issues: normalizedIssues,
@@ -1519,7 +1667,7 @@
         name: source.name,
         label: source.label,
         sourceType: source.sourceType,
-        columnCatalog: columnCatalog,
+        columnCatalog: normalizedCatalog,
         included: included,
         blocking: !included,
         errorCode: file.errorCode || file.errorKey || null,

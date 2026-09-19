@@ -16,7 +16,14 @@ the zero-based physical `position`, the trimmed source `header`, its
 that normalized header, and `isDuplicate`. Source ownership is retained with
 `sourceFileId`, `sourceFileName`, and `sourceFileLabel`. Empty headers remain
 catalog entries, and duplicate headers remain independently addressable by
-position; the catalog stores metadata only and never copies row values.
+position. During streaming import each entry also receives a bounded `profile`
+with row/empty counts, numeric/date/text compatibility counts, a bounded
+distinct-value count, up to five representative non-empty `sampleValues`, and
+up to five `frequentValues`. Distinct tracking is capped at 256 values and
+sample/frequency values are capped at 256 characters; `distinctValueCountExact`
+is false when either bound can make the count approximate. Thus high-cardinality
+or large sources cannot grow metadata without bound. These are bounded evidence
+values, not a replacement for the retained original source bytes.
 
 ## Input file
 

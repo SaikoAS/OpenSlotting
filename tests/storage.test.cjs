@@ -134,7 +134,7 @@ test('chunked storage round trip preserves the source column catalog', async () 
   const repository = storage.createRepository({ indexedDB, databaseName });
   const original = workspaceWithSource('workspace-column-catalog', 'Column catalog', 'SKU-CATALOG');
   original.files[0].columnCatalog = [
-    { position: 0, header: 'order_id', normalizedHeader: 'orderid', occurrence: 1, isDuplicate: false, sourceFileId: 'source-1', sourceFileName: 'rows.csv', sourceFileLabel: 'rows.csv' },
+    { position: 0, header: 'order_id', normalizedHeader: 'orderid', occurrence: 1, isDuplicate: false, sourceFileId: 'source-1', sourceFileName: 'rows.csv', sourceFileLabel: 'rows.csv', profile: { totalRows: 2, nonEmptyCount: 2, emptyCount: 0, numericCompatibleCount: 0, dateCompatibleCount: 0, textCompatibleCount: 2, incompatibleCount: 2, distinctValueCount: 2, distinctValueCountExact: true, sampleValues: [{ value: 'O-1', truncated: false }], frequentValues: [{ value: 'O-1', truncated: false, count: 1 }] } },
     { position: 1, header: 'article_id', normalizedHeader: 'articleid', occurrence: 1, isDuplicate: false, sourceFileId: 'source-1', sourceFileName: 'rows.csv', sourceFileLabel: 'rows.csv' }
   ];
   const validated = workspace.validateWorkspace(original);
@@ -145,6 +145,7 @@ test('chunked storage round trip preserves the source column catalog', async () 
   assert.equal(storedSource.columnCatalog.length, 2);
   const restored = await repository.loadWorkspace(validated.id);
   assert.equal(restored.files[0].columnCatalog[1].header, 'article_id');
+  assert.equal(restored.files[0].columnCatalog[0].profile.totalRows, 2);
 });
 
 test('renaming and replacing one workspace does not alter another workspace', async () => {
