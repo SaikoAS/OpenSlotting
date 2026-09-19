@@ -6,11 +6,12 @@ Security and data privacy are core project requirements. The application is desi
 
 ## Supported Versions
 
-OpenSlotting 0.1.x is the first supported release line. The `main` branch contains ongoing development and may change before the next release.
+Only the latest published release line, OpenSlotting 0.2.x, is supported. The `main` branch contains ongoing unreleased development and may change before the next release.
 
 | Version | Supported |
 | --- | --- |
-| `0.1.x` | Yes |
+| `0.2.x` | Yes |
+| `0.1.x` | No |
 | `main` | Development |
 | Older development snapshots / older `0.x` | No |
 

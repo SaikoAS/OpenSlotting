@@ -19,6 +19,7 @@ Run the repository checks before requesting review:
 node --check csv.js
 node --check app.js
 node --check encoding.js
+node --check periods.js
 node --check runtime.js
 node --check workspace.js
 node --check storage.js

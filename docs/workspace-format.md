@@ -1,6 +1,6 @@
 # OpenSlotting Local Workspace and Backup Format
 
-This document defines the persistent local-workspace contract implemented after OpenSlotting 0.2.1. The final bundled release version is intentionally not assigned here.
+This document defines the persistent local-workspace contract used by the current development implementation after the published OpenSlotting 0.2.1 release. It is a current contract document; historical release acceptance remains in the versioned acceptance files.
 
 ## Runtime and origin boundary
 

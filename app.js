@@ -11,7 +11,7 @@
   const TRANSLATIONS = {
     en: {
       page_title: 'OpenSlotting – CSV Analysis',
-      eyebrow: 'OpenSlotting · V0.2',
+      eyebrow: 'OpenSlotting · v{{version}}',
       hero_title: 'Analyze order lines across exports',
       hero_subtitle: 'Combine multiple CSV exports locally while keeping every source file and line traceable.',
       language_label: 'Language',
@@ -361,7 +361,7 @@
     },
     de: {
       page_title: 'OpenSlotting – CSV-Analyse',
-      eyebrow: 'OpenSlotting · V0.2',
+      eyebrow: 'OpenSlotting · v{{version}}',
       hero_title: 'Auftragszeilen über Exporte analysieren',
       hero_subtitle: 'Mehrere CSV-Exporte lokal zusammenführen und jede Quelldatei und -zeile nachvollziehbar halten.',
       language_label: 'Sprache',
@@ -1524,7 +1524,8 @@
     document.title = translate('page_title');
     setText(elements.appVersion, 'OpenSlotting v' + core.APP_VERSION);
     document.querySelectorAll('[data-i18n]').forEach(function (element) {
-      setText(element, translate(element.dataset.i18n));
+      const replacements = element.dataset.i18n === 'eyebrow' ? { version: core.APP_VERSION } : undefined;
+      setText(element, translate(element.dataset.i18n, replacements));
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(function (element) {
       element.setAttribute('placeholder', translate(element.dataset.i18nPlaceholder));
