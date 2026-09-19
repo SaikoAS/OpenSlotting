@@ -4127,7 +4127,6 @@
         storageRevision: committedMetadata.storageRevision
       }));
       state.customFields = workspaceModel.normalizeCustomFields(prepared.workspace.customFields);
-      state.articleRegistry = workspaceModel.normalizeArticleRegistry(prepared.workspace.articleRegistry);
       state.language = targetLanguage;
       elements.languageSelect.value = targetLanguage;
       state.workspaces = state.workspaces.map(function (workspace) {
@@ -4401,7 +4400,7 @@
         const fallbackSchemaVersion = Number(record.schemaVersion);
         let fallbackExport = fallbackRecord;
         if (fallbackSchemaVersion < workspaceModel.WORKSPACE_SCHEMA_VERSION && fallbackRecord.analyzed) {
-          const prepared = prepareWorkspaceRecord(record, fallbackRecord.language, function (progress) {
+          const prepared = prepareWorkspaceRecord(fallbackRecord, fallbackRecord.language, function (progress) {
             updateWorkspaceLoadProgress(progress, fallbackRecord.name);
           });
           fallbackExport = Object.assign({}, fallbackRecord, {

@@ -103,6 +103,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.ok(activateBody[1].indexOf('omitStoredResultsForRebuild') < activateBody[1].indexOf('runWorkspaceWorker'));
   assert.ok(activateBody[1].indexOf('commitWorkspaceActivation') < activateBody[1].indexOf('state.activeWorkspace = workspaceMetadata'));
   assert.ok(activateBody[1].indexOf('commitWorkspaceActivation') < activateBody[1].indexOf('state.language = targetLanguage'));
+  assert.doesNotMatch(activateBody[1], /state\.articleRegistry = workspaceModel\.normalizeArticleRegistry\(prepared\.workspace\.articleRegistry\);\s*state\.language = targetLanguage/);
   assert.doesNotMatch(activateBody[1], /refreshAnalyzedResults\(/);
   assert.doesNotMatch(activateBody[1], /refreshWorkspaceCatalog\(/);
   assert.doesNotMatch(activateBody[1], /updateWorkspaceSummary/);
@@ -123,7 +124,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(backupBody[1], /runWorkspaceWorker\(null, null, revision, record\.name, \{\s*backupExport: record/);
   assert.match(backupBody[1], /const fallbackRecord = await workspaceRepository\.loadWorkspace\(selected\.id\)/);
   assert.match(backupBody[1], /const fallbackSchemaVersion = Number\(record\.schemaVersion\)/);
-  assert.match(backupBody[1], /const prepared = prepareWorkspaceRecord\(record, fallbackRecord\.language/);
+  assert.match(backupBody[1], /const prepared = prepareWorkspaceRecord\(fallbackRecord, fallbackRecord\.language/);
   assert.match(backupBody[1], /articleRegistry: prepared\.workspace\.articleRegistry/);
   assert.match(backupBody[1], /workspaceModel\.stringifyBackup\(fallbackExport\)/);
   assert.match(workerBody[1], /workspaceModel\.migrateWorkspace\(input\.backupExport/);
