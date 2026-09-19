@@ -14,6 +14,23 @@ and workspace custom fields are optional. Article-master rows are retained in
 the workspace and source traceability, but are not included in the existing
 order-line analysis until a later article-master join/analysis milestone.
 
+## Workspace article registry
+
+The combined import result also exposes a deterministic `articleRegistry` built
+from all retained normalized rows. It is keyed by `article_id`, sorted by that
+identifier, and kept separate from order-line aggregation. Each registry entry
+records whether the article is `master-only`, `movement-only`, or `matched`,
+the normalized master fields (`article_name`, `location`, and selling-unit
+fields), mapped custom-field values, movement/master row counts, source-file
+coverage, and master-row references. `value_provenance` retains the source
+file, source label, source line, source type, and value for each retained
+master or custom-field attribute. Conflicting values are preserved in
+`value_conflicts`; the first value in deterministic source/row order remains
+the normalized value. Master attributes are not copied into order-line rows.
+
+The registry is stored with the workspace and backup, so later joins can use
+the normalized identity without reparsing or mutating historical order lines.
+
 Every readable source also exposes an ordered `columnCatalog`. Each entry uses
 the zero-based physical `position`, the trimmed source `header`, its
 `normalizedHeader` used by automatic mapping, a one-based `occurrence` within

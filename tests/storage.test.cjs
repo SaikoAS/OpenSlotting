@@ -94,6 +94,39 @@ test('persists isolated workspaces and the active selection across repository in
   assert.equal(indexedDB.inspect('isolation-test', 'workspaceManifests').length, 2);
 });
 
+test('persists the workspace article registry alongside chunked sources', async () => {
+  const indexedDB = createFakeIndexedDB();
+  const repository = storage.createRepository({ indexedDB, databaseName: 'article-registry-storage-test' });
+  const record = workspace.createWorkspace('Registry', { id: 'workspace-registry', now: '2026-09-12T08:00:00.000Z' });
+  record.articleRegistry = [{
+    article_id: 'SKU-1',
+    article_name: 'Widget',
+    master_data: { location: 'A-01' },
+    custom_fields: {},
+    has_master_data: true,
+    has_movement_data: false,
+    movement_status: 'master-only',
+    master_row_count: 1,
+    movement_row_count: 0,
+    source_file_ids: ['source-master'],
+    source_files: ['master.csv'],
+    master_source_file_ids: ['source-master'],
+    master_source_files: ['master.csv'],
+    movement_source_file_ids: [],
+    movement_source_files: [],
+    master_row_refs: [{ source_file_id: 'source-master', source_line: 2 }],
+    value_provenance: [],
+    value_conflicts: []
+  }];
+  await repository.createWorkspace(workspace.validateWorkspace(record));
+  const manifest = indexedDB.inspect('article-registry-storage-test', 'workspaceManifests')[0];
+  assert.equal(Object.hasOwn(manifest, 'articleRegistry'), false);
+  assert.deepEqual(manifest.registryChunkKeys, ['workspace-registry::registry::0']);
+  assert.equal(indexedDB.inspect('article-registry-storage-test', 'workspaceRegistryChunks').length, 1);
+  const loaded = await repository.loadWorkspace(record.id);
+  assert.deepEqual(loaded.articleRegistry, record.articleRegistry);
+});
+
 test('persists large results as independently addressable row and issue chunks', async () => {
   const indexedDB = createFakeIndexedDB();
   const databaseName = 'chunked-results-test';
@@ -106,6 +139,7 @@ test('persists large results as independently addressable row and issue chunks',
   assert.equal(indexedDB.inspect(databaseName, 'workspaceSourceBytes').length, 1);
   assert.equal(indexedDB.inspect(databaseName, 'workspaceRowChunks').length, 3);
   assert.equal(indexedDB.inspect(databaseName, 'workspaceIssueChunks').length, 0);
+  assert.equal(indexedDB.inspect(databaseName, 'workspaceRegistryChunks').length, 0);
 
   const restored = await repository.loadWorkspace(original.id);
   assert.equal(restored.files[0].result.rows.length, 10001);
@@ -417,9 +451,45 @@ test('activation load can omit stored result chunks while retaining source bytes
 
   const sourceOnly = await repository.loadWorkspaceRaw('workspace-source-only', { includeResults: false });
   assert.equal(sourceOnly.files[0].result, null);
+  assert.deepEqual(sourceOnly.articleRegistry, []);
   assert.ok(sourceOnly.files[0].buffer instanceof ArrayBuffer);
   const full = await repository.loadWorkspaceRaw('workspace-source-only');
   assert.equal(full.files[0].result.rows.length, 10001);
+});
+
+test('bounds large per-article registry provenance arrays across registry chunks', async () => {
+  const indexedDB = createFakeIndexedDB();
+  const databaseName = 'registry-provenance-chunks-test';
+  const repository = storage.createRepository({ indexedDB, databaseName });
+  const record = workspace.createWorkspace('Registry chunks', { id: 'workspace-registry-chunks', now: '2026-09-12T08:00:00.000Z' });
+  record.articleRegistry = [{
+    article_id: 'SKU-1',
+    article_name: 'Widget',
+    master_data: {},
+    custom_fields: {},
+    has_master_data: true,
+    has_movement_data: false,
+    movement_status: 'master-only',
+    master_row_count: 2501,
+    movement_row_count: 0,
+    source_file_ids: ['source-master'],
+    source_files: ['master.csv'],
+    master_source_file_ids: ['source-master'],
+    master_source_files: ['master.csv'],
+    movement_source_file_ids: [],
+    movement_source_files: [],
+    master_row_refs: Array.from({ length: 2501 }, (_, index) => ({ source_file_id: 'source-master', source_line: index + 2 })),
+    value_provenance: [],
+    value_conflicts: []
+  }];
+  const validated = workspace.validateWorkspace(record);
+  await repository.createWorkspace(validated);
+
+  const chunks = indexedDB.inspect(databaseName, 'workspaceRegistryChunks');
+  assert.equal(chunks.length, 3);
+  assert.ok(chunks.every((chunk) => chunk.entries.every((entry) => entry.master_row_refs.length <= 1000)));
+  const loaded = await repository.loadWorkspace(validated.id);
+  assert.deepEqual(loaded.articleRegistry, validated.articleRegistry);
 });
 
 test('failed chunked updates leave the previous workspace version intact', async () => {

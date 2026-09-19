@@ -2,9 +2,9 @@
 
 OpenSlotting is an open-source, local-first web tool for analyzing warehouse order lines and building a data-driven foundation for warehouse slotting.
 
-The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The latest published application release is `0.2.1`; current `main` development continues the local-workspace and period-comparison foundation. Future versions are planned to expand this foundation through ABC/XYZ classification, configurable master data, slotting scores, and warehouse slotting recommendations.
+The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The latest published application release is `0.2.1`; current `main` development continues the local-workspace, article-master, and period-comparison foundation. Future versions are planned to expand this foundation through ABC/XYZ classification, configurable master data joins, slotting scores, and warehouse slotting recommendations.
 
-> **Project status:** The latest published release is `0.2.1`. `main` contains unreleased development after that release, including persistent workspaces, period comparison, runtime profiles, and large-import performance work. No next release version has been assigned yet.
+> **Project status:** The latest published release is `0.2.1`. `main` contains unreleased development after that release, including persistent workspaces, article-master imports and registry preparation, period comparison, runtime profiles, and large-import performance work. No next release version has been assigned yet.
 
 ## Current development implementation
 
@@ -38,6 +38,7 @@ The current implementation includes:
 - multiple source files in one in-memory analysis batch
 - explicit persisted source types (`order-lines` and `article-master`), with order-line defaults for existing and new imports
 - article-master imports that require only `article_id`, retain optional master attributes and custom fields, and remain available for later joins
+- a deterministic workspace-level article registry combining master-only and movement-only identities with matched status and source provenance
 - ordered source-column catalogs with duplicate-header and physical-position metadata
 - bounded streaming source-column profiles with representative and frequent values
 - explainable mapping suggestions and a source-column overview with profile evidence
@@ -362,10 +363,11 @@ acceptance before a future release claim.
 - XYZ classification
 - Combined ABC/XYZ matrix
 
-### V0.6 — Article Master Data (import foundation implemented; joins and analysis planned)
+### V0.6 — Article Master Data (registry foundation implemented; joins and analysis planned)
 
 - Import article-master CSV sources with persistent source type and provenance
 - Additional article attributes through workspace custom fields
+- Normalize master-only, movement-only, and matched article identities in a workspace-level registry
 - Join article-master attributes into order-line analysis
 - Configurable article master data
 - Reusable mapping templates
