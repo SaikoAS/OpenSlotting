@@ -122,6 +122,10 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(backupBody[1], /loadWorkspace\(selected\.id\)/);
   assert.match(backupBody[1], /runWorkspaceWorker\(null, null, revision, record\.name, \{\s*backupExport: record/);
   assert.match(backupBody[1], /const fallbackRecord = await workspaceRepository\.loadWorkspace\(selected\.id\)/);
+  assert.match(backupBody[1], /const fallbackSchemaVersion = Number\(record\.schemaVersion\)/);
+  assert.match(backupBody[1], /const prepared = prepareWorkspaceRecord\(record, fallbackRecord\.language/);
+  assert.match(backupBody[1], /articleRegistry: prepared\.workspace\.articleRegistry/);
+  assert.match(backupBody[1], /workspaceModel\.stringifyBackup\(fallbackExport\)/);
   assert.match(workerBody[1], /workspaceModel\.migrateWorkspace\(input\.backupExport/);
   assert.match(workerBody[1], /const sourceSchemaVersion = Number\(input\.backupExport\.schemaVersion\)/);
   assert.match(workerBody[1], /sourceSchemaVersion < workspaceModel\.WORKSPACE_SCHEMA_VERSION && validatedExport\.analyzed/);

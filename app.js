@@ -4398,9 +4398,19 @@
         if (!fallbackRecord || revision !== workspaceLoadRevision) {
           throw workspaceLoadError('workspace_load_cancelled');
         }
+        const fallbackSchemaVersion = Number(record.schemaVersion);
+        let fallbackExport = fallbackRecord;
+        if (fallbackSchemaVersion < workspaceModel.WORKSPACE_SCHEMA_VERSION && fallbackRecord.analyzed) {
+          const prepared = prepareWorkspaceRecord(record, fallbackRecord.language, function (progress) {
+            updateWorkspaceLoadProgress(progress, fallbackRecord.name);
+          });
+          fallbackExport = Object.assign({}, fallbackRecord, {
+            articleRegistry: prepared.workspace.articleRegistry
+          });
+        }
         serialized = {
-          backupText: workspaceModel.stringifyBackup(fallbackRecord),
-          filename: workspaceModel.backupFilename(fallbackRecord.name)
+          backupText: workspaceModel.stringifyBackup(fallbackExport),
+          filename: workspaceModel.backupFilename(fallbackExport.name)
         };
       }
       if (revision !== workspaceLoadRevision) {
