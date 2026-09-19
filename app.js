@@ -119,6 +119,21 @@
       mapping_file_included: 'Included',
       mapping_file_excluded: 'Excluded',
       mapping_file_reading: 'Reading…',
+      source_columns_title: 'Source-column overview',
+      source_columns_hint: 'Each decoded source column is shown by physical position. Suggestions never change mappings automatically.',
+      source_column_header: 'Source column',
+      source_column_mapping: 'Current mapping',
+      source_column_profile: 'Profile',
+      source_column_samples: 'Examples',
+      source_column_unused: 'Unused',
+      source_column_rows: '{{count}} rows',
+      source_column_non_empty: '{{count}} non-empty',
+      source_column_distinct: '{{count}} distinct{{suffix}}',
+      source_column_suggestion: 'Suggestion: {{field}} ({{confidence}})',
+      source_column_ambiguous: 'Ambiguous suggestion',
+      source_column_confidence_high: 'high',
+      source_column_confidence_medium: 'medium',
+      source_column_confidence_low: 'low',
       encoding_label: 'Encoding',
       encoding_auto: 'Automatic',
       encoding_auto_detected: 'Automatic (detected: {{encoding}})',
@@ -469,6 +484,21 @@
       mapping_file_included: 'Einbezogen',
       mapping_file_excluded: 'Ausgeschlossen',
       mapping_file_reading: 'Wird gelesen …',
+      source_columns_title: 'Übersicht der Quellspalten',
+      source_columns_hint: 'Jede dekodierte Quellspalte wird nach physischer Position gezeigt. Vorschläge ändern Zuordnungen nie automatisch.',
+      source_column_header: 'Quellspalte',
+      source_column_mapping: 'Aktuelle Zuordnung',
+      source_column_profile: 'Profil',
+      source_column_samples: 'Beispiele',
+      source_column_unused: 'Nicht verwendet',
+      source_column_rows: '{{count}} Zeilen',
+      source_column_non_empty: '{{count}} nicht leer',
+      source_column_distinct: '{{count}} verschiedene{{suffix}}',
+      source_column_suggestion: 'Vorschlag: {{field}} ({{confidence}})',
+      source_column_ambiguous: 'Mehrdeutiger Vorschlag',
+      source_column_confidence_high: 'hoch',
+      source_column_confidence_medium: 'mittel',
+      source_column_confidence_low: 'niedrig',
       encoding_label: 'Kodierung',
       encoding_auto: 'Automatisch',
       encoding_auto_detected: 'Automatisch (erkannt: {{encoding}})',
@@ -763,6 +793,11 @@
       badge: 'runtime_badge_unsupported',
       mode: 'runtime_mode_unsupported'
     }
+  };
+  const SOURCE_COLUMN_CONFIDENCE_KEYS = {
+    high: 'source_column_confidence_high',
+    medium: 'source_column_confidence_medium',
+    low: 'source_column_confidence_low'
   };
 
   const RUNTIME_CAPABILITY_TRANSLATION_KEYS = {
@@ -1366,6 +1401,94 @@
     return names[value] || String(value || '');
   }
 
+  function renderSourceColumnOverview(file, section) {
+    if (!file.parsed || !Array.isArray(file.headers) || file.headers.length === 0) {
+      return;
+    }
+    const catalog = Array.isArray(file.columnCatalog) && file.columnCatalog.length === file.headers.length
+      ? file.columnCatalog
+      : file.headers.map(function (header, position) { return { position: position, header: header, profile: null }; });
+    const suggestions = core.buildMappingSuggestions(file.headers, catalog.map(function (entry) { return entry.profile || {}; }));
+    const mappedByPosition = {};
+    Object.keys(file.mapping || {}).forEach(function (field) {
+      if (Number.isInteger(file.mapping[field])) mappedByPosition[file.mapping[field]] = field;
+    });
+    const wrapper = document.createElement('div');
+    wrapper.className = 'source-column-overview';
+    const title = document.createElement('h4');
+    setText(title, translate('source_columns_title'));
+    const hint = document.createElement('p');
+    hint.className = 'table-note';
+    setText(hint, translate('source_columns_hint'));
+    wrapper.appendChild(title);
+    wrapper.appendChild(hint);
+    const scroll = document.createElement('div');
+    scroll.className = 'table-scroll';
+    const table = document.createElement('table');
+    table.className = 'source-column-table';
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    ['source_column_header', 'source_column_mapping', 'source_column_profile', 'source_column_samples'].forEach(function (key) {
+      const cell = document.createElement('th');
+      cell.scope = 'col';
+      setText(cell, translate(key));
+      headRow.appendChild(cell);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+    const body = document.createElement('tbody');
+    catalog.forEach(function (entry, position) {
+      const profile = entry.profile || {};
+      const row = document.createElement('tr');
+      const sourceCell = document.createElement('th');
+      sourceCell.scope = 'row';
+      setText(sourceCell, (position + 1) + ': ' + (entry.header || translate('empty_header')));
+      row.appendChild(sourceCell);
+      const mappingCell = document.createElement('td');
+      const mappedField = mappedByPosition[position];
+      setText(mappingCell, mappedField ? core.getFieldLabel(mappedField, state.language) : translate('source_column_unused'));
+      const candidates = Object.keys(suggestions).map(function (field) {
+        return (suggestions[field] || []).find(function (candidate) { return candidate.sourcePosition === position; });
+      }).filter(Boolean).sort(function (left, right) { return right.score - left.score; });
+      const best = candidates[0];
+      if (!mappedField && best) {
+        const topScore = best.score;
+        const crossFieldTie = candidates.filter(function (candidate) { return candidate.score === topScore; }).length > 1;
+        const note = document.createElement('small');
+        note.className = 'source-column-suggestion ' + best.confidence;
+        setText(note, best.ambiguity || crossFieldTie
+          ? translate('source_column_ambiguous')
+          : translate('source_column_suggestion', {
+            field: core.getFieldLabel(best.targetField, state.language),
+            confidence: translate(SOURCE_COLUMN_CONFIDENCE_KEYS[best.confidence] || SOURCE_COLUMN_CONFIDENCE_KEYS.low)
+          }));
+        mappingCell.appendChild(document.createElement('br'));
+        mappingCell.appendChild(note);
+      }
+      row.appendChild(mappingCell);
+      const profileCell = document.createElement('td');
+      if (Number.isInteger(profile.totalRows)) {
+        setText(profileCell, [
+          translate('source_column_rows', { count: profile.totalRows }),
+          translate('source_column_non_empty', { count: profile.nonEmptyCount || 0 }),
+          translate('source_column_distinct', { count: profile.distinctValueCount || 0, suffix: profile.distinctValueCountExact ? '' : ' *' })
+        ].join(' · '));
+      } else {
+        setText(profileCell, '—');
+      }
+      row.appendChild(profileCell);
+      const samplesCell = document.createElement('td');
+      const samples = Array.isArray(profile.sampleValues) ? profile.sampleValues : [];
+      setText(samplesCell, samples.length ? samples.map(function (sample) { return sample.value; }).join(', ') : '—');
+      row.appendChild(samplesCell);
+      body.appendChild(row);
+    });
+    table.appendChild(body);
+    scroll.appendChild(table);
+    wrapper.appendChild(scroll);
+    section.appendChild(wrapper);
+  }
+
   function renderMapping() {
     const editsLocked = state.workspaceLoading || state.files.some(function (file) { return Boolean(file.reading); });
     elements.mappingGrid.replaceChildren();
@@ -1431,6 +1554,7 @@
       }
 
       if (file.parsed) {
+        renderSourceColumnOverview(file, section);
         const fields = document.createElement('div');
         fields.className = 'mapping-fields';
         core.FIELD_DEFINITIONS.forEach(function (definition) {
@@ -2855,6 +2979,17 @@
     };
   }
 
+  function refreshColumnCatalogOwnership(file) {
+    if (!file || !Array.isArray(file.columnCatalog)) {
+      return;
+    }
+    file.columnCatalog.forEach(function (entry) {
+      entry.sourceFileId = file.id;
+      entry.sourceFileName = file.name;
+      entry.sourceFileLabel = file.label;
+    });
+  }
+
   function detailRowsForReferences(references, start, end) {
     const values = Array.isArray(references) ? references : [];
     const first = Number.isInteger(start) ? Math.max(0, start) : 0;
@@ -2893,6 +3028,9 @@
             locale: state.language,
             sourceFile: sourceContext(file)
           });
+        if (file.result && Array.isArray(file.result.columnCatalog)) {
+          file.columnCatalog = file.result.columnCatalog;
+        }
       } else {
         file.result = null;
       }
@@ -2964,6 +3102,7 @@
     file.headers = [];
     file.mapping = {};
     file.confirmedMapping = null;
+    file.columnCatalog = [];
     file.dataRowCount = 0;
     file.hasParseErrors = false;
     file.result = null;
@@ -2989,10 +3128,17 @@
             yield chunk;
           }
         }());
-        parsed = core.parseCsvChunks(chunks, { retainRows: false });
+        const profiled = core.profileCsvStreamingChunks(chunks, {
+          sourceFile: { id: file.id, name: file.name, label: file.label, sourceType: file.sourceType }
+        });
+        parsed = { rows: [], headers: profiled.headers, errors: profiled.errors, dataRowCount: profiled.dataRowCount };
+        file.columnCatalog = profiled.columnCatalog;
         contentFingerprint = length + ':' + first.toString(16) + ':' + second.toString(16);
       } else {
         parsed = core.parseCsv(decoded.text);
+        file.columnCatalog = core.profileParsedCsv(parsed, {
+          id: file.id, name: file.name, label: file.label, sourceType: file.sourceType
+        }).columnCatalog;
         contentFingerprint = fingerprint(decoded.text);
       }
       const headers = streaming
@@ -3011,6 +3157,14 @@
       }
       file.parsed = parsed;
       file.headers = headers;
+      if (!Array.isArray(file.columnCatalog) || file.columnCatalog.length !== file.headers.length) {
+        file.columnCatalog = core.buildColumnCatalog(file.headers, {
+          id: file.id,
+          name: file.name,
+          label: file.label,
+          sourceType: file.sourceType
+        });
+      }
       file.mapping = core.detectMapping(file.headers);
       file.dataRowCount = streaming
         ? Number(parsed.dataRowCount || 0)
@@ -3064,6 +3218,7 @@
     const labeled = core.assignSourceFileLabels(descriptors);
     state.files.forEach(function (file, index) {
       file.label = labeled[index].label;
+      refreshColumnCatalogOwnership(file);
     });
     const newEntries = labeled.slice(state.files.length).map(function (source, index) {
       return {
@@ -3085,6 +3240,7 @@
         headers: [],
         mapping: {},
         confirmedMapping: null,
+        columnCatalog: [],
         dataRowCount: 0,
         hasParseErrors: false,
         result: null,
@@ -3182,6 +3338,7 @@
       headers: [],
       mapping: {},
       confirmedMapping: null,
+      columnCatalog: Array.isArray(stored.columnCatalog) ? stored.columnCatalog : [],
       dataRowCount: 0,
       hasParseErrors: false,
       result: null,
@@ -3217,6 +3374,7 @@
         errorKey: file.errorKey,
         mapping: file.mapping,
         confirmedMapping: file.confirmedMapping,
+        columnCatalog: file.columnCatalog,
         result: file.result,
         sourceType: workspaceModel.normalizeSourceType(file.sourceType)
       };
@@ -3263,6 +3421,9 @@
               locale: language,
               sourceFile: sourceContext(file)
             });
+          if (file.result && Array.isArray(file.result.columnCatalog)) {
+            file.columnCatalog = file.result.columnCatalog;
+          }
         }
         return file;
       });
@@ -4298,6 +4459,7 @@
     const relabeled = core.assignSourceFileLabels(state.files);
     relabeled.forEach(function (source, index) {
       state.files[index].label = source.label;
+      refreshColumnCatalogOwnership(state.files[index]);
     });
     elements.fileInput.value = '';
     if (state.files.length === 0) {

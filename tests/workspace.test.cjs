@@ -126,6 +126,41 @@ test('source types are explicit, constrained, and available for future import ki
   );
 });
 
+test('workspace validation preserves an ordered source column catalog', () => {
+  const record = analyzedWorkspace('workspace-column-catalog', 'Column catalog', 'SKU-CATALOG');
+  record.files[0].result = null;
+  record.files[0].columnCatalog = [
+    {
+      position: 0,
+      header: 'Artikelnummer',
+      normalizedHeader: 'artikelnummer',
+      occurrence: 1,
+      isDuplicate: false,
+      sourceFileId: 'source-1',
+      sourceFileName: 'source-1.csv',
+      sourceFileLabel: 'source-1.csv',
+      profile: {
+        totalRows: 1,
+        nonEmptyCount: 1,
+        frequentValues: [{ value: 'SKU-1', truncated: false, count: 2, countIsEstimate: true }]
+      }
+    },
+    { position: 1, header: 'Menge', normalizedHeader: 'menge', occurrence: 1, isDuplicate: false, sourceFileId: 'source-1', sourceFileName: 'source-1.csv', sourceFileLabel: 'source-1.csv' },
+    { position: 2, header: 'Menge', normalizedHeader: 'menge', occurrence: 2, isDuplicate: true, sourceFileId: 'source-1', sourceFileName: 'source-1.csv', sourceFileLabel: 'source-1.csv' }
+  ];
+
+  const validated = workspace.validateWorkspace(record);
+  assert.equal(validated.files[0].columnCatalog[2].position, 2);
+  assert.equal(validated.files[0].columnCatalog[2].isDuplicate, true);
+  assert.equal(validated.files[0].columnCatalog[0].profile.frequentValues[0].countIsEstimate, true);
+  assert.throws(
+    () => workspace.validateWorkspace(Object.assign({}, record, {
+      files: [Object.assign({}, record.files[0], { columnCatalog: [{ position: 1, header: 'Menge', normalizedHeader: 'menge', occurrence: 1 }] })]
+    })),
+    (error) => error.code === 'invalid_column_catalog'
+  );
+});
+
 test('trusted validation can retain large payload references without copying them', () => {
   const original = analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1');
   const originalBuffer = original.files[0].buffer;
@@ -405,6 +440,35 @@ test('schema-three migration adds the explicit default source type', () => {
   legacy.files[0].sourceType = 'article-master';
   const preserved = workspace.migrateWorkspace(legacy);
   assert.equal(preserved.files[0].sourceType, 'article-master');
+});
+
+test('schema-four migration adds an empty source column catalog', () => {
+  const legacy = analyzedWorkspace('workspace-v4', 'Version four', 'SKU-V4');
+  legacy.schemaVersion = 4;
+  delete legacy.files[0].columnCatalog;
+
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.deepEqual(migrated.files[0].columnCatalog, []);
+});
+
+test('schema-five migration keeps source catalogs and adds empty profiles', () => {
+  const legacy = analyzedWorkspace('workspace-v5', 'Version five', 'SKU-V5');
+  legacy.schemaVersion = 5;
+  legacy.files[0].columnCatalog = ['order_id', 'article_id', 'quantity', 'order_date'].map((header, position) => ({
+    position,
+    header,
+    normalizedHeader: header,
+    occurrence: 1,
+    isDuplicate: false,
+    sourceFileId: 'source-1',
+    sourceFileName: 'source-1.csv',
+    sourceFileLabel: 'source-1.csv'
+  }));
+
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.deepEqual(migrated.files[0].columnCatalog[0].profile.sampleValues, []);
 });
 
 test('period settings without a mode preserve existing dated ranges as custom', () => {

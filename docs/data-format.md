@@ -10,6 +10,24 @@ Every imported source carries a stable `sourceType`. The supported values are
 current implementation, but the source type is preserved through mapping,
 storage, backup, restore, and worker preparation for future use.
 
+Every readable source also exposes an ordered `columnCatalog`. Each entry uses
+the zero-based physical `position`, the trimmed source `header`, its
+`normalizedHeader` used by automatic mapping, a one-based `occurrence` within
+that normalized header, and `isDuplicate`. Source ownership is retained with
+`sourceFileId`, `sourceFileName`, and `sourceFileLabel`. Empty headers remain
+catalog entries, and duplicate headers remain independently addressable by
+position. During streaming import each entry also receives a bounded `profile`
+with row/empty counts, numeric/date/text compatibility counts, a bounded
+distinct-value count, up to five representative non-empty `sampleValues`, and
+up to five `frequentValues`. Distinct tracking is capped at 256 values and
+sample/frequency values are capped at 256 characters; `distinctValueCountExact`
+is false when either bound can make the count approximate. When the distinct
+value cap is reached, or when distinct values share a truncated profile value,
+tracking may retain a `frequentValues` entry with `countIsEstimate: true`; its
+count is a bounded estimate, not an exact frequency. Thus high-cardinality or
+large sources cannot grow metadata without bound. These are bounded evidence
+values, not a replacement for the retained original source bytes.
+
 ## Input file
 
 The browser interface accepts one or more CSV files encoded as UTF-8, UTF-16, or Windows-1252. Every file is decoded and parsed independently. Decoding first honors UTF-8 and UTF-16 byte-order marks, then detects plausible BOM-less UTF-16, attempts strict UTF-8, and finally falls back to Windows-1252 when UTF-8 decoding fails. The detected encoding is shown for each file. Users can explicitly retry that file as UTF-8, UTF-16 LE, UTF-16 BE, or Windows-1252; changing one encoding does not reprocess another file. Other legacy encodings are not supported. The default delimiter is a semicolon (`;`). The first parsed record in each file is required as that file's header row.
@@ -61,6 +79,16 @@ The following aliases are detected automatically:
 | `quantity_per_sales_unit` | `quantity_per_sales_unit`, `quantity per sales unit`, `quantity per selling unit`, `menge pro vku`, `menge je vku`, `inhalt`, `inh` |
 
 The mapping screen permits an independent manual source-column selection for every file in the current batch. Mappings are persisted inside the active local workspace. Automatic detection assigns the first unused matching source column within that file. A source column cannot be mapped to more than one OpenSlotting field. A reused source column or a missing required mapping blocks that file; it does not block ready files in the same batch.
+
+The mapping screen also shows every decoded source column with its physical
+position, current use, bounded profile, and representative examples. Mapping
+suggestions are separate from confirmed mappings. They combine exact aliases,
+safe header similarity, and compatible number/date/text profile evidence. Exact
+aliases are high confidence; heuristic candidates are medium or low confidence.
+Tied candidates are marked ambiguous and are never applied automatically.
+Only a unique high-confidence candidate that does not reuse a source position is
+eligible for automatic application by a future mapping workflow; the current UI
+leaves user mappings authoritative.
 
 ## Validation behavior
 

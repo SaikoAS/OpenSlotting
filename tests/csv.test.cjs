@@ -271,7 +271,16 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(storageSource, /workspaceIssueChunks/);
   assert.match(appSource, /decodeBufferChunksDetailed/);
   assert.match(appSource, /importCsvStreamingChunks/);
+  assert.match(appSource, /profileCsvStreamingChunks/);
+  assert.match(appSource, /profileParsedCsv/);
+  assert.match(appSource, /function refreshColumnCatalogOwnership\(file\)/);
+  assert.match(appSource, /refreshColumnCatalogOwnership\(file\)/);
+  assert.match(appSource, /refreshColumnCatalogOwnership\(state\.files\[index\]\)/);
   assert.match(appSource, /createAnalysisAccumulator/);
+  assert.match(appSource, /buildMappingSuggestions/);
+  assert.match(appSource, /source-column-overview/);
+  assert.match(appSource, /source_column_ambiguous/);
+  assert.match(appSource, /crossFieldTie/);
 
   const referencedIds = [...appSource.matchAll(/document\.getElementById\('([^']+)'\)/g)].map((match) => match[1]);
   referencedIds.forEach((id) => {
@@ -369,6 +378,200 @@ test('incremental analysis keeps multi-source provenance and ordering determinis
   ], { analysisAccumulator: accumulator });
   assert.deepEqual(accumulator.finish(), csv.analyzeRows(combined.rows));
   assert.deepEqual(accumulator.finish().articles[0].source_files, ['a.csv', 'b.csv']);
+});
+
+test('source column catalogs preserve duplicate, empty, German, and source ownership metadata', () => {
+  const catalog = csv.buildColumnCatalog(
+    ['Artikelnummer', 'Menge', 'Menge', '', 'Änderung'],
+    { id: 'source-catalog', name: 'catalog.csv', label: 'catalog.csv' }
+  );
+
+  assert.deepEqual(catalog.map((entry) => entry.position), [0, 1, 2, 3, 4]);
+  assert.equal(catalog[0].header, 'Artikelnummer');
+  assert.equal(catalog[0].normalizedHeader, 'artikelnummer');
+  assert.equal(catalog[1].occurrence, 1);
+  assert.equal(catalog[2].occurrence, 2);
+  assert.equal(catalog[2].isDuplicate, true);
+  assert.equal(catalog[3].header, '');
+  assert.equal(catalog[3].normalizedHeader, '');
+  assert.equal(catalog[4].normalizedHeader, 'aenderung');
+  assert.ok(catalog.every((entry) => entry.sourceFileId === 'source-catalog'));
+});
+
+test('multi-source imports keep independent ordered column catalogs', () => {
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
+  const first = csv.importCsv('order_id;article_id;quantity;order_date\nO-1;SKU-A;1;2026-09-12\n', mapping, {
+    sourceFile: { id: 'source-a', name: 'a.csv', label: 'a.csv' }
+  });
+  const second = csv.importCsv('order_id;article_id;quantity;order_date;quantity\nO-2;SKU-B;2;2026-09-13;2\n', mapping, {
+    sourceFile: { id: 'source-b', name: 'b.csv', label: 'b.csv' }
+  });
+
+  const combined = csv.combineImportResults([
+    { id: 'source-a', name: 'a.csv', label: 'a.csv', result: first },
+    { id: 'source-b', name: 'b.csv', label: 'b.csv', result: second }
+  ]);
+
+  assert.equal(second.validRows, 1);
+  assert.equal(combined.rows[1].article_id, 'SKU-B');
+  assert.equal(combined.files[0].columnCatalog.length, 4);
+  assert.equal(combined.files[1].columnCatalog.length, 5);
+  assert.equal(combined.files[1].columnCatalog[4].occurrence, 2);
+  assert.equal(combined.files[0].columnCatalog[0].sourceFileId, 'source-a');
+  assert.equal(combined.files[1].columnCatalog[0].sourceFileId, 'source-b');
+});
+
+test('streaming imports profile every source column with bounded evidence', () => {
+  const result = csv.importCsvStreaming([
+    'article_id;order_id;quantity;order_date;note',
+    'A-1;O-1;1;2026-01-02;alpha',
+    ';O-2;2;not-a-date;beta',
+    'A-1;O-3;3;2026-01-03;alpha'
+  ].join('\n'), null, { sourceFile: { id: 'source-profile', name: 'profile.csv' } });
+
+  const article = result.columnCatalog[0].profile;
+  assert.equal(article.totalRows, 3);
+  assert.equal(article.nonEmptyCount, 2);
+  assert.equal(article.emptyCount, 1);
+  assert.equal(article.distinctValueCount, 1);
+  assert.equal(article.distinctValueCountExact, true);
+  assert.deepEqual(article.sampleValues.map((entry) => entry.value), ['A-1']);
+  assert.equal(article.frequentValues[0].value, 'A-1');
+  assert.equal(article.frequentValues[0].count, 2);
+  assert.equal(article.frequentValues[0].countIsEstimate, false);
+
+  const quantity = result.columnCatalog[2].profile;
+  assert.equal(quantity.numericCompatibleCount, 3);
+  assert.equal(quantity.dateCompatibleCount, 0);
+  assert.equal(quantity.incompatibleCount, 0);
+
+  const date = result.columnCatalog[3].profile;
+  assert.equal(date.dateCompatibleCount, 2);
+  assert.equal(date.incompatibleCount, 1);
+});
+
+test('mapping profiles can be prepared before the mapping screen', () => {
+  const sourceFile = { id: 'source-preflight', name: 'preflight.csv', label: 'preflight.csv' };
+  const parsed = csv.parseCsv('primary customer reference;quantity\nC-1;2\nC-2;3\n');
+  const parsedProfile = csv.profileParsedCsv(parsed, sourceFile);
+  assert.equal(parsedProfile.dataRowCount, 2);
+  assert.equal(parsedProfile.columnCatalog[0].profile.totalRows, 2);
+  assert.equal(parsedProfile.columnCatalog[1].profile.numericCompatibleCount, 2);
+
+  const streamingProfile = csv.profileCsvStreamingChunks([
+    'primary customer reference;quantity\nC-1;',
+    '2\nC-2;3\n'
+  ], { sourceFile: sourceFile });
+  assert.equal(streamingProfile.dataRowCount, 2);
+  assert.equal(streamingProfile.columnCatalog[0].profile.totalRows, 2);
+  assert.equal(streamingProfile.columnCatalog[1].profile.numericCompatibleCount, 2);
+});
+
+test('column profile samples and distinct tracking remain bounded for high-cardinality sources', () => {
+  const rows = ['article_id;order_id;quantity;order_date'];
+  for (let index = 0; index < 400; index += 1) {
+    rows.push('A-' + index + ';O-' + index + ';1;2026-01-02');
+  }
+  const result = csv.importCsvStreaming(rows.join('\n'), null, { sourceFile: { id: 'source-bounded', name: 'bounded.csv' } });
+  const profile = result.columnCatalog[0].profile;
+  assert.equal(profile.totalRows, 400);
+  assert.equal(profile.distinctValueCount, 256);
+  assert.equal(profile.distinctValueCountExact, false);
+  assert.equal(profile.sampleValues.length, 5);
+  assert.equal(profile.frequentValues.length, 5);
+  assert.ok(profile.sampleValues.every((entry) => entry.value.length <= 256));
+});
+
+test('bounded frequency tracking retains values that become frequent late in the stream', () => {
+  const rows = ['article_id;order_id;quantity;order_date'];
+  for (let index = 0; index < 256; index += 1) {
+    rows.push('A-' + index + ';O-' + index + ';1;2026-01-02');
+  }
+  for (let index = 0; index < 100; index += 1) {
+    rows.push('LATE;L-' + index + ';1;2026-01-02');
+  }
+  const profile = csv.importCsvStreaming(rows.join('\n')).columnCatalog[0].profile;
+  assert.equal(profile.distinctValueCount, 256);
+  assert.equal(profile.distinctValueCountExact, false);
+  assert.equal(profile.frequentValues[0].value, 'LATE');
+  assert.ok(profile.frequentValues[0].count >= 100);
+  assert.equal(profile.frequentValues[0].countIsEstimate, true);
+});
+
+test('replacement frequency counts are explicitly marked as estimates', () => {
+  const rows = ['article_id;order_id;quantity;order_date'];
+  for (let index = 0; index <= 256; index += 1) {
+    rows.push('A-' + index + ';O-' + index + ';1;2026-01-02');
+  }
+  const profile = csv.importCsvStreaming(rows.join('\n')).columnCatalog[0].profile;
+  const replacement = profile.frequentValues.find((entry) => entry.value === 'A-256');
+  assert.ok(replacement);
+  assert.equal(replacement.count, 2);
+  assert.equal(replacement.countIsEstimate, true);
+});
+
+test('truncated profile values mark colliding frequency counts as estimates', () => {
+  const prefix = 'X'.repeat(256);
+  const result = csv.importCsvStreaming([
+    'value',
+    prefix + 'A',
+    prefix + 'B'
+  ].join('\n'));
+  const profile = result.columnCatalog[0].profile;
+  assert.equal(profile.distinctValueCountExact, false);
+  assert.equal(profile.frequentValues[0].count, 2);
+  assert.equal(profile.frequentValues[0].countIsEstimate, true);
+});
+
+test('parsed imports profile rows before returning mapping errors', () => {
+  const parsed = csv.parseCsv('mystery;other\nA;1\nB;2\n');
+  const result = csv.importParsedCsv(parsed, {});
+  assert.equal(result.blocking, true);
+  assert.equal(result.totalRows, 2);
+  assert.equal(result.columnCatalog[0].profile.totalRows, 2);
+  assert.equal(result.columnCatalog[0].profile.sampleValues[0].value, 'A');
+  assert.equal(result.columnCatalog[1].profile.numericCompatibleCount, 2);
+});
+
+test('mapping suggestions expose explainable confidence, profile reasons, and ambiguity', () => {
+  const suggestions = csv.buildMappingSuggestions(
+    ['AuftragsNr', 'Menge', 'Datum', 'Artikeltext'],
+    [
+      { nonEmptyCount: 2, textCompatibleCount: 2 },
+      { nonEmptyCount: 2, numericCompatibleCount: 2 },
+      { nonEmptyCount: 2, dateCompatibleCount: 2 },
+      { nonEmptyCount: 2, textCompatibleCount: 2 }
+    ]
+  );
+  assert.equal(suggestions.order_id[0].confidence, 'high');
+  assert.ok(suggestions.order_id[0].reasons.includes('exact_alias'));
+  assert.equal(suggestions.quantity[0].sourcePosition, 1);
+  assert.equal(suggestions.order_date[0].sourcePosition, 2);
+  assert.equal(suggestions.quantity[0].automaticApplicationSafe, true);
+
+  const ambiguous = csv.buildMappingSuggestions(
+    ['Menge', 'Qty'],
+    [{ nonEmptyCount: 1, numericCompatibleCount: 1 }, { nonEmptyCount: 1, numericCompatibleCount: 1 }]
+  );
+  assert.equal(ambiguous.quantity[0].ambiguity, true);
+  assert.equal(ambiguous.quantity[1].ambiguity, true);
+  assert.equal(ambiguous.quantity[0].automaticApplicationSafe, false);
+});
+
+test('mapping similarity preserves word boundaries for multiword headers', () => {
+  const suggestions = csv.buildMappingSuggestions(
+    ['primary customer reference', 'primary order reference'],
+    [
+      { nonEmptyCount: 1, textCompatibleCount: 1 },
+      { nonEmptyCount: 1, textCompatibleCount: 1 }
+    ]
+  );
+  const customerSuggestion = suggestions.customer_id.find((candidate) => candidate.sourcePosition === 0);
+  assert.ok(customerSuggestion);
+  assert.ok(customerSuggestion.reasons.includes('header_similarity'));
+  const orderSuggestion = suggestions.order_id.find((candidate) => candidate.sourcePosition === 1);
+  assert.ok(orderSuggestion);
+  assert.ok(orderSuggestion.reasons.includes('header_similarity'));
 });
 
 test('import and combined results retain the explicit source type', () => {

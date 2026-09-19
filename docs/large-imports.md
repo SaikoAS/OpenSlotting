@@ -87,3 +87,24 @@ Der reguläre Testlauf enthält zusätzlich einen 130.000-Zeilen-Test, der die
 Zeilenzählung, Provenienz und das stack-sichere Zusammenführen prüft. Die
 700.000-Zeilen-Messung bleibt bewusst ein expliziter Benchmark und belastet
 nicht jeden normalen Testlauf.
+
+## Spaltenprofile und Beispielwerte
+
+Der Streaming-Importer erzeugt pro Quellspalte zusätzlich ein Profil für die
+spätere Mapping-/Qualitätsdarstellung. Dafür bleiben je Spalte höchstens 256
+Distinct-Werte für die Häufigkeitsauswahl, fünf Beispielwerte und fünf
+Häufigkeitswerte erhalten; einzelne Werte werden auf 256 Zeichen begrenzt.
+Damit wächst die Profil-Metadatenmenge nicht mit der Zeilenzahl. Die
+`distinctValueCountExact`-Markierung weist auf eine erreichte Begrenzung oder
+gekürzte Werte hin.
+
+Als aktuelle synthetische Referenz auf dem Entwicklungsrechner (Commit
+`9b2ef62`, Node mit `--expose-gc`, 700.000 schmale Zeilen) meldete der
+profilierte Chunked-Lauf rund 2.193 ms Importzeit und 574,7 MB Spitzen-RSS.
+Der Vergleichslauf mit vollständiger Vorab-Decodierung lag bei rund 2.139 ms
+und 517,3 MB Spitzen-RSS. Dieser Vergleich ändert zugleich den
+Decodierungspfad und isoliert daher nicht den Profilierungsanteil; die Werte
+sind ein reproduzierbarer Speicher-/Zeit-Rahmen, keine kausale
+Profilierungs-Messung. Für die Produktentscheidung zählt die harte
+Metadatenbegrenzung zusammen mit einer späteren Edge-Messung mit realer
+Spaltenbreite.

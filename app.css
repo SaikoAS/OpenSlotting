@@ -105,6 +105,16 @@ input[type="file"] { display: block; margin-top: 16px; width: 100%; color: var(-
 .status-text { margin: 16px 0 0; }
 
 .mapping-grid { display: grid; gap: 18px; margin: 24px 0; }
+.source-column-overview { margin: 16px 0 20px; }
+.source-column-overview h4 { margin: 0 0 4px; }
+.source-column-overview .table-note { margin: 0 0 10px; }
+.source-column-table { width: 100%; min-width: 680px; border-collapse: collapse; font-size: .8rem; }
+.source-column-table th, .source-column-table td { padding: 8px 10px; border-bottom: 1px solid var(--cool-line); text-align: left; vertical-align: top; }
+.source-column-table th { color: var(--ink); font-weight: 700; }
+.source-column-suggestion { font-size: .72rem; font-weight: 600; }
+.source-column-suggestion.high { color: var(--success); }
+.source-column-suggestion.medium { color: var(--warning); }
+.source-column-suggestion.low { color: var(--muted); }
 .mapping-file { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: #fbfcfc; }
 .mapping-file.blocked { border-color: #e6b8b8; background: var(--danger-soft); }
 .mapping-file-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
