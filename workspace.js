@@ -8,11 +8,13 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 3;
+  const WORKSPACE_SCHEMA_VERSION = 4;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
   const SUPPORTED_SOURCE_ENCODINGS = Object.freeze(['utf-8', 'utf-16le', 'utf-16be', 'windows-1252']);
+  const SOURCE_TYPES = Object.freeze(['order-lines', 'article-master']);
+  const DEFAULT_SOURCE_TYPE = 'order-lines';
   const SOURCE_ID_PATTERN = /^source-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
   const MAX_SOURCE_ID_LENGTH = 128;
 
@@ -45,6 +47,16 @@
       validationError('workspace_name_too_long', 'Workspace name is too long.');
     }
     return name;
+  }
+
+  function normalizeSourceType(value) {
+    const sourceType = value === undefined || value === null || value === ''
+      ? DEFAULT_SOURCE_TYPE
+      : String(value);
+    if (SOURCE_TYPES.indexOf(sourceType) < 0) {
+      validationError('invalid_source_type', 'Source type is not supported.');
+    }
+    return sourceType;
   }
 
   function createId(prefix, randomUuid) {
@@ -343,7 +355,8 @@
       errorKey: file.errorKey ? String(file.errorKey) : null,
       mapping: mapping,
       confirmedMapping: confirmedMapping,
-      result: result
+      result: result,
+      sourceType: normalizeSourceType(file.sourceType)
     };
   }
 
@@ -431,7 +444,7 @@
       validationError('invalid_workspace', 'Workspace must be an object.');
     }
     const schemaVersion = Number(workspace.schemaVersion);
-    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2) {
+    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3) {
       const migrated = cloneValue(workspace, options);
       const migrationTarget = options && options.clonePayload === false ? Object.assign({}, migrated) : migrated;
       if (schemaVersion === 0) {
@@ -452,7 +465,16 @@
           return migratedFile;
         }) : [];
       }
-      migrationTarget.schemaVersion = 3;
+      if (schemaVersion <= 3) {
+        migrationTarget.files = Array.isArray(migrationTarget.files) ? migrationTarget.files.map(function (file) {
+          const migratedFile = isPlainObject(file) ? file : {};
+          if (migratedFile.sourceType === undefined || migratedFile.sourceType === null || migratedFile.sourceType === '') {
+            migratedFile.sourceType = DEFAULT_SOURCE_TYPE;
+          }
+          return migratedFile;
+        }) : [];
+      }
+      migrationTarget.schemaVersion = WORKSPACE_SCHEMA_VERSION;
       migrationTarget.periodSettings = normalizePeriodSettings(migrationTarget.periodSettings);
       return validateWorkspace(migrationTarget, options);
     }
@@ -501,7 +523,8 @@
         errorKey: file.errorKey || null,
         mapping: file.mapping,
         confirmedMapping: file.confirmedMapping,
-        result: file.result
+        result: file.result,
+        sourceType: normalizeSourceType(file.sourceType)
       };
     }) : [];
     return {
@@ -678,8 +701,11 @@
     BACKUP_FORMAT: BACKUP_FORMAT,
     BACKUP_FORMAT_VERSION: BACKUP_FORMAT_VERSION,
     MAX_WORKSPACE_NAME_LENGTH: MAX_WORKSPACE_NAME_LENGTH,
+    SOURCE_TYPES: SOURCE_TYPES,
+    DEFAULT_SOURCE_TYPE: DEFAULT_SOURCE_TYPE,
     WorkspaceValidationError: WorkspaceValidationError,
     assertWorkspaceName: assertWorkspaceName,
+    normalizeSourceType: normalizeSourceType,
     createId: createId,
     createWorkspace: createWorkspace,
     validateMappingRange: validateMappingRange,

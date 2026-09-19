@@ -112,6 +112,22 @@ test('persists large results as independently addressable row and issue chunks',
   assert.equal(restored.files[0].result.rows[10000].article_id, 'SKU-10000');
 });
 
+test('chunked storage round trip preserves the explicit source type', async () => {
+  const indexedDB = createFakeIndexedDB();
+  const databaseName = 'source-type-storage-test';
+  const repository = storage.createRepository({ indexedDB, databaseName });
+  const original = workspaceWithSource('workspace-source-type', 'Source type', 'SKU-MASTER');
+  original.files[0].sourceType = 'article-master';
+  const validated = workspace.validateWorkspace(original);
+
+  await repository.createWorkspace(validated);
+
+  const storedSource = indexedDB.inspect(databaseName, 'workspaceSources')[0];
+  assert.equal(storedSource.sourceType, 'article-master');
+  const restored = await repository.loadWorkspace(validated.id);
+  assert.equal(restored.files[0].sourceType, 'article-master');
+});
+
 test('renaming and replacing one workspace does not alter another workspace', async () => {
   const indexedDB = createFakeIndexedDB();
   const repository = storage.createRepository({ indexedDB, databaseName: 'replace-test' });

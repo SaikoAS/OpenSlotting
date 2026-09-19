@@ -2,6 +2,14 @@
 
 This document defines the current import, normalization, multi-export aggregation, and analysis-export contract implemented by OpenSlotting. It describes current behavior, not planned features.
 
+## Source types
+
+Every imported source carries a stable `sourceType`. The supported values are
+`order-lines` and `article-master`; existing sources and new imports default to
+`order-lines`. Article-master-specific parsing and joins are not part of the
+current implementation, but the source type is preserved through mapping,
+storage, backup, restore, and worker preparation for future use.
+
 ## Input file
 
 The browser interface accepts one or more CSV files encoded as UTF-8, UTF-16, or Windows-1252. Every file is decoded and parsed independently. Decoding first honors UTF-8 and UTF-16 byte-order marks, then detects plausible BOM-less UTF-16, attempts strict UTF-8, and finally falls back to Windows-1252 when UTF-8 decoding fails. The detected encoding is shown for each file. Users can explicitly retry that file as UTF-8, UTF-16 LE, UTF-16 BE, or Windows-1252; changing one encoding does not reprocess another file. Other legacy encodings are not supported. The default delimiter is a semicolon (`;`). The first parsed record in each file is required as that file's header row.

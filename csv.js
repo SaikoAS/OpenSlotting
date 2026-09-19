@@ -537,7 +537,10 @@
     return {
       id: source.id === undefined || source.id === null ? null : String(source.id),
       name: name || null,
-      label: label || name || null
+      label: label || name || null,
+      sourceType: source.sourceType === undefined || source.sourceType === null || source.sourceType === ''
+        ? 'order-lines'
+        : String(source.sourceType)
     };
   }
 
@@ -1408,7 +1411,8 @@
       const source = normalizeSourceFile({
         id: sourceId,
         name: file.name,
-        label: file.label
+        label: file.label,
+        sourceType: file.sourceType
       });
       const result = file.result || null;
       const included = Boolean(result && !result.blocking);
@@ -1450,7 +1454,12 @@
         id: source.id,
         name: source.name,
         label: source.label,
-        result: result ? Object.assign({}, result, { rows: normalizedRows, issues: normalizedIssues }) : null
+        sourceType: source.sourceType,
+        result: result ? Object.assign({}, result, {
+          rows: normalizedRows,
+          issues: normalizedIssues,
+          sourceFile: source
+        }) : null
       }));
 
       totalRows += result ? result.totalRows : 0;
@@ -1473,6 +1482,7 @@
         id: source.id,
         name: source.name,
         label: source.label,
+        sourceType: source.sourceType,
         included: included,
         blocking: !included,
         errorCode: file.errorCode || file.errorKey || null,

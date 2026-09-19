@@ -371,6 +371,21 @@ test('incremental analysis keeps multi-source provenance and ordering determinis
   assert.deepEqual(accumulator.finish().articles[0].source_files, ['a.csv', 'b.csv']);
 });
 
+test('import and combined results retain the explicit source type', () => {
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
+  const result = csv.importCsv(
+    'order_id;article_id;quantity;order_date\nO-1;SKU-TYPE;1;2026-09-12\n',
+    mapping,
+    { sourceFile: { id: 'source-type', name: 'type.csv', label: 'type.csv', sourceType: 'article-master' } }
+  );
+
+  assert.equal(result.sourceFile.sourceType, 'article-master');
+  const combined = csv.combineImportResults([
+    { id: 'source-type', name: 'type.csv', label: 'type.csv', sourceType: 'article-master', result: result }
+  ]);
+  assert.equal(combined.files[0].sourceType, 'article-master');
+});
+
 test('incremental analysis consumes provenance finalized by batch combination', () => {
   const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
   const result = csv.importCsvStreaming('order_id;article_id;quantity;order_date\nO-1;SKU-C;1;2026-09-12\n', mapping);
