@@ -273,6 +273,9 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /importCsvStreamingChunks/);
   assert.match(appSource, /profileCsvStreamingChunks/);
   assert.match(appSource, /profileParsedCsv/);
+  assert.match(appSource, /function refreshColumnCatalogOwnership\(file\)/);
+  assert.match(appSource, /refreshColumnCatalogOwnership\(file\)/);
+  assert.match(appSource, /refreshColumnCatalogOwnership\(state\.files\[index\]\)/);
   assert.match(appSource, /createAnalysisAccumulator/);
   assert.match(appSource, /buildMappingSuggestions/);
   assert.match(appSource, /source-column-overview/);

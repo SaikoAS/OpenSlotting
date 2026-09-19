@@ -2979,6 +2979,17 @@
     };
   }
 
+  function refreshColumnCatalogOwnership(file) {
+    if (!file || !Array.isArray(file.columnCatalog)) {
+      return;
+    }
+    file.columnCatalog.forEach(function (entry) {
+      entry.sourceFileId = file.id;
+      entry.sourceFileName = file.name;
+      entry.sourceFileLabel = file.label;
+    });
+  }
+
   function detailRowsForReferences(references, start, end) {
     const values = Array.isArray(references) ? references : [];
     const first = Number.isInteger(start) ? Math.max(0, start) : 0;
@@ -3207,6 +3218,7 @@
     const labeled = core.assignSourceFileLabels(descriptors);
     state.files.forEach(function (file, index) {
       file.label = labeled[index].label;
+      refreshColumnCatalogOwnership(file);
     });
     const newEntries = labeled.slice(state.files.length).map(function (source, index) {
       return {
@@ -4447,6 +4459,7 @@
     const relabeled = core.assignSourceFileLabels(state.files);
     relabeled.forEach(function (source, index) {
       state.files[index].label = source.label;
+      refreshColumnCatalogOwnership(state.files[index]);
     });
     elements.fileInput.value = '';
     if (state.files.length === 0) {
