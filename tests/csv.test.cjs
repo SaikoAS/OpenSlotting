@@ -78,6 +78,11 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.ok(deleteBody);
   assert.ok(renameBody);
   assert.ok(clearViewBody);
+  assert.doesNotMatch(clearViewBody[1].split('  async function recoverWorkspaceCatalogAfterMissing')[0], /state\.customFields\s*=\s*\[\]/);
+  assert.match(appSource, /rename\.disabled\s*=\s*state\.workspaceLoading/);
+  assert.match(appSource, /remove\.disabled\s*=\s*state\.workspaceLoading/);
+  assert.match(appSource, /activeCustomFieldIds/);
+  assert.match(appSource, /stored\.confirmedCustomFieldMapping === null \|\| stored\.confirmedCustomFieldMapping === undefined/);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /id="workspace-open"/);
   assert.match(indexSource, /id="workspace-load-progress"/);
@@ -1157,6 +1162,65 @@ test('article search matches IDs and descriptions', () => {
   assert.equal(csv.articleMatchesQuery(article, '  CITRUS  ', 'en'), true);
   assert.equal(csv.articleMatchesQuery(article, 'steel', 'en'), false);
   assert.equal(csv.articleMatchesQuery(article, '', 'de'), true);
+});
+
+test('custom field mappings preserve source values without changing core analysis', () => {
+  const result = csv.importCsvStreaming(
+    'order_id;article_id;quantity;order_date;Zone\nO1;A1;2;2026-09-01;Cold\n',
+    { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    {
+      sourceFile: { id: 'source-custom', name: 'custom.csv', label: 'custom.csv' },
+      customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }],
+      customFieldMapping: { 'custom-zone': 4 }
+    }
+  );
+  assert.equal(result.blocking, false);
+  assert.deepEqual(result.rows[0].custom_fields, { 'custom-zone': 'Cold' });
+  assert.equal(csv.analyzeRows(result.rows).articles[0].article_id, 'A1');
+});
+
+test('custom field mappings cannot reuse a core source column', () => {
+  const result = csv.importCsvStreaming(
+    'order_id;article_id;quantity;order_date\nO1;A1;2;2026-09-01\n',
+    { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    {
+      sourceFile: { id: 'source-custom-duplicate', name: 'custom.csv', label: 'custom.csv' },
+      customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }],
+      customFieldMapping: { 'custom-zone': 1 }
+    }
+  );
+  assert.equal(result.blocking, true);
+  assert.ok(result.issues.some((issue) => issue.code === 'source_column_reused'));
+});
+
+test('custom field mapping diagnostics follow the selected locale', () => {
+  const result = csv.importCsvStreaming(
+    'order_id;article_id;quantity;order_date\nO1;A1;2;2026-09-01\n',
+    { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    {
+      locale: 'de',
+      sourceFile: { id: 'source-custom-locale', name: 'custom.csv', label: 'custom.csv' },
+      customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }],
+      customFieldMapping: { 'custom-zone': 1 }
+    }
+  );
+  const issue = result.issues.find((item) => item.code === 'source_column_reused');
+  assert.ok(issue);
+  assert.equal(issue.message, 'Eine Quellspalte darf nur einmal zugeordnet werden.');
+});
+
+test('inactive custom fields do not block existing source mappings', () => {
+  const result = csv.importCsvStreaming(
+    'order_id;article_id;quantity;order_date;Zone\nO1;A1;2;2026-09-01;Cold\n',
+    { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    {
+      sourceFile: { id: 'source-custom-inactive', name: 'custom.csv', label: 'custom.csv' },
+      customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: false }],
+      customFieldMapping: { 'custom-zone': 4 }
+    }
+  );
+  assert.equal(result.blocking, false);
+  assert.deepEqual(result.rows[0].custom_fields, {});
 });
 
 test('article search projections include variants and refresh for locale changes', () => {

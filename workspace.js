@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 6;
+  const WORKSPACE_SCHEMA_VERSION = 7;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -16,6 +16,9 @@
   const SOURCE_TYPES = Object.freeze(['order-lines', 'article-master']);
   const DEFAULT_SOURCE_TYPE = 'order-lines';
   const SOURCE_ID_PATTERN = /^source-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
+  const CUSTOM_FIELD_ID_PATTERN = /^custom-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
+  const CUSTOM_FIELD_TYPES = Object.freeze(['text', 'number', 'date']);
+  const MAX_CUSTOM_FIELD_NAME_LENGTH = 120;
   const MAX_SOURCE_ID_LENGTH = 128;
   const COLUMN_PROFILE_SAMPLE_LIMIT = 5;
   const COLUMN_PROFILE_DISTINCT_LIMIT = 256;
@@ -61,6 +64,92 @@
       validationError('invalid_source_type', 'Source type is not supported.');
     }
     return sourceType;
+  }
+
+  function normalizeCustomFieldType(value) {
+    const type = value === undefined || value === null || value === '' ? 'text' : String(value);
+    if (CUSTOM_FIELD_TYPES.indexOf(type) < 0) {
+      validationError('invalid_custom_field_type', 'Custom field type is not supported.');
+    }
+    return type;
+  }
+
+  function normalizeCustomFieldName(value) {
+    const name = value === undefined || value === null ? '' : String(value).trim();
+    if (!name) {
+      validationError('custom_field_name_required', 'Custom field name is required.');
+    }
+    if (name.length > MAX_CUSTOM_FIELD_NAME_LENGTH) {
+      validationError('custom_field_name_too_long', 'Custom field name is too long.');
+    }
+    return name;
+  }
+
+  function normalizeCustomFields(fields, options) {
+    if (fields === undefined || fields === null) {
+      return [];
+    }
+    if (!Array.isArray(fields)) {
+      validationError('invalid_custom_fields', 'Custom fields must be an array.');
+    }
+    const usedIds = new Set();
+    const usedNames = new Set();
+    return fields.map(function (field) {
+      if (!isPlainObject(field)) {
+        validationError('invalid_custom_field', 'Custom field definition is invalid.');
+      }
+      const id = String(field.id || '');
+      if (!id || id.length > 128 || !CUSTOM_FIELD_ID_PATTERN.test(id) || usedIds.has(id)) {
+        validationError('invalid_custom_field_id', 'Custom field ID is invalid or duplicated.');
+      }
+      const name = normalizeCustomFieldName(field.name);
+      const nameKey = name.toLocaleLowerCase('de-DE');
+      if (usedNames.has(nameKey)) {
+        validationError('duplicate_custom_field_name', 'Custom field names must be unique.');
+      }
+      usedIds.add(id);
+      usedNames.add(nameKey);
+      return {
+        id: id,
+        name: name,
+        type: normalizeCustomFieldType(field.type),
+        active: field.active === undefined ? !Boolean(field.removed) : Boolean(field.active)
+      };
+    });
+  }
+
+  function normalizeCustomFieldMapping(mapping) {
+    if (mapping === undefined || mapping === null) {
+      return {};
+    }
+    if (!isPlainObject(mapping)) {
+      validationError('invalid_custom_field_mapping', 'Custom field mapping must be an object.');
+    }
+    const normalized = {};
+    Object.keys(mapping).forEach(function (key) {
+      if (!CUSTOM_FIELD_ID_PATTERN.test(key)) {
+        validationError('invalid_custom_field_mapping', 'Custom field mapping contains an invalid field ID.');
+      }
+      const value = mapping[key];
+      if (value !== null && (!Number.isInteger(value) || value < 0)) {
+        validationError('invalid_custom_field_mapping', 'Custom field mapping contains an invalid source position.');
+      }
+      normalized[key] = value;
+    });
+    return normalized;
+  }
+
+  function validateCustomFieldMappingRange(mapping, headerCount) {
+    const normalized = normalizeCustomFieldMapping(mapping);
+    if (!Number.isInteger(headerCount) || headerCount < 0) {
+      validationError('invalid_custom_field_mapping', 'Decoded source header count is invalid.');
+    }
+    Object.keys(normalized).forEach(function (key) {
+      if (normalized[key] !== null && normalized[key] >= headerCount) {
+        validationError('invalid_custom_field_mapping', 'Custom field mapping points outside the decoded source headers.');
+      }
+    });
+    return normalized;
   }
 
   function createId(prefix, randomUuid) {
@@ -374,6 +463,16 @@
     if (typeof row.order_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.order_date)) {
       validationError('invalid_normalized_row', 'Normalized row contains an invalid date.');
     }
+    if (row.custom_fields !== undefined) {
+      if (!isPlainObject(row.custom_fields)) {
+        validationError('invalid_normalized_row', 'Normalized custom fields must be an object.');
+      }
+      Object.keys(row.custom_fields).forEach(function (key) {
+        if (typeof row.custom_fields[key] !== 'string') {
+          validationError('invalid_normalized_row', 'Normalized custom field values must be text.');
+        }
+      });
+    }
     const normalized = cloneValue(row, options);
     if (normalized && typeof normalized === 'object') {
       delete normalized.raw_values;
@@ -444,6 +543,10 @@
     const result = normalizeImportResult(file.result, id, options);
     let columnCatalog = normalizeColumnCatalog(file.columnCatalog, id, options);
     let mapping = normalizeMapping(file.mapping);
+    let customFieldMapping = normalizeCustomFieldMapping(file.customFieldMapping);
+    let confirmedCustomFieldMapping = file.confirmedCustomFieldMapping === null || file.confirmedCustomFieldMapping === undefined
+      ? null
+      : normalizeCustomFieldMapping(file.confirmedCustomFieldMapping);
     let confirmedMapping = file.confirmedMapping === null || file.confirmedMapping === undefined
       ? null
       : normalizeMapping(file.confirmedMapping);
@@ -452,6 +555,8 @@
         validationError('invalid_import_result', 'Stored import result is missing decoded source headers.');
       }
       mapping = validateMappingRange(mapping, result.headers.length);
+      customFieldMapping = validateCustomFieldMappingRange(customFieldMapping, result.headers.length);
+      confirmedCustomFieldMapping = confirmedCustomFieldMapping ? validateCustomFieldMappingRange(confirmedCustomFieldMapping, result.headers.length) : null;
       confirmedMapping = confirmedMapping ? validateMappingRange(confirmedMapping, result.headers.length) : null;
       result.mapping = validateMappingRange(result.mapping, result.headers.length);
       if (result.columnCatalog !== undefined) {
@@ -480,6 +585,8 @@
       detectedEncoding: detectedEncoding,
       errorKey: file.errorKey ? String(file.errorKey) : null,
       mapping: mapping,
+      customFieldMapping: customFieldMapping,
+      confirmedCustomFieldMapping: confirmedCustomFieldMapping,
       confirmedMapping: confirmedMapping,
       columnCatalog: columnCatalog,
       result: result,
@@ -510,6 +617,7 @@
       language: settings.language === 'de' ? 'de' : 'en',
       analyzed: false,
       periodSettings: normalizePeriodSettings(settings.periodSettings),
+      customFields: normalizeCustomFields(settings.customFields),
       files: []
     };
   }
@@ -544,9 +652,18 @@
     if (!Array.isArray(workspace.files)) {
       validationError('invalid_workspace', 'Workspace sources must be an array.');
     }
+    const customFields = normalizeCustomFields(workspace.customFields);
+    const customFieldIds = new Set(customFields.map(function (field) { return field.id; }));
     const usedSourceIds = new Set();
     const files = workspace.files.map(function (file) {
       const normalized = validateFile(file, options);
+      [normalized.customFieldMapping, normalized.confirmedCustomFieldMapping || {}].forEach(function (mapping) {
+        Object.keys(mapping).forEach(function (fieldId) {
+          if (!customFieldIds.has(fieldId)) {
+            validationError('unknown_custom_field', 'Source mapping references an unknown custom field.');
+          }
+        });
+      });
       if (usedSourceIds.has(normalized.id)) {
         validationError('duplicate_source_id', 'Workspace contains duplicate source IDs.');
       }
@@ -562,6 +679,7 @@
       language: workspace.language,
       analyzed: workspace.analyzed,
       periodSettings: normalizePeriodSettings(workspace.periodSettings),
+      customFields: customFields,
       files: files
     };
   }
@@ -571,7 +689,7 @@
       validationError('invalid_workspace', 'Workspace must be an object.');
     }
     const schemaVersion = Number(workspace.schemaVersion);
-    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5) {
+    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5 || schemaVersion === 6) {
       const migrated = cloneValue(workspace, options);
       const migrationTarget = options && options.clonePayload === false ? Object.assign({}, migrated) : migrated;
       if (schemaVersion === 0) {
@@ -604,6 +722,9 @@
           return migratedFile;
         }) : [];
       }
+      if (schemaVersion <= 6 || !Array.isArray(migrationTarget.customFields)) {
+        migrationTarget.customFields = [];
+      }
       migrationTarget.schemaVersion = WORKSPACE_SCHEMA_VERSION;
       migrationTarget.periodSettings = normalizePeriodSettings(migrationTarget.periodSettings);
       return validateWorkspace(migrationTarget, options);
@@ -626,6 +747,7 @@
       language: state && state.language === 'de' ? 'de' : 'en',
       analyzed: Boolean(state && state.analysis),
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
+      customFields: normalizeCustomFields(state && state.customFields),
       files: state && Array.isArray(state.files) ? state.files : []
     }, settings);
   }
@@ -652,6 +774,8 @@
         detectedEncoding: file.detectedEncoding,
         errorKey: file.errorKey || null,
         mapping: file.mapping,
+        customFieldMapping: file.customFieldMapping,
+        confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
         columnCatalog: normalizeColumnCatalog(file.columnCatalog, file.id, settings),
         result: file.result,
@@ -667,6 +791,7 @@
       language: state && state.language === 'de' ? 'de' : 'en',
       analyzed: Boolean(state && state.analysis),
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
+      customFields: normalizeCustomFields(state && state.customFields),
       files: files
     };
   }
@@ -676,6 +801,45 @@
     renamed.name = assertWorkspaceName(name);
     renamed.updatedAt = now || new Date().toISOString();
     return validateWorkspace(renamed);
+  }
+
+  function createCustomField(workspace, name, type, options) {
+    const normalized = validateWorkspace(workspace);
+    const settings = options || {};
+    const field = {
+      id: settings.id ? String(settings.id) : createId('custom', settings.randomUuid),
+      name: normalizeCustomFieldName(name),
+      type: normalizeCustomFieldType(type),
+      active: true
+    };
+    normalized.customFields = normalizeCustomFields(normalized.customFields.concat([field]));
+    normalized.updatedAt = settings.now || new Date().toISOString();
+    return validateWorkspace(normalized);
+  }
+
+  function renameCustomField(workspace, fieldId, name, now) {
+    const normalized = validateWorkspace(workspace);
+    const id = String(fieldId || '');
+    const index = normalized.customFields.findIndex(function (field) { return field.id === id; });
+    if (index < 0) {
+      validationError('custom_field_not_found', 'Custom field does not exist.');
+    }
+    normalized.customFields[index].name = normalizeCustomFieldName(name);
+    normalized.customFields = normalizeCustomFields(normalized.customFields);
+    normalized.updatedAt = now || new Date().toISOString();
+    return validateWorkspace(normalized);
+  }
+
+  function removeCustomField(workspace, fieldId, now) {
+    const normalized = validateWorkspace(workspace);
+    const id = String(fieldId || '');
+    const index = normalized.customFields.findIndex(function (field) { return field.id === id; });
+    if (index < 0) {
+      validationError('custom_field_not_found', 'Custom field does not exist.');
+    }
+    normalized.customFields[index].active = false;
+    normalized.updatedAt = now || new Date().toISOString();
+    return validateWorkspace(normalized);
   }
 
   function bytesToBase64(buffer) {
@@ -837,6 +1001,10 @@
     WorkspaceValidationError: WorkspaceValidationError,
     assertWorkspaceName: assertWorkspaceName,
     normalizeSourceType: normalizeSourceType,
+    CUSTOM_FIELD_TYPES: CUSTOM_FIELD_TYPES,
+    normalizeCustomFields: normalizeCustomFields,
+    normalizeCustomFieldMapping: normalizeCustomFieldMapping,
+    validateCustomFieldMappingRange: validateCustomFieldMappingRange,
     createId: createId,
     createWorkspace: createWorkspace,
     validateMappingRange: validateMappingRange,
@@ -846,6 +1014,9 @@
     captureWorkspace: captureWorkspace,
     captureWorkspaceTrusted: captureWorkspaceTrusted,
     renameWorkspace: renameWorkspace,
+    createCustomField: createCustomField,
+    renameCustomField: renameCustomField,
+    removeCustomField: removeCustomField,
     createBackup: createBackup,
     stringifyBackup: stringifyBackup,
     parseBackup: parseBackup,

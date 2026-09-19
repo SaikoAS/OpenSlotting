@@ -86,6 +86,29 @@
       workspace_restored_new: 'Backup was restored as the new workspace “{{name}}”.',
       workspace_restored_replace: 'Workspace “{{name}}” was replaced from the validated backup.',
       workspace_cleared: 'All sources were removed from workspace “{{name}}”.',
+      custom_fields_eyebrow: 'Workspace schema',
+      custom_fields_title: 'Custom fields',
+      custom_field_create: 'Add field',
+      custom_field_empty: 'No custom fields defined yet.',
+      custom_field_name_prompt: 'Custom field name:',
+      custom_field_type_prompt: 'Type (text, number, or date):',
+      custom_field_name_required: 'Custom field name is required.',
+      custom_field_name_too_long: 'Custom field name is too long.',
+      invalid_custom_field_type: 'Custom field type is not supported.',
+      invalid_custom_field: 'Custom field definition is invalid.',
+      invalid_custom_field_id: 'Custom field ID is invalid or duplicated.',
+      duplicate_custom_field_name: 'Custom field names must be unique.',
+      invalid_custom_fields: 'Custom fields must be an array.',
+      invalid_custom_field_mapping: 'Custom field mapping is invalid.',
+      unknown_custom_field: 'Source mapping references an unknown custom field.',
+      custom_field_not_found: 'Custom field does not exist.',
+      custom_field_rename: 'Rename',
+      custom_field_remove: 'Remove',
+      custom_field_remove_confirm: 'Deactivate custom field “{{name}}”? Existing source values remain stored, but new mappings will no longer use this field.',
+      custom_field_removed: 'Removed',
+      custom_field_mapping_title: 'Custom fields',
+      custom_field_mapping_help: 'Map optional workspace fields to source columns.',
+      custom_field_create_from_source: 'Create from source column',
       workspace_error_prefix: 'Workspace error: ',
       workspace_name_required: 'Enter a workspace name.',
       workspace_name_too_long: 'The workspace name may contain at most 120 characters.',
@@ -451,6 +474,29 @@
       workspace_restored_new: 'Backup wurde als neuer Arbeitsbereich „{{name}}“ wiederhergestellt.',
       workspace_restored_replace: 'Arbeitsbereich „{{name}}“ wurde durch das geprüfte Backup ersetzt.',
       workspace_cleared: 'Alle Quellen wurden aus „{{name}}“ entfernt.',
+      custom_fields_eyebrow: 'Workspace-Schema',
+      custom_fields_title: 'Benutzerdefinierte Felder',
+      custom_field_create: 'Feld hinzufügen',
+      custom_field_empty: 'Noch keine benutzerdefinierten Felder definiert.',
+      custom_field_name_prompt: 'Name des benutzerdefinierten Feldes:',
+      custom_field_type_prompt: 'Typ (text, number oder date):',
+      custom_field_name_required: 'Der Name des benutzerdefinierten Feldes ist erforderlich.',
+      custom_field_name_too_long: 'Der Name des benutzerdefinierten Feldes ist zu lang.',
+      invalid_custom_field_type: 'Der Typ des benutzerdefinierten Feldes wird nicht unterstützt.',
+      invalid_custom_field: 'Die Definition des benutzerdefinierten Feldes ist ungültig.',
+      invalid_custom_field_id: 'Die ID des benutzerdefinierten Feldes ist ungültig oder doppelt vorhanden.',
+      duplicate_custom_field_name: 'Namen benutzerdefinierter Felder müssen eindeutig sein.',
+      invalid_custom_fields: 'Benutzerdefinierte Felder müssen als Liste vorliegen.',
+      invalid_custom_field_mapping: 'Die Zuordnung des benutzerdefinierten Feldes ist ungültig.',
+      unknown_custom_field: 'Die Quellzuordnung verweist auf ein unbekanntes benutzerdefiniertes Feld.',
+      custom_field_not_found: 'Das benutzerdefinierte Feld ist nicht vorhanden.',
+      custom_field_rename: 'Umbenennen',
+      custom_field_remove: 'Entfernen',
+      custom_field_remove_confirm: 'Benutzerdefiniertes Feld „{{name}}“ deaktivieren? Vorhandene Quellwerte bleiben gespeichert, neue Zuordnungen verwenden dieses Feld nicht mehr.',
+      custom_field_removed: 'Entfernt',
+      custom_field_mapping_title: 'Benutzerdefinierte Felder',
+      custom_field_mapping_help: 'Optionale Workspace-Felder einer Quellspalte zuordnen.',
+      custom_field_create_from_source: 'Aus Quellspalte erstellen',
       workspace_error_prefix: 'Arbeitsbereichsfehler: ',
       workspace_name_required: 'Bitte einen Namen für den Arbeitsbereich eingeben.',
       workspace_name_too_long: 'Der Name darf höchstens 120 Zeichen enthalten.',
@@ -747,6 +793,7 @@
     selectedWorkspaceId: null,
     lastActiveWorkspaceId: null,
     activeWorkspace: null,
+    customFields: [],
     storageEstimate: null,
     storageReady: false,
     workspaceLoading: false,
@@ -845,6 +892,9 @@
     workspaceLoadLabel: document.getElementById('workspace-load-label'),
     workspaceProgress: document.getElementById('workspace-progress'),
     workspaceOverview: document.getElementById('workspace-overview'),
+    customFieldsPanel: document.getElementById('custom-fields-panel'),
+    customFieldsList: document.getElementById('custom-fields-list'),
+    customFieldCreate: document.getElementById('custom-field-create'),
     workspaceStorageStatus: document.getElementById('workspace-storage-status'),
     workspaceMessage: document.getElementById('workspace-message'),
     workspaceRecovery: document.getElementById('workspace-recovery'),
@@ -1104,6 +1154,38 @@
     });
   }
 
+  function renderCustomFields() {
+    const fields = Array.isArray(state.customFields) ? state.customFields : [];
+    elements.customFieldCreate.disabled = !state.activeWorkspace || state.workspaceLoading;
+    elements.customFieldsList.replaceChildren();
+    if (!fields.length) {
+      const empty = document.createElement('p');
+      empty.className = 'table-note';
+      setText(empty, translate('custom_field_empty'));
+      elements.customFieldsList.appendChild(empty);
+      return;
+    }
+    fields.forEach(function (field) {
+      const row = document.createElement('div');
+      row.className = 'custom-field-row' + (field.active === false ? ' removed' : '');
+      const label = document.createElement('span');
+      setText(label, field.name + ' · ' + field.type + (field.active === false ? ' · ' + translate('custom_field_removed') : ''));
+      row.appendChild(label);
+      if (field.active !== false) {
+        const rename = document.createElement('button');
+        rename.type = 'button'; rename.className = 'text-button'; rename.dataset.renameCustomField = field.id;
+        rename.disabled = state.workspaceLoading;
+        setText(rename, translate('custom_field_rename'));
+        const remove = document.createElement('button');
+        remove.type = 'button'; remove.className = 'text-button danger-button'; remove.dataset.removeCustomField = field.id;
+        remove.disabled = state.workspaceLoading;
+        setText(remove, translate('custom_field_remove'));
+        row.appendChild(rename); row.appendChild(remove);
+      }
+      elements.customFieldsList.appendChild(row);
+    });
+  }
+
   function renderWorkspaceControls() {
     setText(elements.headerWorkspaceName, state.activeWorkspace ? state.activeWorkspace.name : translate('workspace_none'));
     const selectedId = state.selectedWorkspaceId || '';
@@ -1135,6 +1217,7 @@
     elements.workspaceDelete.disabled = !hasSelection;
     elements.workspaceBackup.disabled = !hasSelection;
     elements.workspaceRestoreReplace.disabled = !hasSelection;
+    renderCustomFields();
     elements.fileInput.disabled = !hasWorkspace;
     elements.resetButton.disabled = !hasWorkspace || state.files.length === 0;
     elements.filePicker.classList.toggle('disabled', !hasWorkspace);
@@ -1226,6 +1309,7 @@
           language: state.language,
           analyzed: Boolean(state.analysis),
           periodSettings: periods.normalizeSettings(state.periodSettings),
+          customFields: state.customFields,
           sourceCount: state.files.length,
           sourceBytes: state.files.reduce(function (sum, file) {
             return sum + (file.buffer instanceof ArrayBuffer ? file.buffer.byteLength : 0);
@@ -1411,7 +1495,17 @@
     const suggestions = core.buildMappingSuggestions(file.headers, catalog.map(function (entry) { return entry.profile || {}; }));
     const mappedByPosition = {};
     Object.keys(file.mapping || {}).forEach(function (field) {
-      if (Number.isInteger(file.mapping[field])) mappedByPosition[file.mapping[field]] = field;
+      if (Number.isInteger(file.mapping[field])) mappedByPosition[file.mapping[field]] = core.getFieldLabel(field, state.language);
+    });
+    const activeCustomFields = new Map((state.customFields || [])
+      .filter(function (field) { return field && field.active !== false; })
+      .map(function (field) { return [String(field.id), field]; }));
+    Object.keys(file.customFieldMapping || {}).forEach(function (fieldId) {
+      const field = activeCustomFields.get(String(fieldId));
+      const position = file.customFieldMapping[fieldId];
+      if (field && Number.isInteger(position)) {
+        mappedByPosition[position] = field.name;
+      }
     });
     const wrapper = document.createElement('div');
     wrapper.className = 'source-column-overview';
@@ -1446,7 +1540,7 @@
       row.appendChild(sourceCell);
       const mappingCell = document.createElement('td');
       const mappedField = mappedByPosition[position];
-      setText(mappingCell, mappedField ? core.getFieldLabel(mappedField, state.language) : translate('source_column_unused'));
+      setText(mappingCell, mappedField || translate('source_column_unused'));
       const candidates = Object.keys(suggestions).map(function (field) {
         return (suggestions[field] || []).find(function (candidate) { return candidate.sourcePosition === position; });
       }).filter(Boolean).sort(function (left, right) { return right.score - left.score; });
@@ -1596,6 +1690,44 @@
           }
           fields.appendChild(wrapper);
         });
+        const customFields = state.customFields.filter(function (field) { return field.active !== false; });
+        {
+          const customHeading = document.createElement('h4');
+          setText(customHeading, translate('custom_field_mapping_title'));
+          fields.appendChild(customHeading);
+          const createFromSource = document.createElement('button');
+          createFromSource.type = 'button';
+          createFromSource.className = 'text-button';
+          createFromSource.dataset.createCustomFromFile = file.id;
+          createFromSource.disabled = editsLocked;
+          setText(createFromSource, translate('custom_field_create_from_source'));
+          fields.appendChild(createFromSource);
+          customFields.forEach(function (field) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'mapping-field';
+            const label = document.createElement('label');
+            const selectId = 'mapping-' + file.id + '-custom-' + field.id;
+            label.htmlFor = selectId;
+            const labelLine = document.createElement('span');
+            labelLine.className = 'field-label-line';
+            const fieldName = document.createElement('span');
+            setText(fieldName, field.name + ' (' + field.type + ')');
+            labelLine.appendChild(fieldName); label.appendChild(labelLine);
+            const select = document.createElement('select');
+            select.id = selectId;
+            select.dataset.customField = field.id;
+            select.dataset.fileId = file.id;
+            select.disabled = editsLocked;
+            addOption(select, '', translate('not_mapped'));
+            file.headers.forEach(function (header, index) {
+              addOption(select, String(index), (index + 1) + ': ' + (header || translate('empty_header')));
+            });
+            if (file.customFieldMapping && Number.isInteger(file.customFieldMapping[field.id])) {
+              select.value = String(file.customFieldMapping[field.id]);
+            }
+            wrapper.appendChild(label); wrapper.appendChild(select); fields.appendChild(wrapper);
+          });
+        }
         section.appendChild(fields);
       }
 
@@ -3019,14 +3151,19 @@
     const batchFiles = state.files.map(function (file) {
       if (file.parsed && !file.errorKey) {
         const mapping = file.confirmedMapping || file.mapping;
+        const customFieldMapping = file.confirmedCustomFieldMapping || file.customFieldMapping || {};
         file.result = file.content === null || file.content === undefined
           ? importBufferStreaming(file, mapping, {
             locale: state.language,
-            sourceFile: sourceContext(file)
+            sourceFile: sourceContext(file),
+            customFields: state.customFields,
+            customFieldMapping: customFieldMapping
           })
           : core.importCsvStreaming(file.content, mapping, {
             locale: state.language,
-            sourceFile: sourceContext(file)
+            sourceFile: sourceContext(file),
+            customFields: state.customFields,
+            customFieldMapping: customFieldMapping
           });
         if (file.result && Array.isArray(file.result.columnCatalog)) {
           file.columnCatalog = file.result.columnCatalog;
@@ -3101,6 +3238,7 @@
     file.parsed = null;
     file.headers = [];
     file.mapping = {};
+    file.customFieldMapping = {};
     file.confirmedMapping = null;
     file.columnCatalog = [];
     file.dataRowCount = 0;
@@ -3239,6 +3377,7 @@
         parsed: null,
         headers: [],
         mapping: {},
+        customFieldMapping: {},
         confirmedMapping: null,
         columnCatalog: [],
         dataRowCount: 0,
@@ -3294,6 +3433,7 @@
     }
     preparedFiles.forEach(function (file) {
       file.confirmedMapping = Object.assign({}, file.mapping);
+      file.confirmedCustomFieldMapping = Object.assign({}, file.customFieldMapping || {});
     });
     showMappingMessage('');
     refreshAnalyzedResults(false);
@@ -3312,12 +3452,17 @@
       storageRevision: Number.isInteger(record.storageRevision) ? record.storageRevision : 0,
       sourceCount: Array.isArray(record.files) ? record.files.length : Number(record.sourceCount || 0),
       sourceBytes: Number(record.sourceBytes || 0),
-      normalizedRowCount: Number(record.normalizedRowCount || 0)
+      normalizedRowCount: Number(record.normalizedRowCount || 0),
+      customFields: workspaceModel.normalizeCustomFields(record.customFields)
     };
   }
 
   function runtimeFileFromStored(stored) {
     const savedMapping = Object.assign({}, stored.mapping || {});
+    const savedCustomFieldMapping = workspaceModel.normalizeCustomFieldMapping(stored.customFieldMapping);
+    const savedConfirmedCustomFieldMapping = stored.confirmedCustomFieldMapping === null || stored.confirmedCustomFieldMapping === undefined
+      ? null
+      : workspaceModel.normalizeCustomFieldMapping(stored.confirmedCustomFieldMapping);
     const savedConfirmedMapping = stored.confirmedMapping ? Object.assign({}, stored.confirmedMapping) : null;
     const file = {
       id: stored.id,
@@ -3337,6 +3482,8 @@
       parsed: null,
       headers: [],
       mapping: {},
+      customFieldMapping: {},
+      confirmedCustomFieldMapping: null,
       confirmedMapping: null,
       columnCatalog: Array.isArray(stored.columnCatalog) ? stored.columnCatalog : [],
       dataRowCount: 0,
@@ -3348,11 +3495,17 @@
       decodeFileEntry(file, { streaming: true });
       if (file.parsed && !file.errorKey) {
         file.mapping = workspaceModel.validateMappingRange(savedMapping, file.headers.length);
+        file.customFieldMapping = workspaceModel.validateCustomFieldMappingRange(savedCustomFieldMapping, file.headers.length);
+        file.confirmedCustomFieldMapping = savedConfirmedCustomFieldMapping
+          ? workspaceModel.validateCustomFieldMappingRange(savedConfirmedCustomFieldMapping, file.headers.length)
+          : null;
         file.confirmedMapping = savedConfirmedMapping
           ? workspaceModel.validateMappingRange(savedConfirmedMapping, file.headers.length)
           : null;
       } else {
         file.mapping = savedMapping;
+        file.customFieldMapping = savedCustomFieldMapping;
+        file.confirmedCustomFieldMapping = savedConfirmedCustomFieldMapping;
         file.confirmedMapping = savedConfirmedMapping;
       }
     }
@@ -3373,6 +3526,8 @@
         detectedEncoding: file.detectedEncoding,
         errorKey: file.errorKey,
         mapping: file.mapping,
+        customFieldMapping: file.customFieldMapping,
+        confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
         columnCatalog: file.columnCatalog,
         result: file.result,
@@ -3412,14 +3567,19 @@
       const batchFiles = files.map(function (file) {
         if (file.parsed && !file.errorKey) {
           const mapping = file.confirmedMapping || file.mapping;
+          const customFieldMapping = file.confirmedCustomFieldMapping || file.customFieldMapping || {};
           file.result = file.content
             ? core.importCsvStreaming(file.content, mapping, {
               locale: language,
-              sourceFile: sourceContext(file)
+              sourceFile: sourceContext(file),
+              customFields: validated.customFields,
+              customFieldMapping: customFieldMapping
             })
             : importBufferStreaming(file, mapping, {
               locale: language,
-              sourceFile: sourceContext(file)
+              sourceFile: sourceContext(file),
+              customFields: validated.customFields,
+              customFieldMapping: customFieldMapping
             });
           if (file.result && Array.isArray(file.result.columnCatalog)) {
             file.columnCatalog = file.result.columnCatalog;
@@ -3449,6 +3609,7 @@
         language: validated.language,
         analyzed: validated.analyzed,
         periodSettings: validated.periodSettings,
+        customFields: validated.customFields,
         sourceCount: files.length,
         sourceBytes: files.reduce(function (sum, file) {
           return sum + (file.buffer instanceof ArrayBuffer ? file.buffer.byteLength : 0);
@@ -3728,6 +3889,7 @@
       }
       if (!state.workspaces.some(function (workspace) { return workspace.id === activeId; })) {
         state.activeWorkspace = null;
+        state.customFields = [];
         if (state.lastActiveWorkspaceId === activeId) {
           state.lastActiveWorkspaceId = null;
         }
@@ -3789,6 +3951,7 @@
         state.lastActiveWorkspaceId = null;
       }
       state.activeWorkspace = null;
+      state.customFields = [];
       clearWorkspaceView();
     }
     if (state.activeWorkspace) {
@@ -3903,6 +4066,7 @@
       state.activeWorkspace = workspaceMetadata(Object.assign({}, prepared.workspace, {
         storageRevision: committedMetadata.storageRevision
       }));
+      state.customFields = workspaceModel.normalizeCustomFields(prepared.workspace.customFields);
       state.language = targetLanguage;
       elements.languageSelect.value = targetLanguage;
       state.workspaces = state.workspaces.map(function (workspace) {
@@ -4002,6 +4166,84 @@
     }
   }
 
+  async function createCustomField() {
+    if (!state.activeWorkspace) return;
+    const name = window.prompt(translate('custom_field_name_prompt'));
+    if (name === null) return;
+    const type = window.prompt(translate('custom_field_type_prompt'), 'text');
+    if (type === null) return;
+    try {
+      state.customFields = workspaceModel.normalizeCustomFields((state.customFields || []).concat([{
+        id: workspaceModel.createId('custom'), name: name, type: type, active: true
+      }]));
+      state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
+      await persistActiveWorkspace(undefined, { metadataOnly: true });
+      renderWorkspaceControls();
+      renderMapping();
+    } catch (error) {
+      showWorkspaceError(error);
+    }
+  }
+
+  async function createCustomFieldFromFile(fileId) {
+    if (!state.activeWorkspace) return;
+    const file = state.files.find(function (item) { return item.id === fileId; });
+    if (!file || !Array.isArray(file.headers)) return;
+    const activeCustomFieldIds = new Set((state.customFields || [])
+      .filter(function (field) { return field && field.active !== false; })
+      .map(function (field) { return String(field.id); }));
+    const used = new Set(Object.keys(file.mapping || {}).map(function (key) { return file.mapping[key]; }).concat(
+      Object.keys(file.customFieldMapping || {})
+        .filter(function (key) { return activeCustomFieldIds.has(String(key)); })
+        .map(function (key) { return file.customFieldMapping[key]; })
+    ));
+    const position = file.headers.findIndex(function (_, index) { return !used.has(index); });
+    if (position < 0) return;
+    const name = window.prompt(translate('custom_field_name_prompt'), file.headers[position] || 'Custom field');
+    if (name === null) return;
+    const type = window.prompt(translate('custom_field_type_prompt'), 'text');
+    if (type === null) return;
+    try {
+      const created = { id: workspaceModel.createId('custom'), name: name, type: type, active: true };
+      state.customFields = workspaceModel.normalizeCustomFields((state.customFields || []).concat([created]));
+      file.customFieldMapping = Object.assign({}, file.customFieldMapping, { [created.id]: position });
+      clearAnalysis();
+      state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
+      await persistActiveWorkspace();
+      renderWorkspaceControls(); renderMapping();
+    } catch (error) { showWorkspaceError(error); }
+  }
+
+  async function renameCustomField(fieldId) {
+    if (!state.activeWorkspace || state.workspaceLoading) return;
+    const field = state.customFields.find(function (item) { return item.id === fieldId; });
+    if (!field) return;
+    const name = window.prompt(translate('custom_field_name_prompt'), field.name);
+    if (name === null) return;
+    try {
+      state.customFields = workspaceModel.normalizeCustomFields(state.customFields.map(function (item) {
+        return item.id === fieldId ? Object.assign({}, item, { name: name }) : item;
+      }));
+      state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
+      await persistActiveWorkspace(undefined, { metadataOnly: true });
+      renderWorkspaceControls(); renderMapping();
+    } catch (error) { showWorkspaceError(error); }
+  }
+
+  async function removeCustomField(fieldId) {
+    if (!state.activeWorkspace || state.workspaceLoading) return;
+    const field = state.customFields.find(function (item) { return item.id === fieldId; });
+    if (!field || !window.confirm(translate('custom_field_remove_confirm', { name: field.name }))) return;
+    try {
+      state.customFields = workspaceModel.normalizeCustomFields(state.customFields.map(function (item) {
+        return item.id === fieldId ? Object.assign({}, item, { active: false }) : item;
+      }));
+      state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
+      await persistActiveWorkspace(undefined, { metadataOnly: true });
+      renderWorkspaceControls(); renderMapping();
+    } catch (error) { showWorkspaceError(error); }
+  }
+
   async function deleteActiveWorkspace() {
     const selected = state.workspaces.find(function (workspace) { return workspace.id === state.selectedWorkspaceId; });
     if (!selected) {
@@ -4026,6 +4268,7 @@
       });
       if (state.activeWorkspace && state.activeWorkspace.id === selected.id) {
         state.activeWorkspace = null;
+        state.customFields = [];
         clearWorkspaceView();
       }
       if (state.lastActiveWorkspaceId === selected.id) {
@@ -4213,6 +4456,7 @@
         }
         if (state.activeWorkspace && state.activeWorkspace.id === replaceTarget.id) {
           state.activeWorkspace = null;
+          state.customFields = [];
           clearWorkspaceView();
         }
       } else {
@@ -4277,6 +4521,7 @@
         elements.languageSelect.value = state.language;
       }
       state.activeWorkspace = null;
+      state.customFields = [];
       clearWorkspaceView();
       applyLanguage({ skipAnalysisRefresh: true });
       setWorkspaceMessage(state.workspaces.length > 0 ? 'workspace_select_status' : 'workspace_none_status', {}, state.workspaces.length > 0 ? '' : 'warning');
@@ -4286,6 +4531,7 @@
     } catch (error) {
       state.storageReady = false;
       state.activeWorkspace = null;
+      state.customFields = [];
       clearWorkspaceView();
       setText(elements.workspaceStorageStatus, translate('workspace_storage_unavailable'));
       showWorkspaceError(error);
@@ -4355,6 +4601,7 @@
   }
 
   elements.workspaceCreate.addEventListener('click', createWorkspace);
+  elements.customFieldCreate.addEventListener('click', createCustomField);
   elements.workspaceRename.addEventListener('click', renameActiveWorkspace);
   elements.workspaceDelete.addEventListener('click', deleteActiveWorkspace);
   elements.workspaceBackup.addEventListener('click', exportWorkspaceBackup);
@@ -4384,6 +4631,12 @@
     activateWorkspace(state.selectedWorkspaceId, 'workspace_opened').catch(function () {
       renderWorkspaceControls();
     });
+  });
+  elements.customFieldsList.addEventListener('click', function (event) {
+    const rename = event.target.closest('button[data-rename-custom-field]');
+    const remove = event.target.closest('button[data-remove-custom-field]');
+    if (rename) renameCustomField(rename.dataset.renameCustomField);
+    if (remove) removeCustomField(remove.dataset.removeCustomField);
   });
   elements.workspaceRestoreNew.addEventListener('click', function () {
     state.restoreMode = 'new';
@@ -4430,6 +4683,17 @@
     persistActiveWorkspace().catch(function () {});
   });
   elements.mappingGrid.addEventListener('change', function (event) {
+    const select = event.target.closest('select[data-file-id][data-custom-field]');
+    if (!select || !elements.mappingGrid.contains(select)) return;
+    const file = state.files.find(function (item) { return item.id === select.dataset.fileId; });
+    if (!file) return;
+    file.customFieldMapping = file.customFieldMapping || {};
+    file.customFieldMapping[select.dataset.customField] = select.value === '' ? null : Number(select.value);
+    clearAnalysis();
+    renderMapping();
+    persistActiveWorkspace().catch(function () {});
+  });
+  elements.mappingGrid.addEventListener('change', function (event) {
     const select = event.target.closest('select[data-file-id][data-field]');
     if (!select || !elements.mappingGrid.contains(select)) {
       return;
@@ -4450,6 +4714,11 @@
     persistActiveWorkspace().catch(function () {});
   });
   elements.mappingGrid.addEventListener('click', function (event) {
+    const create = event.target.closest('button[data-create-custom-from-file]');
+    if (create && elements.mappingGrid.contains(create)) {
+      createCustomFieldFromFile(create.dataset.createCustomFromFile);
+      return;
+    }
     const button = event.target.closest('button[data-remove-file-id]');
     if (!button || !elements.mappingGrid.contains(button)) {
       return;

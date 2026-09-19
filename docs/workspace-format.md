@@ -38,13 +38,14 @@ Every workspace has:
 | Field | Type | Contract |
 | --- | --- | --- |
 | `id` | string | Stable browser-local identity. |
-| `schemaVersion` | integer | Stored-workspace schema version; currently `6`. |
+| `schemaVersion` | integer | Stored-workspace schema version; currently `7`. |
 | `name` | string | Trimmed, non-empty, at most 120 characters. Names do not have to be unique. |
 | `createdAt` | ISO timestamp | Creation time. |
 | `updatedAt` | ISO timestamp | Time of the latest successful snapshot. |
 | `language` | `en` or `de` | Interface language restored with the workspace. |
 | `analyzed` | boolean | Whether the saved source state had an analysis result. |
 | `periodSettings` | object | Selection mode (`weeks` or `custom`), expected weekdays, and the names and inclusive boundaries of Period A and Period B. Detected week options remain derived from normalized rows. |
+| `customFields` | array | Workspace-level custom-field definitions with stable IDs, supported types (`text`, `number`, or `date`), and active/inactive lifecycle state. |
 | `files` | array | Ordered and strictly workspace-local source records. |
 
 Source IDs must be unique within one workspace. The same source ID in another workspace has no relationship to it.
@@ -60,6 +61,7 @@ Each source retains:
 - automatic or manually selected decoding mode
 - detected and active encoding
 - current and confirmed column mappings by source-column position
+- current and confirmed custom-field mappings by source-column position; mappings reference the workspace `customFields` registry
 - file-level read or decoding error state
 - normalized valid rows
 - parser, mapping, structural, and row-validation results
@@ -188,7 +190,7 @@ OpenSlotting exposes distinct user-visible states for:
 
 A storage failure must remain visible. It must not be reported as a successful save and must not silently discard or partially replace workspace data. Opening another workspace waits for the current autosave and stops on failure, retaining the unsaved active view for recovery.
 
-Current-schema restores also decode each readable source before committing the backup. Every non-null position in `mapping`, `confirmedMapping`, and a stored result mapping must reference an existing decoded header. Backup reading locks workspace editing immediately, so a concurrently selected CSV cannot be discarded by the following activation.
+Current-schema restores also decode each readable source before committing the backup. Every non-null position in `mapping`, `confirmedMapping`, `customFieldMapping`, and `confirmedCustomFieldMapping`, plus a stored result mapping, must reference an existing decoded header and a known workspace custom-field ID where applicable. Backup reading locks workspace editing immediately, so a concurrently selected CSV cannot be discarded by the following activation.
 
 Delete operations use the selected metadata revision. If another browser tab saves, renames, replaces, or deletes that workspace after the catalog was rendered, deletion stops with a conflict instead of removing the newer record.
 
@@ -202,6 +204,6 @@ The restore worker returns the already validated persisted payload and prepared 
 
 ## Schema migration
 
-Workspace records carry `schemaVersion`. The current reader uses version `6`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, and accepts version `5` catalogs without profiles by supplying an empty profile. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `2` creates the chunk stores. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis is rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
+Workspace records carry `schemaVersion`. The current reader uses version `7`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, accepts version `5` catalogs without profiles by supplying an empty profile, and adds the workspace custom-field registry and source mappings in version `7`. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `2` creates the chunk stores. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis is rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
 
 Future migrations must produce a fully valid current workspace before saving it and require automated migration and backup-round-trip tests.

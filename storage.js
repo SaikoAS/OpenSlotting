@@ -77,6 +77,7 @@
       language: workspace.language,
       analyzed: workspace.analyzed,
       periodSettings: workspace.periodSettings,
+      customFields: workspace.customFields,
       storageRevision: storageRevision,
       sourceCount: workspace.files.length,
       sourceBytes: sourceBytes,
@@ -146,6 +147,8 @@
         detectedEncoding: file.detectedEncoding,
         errorKey: file.errorKey,
         mapping: file.mapping,
+        customFieldMapping: file.customFieldMapping,
+        confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
         columnCatalog: file.columnCatalog,
         resultMeta: resultMeta,
@@ -199,6 +202,9 @@
       periodSettings: values.periodSettings
         ? workspaceModel.normalizePeriodSettings(values.periodSettings)
         : workspaceModel.normalizePeriodSettings(metadata.periodSettings),
+      customFields: values.customFields
+        ? workspaceModel.normalizeCustomFields(values.customFields)
+        : (Array.isArray(metadata.customFields) ? workspaceModel.normalizeCustomFields(metadata.customFields) : []),
       sourceCount: Number.isInteger(values.sourceCount) && values.sourceCount >= 0 ? values.sourceCount : metadata.sourceCount,
       sourceBytes: Number.isFinite(values.sourceBytes) && values.sourceBytes >= 0 ? values.sourceBytes : metadata.sourceBytes,
       normalizedRowCount: Number.isInteger(values.normalizedRowCount) && values.normalizedRowCount >= 0
@@ -270,6 +276,8 @@
           detectedEncoding: source.detectedEncoding,
           errorKey: source.errorKey,
           mapping: source.mapping,
+          customFieldMapping: source.customFieldMapping,
+          confirmedCustomFieldMapping: source.confirmedCustomFieldMapping,
           confirmedMapping: source.confirmedMapping,
           columnCatalog: Array.isArray(source.columnCatalog) ? source.columnCatalog : [],
           result: result,
@@ -290,6 +298,7 @@
         language: metadata.language,
         analyzed: metadata.analyzed,
         periodSettings: metadata.periodSettings,
+        customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
         storageRevision: storageRevisionOf(metadata),
         files: files
       };
@@ -315,6 +324,7 @@
       language: metadata.language,
       analyzed: metadata.analyzed,
       periodSettings: metadata.periodSettings,
+      customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
       storageRevision: storageRevisionOf(metadata),
       files: files
     };

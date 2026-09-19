@@ -85,6 +85,16 @@
           <progress id="workspace-progress" max="1"></progress>
         </div>
         <div id="workspace-overview" class="workspace-overview" aria-live="polite"></div>
+        <section id="custom-fields-panel" class="custom-fields-panel" aria-labelledby="custom-fields-title">
+          <div class="panel-heading compact-heading">
+            <div>
+              <p class="step" data-i18n="custom_fields_eyebrow">Workspace schema</p>
+              <h3 id="custom-fields-title" data-i18n="custom_fields_title">Custom fields</h3>
+            </div>
+            <button id="custom-field-create" class="secondary-button" type="button" disabled data-i18n="custom_field_create">Add field</button>
+          </div>
+          <div id="custom-fields-list" class="custom-fields-list" aria-live="polite"></div>
+        </section>
         <div id="workspace-storage-status" class="storage-status" role="status"></div>
         <details class="runtime-diagnostics">
           <summary data-i18n="runtime_diagnostics_title">Runtime diagnostics</summary>
