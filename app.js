@@ -158,6 +158,9 @@
       source_column_confidence_medium: 'medium',
       source_column_confidence_low: 'low',
       encoding_label: 'Encoding',
+      source_type_label: 'Source type',
+      source_type_order_lines: 'Order lines',
+      source_type_article_master: 'Article master',
       encoding_auto: 'Automatic',
       encoding_auto_detected: 'Automatic (detected: {{encoding}})',
       remove_file: 'Remove file',
@@ -546,6 +549,9 @@
       source_column_confidence_medium: 'mittel',
       source_column_confidence_low: 'niedrig',
       encoding_label: 'Kodierung',
+      source_type_label: 'Quelltyp',
+      source_type_order_lines: 'Auftragszeilen',
+      source_type_article_master: 'Artikelstamm',
       encoding_auto: 'Automatisch',
       encoding_auto_detected: 'Automatisch (erkannt: {{encoding}})',
       remove_file: 'Datei entfernen',
@@ -1223,7 +1229,7 @@
     elements.filePicker.classList.toggle('disabled', !hasWorkspace);
     elements.languageSelect.disabled = editsLocked;
     elements.analyzeButton.disabled = editsLocked || !state.activeWorkspace || !state.files.some(function (file) { return Boolean(file.parsed); });
-    elements.exportButton.disabled = editsLocked || !state.result || state.result.validRows === 0;
+    elements.exportButton.disabled = editsLocked || !state.result || analysisRowCount(state.result) === 0;
     elements.mappingGrid.querySelectorAll('select, button').forEach(function (control) {
       const fileId = control.dataset.encodingFileId || control.dataset.removeFileId || control.dataset.fileId;
       const file = state.files.find(function (item) { return item.id === fileId; });
@@ -1638,6 +1644,20 @@
       encodingField.appendChild(encodingSelect);
       section.appendChild(encodingField);
 
+      const sourceTypeField = document.createElement('label');
+      sourceTypeField.className = 'compact-field source-type-field';
+      const sourceTypeLabel = document.createElement('span');
+      setText(sourceTypeLabel, translate('source_type_label'));
+      const sourceTypeSelect = document.createElement('select');
+      sourceTypeSelect.dataset.sourceTypeFileId = file.id;
+      sourceTypeSelect.disabled = editsLocked || file.reading;
+      addOption(sourceTypeSelect, 'order-lines', translate('source_type_order_lines'));
+      addOption(sourceTypeSelect, 'article-master', translate('source_type_article_master'));
+      sourceTypeSelect.value = workspaceModel.normalizeSourceType(file.sourceType);
+      sourceTypeField.appendChild(sourceTypeLabel);
+      sourceTypeField.appendChild(sourceTypeSelect);
+      section.appendChild(sourceTypeField);
+
       if (file.errorKey) {
         const errorMessage = document.createElement('div');
         errorMessage.className = 'message mapping-file-message';
@@ -1652,8 +1672,11 @@
         const fields = document.createElement('div');
         fields.className = 'mapping-fields';
         core.FIELD_DEFINITIONS.forEach(function (definition) {
+          const required = file.sourceType === 'article-master'
+            ? definition.key === 'article_id'
+            : definition.required;
           const wrapper = document.createElement('div');
-          wrapper.className = 'mapping-field' + (definition.required ? ' required' : '');
+          wrapper.className = 'mapping-field' + (required ? ' required' : '');
           const label = document.createElement('label');
           const selectId = 'mapping-' + file.id + '-' + definition.key;
           label.htmlFor = selectId;
@@ -1662,8 +1685,8 @@
           const fieldName = document.createElement('span');
           setText(fieldName, core.getFieldLabel(definition.key, state.language));
           const fieldBadge = document.createElement('span');
-          fieldBadge.className = 'field-badge ' + (definition.required ? 'required' : 'optional');
-          setText(fieldBadge, translate(definition.required ? 'required_label' : 'optional_label'));
+          fieldBadge.className = 'field-badge ' + (required ? 'required' : 'optional');
+          setText(fieldBadge, translate(required ? 'required_label' : 'optional_label'));
           labelLine.appendChild(fieldName);
           labelLine.appendChild(fieldBadge);
           label.appendChild(labelLine);
@@ -1851,22 +1874,24 @@
       'workspace-panel': Boolean(state.activeWorkspace),
       'import-panel': Boolean(state.activeWorkspace),
       'mapping-panel': state.files.length > 0,
-      'coverage-panel': Boolean(state.result && state.result.validRows > 0),
+      'coverage-panel': Boolean(state.result && analysisRowCount(state.result) > 0),
       'comparison-panel': Boolean(state.comparison),
-      'results-panel': Boolean(state.result && state.result.validRows > 0)
+      'results-panel': Boolean(state.result && resultHasRetainedData(state.result))
     };
     const completion = {
       'workspace-panel': Boolean(state.activeWorkspace),
       'import-panel': state.files.length > 0,
-      'mapping-panel': Boolean(state.result && state.result.validRows > 0),
+      'mapping-panel': Boolean(state.result && analysisRowCount(state.result) > 0),
       'coverage-panel': Boolean(state.comparison),
       'comparison-panel': false,
       'results-panel': false
     };
     const fallbackTarget = state.comparison
       ? 'comparison-panel'
-      : state.result && state.result.validRows > 0
+      : state.result && analysisRowCount(state.result) > 0
         ? 'coverage-panel'
+        : state.result && resultHasRetainedData(state.result)
+          ? 'results-panel'
         : state.files.length
           ? 'mapping-panel'
           : state.activeWorkspace
@@ -2088,7 +2113,9 @@
   }
 
   function buildCoverageData() {
-    const sourceMap = new Map((state.result.files || []).map(function (file) {
+    const sourceMap = new Map((state.result.files || []).filter(function (file) {
+      return file.sourceType !== 'article-master';
+    }).map(function (file) {
       return [file.id, {
         id: file.id,
         label: file.label,
@@ -2124,7 +2151,7 @@
       }
     });
     state.result.issues.forEach(function (issue) {
-      if (!core.issueIsBlocking(issue) || !periods.validDate(issue.orderDate) || !Number.isInteger(issue.sourceLine)) {
+      if (!sourceMap.has(issue.sourceFileId) || !core.issueIsBlocking(issue) || !periods.validDate(issue.orderDate) || !Number.isInteger(issue.sourceLine)) {
         return;
       }
       const entry = dateEntry(issue.orderDate);
@@ -2204,7 +2231,8 @@
       return isDate ? row.order_date === selection.value : row.source_file_id === selection.value;
     });
     const issues = state.result.issues.filter(function (issue) {
-      return isDate ? issue.orderDate === selection.value : issue.sourceFileId === selection.value;
+      const source = state.result.files.find(function (file) { return file.id === issue.sourceFileId; });
+      return source && source.sourceType !== 'article-master' && (isDate ? issue.orderDate === selection.value : issue.sourceFileId === selection.value);
     });
     const invalidLines = new Set(issues.filter(function (issue) {
       return core.issueIsBlocking(issue) && Number.isInteger(issue.sourceLine);
@@ -2248,7 +2276,7 @@
   }
 
   function renderCoverage() {
-    if (!state.result || state.result.validRows === 0) {
+    if (!state.result || analysisRowCount(state.result) === 0) {
       elements.coveragePanel.classList.add('hidden');
       return;
     }
@@ -3097,7 +3125,7 @@
     renderIssues(result.issues);
     renderCoverage();
     renderComparison();
-    elements.exportButton.disabled = result.validRows === 0;
+    elements.exportButton.disabled = analysisRowCount(result) === 0;
     elements.resultsPanel.classList.remove('hidden');
     renderWorkflow(state.comparison ? 'comparison-panel' : 'coverage-panel');
   }
@@ -3109,6 +3137,20 @@
       label: file.label,
       sourceType: workspaceModel.normalizeSourceType(file.sourceType)
     };
+  }
+
+  function analysisRowCount(result) {
+    if (!result) {
+      return 0;
+    }
+    return Number.isInteger(result.analysisRows) ? result.analysisRows : Number(result.validRows || 0);
+  }
+
+  function resultHasRetainedData(result) {
+    if (!result) {
+      return false;
+    }
+    return Number(result.validRows || 0) > 0 || (Array.isArray(result.issues) && result.issues.length > 0);
   }
 
   function refreshColumnCatalogOwnership(file) {
@@ -4658,6 +4700,24 @@
     }
   });
   elements.fileInput.addEventListener('change', handleFileChange);
+  elements.mappingGrid.addEventListener('change', function (event) {
+    const select = event.target.closest('select[data-source-type-file-id]');
+    if (!select || !elements.mappingGrid.contains(select)) {
+      return;
+    }
+    const file = state.files.find(function (item) { return item.id === select.dataset.sourceTypeFileId; });
+    if (!file) {
+      return;
+    }
+    file.sourceType = workspaceModel.normalizeSourceType(select.value);
+    file.confirmedMapping = null;
+    file.confirmedCustomFieldMapping = null;
+    file.result = null;
+    clearAnalysis();
+    renderMapping();
+    updateSourceStatus();
+    persistActiveWorkspace().catch(function () {});
+  });
   elements.mappingGrid.addEventListener('change', function (event) {
     const select = event.target.closest('select[data-encoding-file-id]');
     if (!select || !elements.mappingGrid.contains(select)) {

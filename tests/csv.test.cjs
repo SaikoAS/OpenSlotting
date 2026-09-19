@@ -178,10 +178,13 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
 test('responsive workflow handles empty results and shared-page navigation safely', () => {
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
-  assert.match(appSource, /: state\.result && state\.result\.validRows > 0\s*\n\s*\? 'coverage-panel'/);
+  assert.match(appSource, /: state\.result && analysisRowCount\(state\.result\) > 0\s*\n\s*\? 'coverage-panel'/);
+  assert.match(appSource, /'results-panel': Boolean\(state\.result && resultHasRetainedData\(state\.result\)\)/);
+  assert.match(appSource, /: state\.result && resultHasRetainedData\(state\.result\)\s*\n\s*\? 'results-panel'/);
   assert.match(appSource, /target\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
   assert.match(appSource, /article\.period_a\.article_name_variants/);
   assert.match(appSource, /return article\.selling_unit_conflict;/);
+  assert.match(appSource, /state\.result\.files \|\| \[\]\)\.filter\(function \(file\) \{\s*return file\.sourceType !== 'article-master';/);
   assert.doesNotMatch(appSource, /for \(let dayOffset = offset; dayOffset <= bucketEndOffset; dayOffset \+= 1\)/);
 });
 
@@ -592,6 +595,92 @@ test('import and combined results retain the explicit source type', () => {
     { id: 'source-type', name: 'type.csv', label: 'type.csv', sourceType: 'article-master', result: result }
   ]);
   assert.equal(combined.files[0].sourceType, 'article-master');
+});
+
+test('article-master sources require only article identity and retain master attributes', () => {
+  const result = csv.importCsv(
+    'article_id;article_name;location;custom_zone\nSKU-1;Widget A;A-01;Cold\n',
+    { article_id: 0, article_name: 1, location: 2 },
+    {
+      sourceFile: { id: 'master-source', name: 'articles.csv', label: 'articles.csv', sourceType: 'article-master' },
+      customFields: [{ id: 'zone', name: 'Zone', type: 'text', active: true }],
+      customFieldMapping: { zone: 3 }
+    }
+  );
+
+  assert.equal(result.blocking, false);
+  assert.equal(result.validRows, 1);
+  assert.deepEqual(result.rows[0], {
+    source_file_id: 'master-source',
+    source_file_name: 'articles.csv',
+    source_file_label: 'articles.csv',
+    source_type: 'article-master',
+    source_line: 2,
+    order_id: null,
+    article_id: 'SKU-1',
+    article_name: 'Widget A',
+    quantity: null,
+    order_date: null,
+    customer_id: null,
+    sales_value: null,
+    sales_value_exact: null,
+    location: 'A-01',
+    sales_unit_count: null,
+    quantity_per_sales_unit: null,
+    sales_unit_quantity_matches: null,
+    sales_unit_quantity_relation: null,
+    custom_fields: { zone: 'Cold' }
+  });
+});
+
+test('article-master rows remain persisted but do not enter order-line analysis', () => {
+  const result = csv.importCsv(
+    'article_id;article_name\nSKU-1;Widget A\n',
+    { article_id: 0, article_name: 1 },
+    { sourceFile: { id: 'master-only', name: 'articles.csv', label: 'articles.csv', sourceType: 'article-master' } }
+  );
+  const accumulator = csv.createAnalysisAccumulator();
+  const combined = csv.combineImportResults([
+    { id: 'master-only', name: 'articles.csv', label: 'articles.csv', sourceType: 'article-master', result: result }
+  ], { analysisAccumulator: accumulator });
+  assert.equal(combined.files[0].validRows, 1);
+  assert.equal(combined.rows.length, 0);
+  assert.equal(accumulator.finish().total_lines, 0);
+});
+
+test('article-master rows with optional order-line-looking columns stay out of analysis', () => {
+  const result = csv.importCsv(
+    'article_id;order_id;quantity;order_date\nSKU-1;O-1;4;2026-09-12\n',
+    { article_id: 0, order_id: 1, quantity: 2, order_date: 3 },
+    { sourceFile: { id: 'master-shaped', name: 'articles.csv', label: 'articles.csv', sourceType: 'article-master' } }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'master-shaped', name: 'articles.csv', label: 'articles.csv', sourceType: 'article-master', result: result }
+  ]);
+  assert.equal(result.validRows, 1);
+  assert.equal(combined.rows.length, 0);
+});
+
+test('combined results separate retained rows from demand-analysis rows', () => {
+  const orderLines = csv.importCsv(
+    'order_id;article_id;quantity;order_date\nO-1;SKU-1;2;2026-09-12\n',
+    { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    { sourceFile: { id: 'source-orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines' } }
+  );
+  const master = csv.importCsv(
+    'article_id;order_date\nSKU-1;2026-09-12\n',
+    { article_id: 0, order_date: 1 },
+    { sourceFile: { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' } }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'source-orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines', result: orderLines },
+    { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master', result: master }
+  ]);
+  assert.equal(combined.validRows, 2);
+  assert.equal(combined.analysisRows, 1);
+  assert.equal(combined.rows.length, 1);
+  assert.equal(combined.retainedRows.length, 2);
+  assert.equal(combined.warnings.some((warning) => warning.code === 'overlapping_date_ranges'), false);
 });
 
 test('incremental analysis consumes provenance finalized by batch combination', () => {

@@ -434,11 +434,15 @@
     if (!Number.isInteger(row.source_line) || row.source_line < 1) {
       validationError('invalid_normalized_row', 'Normalized row contains an invalid source line.');
     }
-    if (typeof row.order_id !== 'string' || !row.order_id || typeof row.article_id !== 'string' || !row.article_id) {
+    const sourceType = row.source_type === 'article-master' ? 'article-master' : 'order-lines';
+    if (typeof row.article_id !== 'string' || !row.article_id || (sourceType !== 'article-master' && (typeof row.order_id !== 'string' || !row.order_id))) {
       validationError('invalid_normalized_row', 'Normalized row is missing a required identity.');
     }
-    if (typeof row.quantity !== 'bigint' || row.quantity <= 0n) {
+    if (sourceType !== 'article-master' && (typeof row.quantity !== 'bigint' || row.quantity <= 0n)) {
       validationError('invalid_normalized_row', 'Normalized quantity must be a positive scaled integer.');
+    }
+    if (sourceType === 'article-master' && row.order_id !== undefined && row.order_id !== null && typeof row.order_id !== 'string') {
+      validationError('invalid_normalized_row', 'Normalized article-master order ID must be text when present.');
     }
     const salesUnitCount = row.sales_unit_count === undefined || row.sales_unit_count === null ? null : row.sales_unit_count;
     const quantityPerSalesUnit = row.quantity_per_sales_unit === undefined || row.quantity_per_sales_unit === null ? null : row.quantity_per_sales_unit;
@@ -448,20 +452,24 @@
     if (quantityPerSalesUnit !== null && (typeof quantityPerSalesUnit !== 'bigint' || quantityPerSalesUnit <= 0n)) {
       validationError('invalid_normalized_row', 'Normalized quantity per selling unit must be a positive scaled integer.');
     }
-    const expectedUnitMatch = salesUnitCount !== null && quantityPerSalesUnit !== null
+    const expectedUnitMatch = salesUnitCount !== null && quantityPerSalesUnit !== null && typeof row.quantity === 'bigint'
       ? salesUnitCount * quantityPerSalesUnit === row.quantity * 10000000n
       : null;
     if (row.sales_unit_quantity_matches !== undefined && row.sales_unit_quantity_matches !== expectedUnitMatch) {
       validationError('invalid_normalized_row', 'Normalized selling-unit consistency flag is invalid.');
     }
-    const expectedUnitRelation = salesUnitCount !== null && quantityPerSalesUnit !== null
+    const expectedUnitRelation = salesUnitCount !== null && quantityPerSalesUnit !== null && typeof row.quantity === 'bigint'
       ? (expectedUnitMatch ? 'exact' : (salesUnitCount * quantityPerSalesUnit < row.quantity * 10000000n ? 'partial' : 'exceeds'))
       : null;
     if (row.sales_unit_quantity_relation !== undefined && row.sales_unit_quantity_relation !== expectedUnitRelation) {
       validationError('invalid_normalized_row', 'Normalized selling-unit quantity relation is invalid.');
     }
-    if (typeof row.order_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.order_date)) {
+    if (sourceType !== 'article-master' && (typeof row.order_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.order_date))) {
       validationError('invalid_normalized_row', 'Normalized row contains an invalid date.');
+    }
+    if (sourceType === 'article-master' && row.order_date !== undefined && row.order_date !== null &&
+      (typeof row.order_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.order_date))) {
+      validationError('invalid_normalized_row', 'Normalized article-master date must be valid when present.');
     }
     if (row.custom_fields !== undefined) {
       if (!isPlainObject(row.custom_fields)) {
