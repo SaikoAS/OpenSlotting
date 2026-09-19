@@ -78,6 +78,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.ok(deleteBody);
   assert.ok(renameBody);
   assert.ok(clearViewBody);
+  assert.doesNotMatch(clearViewBody[1].split('  async function recoverWorkspaceCatalogAfterMissing')[0], /state\.customFields\s*=\s*\[\]/);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /id="workspace-open"/);
   assert.match(indexSource, /id="workspace-load-progress"/);
@@ -1186,6 +1187,20 @@ test('custom field mappings cannot reuse a core source column', () => {
   );
   assert.equal(result.blocking, true);
   assert.ok(result.issues.some((issue) => issue.code === 'source_column_reused'));
+});
+
+test('inactive custom fields do not block existing source mappings', () => {
+  const result = csv.importCsvStreaming(
+    'order_id;article_id;quantity;order_date;Zone\nO1;A1;2;2026-09-01;Cold\n',
+    { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    {
+      sourceFile: { id: 'source-custom-inactive', name: 'custom.csv', label: 'custom.csv' },
+      customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: false }],
+      customFieldMapping: { 'custom-zone': 4 }
+    }
+  );
+  assert.equal(result.blocking, false);
+  assert.deepEqual(result.rows[0].custom_fields, {});
 });
 
 test('article search projections include variants and refresh for locale changes', () => {

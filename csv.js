@@ -772,10 +772,11 @@
     const used = new Map();
     Object.keys(mapping || {}).forEach(function (fieldId) {
       const field = byId.get(fieldId);
-      if (!field || field.active === false) {
+      if (!field) {
         issues.push({ sourceLine: null, field: fieldId, code: 'custom_field_unknown', message: 'Custom field is not available for mapping.' });
         return;
       }
+      if (field.active === false) return;
       const position = mapping[fieldId];
       if (!Number.isInteger(position)) return;
       if (coreMapping && Object.keys(coreMapping).some(function (key) { return coreMapping[key] === position; })) {

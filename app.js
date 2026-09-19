@@ -3853,6 +3853,7 @@
       }
       if (!state.workspaces.some(function (workspace) { return workspace.id === activeId; })) {
         state.activeWorkspace = null;
+        state.customFields = [];
         if (state.lastActiveWorkspaceId === activeId) {
           state.lastActiveWorkspaceId = null;
         }
@@ -3889,7 +3890,6 @@
 
   function clearWorkspaceView() {
     state.files = [];
-    state.customFields = [];
     state.periodSettings = periods.normalizeSettings();
     state.fileSelectionVersion += 1;
     clearAnalysis();
@@ -3915,6 +3915,7 @@
         state.lastActiveWorkspaceId = null;
       }
       state.activeWorkspace = null;
+      state.customFields = [];
       clearWorkspaceView();
     }
     if (state.activeWorkspace) {
@@ -4225,6 +4226,7 @@
       });
       if (state.activeWorkspace && state.activeWorkspace.id === selected.id) {
         state.activeWorkspace = null;
+        state.customFields = [];
         clearWorkspaceView();
       }
       if (state.lastActiveWorkspaceId === selected.id) {
@@ -4412,6 +4414,7 @@
         }
         if (state.activeWorkspace && state.activeWorkspace.id === replaceTarget.id) {
           state.activeWorkspace = null;
+          state.customFields = [];
           clearWorkspaceView();
         }
       } else {
@@ -4476,6 +4479,7 @@
         elements.languageSelect.value = state.language;
       }
       state.activeWorkspace = null;
+      state.customFields = [];
       clearWorkspaceView();
       applyLanguage({ skipAnalysisRefresh: true });
       setWorkspaceMessage(state.workspaces.length > 0 ? 'workspace_select_status' : 'workspace_none_status', {}, state.workspaces.length > 0 ? '' : 'warning');
@@ -4485,6 +4489,7 @@
     } catch (error) {
       state.storageReady = false;
       state.activeWorkspace = null;
+      state.customFields = [];
       clearWorkspaceView();
       setText(elements.workspaceStorageStatus, translate('workspace_storage_unavailable'));
       showWorkspaceError(error);
