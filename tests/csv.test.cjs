@@ -123,7 +123,11 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(backupBody[1], /runWorkspaceWorker\(null, null, revision, record\.name, \{\s*backupExport: record/);
   assert.match(backupBody[1], /const fallbackRecord = await workspaceRepository\.loadWorkspace\(selected\.id\)/);
   assert.match(workerBody[1], /workspaceModel\.migrateWorkspace\(input\.backupExport/);
-  assert.ok(workerBody[1].includes("workspaceModel.stringifyBackup(validatedExport, { validated: true })"));
+  assert.match(workerBody[1], /const sourceSchemaVersion = Number\(input\.backupExport\.schemaVersion\)/);
+  assert.match(workerBody[1], /sourceSchemaVersion < workspaceModel\.WORKSPACE_SCHEMA_VERSION && validatedExport\.analyzed/);
+  assert.match(workerBody[1], /const prepared = prepareWorkspaceRecord\(input\.backupExport, validatedExport\.language/);
+  assert.match(workerBody[1], /articleRegistry: prepared\.workspace\.articleRegistry/);
+  assert.ok(workerBody[1].includes("workspaceModel.stringifyBackup(backupWorkspace, { validated: true })"));
   assert.match(backupBody[1], /state\.workspaceLoading = true/);
   assert.match(backupBody[1], /persistActiveWorkspace\(undefined, \{ allowWhileLoading: true \}\)/);
   assert.ok(backupBody[1].indexOf('state.workspaceLoading = true') < backupBody[1].indexOf('persistActiveWorkspace'));

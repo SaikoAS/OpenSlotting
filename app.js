@@ -3679,8 +3679,18 @@
       try {
         const input = event.data || {};
         if (input.backupExport) {
+          const sourceSchemaVersion = Number(input.backupExport.schemaVersion);
           const validatedExport = workspaceModel.migrateWorkspace(input.backupExport, { clonePayload: false });
-          const backupText = workspaceModel.stringifyBackup(validatedExport, { validated: true });
+          let backupWorkspace = validatedExport;
+          if (sourceSchemaVersion < workspaceModel.WORKSPACE_SCHEMA_VERSION && validatedExport.analyzed) {
+            const prepared = prepareWorkspaceRecord(input.backupExport, validatedExport.language, function (progress) {
+              self.postMessage({ type: 'progress', progress: progress });
+            });
+            backupWorkspace = Object.assign({}, validatedExport, {
+              articleRegistry: prepared.workspace.articleRegistry
+            });
+          }
+          const backupText = workspaceModel.stringifyBackup(backupWorkspace, { validated: true });
           self.postMessage({
             type: 'backup',
             text: backupText,
