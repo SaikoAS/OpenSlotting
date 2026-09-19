@@ -2,9 +2,9 @@
 
 OpenSlotting is an open-source, local-first web tool for analyzing warehouse order lines and building a data-driven foundation for warehouse slotting.
 
-The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The current development version adds persistent workspaces and period comparison; future versions are planned to expand this foundation through ABC/XYZ classification, configurable master data, slotting scores, and warehouse slotting recommendations.
+The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The latest published application release is `0.2.1`; current `main` development continues the local-workspace and period-comparison foundation. Future versions are planned to expand this foundation through ABC/XYZ classification, configurable master data, slotting scores, and warehouse slotting recommendations.
 
-> **Project status:** Post-V0.2.1 development with persistent local workspaces. The final bundled release version has not yet been assigned.
+> **Project status:** The latest published release is `0.2.1`. `main` contains unreleased development after that release, including persistent workspaces, period comparison, runtime profiles, and large-import performance work. No next release version has been assigned yet.
 
 ## Current development implementation
 
@@ -59,7 +59,7 @@ The current implementation includes:
 
 The complete import, normalization, validation, and analysis-export contract is documented in [`docs/data-format.md`](docs/data-format.md). Period coverage and comparison semantics are documented in [`docs/period-comparison.md`](docs/period-comparison.md). Large-import measurements and the synthetic benchmark are documented in [`docs/large-imports.md`](docs/large-imports.md). Search and sort projection measurements are documented in [`docs/search-performance.md`](docs/search-performance.md). Persistent storage, backup, restore, and migration are documented in [`docs/workspace-format.md`](docs/workspace-format.md).
 
-The published V0.1 release was accepted in Microsoft Edge Desktop on Windows with `index.html` opened directly through `file:///`. V0.2 retains the same acceptance target and requires a separate multi-file Edge run before release using [`docs/acceptance-v0.2.md`](docs/acceptance-v0.2.md). Other browsers may work but are not part of the compatibility claim unless tested separately.
+The published V0.1 and V0.2.1 releases were accepted in Microsoft Edge Desktop on Windows with `index.html` opened directly through `file:///`; the V0.2 multi-export acceptance record remains historical. Current `main` development still requires a fresh exact-candidate Edge run before a future release claim. Other browsers may work but are not part of the compatibility claim unless tested separately.
 
 Workspace source data is stored locally in IndexedDB in the current browser
 profile and origin. Startup loads only small workspace metadata; the selected
@@ -105,7 +105,7 @@ automation.
 
 ## Experimental localhost start
 
-This branch also contains an optional Python 3 localhost launcher for evaluating
+The repository also contains an optional Python 3 localhost launcher for evaluating
 OpenSlotting under a stable HTTP origin. It installs neither OpenSlotting nor
 Python packages and builds no application executable. On Windows,
 `Start-OpenSlotting-Localhost.cmd` starts the server in the background when
@@ -227,7 +227,7 @@ For example:
 | Menge | Quantity |
 | Qty | Quantity |
 
-Users can review and change the mapping independently for every file in the current batch. Workspace-specific mappings are planned for V0.3; reusable mapping templates remain planned for V0.6.
+Users can review and change the mapping independently for every file in the current batch. Workspace-specific mappings are persisted with each workspace; reusable mapping templates remain planned for V0.6.
 
 Article descriptions are optional display metadata. Articles are always grouped by
 `article_id`. If one article ID has multiple distinct non-empty descriptions,
@@ -323,7 +323,7 @@ The public project and demo data must not contain real company, customer, articl
 - Use an optional local icon and remove only OpenSlotting-managed shortcuts safely
 - Preserve direct `file:///` startup as the independent core runtime
 
-### V0.3 — Local Workspaces
+### V0.3 — Local Workspaces (implemented on `main`; release claim pending)
 
 - Create and reopen separate workspaces in browser-local IndexedDB storage
 - Start with a metadata-only overview and load a large workspace only after explicit selection
@@ -336,11 +336,10 @@ The public project and demo data must not contain real company, customer, articl
 - Portable workspace backups for migration between browser profiles or `file:///` origins
 - No mandatory cloud storage, backend, account, or network connection
 
-Implementation exists on the Issue #19 feature branch; exact-candidate automated
-checks and manual Microsoft Edge `file:///` acceptance remain required before a
-release claim.
+The implementation is on `main`. Exact-candidate automated checks and manual
+Microsoft Edge `file:///` acceptance remain required before a release claim.
 
-### V0.4 — Period Comparison
+### V0.4 — Period Comparison (implemented on `main`; release claim pending)
 
 - Select and compare defined analysis periods
 - Show data coverage and missing-period warnings

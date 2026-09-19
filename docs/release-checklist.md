@@ -1,4 +1,4 @@
-# OpenSlotting V0.2.1 Release Checklist
+# OpenSlotting Release Checklist
 
 Use this checklist on the exact release candidate. Automated results do not replace the manual Microsoft Edge acceptance run.
 
@@ -6,7 +6,7 @@ Use this checklist on the exact release candidate. Automated results do not repl
 
 | Item | Value |
 | --- | --- |
-| Version | `0.2.1` |
+| Version | Read from `csv.js` (`APP_VERSION`) for the candidate |
 | Candidate branch | |
 | PR candidate commit | |
 | Final `main` commit | |
@@ -15,7 +15,7 @@ Use this checklist on the exact release candidate. Automated results do not repl
 | Acceptance date | |
 | Result | Pending |
 
-Before building the final PR candidate, replace `Unreleased` in `CHANGELOG.md` with the planned publication date recorded above. Complete the automated checks, packaging, ZIP extraction, and manual Edge acceptance only after that edit is part of the recorded PR candidate commit.
+The latest published release is `0.2.1`; `main` may contain unreleased work without an assigned next version. Before building a release candidate, decide the next version, update the single `APP_VERSION` source in `csv.js`, and record it above. Replace the current `Unreleased` heading in `CHANGELOG.md` with that version and publication date only when the release is ready. Complete the automated checks, packaging, ZIP extraction, and manual Edge acceptance only after those edits are part of the recorded PR candidate commit.
 
 Any later change to the publication date or another release-visible file invalidates the previous candidate. Commit the change, rebuild the ZIP, and repeat all automated and manual checks on the new exact candidate before tagging.
 
@@ -32,7 +32,10 @@ Confirm that the commit printed by the script exactly matches the recorded candi
 - [ ] `node --check csv.js`
 - [ ] `node --check app.js`
 - [ ] `node --check encoding.js`
+- [ ] `node --check periods.js`
 - [ ] `node --check runtime.js`
+- [ ] `node --check workspace.js`
+- [ ] `node --check storage.js`
 - [ ] `node --test tests/*.test.cjs`
 - [ ] `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows-launcher.test.ps1`
 - [ ] `pwsh -NoProfile -File tests/windows-launcher.test.ps1`
@@ -43,19 +46,22 @@ Confirm that the commit printed by the script exactly matches the recorded candi
 - [ ] Required GitHub Actions check `quality` passes on the exact final PR head
 - [ ] Runtime files contain no unexpected network, CDN, telemetry, backend, or localhost dependency
 - [ ] The full candidate commit hash is recorded above
-- [ ] `tools/package-release.ps1 -CandidateCommit <full-commit-hash>` reports that exact commit and creates `dist/OpenSlotting-v0.2.1.zip`
+- [ ] `tools/package-release.ps1 -CandidateCommit <full-commit-hash>` reports that exact commit and creates `dist/OpenSlotting-v<APP_VERSION>.zip`
 - [ ] The ZIP contains only the documented user-facing files
 
 Expected ZIP contents:
 
 ```text
-OpenSlotting-v0.2.1/
+OpenSlotting-v<APP_VERSION>/
 ├── index.html
 ├── app.css
 ├── runtime.js
 ├── app.js
 ├── encoding.js
 ├── csv.js
+├── periods.js
+├── workspace.js
+├── storage.js
 ├── OpenSlotting.Windows.psm1
 ├── Start-OpenSlotting.cmd
 ├── Start-OpenSlotting.ps1
@@ -81,9 +87,13 @@ OpenSlotting-v0.2.1/
 ├── SECURITY.md
 └── docs/
     ├── data-format.md
+    ├── workspace-format.md
+    ├── period-comparison.md
     ├── runtime-profiles.md
     ├── localhost-experiment.md
     ├── acceptance-runtime-profiles.md
+    ├── acceptance-workspaces.md
+    ├── acceptance-period-comparison.md
     ├── acceptance-v0.2.md
     └── acceptance-v0.2.1.md
 ```
@@ -92,7 +102,7 @@ OpenSlotting-v0.2.1/
 
 Run these checks on Windows in Microsoft Edge Desktop with the network unavailable. Extract the candidate ZIP into a new directory and open its `index.html` directly. Record failures with the candidate commit and source fixture; use only fully synthetic data. Complete the multi-export checks in `docs/acceptance-v0.2.md`, the launcher/shortcut checks in `docs/acceptance-v0.2.1.md`, and both runtime profiles in `docs/acceptance-runtime-profiles.md` on this same candidate.
 
-The V0.2 and V0.2.1 source-tree acceptance checklists were confirmed by the user on 2026-09-11 for commit `ebb6d6ec8333e564e63079d1eec6a60f3ab52495`. Final acceptance of the dated release ZIP remains pending.
+The V0.2 and V0.2.1 acceptance checklists are historical records. A future release candidate requires a new exact-commit acceptance run; do not copy historical results into the current candidate record.
 
 1. [ ] `index.html` opens directly through `file:///` without a server.
 2. [ ] The application loads without blocking runtime errors.
@@ -142,7 +152,7 @@ The V0.2 and V0.2.1 source-tree acceptance checklists were confirmed by the user
 - [ ] A fresh ZIP is built with `-CandidateCommit <final-main-commit>` and the script reports that exact commit.
 - [ ] All automated checks and all required manual Edge `file:///` checks pass again on the extracted ZIP from the final `main` commit.
 - [ ] No release-visible file changed after the final-`main` package and acceptance run.
-- [ ] Tag `v0.2.1` points to that exact accepted final `main` commit.
-- [ ] A normal, non-prerelease GitHub Release named `OpenSlotting v0.2.1 — Optional Windows Edge Launcher` is created from the tag.
-- [ ] `OpenSlotting-v0.2.1.zip` is attached to the release.
+- [ ] Tag `v<APP_VERSION>` points to that exact accepted final `main` commit.
+- [ ] A normal, non-prerelease GitHub Release named `OpenSlotting v<APP_VERSION>` is created from the tag.
+- [ ] `OpenSlotting-v<APP_VERSION>.zip` is attached to the release.
 - [ ] The attached ZIP is independently downloaded, extracted, and verified again through direct `file:///` execution.

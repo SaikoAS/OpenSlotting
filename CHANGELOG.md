@@ -2,7 +2,7 @@
 
 All notable changes to OpenSlotting are documented in this file.
 
-## Unreleased
+## Unreleased (next release; version not assigned)
 
 ### Added
 
@@ -12,6 +12,10 @@ All notable changes to OpenSlotting are documented in this file.
 - optional selling-unit / VKU / Colli and quantity-per-selling-unit import fields
 - exact selling-unit comparison and per-article conflict indicators without replacing authoritative total quantity
 - workspace schema version 2 for persisted period settings and migration from schema version 1
+- portable and optional Enhanced Local runtime profiles with capability diagnostics
+- chunked IndexedDB workspace persistence and reduced normalized-row memory usage
+- chunked CSV decoding, streaming normalization, incremental analysis, and lazy article details
+- single-pass period aggregation and cached article search/sort projections
 
 ### Changed
 
@@ -54,7 +58,7 @@ All notable changes to OpenSlotting are documented in this file.
 
 - release packages now include the optional Windows launcher and shortcut-management files
 
-## 0.2.0 - Unreleased
+## 0.2.0 — Unreleased development work (never published)
 
 ### Added
 

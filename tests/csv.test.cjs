@@ -12,6 +12,8 @@ test('release version is defined centrally for the UI and package', () => {
 
   assert.equal(csv.APP_VERSION, '0.2.1');
   assert.match(appSource, /core\.APP_VERSION/);
+  assert.match(appSource, /eyebrow: 'OpenSlotting · v\{\{version\}\}'/);
+  assert.doesNotMatch(appSource, /eyebrow: 'OpenSlotting · V0\.2'/);
 });
 
 test('runtime source has no mandatory network dependency', () => {

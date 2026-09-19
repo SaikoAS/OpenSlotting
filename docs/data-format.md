@@ -1,6 +1,6 @@
-# OpenSlotting V0.2 Data Format
+# OpenSlotting Data and Import Format
 
-This document defines the import, normalization, multi-export aggregation, and analysis-export contract implemented by OpenSlotting 0.2.x. It describes current behavior, not planned features.
+This document defines the current import, normalization, multi-export aggregation, and analysis-export contract implemented by OpenSlotting. It describes current behavior, not planned features.
 
 ## Input file
 
@@ -14,7 +14,7 @@ The CSV parser supports:
 - CRLF, LF, and CR line endings
 - an optional Unicode byte-order mark
 
-An unexpected quote in an unquoted field, a character after a closing quote, or an unterminated quoted field is a parser error. A delimiter other than the default can be supplied by code, but it must be exactly one character; the V0.2 browser interface uses semicolons.
+An unexpected quote in an unquoted field, a character after a closing quote, or an unterminated quoted field is a parser error. A delimiter other than the default can be supplied by code, but it must be exactly one character; the browser interface uses semicolons.
 
 ## Normalized fields
 
@@ -178,6 +178,6 @@ Before export, untrusted text that starts, after optional whitespace, with `=`, 
 
 ## Runtime and privacy boundary
 
-Import and analysis calculations run locally in the browser. In the post-V0.2.1 development implementation, the active workspace retains original source bytes, mappings, normalized rows, validation results, and provenance in IndexedDB; derived article analysis is rebuilt when an analyzed workspace is reopened. Normal use requires no upload, backend, local server, internet connection, Node.js, or Python. Opening `index.html` directly through `file:///` remains the runtime model. See [workspace-format.md](workspace-format.md) for the persistent storage and backup contract and [SECURITY.md](../SECURITY.md) for repository and operational-data rules.
+Import and analysis calculations run locally in the browser. In the current development implementation, the active workspace retains original source bytes, mappings, normalized rows, validation results, and provenance in IndexedDB; derived article analysis is rebuilt when an analyzed workspace is reopened. Normal use requires no upload, backend, local server, internet connection, Node.js, or Python. Opening `index.html` directly through `file:///` remains the runtime model. See [workspace-format.md](workspace-format.md) for the persistent storage and backup contract and [SECURITY.md](../SECURITY.md) for repository and operational-data rules.
 
 Period coverage and comparison semantics are defined separately in [period-comparison.md](period-comparison.md).
