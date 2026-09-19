@@ -70,6 +70,8 @@ The current runtime-neutral boundaries remain intentionally small:
 
 Future OPFS or SQLite experiments must implement the same logical workspace
 contract. They must not introduce an incompatible enhanced-only backup schema.
+The current exploratory comparison and its migration boundary are documented
+in [`storage-backend-evaluation.md`](storage-backend-evaluation.md).
 
 ## Storage and migration
 
