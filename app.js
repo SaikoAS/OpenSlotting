@@ -2111,7 +2111,9 @@
   }
 
   function buildCoverageData() {
-    const sourceMap = new Map((state.result.files || []).map(function (file) {
+    const sourceMap = new Map((state.result.files || []).filter(function (file) {
+      return file.sourceType !== 'article-master';
+    }).map(function (file) {
       return [file.id, {
         id: file.id,
         label: file.label,
@@ -2147,7 +2149,7 @@
       }
     });
     state.result.issues.forEach(function (issue) {
-      if (!core.issueIsBlocking(issue) || !periods.validDate(issue.orderDate) || !Number.isInteger(issue.sourceLine)) {
+      if (!sourceMap.has(issue.sourceFileId) || !core.issueIsBlocking(issue) || !periods.validDate(issue.orderDate) || !Number.isInteger(issue.sourceLine)) {
         return;
       }
       const entry = dateEntry(issue.orderDate);
@@ -2227,7 +2229,8 @@
       return isDate ? row.order_date === selection.value : row.source_file_id === selection.value;
     });
     const issues = state.result.issues.filter(function (issue) {
-      return isDate ? issue.orderDate === selection.value : issue.sourceFileId === selection.value;
+      const source = state.result.files.find(function (file) { return file.id === issue.sourceFileId; });
+      return source && source.sourceType !== 'article-master' && (isDate ? issue.orderDate === selection.value : issue.sourceFileId === selection.value);
     });
     const invalidLines = new Set(issues.filter(function (issue) {
       return core.issueIsBlocking(issue) && Number.isInteger(issue.sourceLine);
