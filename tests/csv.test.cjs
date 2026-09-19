@@ -435,6 +435,7 @@ test('streaming imports profile every source column with bounded evidence', () =
   assert.deepEqual(article.sampleValues.map((entry) => entry.value), ['A-1']);
   assert.equal(article.frequentValues[0].value, 'A-1');
   assert.equal(article.frequentValues[0].count, 2);
+  assert.equal(article.frequentValues[0].countIsEstimate, false);
 
   const quantity = result.columnCatalog[2].profile;
   assert.equal(quantity.numericCompatibleCount, 3);
@@ -491,6 +492,19 @@ test('bounded frequency tracking retains values that become frequent late in the
   assert.equal(profile.distinctValueCountExact, false);
   assert.equal(profile.frequentValues[0].value, 'LATE');
   assert.ok(profile.frequentValues[0].count >= 100);
+  assert.equal(profile.frequentValues[0].countIsEstimate, true);
+});
+
+test('replacement frequency counts are explicitly marked as estimates', () => {
+  const rows = ['article_id;order_id;quantity;order_date'];
+  for (let index = 0; index <= 256; index += 1) {
+    rows.push('A-' + index + ';O-' + index + ';1;2026-01-02');
+  }
+  const profile = csv.importCsvStreaming(rows.join('\n')).columnCatalog[0].profile;
+  const replacement = profile.frequentValues.find((entry) => entry.value === 'A-256');
+  assert.ok(replacement);
+  assert.equal(replacement.count, 2);
+  assert.equal(replacement.countIsEstimate, true);
 });
 
 test('mapping suggestions expose explainable confidence, profile reasons, and ambiguity', () => {

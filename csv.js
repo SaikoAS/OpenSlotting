@@ -250,12 +250,13 @@
         state.distinctValues.set(key, {
           value: bounded.value,
           truncated: bounded.truncated,
-          count: leastValue.count + 1
+          count: leastValue.count + 1,
+          countIsEstimate: true
         });
       }
       return;
     }
-    state.distinctValues.set(key, { value: bounded.value, truncated: bounded.truncated, count: 1 });
+    state.distinctValues.set(key, { value: bounded.value, truncated: bounded.truncated, count: 1, countIsEstimate: false });
   }
 
   function finalizeColumnProfiles(catalog, states) {
