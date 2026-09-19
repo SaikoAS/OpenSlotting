@@ -284,6 +284,7 @@
     if (state.distinctValues.has(key)) {
       const current = state.distinctValues.get(key);
       current.count += 1;
+      current.countIsEstimate = current.countIsEstimate || bounded.truncated;
       const heapIndex = state.frequencyHeapPositions.get(key);
       if (heapIndex !== undefined) {
         state.frequencyHeap[heapIndex].count = current.count;
@@ -315,7 +316,7 @@
       }
       return;
     }
-    state.distinctValues.set(key, { value: bounded.value, truncated: bounded.truncated, count: 1, countIsEstimate: false });
+    state.distinctValues.set(key, { value: bounded.value, truncated: bounded.truncated, count: 1, countIsEstimate: bounded.truncated });
     addFrequencyHeapNode(state, key, 1, state.nextFrequencyOrder++);
   }
 
@@ -1305,6 +1306,7 @@
     const columnCatalog = buildColumnCatalog(headers, sourceFile);
     const columnProfileStates = createColumnProfileStates(headers.length);
     const dataRows = parsed.rows.slice(1);
+    dataRows.forEach(function (dataRow) { observeColumnProfiles(columnProfileStates, dataRow.values); });
     const headerSourceLine = parsed.rows[0].sourceLine;
     const headerHasParserError = parsed.errors.some(function (error) {
       return error.sourceLine === headerSourceLine;
@@ -1312,7 +1314,7 @@
     if (headerHasParserError) {
       return {
         headers: headers,
-        columnCatalog: columnCatalog,
+        columnCatalog: finalizeColumnProfiles(columnCatalog, columnProfileStates),
         rows: [],
         issues: addSourceToIssues(parserIssues, sourceFile),
         totalRows: dataRows.length,
@@ -1329,7 +1331,7 @@
     if (mappingIssues.length > 0) {
       return {
         headers: headers,
-        columnCatalog: columnCatalog,
+        columnCatalog: finalizeColumnProfiles(columnCatalog, columnProfileStates),
         rows: [],
         issues: addSourceToIssues(parserIssues.concat(mappingIssues), sourceFile),
         totalRows: dataRows.length,
@@ -1349,7 +1351,6 @@
     const structuralLines = new Set();
 
     dataRows.forEach(function (dataRow) {
-      observeColumnProfiles(columnProfileStates, dataRow.values);
       if (dataRow.values.length !== headers.length) {
         structuralLines.add(dataRow.sourceLine);
         invalidLines.add(dataRow.sourceLine);

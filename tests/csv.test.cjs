@@ -507,6 +507,29 @@ test('replacement frequency counts are explicitly marked as estimates', () => {
   assert.equal(replacement.countIsEstimate, true);
 });
 
+test('truncated profile values mark colliding frequency counts as estimates', () => {
+  const prefix = 'X'.repeat(256);
+  const result = csv.importCsvStreaming([
+    'value',
+    prefix + 'A',
+    prefix + 'B'
+  ].join('\n'));
+  const profile = result.columnCatalog[0].profile;
+  assert.equal(profile.distinctValueCountExact, false);
+  assert.equal(profile.frequentValues[0].count, 2);
+  assert.equal(profile.frequentValues[0].countIsEstimate, true);
+});
+
+test('parsed imports profile rows before returning mapping errors', () => {
+  const parsed = csv.parseCsv('mystery;other\nA;1\nB;2\n');
+  const result = csv.importParsedCsv(parsed, {});
+  assert.equal(result.blocking, true);
+  assert.equal(result.totalRows, 2);
+  assert.equal(result.columnCatalog[0].profile.totalRows, 2);
+  assert.equal(result.columnCatalog[0].profile.sampleValues[0].value, 'A');
+  assert.equal(result.columnCatalog[1].profile.numericCompatibleCount, 2);
+});
+
 test('mapping suggestions expose explainable confidence, profile reasons, and ambiguity', () => {
   const suggestions = csv.buildMappingSuggestions(
     ['AuftragsNr', 'Menge', 'Datum', 'Artikeltext'],

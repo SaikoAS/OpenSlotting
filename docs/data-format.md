@@ -22,11 +22,11 @@ distinct-value count, up to five representative non-empty `sampleValues`, and
 up to five `frequentValues`. Distinct tracking is capped at 256 values and
 sample/frequency values are capped at 256 characters; `distinctValueCountExact`
 is false when either bound can make the count approximate. When the distinct
-value cap is reached, replacement tracking may retain a `frequentValues` entry
-with `countIsEstimate: true`; its count is a bounded heavy-hitter estimate, not
-an exact frequency. Thus high-cardinality or large sources cannot grow metadata
-without bound. These are bounded evidence values, not a replacement for the
-retained original source bytes.
+value cap is reached, or when distinct values share a truncated profile value,
+tracking may retain a `frequentValues` entry with `countIsEstimate: true`; its
+count is a bounded estimate, not an exact frequency. Thus high-cardinality or
+large sources cannot grow metadata without bound. These are bounded evidence
+values, not a replacement for the retained original source bytes.
 
 ## Input file
 
