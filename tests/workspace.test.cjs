@@ -217,10 +217,30 @@ test('trusted validation can retain large payload references without copying the
 
 test('trusted runtime capture builds an autosave snapshot without traversing payload rows', () => {
   const original = analyzedWorkspace('workspace-1', 'Warehouse', 'SKU-1');
+  const registry = [{
+    article_id: 'SKU-1',
+    master_data: {},
+    custom_fields: {},
+    has_master_data: false,
+    has_movement_data: true,
+    movement_status: 'movement-only',
+    movement_row_count: 1,
+    master_row_count: 0,
+    source_file_ids: ['source-1'],
+    source_files: ['source-1.csv'],
+    master_source_file_ids: [],
+    master_source_files: [],
+    movement_source_file_ids: ['source-1'],
+    movement_source_files: ['source-1.csv'],
+    master_row_refs: [],
+    value_provenance: [{ field: 'custom:custom-zone', value: 'Cold' }],
+    value_conflicts: []
+  }];
   const captured = workspace.captureWorkspaceTrusted(original, {
     language: 'de',
     analysis: { total_lines: 1 },
-    files: original.files
+    files: original.files,
+    articleRegistry: registry
   }, { now: '2026-09-12T09:00:00.000Z' });
 
   assert.equal(captured.updatedAt, '2026-09-12T09:00:00.000Z');
@@ -228,6 +248,8 @@ test('trusted runtime capture builds an autosave snapshot without traversing pay
   assert.equal(captured.analyzed, true);
   assert.equal(captured.files[0].buffer, original.files[0].buffer);
   assert.equal(captured.files[0].result, original.files[0].result);
+  assert.equal(captured.articleRegistry[0], registry[0]);
+  assert.equal(captured.articleRegistry[0].value_provenance, registry[0].value_provenance);
 });
 
 test('captures and restores the real CSV importer result without changing provenance', () => {

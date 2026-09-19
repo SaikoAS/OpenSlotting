@@ -832,6 +832,7 @@
       validationError('workspace_not_selected', 'No workspace is selected.');
     }
     const settings = options || {};
+    const trustedRegistryOptions = Object.assign({}, settings, { clonePayload: false });
     const files = state && Array.isArray(state.files) ? state.files.map(function (file) {
       return {
         id: file.id,
@@ -863,7 +864,7 @@
       analyzed: Boolean(state && state.analysis),
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
       customFields: normalizeCustomFields(state && state.customFields),
-      articleRegistry: normalizeArticleRegistry(state && state.articleRegistry, settings),
+      articleRegistry: normalizeArticleRegistry(state && state.articleRegistry, trustedRegistryOptions),
       files: files
     };
   }
