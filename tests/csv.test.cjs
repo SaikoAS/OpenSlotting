@@ -275,6 +275,7 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /buildMappingSuggestions/);
   assert.match(appSource, /source-column-overview/);
   assert.match(appSource, /source_column_ambiguous/);
+  assert.match(appSource, /crossFieldTie/);
 
   const referencedIds = [...appSource.matchAll(/document\.getElementById\('([^']+)'\)/g)].map((match) => match[1]);
   referencedIds.forEach((id) => {
@@ -456,6 +457,21 @@ test('column profile samples and distinct tracking remain bounded for high-cardi
   assert.equal(profile.sampleValues.length, 5);
   assert.equal(profile.frequentValues.length, 5);
   assert.ok(profile.sampleValues.every((entry) => entry.value.length <= 256));
+});
+
+test('bounded frequency tracking retains values that become frequent late in the stream', () => {
+  const rows = ['article_id;order_id;quantity;order_date'];
+  for (let index = 0; index < 256; index += 1) {
+    rows.push('A-' + index + ';O-' + index + ';1;2026-01-02');
+  }
+  for (let index = 0; index < 100; index += 1) {
+    rows.push('LATE;L-' + index + ';1;2026-01-02');
+  }
+  const profile = csv.importCsvStreaming(rows.join('\n')).columnCatalog[0].profile;
+  assert.equal(profile.distinctValueCount, 256);
+  assert.equal(profile.distinctValueCountExact, false);
+  assert.equal(profile.frequentValues[0].value, 'LATE');
+  assert.ok(profile.frequentValues[0].count >= 100);
 });
 
 test('mapping suggestions expose explainable confidence, profile reasons, and ambiguity', () => {

@@ -237,6 +237,22 @@
     }
     if (state.distinctValues.size >= COLUMN_PROFILE_DISTINCT_LIMIT) {
       state.distinctLimitReached = true;
+      let leastKey = null;
+      let leastValue = null;
+      state.distinctValues.forEach(function (candidate, candidateKey) {
+        if (!leastValue || candidate.count < leastValue.count) {
+          leastKey = candidateKey;
+          leastValue = candidate;
+        }
+      });
+      if (leastValue) {
+        state.distinctValues.delete(leastKey);
+        state.distinctValues.set(key, {
+          value: bounded.value,
+          truncated: bounded.truncated,
+          count: leastValue.count + 1
+        });
+      }
       return;
     }
     state.distinctValues.set(key, { value: bounded.value, truncated: bounded.truncated, count: 1 });

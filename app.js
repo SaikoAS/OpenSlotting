@@ -1452,9 +1452,11 @@
       }).filter(Boolean).sort(function (left, right) { return right.score - left.score; });
       const best = candidates[0];
       if (!mappedField && best) {
+        const topScore = best.score;
+        const crossFieldTie = candidates.filter(function (candidate) { return candidate.score === topScore; }).length > 1;
         const note = document.createElement('small');
         note.className = 'source-column-suggestion ' + best.confidence;
-        setText(note, best.ambiguity
+        setText(note, best.ambiguity || crossFieldTie
           ? translate('source_column_ambiguous')
           : translate('source_column_suggestion', {
             field: core.getFieldLabel(best.targetField, state.language),
