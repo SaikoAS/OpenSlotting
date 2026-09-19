@@ -1910,13 +1910,10 @@
         includedFiles += 1;
         normalizedRows.forEach(function (row) {
           const isArticleMaster = source.sourceType === 'article-master' || row.source_type === 'article-master';
-          const hasOrderLineShape = typeof row.order_id === 'string' && row.order_id.length > 0 &&
-            typeof row.quantity === 'bigint' && row.quantity > 0n &&
-            typeof row.order_date === 'string' && row.order_date.length > 0;
           // Article-master rows are retained in their source result for persistence,
-          // but only rows with a complete order-line shape participate in the
-          // existing order-line analysis until master-data joins are introduced.
-          if (isArticleMaster && !hasOrderLineShape) {
+          // but never participate in the existing order-line analysis until
+          // master-data joins are introduced.
+          if (isArticleMaster) {
             return;
           }
           const detailIndex = rows.length;

@@ -645,6 +645,19 @@ test('article-master rows remain persisted but do not enter order-line analysis'
   assert.equal(accumulator.finish().total_lines, 0);
 });
 
+test('article-master rows with optional order-line-looking columns stay out of analysis', () => {
+  const result = csv.importCsv(
+    'article_id;order_id;quantity;order_date\nSKU-1;O-1;4;2026-09-12\n',
+    { article_id: 0, order_id: 1, quantity: 2, order_date: 3 },
+    { sourceFile: { id: 'master-shaped', name: 'articles.csv', label: 'articles.csv', sourceType: 'article-master' } }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'master-shaped', name: 'articles.csv', label: 'articles.csv', sourceType: 'article-master', result: result }
+  ]);
+  assert.equal(result.validRows, 1);
+  assert.equal(combined.rows.length, 0);
+});
+
 test('incremental analysis consumes provenance finalized by batch combination', () => {
   const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
   const result = csv.importCsvStreaming('order_id;article_id;quantity;order_date\nO-1;SKU-C;1;2026-09-12\n', mapping);
