@@ -534,12 +534,18 @@ test('mapping suggestions expose explainable confidence, profile reasons, and am
 
 test('mapping similarity preserves word boundaries for multiword headers', () => {
   const suggestions = csv.buildMappingSuggestions(
-    ['primary customer reference'],
-    [{ nonEmptyCount: 1, textCompatibleCount: 1 }]
+    ['primary customer reference', 'primary order reference'],
+    [
+      { nonEmptyCount: 1, textCompatibleCount: 1 },
+      { nonEmptyCount: 1, textCompatibleCount: 1 }
+    ]
   );
   const customerSuggestion = suggestions.customer_id.find((candidate) => candidate.sourcePosition === 0);
   assert.ok(customerSuggestion);
   assert.ok(customerSuggestion.reasons.includes('header_similarity'));
+  const orderSuggestion = suggestions.order_id.find((candidate) => candidate.sourcePosition === 1);
+  assert.ok(orderSuggestion);
+  assert.ok(orderSuggestion.reasons.includes('header_similarity'));
 });
 
 test('import and combined results retain the explicit source type', () => {

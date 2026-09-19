@@ -243,6 +243,7 @@
           validationError('invalid_column_catalog', 'Source column profile frequency is invalid.');
         }
         normalized.count = count;
+        normalized.countIsEstimate = entry.countIsEstimate === undefined ? false : Boolean(entry.countIsEstimate);
       }
       return normalized;
     }

@@ -130,7 +130,21 @@ test('workspace validation preserves an ordered source column catalog', () => {
   const record = analyzedWorkspace('workspace-column-catalog', 'Column catalog', 'SKU-CATALOG');
   record.files[0].result = null;
   record.files[0].columnCatalog = [
-    { position: 0, header: 'Artikelnummer', normalizedHeader: 'artikelnummer', occurrence: 1, isDuplicate: false, sourceFileId: 'source-1', sourceFileName: 'source-1.csv', sourceFileLabel: 'source-1.csv' },
+    {
+      position: 0,
+      header: 'Artikelnummer',
+      normalizedHeader: 'artikelnummer',
+      occurrence: 1,
+      isDuplicate: false,
+      sourceFileId: 'source-1',
+      sourceFileName: 'source-1.csv',
+      sourceFileLabel: 'source-1.csv',
+      profile: {
+        totalRows: 1,
+        nonEmptyCount: 1,
+        frequentValues: [{ value: 'SKU-1', truncated: false, count: 2, countIsEstimate: true }]
+      }
+    },
     { position: 1, header: 'Menge', normalizedHeader: 'menge', occurrence: 1, isDuplicate: false, sourceFileId: 'source-1', sourceFileName: 'source-1.csv', sourceFileLabel: 'source-1.csv' },
     { position: 2, header: 'Menge', normalizedHeader: 'menge', occurrence: 2, isDuplicate: true, sourceFileId: 'source-1', sourceFileName: 'source-1.csv', sourceFileLabel: 'source-1.csv' }
   ];
@@ -138,6 +152,7 @@ test('workspace validation preserves an ordered source column catalog', () => {
   const validated = workspace.validateWorkspace(record);
   assert.equal(validated.files[0].columnCatalog[2].position, 2);
   assert.equal(validated.files[0].columnCatalog[2].isDuplicate, true);
+  assert.equal(validated.files[0].columnCatalog[0].profile.frequentValues[0].countIsEstimate, true);
   assert.throws(
     () => workspace.validateWorkspace(Object.assign({}, record, {
       files: [Object.assign({}, record.files[0], { columnCatalog: [{ position: 1, header: 'Menge', normalizedHeader: 'menge', occurrence: 1 }] })]

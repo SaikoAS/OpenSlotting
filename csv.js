@@ -182,9 +182,60 @@
         sampleKeys: new Set(),
         distinctValues: new Map(),
         distinctLimitReached: false,
-        truncatedValueSeen: false
+        truncatedValueSeen: false,
+        frequencyHeap: [],
+        frequencyHeapPositions: new Map(),
+        nextFrequencyOrder: 0
       };
     });
+  }
+
+  function compareFrequencyHeapNodes(left, right) {
+    return left.count - right.count || left.order - right.order;
+  }
+
+  function swapFrequencyHeapNodes(state, leftIndex, rightIndex) {
+    const heap = state.frequencyHeap;
+    const left = heap[leftIndex];
+    heap[leftIndex] = heap[rightIndex];
+    heap[rightIndex] = left;
+    state.frequencyHeapPositions.set(heap[leftIndex].key, leftIndex);
+    state.frequencyHeapPositions.set(heap[rightIndex].key, rightIndex);
+  }
+
+  function siftFrequencyHeapUp(state, index) {
+    const heap = state.frequencyHeap;
+    while (index > 0) {
+      const parent = Math.floor((index - 1) / 2);
+      if (compareFrequencyHeapNodes(heap[index], heap[parent]) >= 0) break;
+      swapFrequencyHeapNodes(state, index, parent);
+      index = parent;
+    }
+  }
+
+  function siftFrequencyHeapDown(state, index) {
+    const heap = state.frequencyHeap;
+    while (true) {
+      const left = index * 2 + 1;
+      const right = left + 1;
+      let smallest = index;
+      if (left < heap.length && compareFrequencyHeapNodes(heap[left], heap[smallest]) < 0) {
+        smallest = left;
+      }
+      if (right < heap.length && compareFrequencyHeapNodes(heap[right], heap[smallest]) < 0) {
+        smallest = right;
+      }
+      if (smallest === index) break;
+      swapFrequencyHeapNodes(state, index, smallest);
+      index = smallest;
+    }
+  }
+
+  function addFrequencyHeapNode(state, key, count, order) {
+    const index = state.frequencyHeap.length;
+    state.frequencyHeap.push({ key: key, count: count, order: order });
+    state.frequencyHeapPositions.set(key, index);
+    siftFrequencyHeapUp(state, index);
   }
 
   function boundedProfileValue(value) {
@@ -233,19 +284,19 @@
     if (state.distinctValues.has(key)) {
       const current = state.distinctValues.get(key);
       current.count += 1;
+      const heapIndex = state.frequencyHeapPositions.get(key);
+      if (heapIndex !== undefined) {
+        state.frequencyHeap[heapIndex].count = current.count;
+        siftFrequencyHeapDown(state, heapIndex);
+      }
       return;
     }
     if (state.distinctValues.size >= COLUMN_PROFILE_DISTINCT_LIMIT) {
       state.distinctLimitReached = true;
-      let leastKey = null;
-      let leastValue = null;
-      state.distinctValues.forEach(function (candidate, candidateKey) {
-        if (!leastValue || candidate.count < leastValue.count) {
-          leastKey = candidateKey;
-          leastValue = candidate;
-        }
-      });
-      if (leastValue) {
+      const leastNode = state.frequencyHeap[0];
+      const leastValue = leastNode && state.distinctValues.get(leastNode.key);
+      if (leastNode && leastValue) {
+        const leastKey = leastNode.key;
         state.distinctValues.delete(leastKey);
         state.distinctValues.set(key, {
           value: bounded.value,
@@ -253,10 +304,19 @@
           count: leastValue.count + 1,
           countIsEstimate: true
         });
+        state.frequencyHeapPositions.delete(leastKey);
+        state.frequencyHeap[0] = {
+          key: key,
+          count: leastValue.count + 1,
+          order: state.nextFrequencyOrder++
+        };
+        state.frequencyHeapPositions.set(key, 0);
+        siftFrequencyHeapDown(state, 0);
       }
       return;
     }
     state.distinctValues.set(key, { value: bounded.value, truncated: bounded.truncated, count: 1, countIsEstimate: false });
+    addFrequencyHeapNode(state, key, 1, state.nextFrequencyOrder++);
   }
 
   function finalizeColumnProfiles(catalog, states) {
@@ -607,7 +667,8 @@
     const used = new Set();
     const suggestions = {};
     FIELD_DEFINITIONS.forEach(function (definition) {
-      const aliases = (FIELD_ALIASES[definition.key] || []).map(normalizeHeader);
+      const rawAliases = FIELD_ALIASES[definition.key] || [];
+      const aliases = rawAliases.map(normalizeHeader);
       const candidates = values.map(function (header, position) {
         const rawHeader = String(header === undefined || header === null ? '' : header);
         const normalized = normalizeHeader(header);
@@ -618,7 +679,7 @@
           score = 100;
           reasons.push('exact_alias');
         } else {
-          aliases.forEach(function (alias) {
+          rawAliases.forEach(function (alias) {
             score = Math.max(score, headerSimilarityScore(rawHeader, alias));
           });
           if (score > 0) reasons.push('header_similarity');
