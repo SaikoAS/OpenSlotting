@@ -77,6 +77,16 @@ The following aliases are detected automatically:
 
 The mapping screen permits an independent manual source-column selection for every file in the current batch. Mappings are persisted inside the active local workspace. Automatic detection assigns the first unused matching source column within that file. A source column cannot be mapped to more than one OpenSlotting field. A reused source column or a missing required mapping blocks that file; it does not block ready files in the same batch.
 
+The mapping screen also shows every decoded source column with its physical
+position, current use, bounded profile, and representative examples. Mapping
+suggestions are separate from confirmed mappings. They combine exact aliases,
+safe header similarity, and compatible number/date/text profile evidence. Exact
+aliases are high confidence; heuristic candidates are medium or low confidence.
+Tied candidates are marked ambiguous and are never applied automatically.
+Only a unique high-confidence candidate that does not reuse a source position is
+eligible for automatic application by a future mapping workflow; the current UI
+leaves user mappings authoritative.
+
 ## Validation behavior
 
 Parser errors and row-validation errors have different scopes:

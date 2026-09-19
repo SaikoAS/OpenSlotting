@@ -519,6 +519,84 @@
     return mapping;
   }
 
+  function mappingSuggestionConfidence(score) {
+    if (score >= 90) return 'high';
+    if (score >= 60) return 'medium';
+    return 'low';
+  }
+
+  function headerSimilarityScore(header, alias) {
+    if (!header || !alias) return 0;
+    if (header === alias) return 100;
+    if (header.indexOf(alias) === 0 || alias.indexOf(header) === 0) return 68;
+    const headerParts = header.match(/[a-z]+|\d+/g) || [];
+    const aliasParts = alias.match(/[a-z]+|\d+/g) || [];
+    const overlap = aliasParts.filter(function (part) { return headerParts.indexOf(part) >= 0; }).length;
+    return overlap > 0 ? 45 + Math.round(35 * overlap / Math.max(aliasParts.length, 1)) : 0;
+  }
+
+  function buildMappingSuggestions(headers, profiles, options) {
+    const values = Array.isArray(headers) ? headers : [];
+    const sourceProfiles = Array.isArray(profiles) ? profiles : [];
+    const used = new Set();
+    const suggestions = {};
+    FIELD_DEFINITIONS.forEach(function (definition) {
+      const aliases = (FIELD_ALIASES[definition.key] || []).map(normalizeHeader);
+      const candidates = values.map(function (header, position) {
+        const normalized = normalizeHeader(header);
+        let score = 0;
+        const reasons = [];
+        const exactAlias = aliases.indexOf(normalized) >= 0;
+        if (exactAlias) {
+          score = 100;
+          reasons.push('exact_alias');
+        } else {
+          aliases.forEach(function (alias) {
+            score = Math.max(score, headerSimilarityScore(normalized, alias));
+          });
+          if (score > 0) reasons.push('header_similarity');
+        }
+        const profile = sourceProfiles[position] || {};
+        const total = Number(profile.nonEmptyCount || 0);
+        if (total > 0) {
+          const ratio = function (count) { return Number(count || 0) / total; };
+          if (definition.key === 'order_date' && ratio(profile.dateCompatibleCount) >= 0.8) {
+            score += exactAlias ? 0 : 18;
+            reasons.push('date_compatible');
+          } else if (['quantity', 'sales_value', 'sales_unit_count', 'quantity_per_sales_unit'].indexOf(definition.key) >= 0 && ratio(profile.numericCompatibleCount) >= 0.8) {
+            score += exactAlias ? 0 : 18;
+            reasons.push('number_compatible');
+          } else if (['order_id', 'article_id', 'article_name', 'customer_id', 'location'].indexOf(definition.key) >= 0 && ratio(profile.textCompatibleCount) >= 0.8) {
+            score += exactAlias ? 0 : 8;
+            reasons.push('text_compatible');
+          }
+        }
+        return {
+          sourcePosition: position,
+          targetField: definition.key,
+          confidence: mappingSuggestionConfidence(score),
+          score: score,
+          reasons: reasons,
+          ambiguity: false,
+          automaticApplicationSafe: false
+        };
+      }).filter(function (candidate) { return candidate.score > 0; })
+        .sort(function (left, right) { return right.score - left.score || left.sourcePosition - right.sourcePosition; });
+      const top = candidates[0];
+      if (top) {
+        const ties = candidates.filter(function (candidate) { return candidate.score === top.score; });
+        const ambiguous = ties.length > 1;
+        candidates.forEach(function (candidate) {
+          candidate.ambiguity = ambiguous && candidate.score === top.score;
+          candidate.automaticApplicationSafe = candidate === top && !candidate.ambiguity && candidate.confidence === 'high' && !used.has(candidate.sourcePosition);
+        });
+        if (top.automaticApplicationSafe) used.add(top.sourcePosition);
+      }
+      suggestions[definition.key] = candidates;
+    });
+    return suggestions;
+  }
+
   function validateMapping(mapping, locale) {
     const issues = FIELD_DEFINITIONS
       .filter(function (definition) {
@@ -2053,6 +2131,7 @@
     SALES_DECIMAL_PLACES: SALES_DECIMAL_PLACES,
     assignSourceFileLabels: assignSourceFileLabels,
     buildColumnCatalog: buildColumnCatalog,
+    buildMappingSuggestions: buildMappingSuggestions,
     detectMapping: detectMapping,
     combineImportResults: combineImportResults,
     detectBatchWarnings: detectBatchWarnings,

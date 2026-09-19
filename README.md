@@ -38,6 +38,7 @@ The current implementation includes:
 - explicit persisted source types (`order-lines` and `article-master`), with order-line defaults for existing and new imports
 - ordered source-column catalogs with duplicate-header and physical-position metadata
 - bounded streaming source-column profiles with representative and frequent values
+- explainable mapping suggestions and a source-column overview with profile evidence
 - independent encoding selection, mapping, parsing, and validation per source file
 - visible exclusion of files with blocking import errors
 - source-file and source-line traceability for validation notes and article details

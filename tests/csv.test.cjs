@@ -272,6 +272,9 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /decodeBufferChunksDetailed/);
   assert.match(appSource, /importCsvStreamingChunks/);
   assert.match(appSource, /createAnalysisAccumulator/);
+  assert.match(appSource, /buildMappingSuggestions/);
+  assert.match(appSource, /source-column-overview/);
+  assert.match(appSource, /source_column_ambiguous/);
 
   const referencedIds = [...appSource.matchAll(/document\.getElementById\('([^']+)'\)/g)].map((match) => match[1]);
   referencedIds.forEach((id) => {
@@ -453,6 +456,31 @@ test('column profile samples and distinct tracking remain bounded for high-cardi
   assert.equal(profile.sampleValues.length, 5);
   assert.equal(profile.frequentValues.length, 5);
   assert.ok(profile.sampleValues.every((entry) => entry.value.length <= 256));
+});
+
+test('mapping suggestions expose explainable confidence, profile reasons, and ambiguity', () => {
+  const suggestions = csv.buildMappingSuggestions(
+    ['AuftragsNr', 'Menge', 'Datum', 'Artikeltext'],
+    [
+      { nonEmptyCount: 2, textCompatibleCount: 2 },
+      { nonEmptyCount: 2, numericCompatibleCount: 2 },
+      { nonEmptyCount: 2, dateCompatibleCount: 2 },
+      { nonEmptyCount: 2, textCompatibleCount: 2 }
+    ]
+  );
+  assert.equal(suggestions.order_id[0].confidence, 'high');
+  assert.ok(suggestions.order_id[0].reasons.includes('exact_alias'));
+  assert.equal(suggestions.quantity[0].sourcePosition, 1);
+  assert.equal(suggestions.order_date[0].sourcePosition, 2);
+  assert.equal(suggestions.quantity[0].automaticApplicationSafe, true);
+
+  const ambiguous = csv.buildMappingSuggestions(
+    ['Menge', 'Qty'],
+    [{ nonEmptyCount: 1, numericCompatibleCount: 1 }, { nonEmptyCount: 1, numericCompatibleCount: 1 }]
+  );
+  assert.equal(ambiguous.quantity[0].ambiguity, true);
+  assert.equal(ambiguous.quantity[1].ambiguity, true);
+  assert.equal(ambiguous.quantity[0].automaticApplicationSafe, false);
 });
 
 test('import and combined results retain the explicit source type', () => {

@@ -19,6 +19,7 @@ All notable changes to OpenSlotting are documented in this file.
 - explicit `order-lines` and `article-master` source types with legacy defaulting and workspace migration
 - generic ordered source-column catalogs that preserve duplicate headers and physical positions
 - bounded streaming source-column profiles with representative samples and frequent-value evidence
+- explainable mapping suggestions and a responsive source-column overview
 
 ### Changed
 
