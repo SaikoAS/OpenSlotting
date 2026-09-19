@@ -297,6 +297,46 @@
     });
   }
 
+  function profileParsedCsv(parsed, sourceFile) {
+    const rows = parsed && Array.isArray(parsed.rows) ? parsed.rows : [];
+    const headers = rows.length > 0 ? rows[0].values.map(function (header) { return String(header).trim(); }) : [];
+    const catalog = buildColumnCatalog(headers, sourceFile);
+    const states = createColumnProfileStates(headers.length);
+    rows.slice(1).forEach(function (row) { observeColumnProfiles(states, row.values); });
+    return {
+      headers: headers,
+      errors: parsed && Array.isArray(parsed.errors) ? parsed.errors : [],
+      dataRowCount: Math.max(0, rows.length - 1),
+      columnCatalog: finalizeColumnProfiles(catalog, states)
+    };
+  }
+
+  function profileCsvStreamingChunks(chunks, options) {
+    const sourceFile = normalizeSourceFile(options && options.sourceFile);
+    let headers = null;
+    let states = [];
+    let dataRowCount = 0;
+    const parsed = parseCsvChunks(chunks, Object.assign({}, options, {
+      retainRows: false,
+      onRow: function (row) {
+        if (headers === null) {
+          headers = row.values.map(function (header) { return String(header).trim(); });
+          states = createColumnProfileStates(headers.length);
+          return;
+        }
+        dataRowCount += 1;
+        observeColumnProfiles(states, row.values);
+      }
+    }));
+    const finalHeaders = headers || parsed.headers || [];
+    return {
+      headers: finalHeaders,
+      errors: parsed.errors || [],
+      dataRowCount: dataRowCount,
+      columnCatalog: finalizeColumnProfiles(buildColumnCatalog(finalHeaders, sourceFile), states)
+    };
+  }
+
   function createCsvParser(options) {
     const delimiter = options && options.delimiter ? options.delimiter : ';';
     const locale = normalizeLocale(options && options.locale);
@@ -541,12 +581,21 @@
     return 'low';
   }
 
+  function headerTokens(value) {
+    return String(value === undefined || value === null ? '' : value)
+      .toLocaleLowerCase('de-DE')
+      .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')
+      .split(/[^a-z0-9]+/).filter(Boolean);
+  }
+
   function headerSimilarityScore(header, alias) {
-    if (!header || !alias) return 0;
-    if (header === alias) return 100;
-    if (header.indexOf(alias) === 0 || alias.indexOf(header) === 0) return 68;
-    const headerParts = header.match(/[a-z]+|\d+/g) || [];
-    const aliasParts = alias.match(/[a-z]+|\d+/g) || [];
+    const normalizedHeader = normalizeHeader(header);
+    const normalizedAlias = normalizeHeader(alias);
+    if (!normalizedHeader || !normalizedAlias) return 0;
+    if (normalizedHeader === normalizedAlias) return 100;
+    if (normalizedHeader.indexOf(normalizedAlias) === 0 || normalizedAlias.indexOf(normalizedHeader) === 0) return 68;
+    const headerParts = headerTokens(header);
+    const aliasParts = headerTokens(alias);
     const overlap = aliasParts.filter(function (part) { return headerParts.indexOf(part) >= 0; }).length;
     return overlap > 0 ? 45 + Math.round(35 * overlap / Math.max(aliasParts.length, 1)) : 0;
   }
@@ -559,6 +608,7 @@
     FIELD_DEFINITIONS.forEach(function (definition) {
       const aliases = (FIELD_ALIASES[definition.key] || []).map(normalizeHeader);
       const candidates = values.map(function (header, position) {
+        const rawHeader = String(header === undefined || header === null ? '' : header);
         const normalized = normalizeHeader(header);
         let score = 0;
         const reasons = [];
@@ -568,7 +618,7 @@
           reasons.push('exact_alias');
         } else {
           aliases.forEach(function (alias) {
-            score = Math.max(score, headerSimilarityScore(normalized, alias));
+            score = Math.max(score, headerSimilarityScore(rawHeader, alias));
           });
           if (score > 0) reasons.push('header_similarity');
         }
@@ -2148,6 +2198,8 @@
     assignSourceFileLabels: assignSourceFileLabels,
     buildColumnCatalog: buildColumnCatalog,
     buildMappingSuggestions: buildMappingSuggestions,
+    profileParsedCsv: profileParsedCsv,
+    profileCsvStreamingChunks: profileCsvStreamingChunks,
     detectMapping: detectMapping,
     combineImportResults: combineImportResults,
     detectBatchWarnings: detectBatchWarnings,

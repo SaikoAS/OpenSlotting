@@ -3117,10 +3117,17 @@
             yield chunk;
           }
         }());
-        parsed = core.parseCsvChunks(chunks, { retainRows: false });
+        const profiled = core.profileCsvStreamingChunks(chunks, {
+          sourceFile: { id: file.id, name: file.name, label: file.label, sourceType: file.sourceType }
+        });
+        parsed = { rows: [], headers: profiled.headers, errors: profiled.errors, dataRowCount: profiled.dataRowCount };
+        file.columnCatalog = profiled.columnCatalog;
         contentFingerprint = length + ':' + first.toString(16) + ':' + second.toString(16);
       } else {
         parsed = core.parseCsv(decoded.text);
+        file.columnCatalog = core.profileParsedCsv(parsed, {
+          id: file.id, name: file.name, label: file.label, sourceType: file.sourceType
+        }).columnCatalog;
         contentFingerprint = fingerprint(decoded.text);
       }
       const headers = streaming
@@ -3139,12 +3146,14 @@
       }
       file.parsed = parsed;
       file.headers = headers;
-      file.columnCatalog = core.buildColumnCatalog(file.headers, {
-        id: file.id,
-        name: file.name,
-        label: file.label,
-        sourceType: file.sourceType
-      });
+      if (!Array.isArray(file.columnCatalog) || file.columnCatalog.length !== file.headers.length) {
+        file.columnCatalog = core.buildColumnCatalog(file.headers, {
+          id: file.id,
+          name: file.name,
+          label: file.label,
+          sourceType: file.sourceType
+        });
+      }
       file.mapping = core.detectMapping(file.headers);
       file.dataRowCount = streaming
         ? Number(parsed.dataRowCount || 0)

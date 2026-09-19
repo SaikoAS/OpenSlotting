@@ -271,6 +271,8 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(storageSource, /workspaceIssueChunks/);
   assert.match(appSource, /decodeBufferChunksDetailed/);
   assert.match(appSource, /importCsvStreamingChunks/);
+  assert.match(appSource, /profileCsvStreamingChunks/);
+  assert.match(appSource, /profileParsedCsv/);
   assert.match(appSource, /createAnalysisAccumulator/);
   assert.match(appSource, /buildMappingSuggestions/);
   assert.match(appSource, /source-column-overview/);
@@ -444,6 +446,23 @@ test('streaming imports profile every source column with bounded evidence', () =
   assert.equal(date.incompatibleCount, 1);
 });
 
+test('mapping profiles can be prepared before the mapping screen', () => {
+  const sourceFile = { id: 'source-preflight', name: 'preflight.csv', label: 'preflight.csv' };
+  const parsed = csv.parseCsv('primary customer reference;quantity\nC-1;2\nC-2;3\n');
+  const parsedProfile = csv.profileParsedCsv(parsed, sourceFile);
+  assert.equal(parsedProfile.dataRowCount, 2);
+  assert.equal(parsedProfile.columnCatalog[0].profile.totalRows, 2);
+  assert.equal(parsedProfile.columnCatalog[1].profile.numericCompatibleCount, 2);
+
+  const streamingProfile = csv.profileCsvStreamingChunks([
+    'primary customer reference;quantity\nC-1;',
+    '2\nC-2;3\n'
+  ], { sourceFile: sourceFile });
+  assert.equal(streamingProfile.dataRowCount, 2);
+  assert.equal(streamingProfile.columnCatalog[0].profile.totalRows, 2);
+  assert.equal(streamingProfile.columnCatalog[1].profile.numericCompatibleCount, 2);
+});
+
 test('column profile samples and distinct tracking remain bounded for high-cardinality sources', () => {
   const rows = ['article_id;order_id;quantity;order_date'];
   for (let index = 0; index < 400; index += 1) {
@@ -497,6 +516,16 @@ test('mapping suggestions expose explainable confidence, profile reasons, and am
   assert.equal(ambiguous.quantity[0].ambiguity, true);
   assert.equal(ambiguous.quantity[1].ambiguity, true);
   assert.equal(ambiguous.quantity[0].automaticApplicationSafe, false);
+});
+
+test('mapping similarity preserves word boundaries for multiword headers', () => {
+  const suggestions = csv.buildMappingSuggestions(
+    ['primary customer reference'],
+    [{ nonEmptyCount: 1, textCompatibleCount: 1 }]
+  );
+  const customerSuggestion = suggestions.customer_id.find((candidate) => candidate.sourcePosition === 0);
+  assert.ok(customerSuggestion);
+  assert.ok(customerSuggestion.reasons.includes('header_similarity'));
 });
 
 test('import and combined results retain the explicit source type', () => {
