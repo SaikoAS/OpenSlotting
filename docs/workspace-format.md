@@ -83,6 +83,10 @@ provenance for each master value. Conflicts are preserved for later data
 quality checks; no master attribute is copied into normalized order-line rows.
 When an analyzed workspace is reopened, the registry is rebuilt from the
 durable source bytes and saved together with the current validated workspace.
+Registry entries are persisted in bounded chunks; their potentially large
+`master_row_refs`, `value_provenance`, `value_conflicts`, and description-variant
+arrays are split into fragments of at most 250 values and reassembled on load;
+each registry record is capped at roughly 1,000 array values.
 
 Article aggregation is derived data. When an analyzed workspace is reopened, OpenSlotting decodes the retained original bytes, recreates the parser and mapping state, validates the files, combines the current source results, and runs the existing article analysis again.
 

@@ -4303,7 +4303,7 @@
         state.result.articleRegistry = state.articleRegistry;
       }
       state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
-      await persistActiveWorkspace(undefined, { metadataOnly: true });
+      await persistActiveWorkspace();
       renderWorkspaceControls(); renderMapping();
     } catch (error) { showWorkspaceError(error); }
   }

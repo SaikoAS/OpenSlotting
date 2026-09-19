@@ -12,6 +12,8 @@
   const ACTIVE_WORKSPACE_SETTING = 'active-workspace-id';
   const ROW_CHUNK_SIZE = 5000;
   const ISSUE_CHUNK_SIZE = 5000;
+  const REGISTRY_CHUNK_SIZE = 1000;
+  const REGISTRY_ARRAY_CHUNK_SIZE = 250;
   const CHUNKED_WORKSPACE_STORES = [
     'workspaces',
     'workspacePayloads',
@@ -113,6 +115,85 @@
     }
   }
 
+  function registryEntryFragments(entry) {
+    const arrayFields = ['article_name_variants', 'master_row_refs', 'value_provenance', 'value_conflicts'];
+    const values = arrayFields.reduce(function (result, field) {
+      result[field] = Array.isArray(entry[field]) ? entry[field] : [];
+      return result;
+    }, {});
+    const fragmentCount = Math.max.apply(null, arrayFields.map(function (field) {
+      return Math.max(1, Math.ceil(values[field].length / REGISTRY_ARRAY_CHUNK_SIZE));
+    }));
+    const fragments = [];
+    for (let index = 0; index < fragmentCount; index += 1) {
+      const fragment = Object.assign({}, entry);
+      arrayFields.forEach(function (field) {
+        const start = index * REGISTRY_ARRAY_CHUNK_SIZE;
+        if (Object.prototype.hasOwnProperty.call(entry, field) || values[field].length > 0) {
+          fragment[field] = values[field].slice(start, start + REGISTRY_ARRAY_CHUNK_SIZE);
+        } else {
+          delete fragment[field];
+        }
+      });
+      fragments.push(fragment);
+    }
+    return fragments;
+  }
+
+  function appendRegistryEntries(target, chunks) {
+    const byArticleId = new Map();
+    chunks.forEach(function (chunk) {
+      const entries = chunk && Array.isArray(chunk.entries) ? chunk.entries : [];
+      entries.forEach(function (fragment) {
+        const articleId = String(fragment.article_id);
+        let entry = byArticleId.get(articleId);
+        if (!entry) {
+          entry = Object.assign({}, fragment);
+          ['article_name_variants', 'master_row_refs', 'value_provenance', 'value_conflicts'].forEach(function (field) {
+            if (Object.prototype.hasOwnProperty.call(fragment, field)) {
+              entry[field] = [];
+            }
+          });
+          byArticleId.set(articleId, entry);
+          target.push(entry);
+        }
+        ['article_name_variants', 'master_row_refs', 'value_provenance', 'value_conflicts'].forEach(function (field) {
+          if (!Object.prototype.hasOwnProperty.call(fragment, field)) {
+            return;
+          }
+          if (!Array.isArray(entry[field])) {
+            entry[field] = [];
+          }
+          const values = Array.isArray(fragment[field]) ? fragment[field] : [];
+          values.forEach(function (value) { entry[field].push(value); });
+        });
+      });
+    });
+  }
+
+  function chunkRegistryFragments(fragments) {
+    const chunks = [];
+    let current = [];
+    let currentWeight = 0;
+    fragments.forEach(function (fragment) {
+      const weight = ['article_name_variants', 'master_row_refs', 'value_provenance', 'value_conflicts']
+        .reduce(function (sum, field) {
+          return sum + (Array.isArray(fragment[field]) ? fragment[field].length : 0);
+        }, 0) || 1;
+      if (current.length > 0 && currentWeight + weight > REGISTRY_CHUNK_SIZE) {
+        chunks.push(current);
+        current = [];
+        currentWeight = 0;
+      }
+      current.push(fragment);
+      currentWeight += weight;
+    });
+    if (current.length > 0) {
+      chunks.push(current);
+    }
+    return chunks;
+  }
+
   function chunkedRecords(workspace) {
     const sources = [];
     const sourceRecords = [];
@@ -187,7 +268,11 @@
         });
       });
     });
-    const registryChunks = chunkValues(Array.isArray(workspace.articleRegistry) ? workspace.articleRegistry : [], ROW_CHUNK_SIZE);
+    const registryFragments = (Array.isArray(workspace.articleRegistry) ? workspace.articleRegistry : [])
+      .reduce(function (fragments, entry) {
+        return fragments.concat(registryEntryFragments(entry));
+      }, []);
+    const registryChunks = chunkRegistryFragments(registryFragments);
     registryChunks.forEach(function (chunk, index) {
       registryChunkRecords.push({
         key: registryChunkStorageKey(workspace.id, index),
@@ -304,14 +389,16 @@
         };
       });
     });
-    const registryRequests = manifest && Array.isArray(manifest.registryChunkKeys)
+    const registryRequests = includeResults && manifest && Array.isArray(manifest.registryChunkKeys)
       ? manifest.registryChunkKeys.map(function (key) { return requestPromise(stores.workspaceRegistryChunks.get(key)); })
       : [];
     return Promise.all([Promise.all(requests), Promise.all(registryRequests)]).then(function (values) {
       const files = values[0];
       const registry = [];
-      values[1].forEach(function (chunk) { appendChunkValues(registry, chunk, 'entries'); });
-      if (registry.length === 0 && (!manifest || !Array.isArray(manifest.registryChunkKeys)) && Array.isArray(manifest && manifest.articleRegistry)) {
+      if (includeResults) {
+        appendRegistryEntries(registry, values[1]);
+      }
+      if (includeResults && registry.length === 0 && (!manifest || !Array.isArray(manifest.registryChunkKeys)) && Array.isArray(manifest && manifest.articleRegistry)) {
         manifest.articleRegistry.forEach(function (entry) { registry.push(entry); });
       }
       if (files.some(function (file) { return file === null; })) {
@@ -327,7 +414,7 @@
         analyzed: metadata.analyzed,
         periodSettings: metadata.periodSettings,
         customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
-        articleRegistry: registry,
+        articleRegistry: includeResults ? registry : [],
         storageRevision: storageRevisionOf(metadata),
         files: files
       };

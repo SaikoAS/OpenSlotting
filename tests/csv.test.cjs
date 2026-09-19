@@ -61,6 +61,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   const recoveryBody = appSource.match(/async function recoverWorkspaceSaveFailure\(\) \{([\s\S]*?)\n  function clearWorkspaceView/);
   const deleteBody = appSource.match(/async function deleteActiveWorkspace\(\) \{([\s\S]*?)\n  async function exportWorkspaceBackup/);
   const renameBody = appSource.match(/async function renameActiveWorkspace\(\) \{([\s\S]*?)\n  async function deleteActiveWorkspace/);
+  const removeCustomFieldBody = appSource.match(/async function removeCustomField\(fieldId\) \{([\s\S]*?)\n  async function deleteActiveWorkspace/);
   const clearViewBody = appSource.match(/function clearWorkspaceView\(\) \{([\s\S]*?)\n  async function activateWorkspace/);
 
   assert.ok(initializeBody);
@@ -77,12 +78,14 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.ok(recoveryBody);
   assert.ok(deleteBody);
   assert.ok(renameBody);
+  assert.ok(removeCustomFieldBody);
   assert.ok(clearViewBody);
   assert.doesNotMatch(clearViewBody[1].split('  async function recoverWorkspaceCatalogAfterMissing')[0], /state\.customFields\s*=\s*\[\]/);
   assert.match(appSource, /rename\.disabled\s*=\s*state\.workspaceLoading/);
   assert.match(appSource, /remove\.disabled\s*=\s*state\.workspaceLoading/);
   assert.match(appSource, /activeCustomFieldIds/);
   assert.match(appSource, /state\.articleRegistry = core\.buildArticleRegistry\(retainedRows, \{ activeCustomFieldIds: activeCustomFieldIds \}\)/);
+  assert.match(removeCustomFieldBody[1], /await persistActiveWorkspace\(\);/);
   assert.match(appSource, /stored\.confirmedCustomFieldMapping === null \|\| stored\.confirmedCustomFieldMapping === undefined/);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /id="workspace-open"/);
