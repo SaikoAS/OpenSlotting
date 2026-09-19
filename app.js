@@ -812,6 +812,7 @@
     files: [],
     fileSelectionVersion: 0,
     result: null,
+    articleRegistry: [],
     detailRowsByRef: [],
     analysis: null,
     periodSettings: periods.normalizeSettings(),
@@ -3075,6 +3076,9 @@
   function renderResults(result, options) {
     const preserveView = Boolean(options && options.preserveView);
     state.result = result;
+    state.articleRegistry = Array.isArray(result.articleRegistry)
+      ? result.articleRegistry
+      : core.buildArticleRegistry(result.retainedRows || result.rows || []);
     state.detailRowsByRef = Array.isArray(result.rows) ? result.rows : [];
     state.analysis = options && options.analysis ? options.analysis : core.analyzeRows(result.rows);
     core.prepareArticleSearchProjections(state.analysis.articles, state.language);
@@ -3223,6 +3227,7 @@
   function clearAnalysis(options) {
     const preserveMappings = Boolean(options && options.preserveMappings);
     state.result = null;
+    state.articleRegistry = [];
     state.detailRowsByRef = [];
     state.analysis = null;
     state.comparison = null;
@@ -3652,6 +3657,9 @@
         analyzed: validated.analyzed,
         periodSettings: validated.periodSettings,
         customFields: validated.customFields,
+        articleRegistry: result && Array.isArray(result.articleRegistry)
+          ? result.articleRegistry
+          : validated.articleRegistry,
         sourceCount: files.length,
         sourceBytes: files.reduce(function (sum, file) {
           return sum + (file.buffer instanceof ArrayBuffer ? file.buffer.byteLength : 0);
@@ -3671,8 +3679,18 @@
       try {
         const input = event.data || {};
         if (input.backupExport) {
+          const sourceSchemaVersion = Number(input.backupExport.schemaVersion);
           const validatedExport = workspaceModel.migrateWorkspace(input.backupExport, { clonePayload: false });
-          const backupText = workspaceModel.stringifyBackup(validatedExport, { validated: true });
+          let backupWorkspace = validatedExport;
+          if (sourceSchemaVersion < workspaceModel.WORKSPACE_SCHEMA_VERSION && validatedExport.analyzed) {
+            const prepared = prepareWorkspaceRecord(input.backupExport, validatedExport.language, function (progress) {
+              self.postMessage({ type: 'progress', progress: progress });
+            });
+            backupWorkspace = Object.assign({}, validatedExport, {
+              articleRegistry: prepared.workspace.articleRegistry
+            });
+          }
+          const backupText = workspaceModel.stringifyBackup(backupWorkspace, { validated: true });
           self.postMessage({
             type: 'backup',
             text: backupText,
@@ -4109,6 +4127,7 @@
         storageRevision: committedMetadata.storageRevision
       }));
       state.customFields = workspaceModel.normalizeCustomFields(prepared.workspace.customFields);
+      state.articleRegistry = workspaceModel.normalizeArticleRegistry(prepared.workspace.articleRegistry);
       state.language = targetLanguage;
       elements.languageSelect.value = targetLanguage;
       state.workspaces = state.workspaces.map(function (workspace) {
@@ -4117,6 +4136,7 @@
       clearWorkspaceView();
       state.periodSettings = periods.normalizeSettings(prepared.workspace.periodSettings);
       state.files = prepared.files;
+      state.articleRegistry = workspaceModel.normalizeArticleRegistry(prepared.workspace.articleRegistry);
       if (state.files.length > 0) {
         renderMapping();
         updateSourceStatus();
@@ -4280,8 +4300,20 @@
       state.customFields = workspaceModel.normalizeCustomFields(state.customFields.map(function (item) {
         return item.id === fieldId ? Object.assign({}, item, { active: false }) : item;
       }));
+      const activeCustomFieldIds = state.customFields.filter(function (item) {
+        return item.active !== false;
+      }).map(function (item) { return item.id; });
+      const retainedRows = state.result && Array.isArray(state.result.retainedRows)
+        ? state.result.retainedRows
+        : state.files.reduce(function (rows, file) {
+          return rows.concat(file.result && Array.isArray(file.result.rows) ? file.result.rows : []);
+        }, []);
+      state.articleRegistry = core.buildArticleRegistry(retainedRows, { activeCustomFieldIds: activeCustomFieldIds });
+      if (state.result) {
+        state.result.articleRegistry = state.articleRegistry;
+      }
       state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
-      await persistActiveWorkspace(undefined, { metadataOnly: true });
+      await persistActiveWorkspace();
       renderWorkspaceControls(); renderMapping();
     } catch (error) { showWorkspaceError(error); }
   }
@@ -4366,9 +4398,19 @@
         if (!fallbackRecord || revision !== workspaceLoadRevision) {
           throw workspaceLoadError('workspace_load_cancelled');
         }
+        const fallbackSchemaVersion = Number(record.schemaVersion);
+        let fallbackExport = fallbackRecord;
+        if (fallbackSchemaVersion < workspaceModel.WORKSPACE_SCHEMA_VERSION && fallbackRecord.analyzed) {
+          const prepared = prepareWorkspaceRecord(record, fallbackRecord.language, function (progress) {
+            updateWorkspaceLoadProgress(progress, fallbackRecord.name);
+          });
+          fallbackExport = Object.assign({}, fallbackRecord, {
+            articleRegistry: prepared.workspace.articleRegistry
+          });
+        }
         serialized = {
-          backupText: workspaceModel.stringifyBackup(fallbackRecord),
-          filename: workspaceModel.backupFilename(fallbackRecord.name)
+          backupText: workspaceModel.stringifyBackup(fallbackExport),
+          filename: workspaceModel.backupFilename(fallbackExport.name)
         };
       }
       if (revision !== workspaceLoadRevision) {

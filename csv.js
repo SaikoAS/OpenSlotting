@@ -1822,6 +1822,148 @@
     return warnings;
   }
 
+  function registryValueEqual(left, right) {
+    if (typeof left === 'bigint' || typeof right === 'bigint') {
+      return typeof left === 'bigint' && typeof right === 'bigint' && left === right;
+    }
+    return left === right;
+  }
+
+  function buildArticleRegistry(rows, options) {
+    const registry = new Map();
+    const fixedMasterFields = ['article_name', 'location', 'sales_unit_count', 'quantity_per_sales_unit'];
+    const activeCustomFieldIds = options && Array.isArray(options.activeCustomFieldIds)
+      ? new Set(options.activeCustomFieldIds.map(function (fieldId) { return String(fieldId); }))
+      : null;
+
+    function sourceDetails(row) {
+      const sourceId = row && row.source_file_id !== undefined && row.source_file_id !== null
+        ? String(row.source_file_id)
+        : '';
+      const sourceName = row && row.source_file_name ? String(row.source_file_name) : sourceId;
+      const sourceLabel = row && row.source_file_label ? String(row.source_file_label) : sourceName;
+      return { id: sourceId, name: sourceName, label: sourceLabel };
+    }
+
+    function addUnique(target, value) {
+      if (value && target.indexOf(value) < 0) {
+        target.push(value);
+      }
+    }
+
+    function addSource(entry, row, isMaster) {
+      const source = sourceDetails(row);
+      addUnique(entry.source_file_ids, source.id);
+      addUnique(entry.source_files, source.label);
+      const sourceIds = isMaster ? entry.master_source_file_ids : entry.movement_source_file_ids;
+      const sourceLabels = isMaster ? entry.master_source_files : entry.movement_source_files;
+      addUnique(sourceIds, source.id);
+      addUnique(sourceLabels, source.label);
+      return source;
+    }
+
+    function addValue(entry, field, value, row, source, sourceType) {
+      if (value === null || value === undefined || value === '') {
+        return;
+      }
+      const provenance = {
+        field: field,
+        value: value,
+        source_type: sourceType,
+        source_file_id: source.id,
+        source_file_name: source.name,
+        source_file_label: source.label,
+        source_line: Number.isInteger(row.source_line) ? row.source_line : null
+      };
+      entry.value_provenance.push(provenance);
+      const target = field.indexOf('custom:') === 0 ? entry.custom_fields : entry.master_data;
+      const targetField = field.indexOf('custom:') === 0 ? field.slice('custom:'.length) : field;
+      if (target[targetField] === undefined || target[targetField] === null || target[targetField] === '') {
+        target[targetField] = value;
+      } else if (!registryValueEqual(target[targetField], value)) {
+        entry.value_conflicts.push({
+          field: field,
+          existing: target[targetField],
+          incoming: value,
+          source_file_id: source.id,
+          source_file_label: source.label,
+          source_line: provenance.source_line
+        });
+      }
+    }
+
+    (rows || []).forEach(function (row) {
+      if (!row || typeof row.article_id !== 'string' || !row.article_id) {
+        return;
+      }
+      const articleId = row.article_id;
+      if (!registry.has(articleId)) {
+        registry.set(articleId, {
+          article_id: articleId,
+          article_name: null,
+          master_data: {},
+          custom_fields: {},
+          has_master_data: false,
+          has_movement_data: false,
+          movement_status: null,
+          master_row_count: 0,
+          movement_row_count: 0,
+          source_file_ids: [],
+          source_files: [],
+          master_source_file_ids: [],
+          master_source_files: [],
+          movement_source_file_ids: [],
+          movement_source_files: [],
+          master_row_refs: [],
+          value_provenance: [],
+          value_conflicts: []
+        });
+      }
+      const entry = registry.get(articleId);
+      const isMaster = row.source_type === 'article-master';
+      const source = addSource(entry, row, isMaster);
+      if (isMaster) {
+        entry.has_master_data = true;
+        entry.master_row_count += 1;
+        entry.master_row_refs.push({
+          source_file_id: source.id,
+          source_file_name: source.name,
+          source_file_label: source.label,
+          source_line: Number.isInteger(row.source_line) ? row.source_line : null
+        });
+        fixedMasterFields.forEach(function (field) {
+          addValue(entry, field, row[field], row, source, 'article-master');
+        });
+      } else {
+        entry.has_movement_data = true;
+        entry.movement_row_count += 1;
+        if (entry.article_name === null && row.article_name) {
+          entry.article_name = row.article_name;
+        }
+      }
+      const customFields = row.custom_fields && typeof row.custom_fields === 'object' ? row.custom_fields : {};
+      Object.keys(customFields).filter(function (fieldId) {
+        return !activeCustomFieldIds || activeCustomFieldIds.has(String(fieldId));
+      }).sort().forEach(function (fieldId) {
+        addValue(entry, 'custom:' + fieldId, customFields[fieldId], row, source, isMaster ? 'article-master' : 'order-lines');
+      });
+      if (entry.master_data.article_name) {
+        entry.article_name = entry.master_data.article_name;
+      }
+    });
+
+    return Array.from(registry.values())
+      .map(function (entry) {
+        entry.movement_status = entry.has_master_data && entry.has_movement_data
+          ? 'matched'
+          : (entry.has_master_data ? 'master-only' : 'movement-only');
+        return entry;
+      })
+      .sort(function (left, right) {
+        return left.article_id < right.article_id ? -1 : (left.article_id > right.article_id ? 1 : 0);
+      });
+  }
+
   function combineImportResults(files, options) {
     const analysisAccumulator = options && options.analysisAccumulator;
     const rows = [];
@@ -1867,14 +2009,16 @@
       const rowsNeedSourceDecoration = resultRows.some(function (row) {
         return row.source_file_id !== source.id ||
           row.source_file_name !== source.name ||
-          row.source_file_label !== source.label;
+          row.source_file_label !== source.label ||
+          row.source_type !== source.sourceType;
       });
       const normalizedRows = rowsNeedSourceDecoration
         ? resultRows.map(function (row) {
           return Object.assign({}, row, {
             source_file_id: source.id,
             source_file_name: source.name,
-            source_file_label: source.label
+            source_file_label: source.label,
+            source_type: source.sourceType
           });
         })
         : resultRows;
@@ -1953,6 +2097,7 @@
     return {
       rows: rows,
       retainedRows: retainedRows,
+      articleRegistry: buildArticleRegistry(retainedRows),
       issues: issues,
       totalRows: totalRows,
       validRows: retainedRows.length,
@@ -2330,6 +2475,7 @@
     profileCsvStreamingChunks: profileCsvStreamingChunks,
     detectMapping: detectMapping,
     combineImportResults: combineImportResults,
+    buildArticleRegistry: buildArticleRegistry,
     detectBatchWarnings: detectBatchWarnings,
     analyzeRows: analyzeRows,
     articleMatchesQuery: articleMatchesQuery,

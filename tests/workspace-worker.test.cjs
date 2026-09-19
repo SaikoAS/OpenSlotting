@@ -97,6 +97,8 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.equal(completed.prepared.files[0].result.rows[0].quantity, 3000000n);
   assert.equal(completed.prepared.analysis.total_lines, 0);
   assert.equal(completed.prepared.files[0].sourceType, 'article-master');
+  assert.equal(completed.prepared.workspace.articleRegistry[0].movement_status, 'master-only');
+  assert.equal(completed.prepared.workspace.articleRegistry[0].article_id, 'SKU-WORKER');
   assert.equal(completed.prepared.files[0].columnCatalog.length, 4);
   assert.equal(completed.prepared.files[0].columnCatalog[1].sourceFileId, 'source-worker');
   assert.equal(completed.prepared.files[0].result.sourceFile.sourceType, 'article-master');

@@ -61,6 +61,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   const recoveryBody = appSource.match(/async function recoverWorkspaceSaveFailure\(\) \{([\s\S]*?)\n  function clearWorkspaceView/);
   const deleteBody = appSource.match(/async function deleteActiveWorkspace\(\) \{([\s\S]*?)\n  async function exportWorkspaceBackup/);
   const renameBody = appSource.match(/async function renameActiveWorkspace\(\) \{([\s\S]*?)\n  async function deleteActiveWorkspace/);
+  const removeCustomFieldBody = appSource.match(/async function removeCustomField\(fieldId\) \{([\s\S]*?)\n  async function deleteActiveWorkspace/);
   const clearViewBody = appSource.match(/function clearWorkspaceView\(\) \{([\s\S]*?)\n  async function activateWorkspace/);
 
   assert.ok(initializeBody);
@@ -77,11 +78,14 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.ok(recoveryBody);
   assert.ok(deleteBody);
   assert.ok(renameBody);
+  assert.ok(removeCustomFieldBody);
   assert.ok(clearViewBody);
   assert.doesNotMatch(clearViewBody[1].split('  async function recoverWorkspaceCatalogAfterMissing')[0], /state\.customFields\s*=\s*\[\]/);
   assert.match(appSource, /rename\.disabled\s*=\s*state\.workspaceLoading/);
   assert.match(appSource, /remove\.disabled\s*=\s*state\.workspaceLoading/);
   assert.match(appSource, /activeCustomFieldIds/);
+  assert.match(appSource, /state\.articleRegistry = core\.buildArticleRegistry\(retainedRows, \{ activeCustomFieldIds: activeCustomFieldIds \}\)/);
+  assert.match(removeCustomFieldBody[1], /await persistActiveWorkspace\(\);/);
   assert.match(appSource, /stored\.confirmedCustomFieldMapping === null \|\| stored\.confirmedCustomFieldMapping === undefined/);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /id="workspace-open"/);
@@ -118,8 +122,16 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(backupBody[1], /loadWorkspace\(selected\.id\)/);
   assert.match(backupBody[1], /runWorkspaceWorker\(null, null, revision, record\.name, \{\s*backupExport: record/);
   assert.match(backupBody[1], /const fallbackRecord = await workspaceRepository\.loadWorkspace\(selected\.id\)/);
+  assert.match(backupBody[1], /const fallbackSchemaVersion = Number\(record\.schemaVersion\)/);
+  assert.match(backupBody[1], /const prepared = prepareWorkspaceRecord\(record, fallbackRecord\.language/);
+  assert.match(backupBody[1], /articleRegistry: prepared\.workspace\.articleRegistry/);
+  assert.match(backupBody[1], /workspaceModel\.stringifyBackup\(fallbackExport\)/);
   assert.match(workerBody[1], /workspaceModel\.migrateWorkspace\(input\.backupExport/);
-  assert.ok(workerBody[1].includes("workspaceModel.stringifyBackup(validatedExport, { validated: true })"));
+  assert.match(workerBody[1], /const sourceSchemaVersion = Number\(input\.backupExport\.schemaVersion\)/);
+  assert.match(workerBody[1], /sourceSchemaVersion < workspaceModel\.WORKSPACE_SCHEMA_VERSION && validatedExport\.analyzed/);
+  assert.match(workerBody[1], /const prepared = prepareWorkspaceRecord\(input\.backupExport, validatedExport\.language/);
+  assert.match(workerBody[1], /articleRegistry: prepared\.workspace\.articleRegistry/);
+  assert.ok(workerBody[1].includes("workspaceModel.stringifyBackup(backupWorkspace, { validated: true })"));
   assert.match(backupBody[1], /state\.workspaceLoading = true/);
   assert.match(backupBody[1], /persistActiveWorkspace\(undefined, \{ allowWhileLoading: true \}\)/);
   assert.ok(backupBody[1].indexOf('state.workspaceLoading = true') < backupBody[1].indexOf('persistActiveWorkspace'));
@@ -277,6 +289,7 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /metadataOnly/);
   assert.match(storageSource, /workspaceRowChunks/);
   assert.match(storageSource, /workspaceIssueChunks/);
+  assert.match(storageSource, /workspaceRegistryChunks/);
   assert.match(appSource, /decodeBufferChunksDetailed/);
   assert.match(appSource, /importCsvStreamingChunks/);
   assert.match(appSource, /profileCsvStreamingChunks/);
@@ -681,6 +694,72 @@ test('combined results separate retained rows from demand-analysis rows', () => 
   assert.equal(combined.rows.length, 1);
   assert.equal(combined.retainedRows.length, 2);
   assert.equal(combined.warnings.some((warning) => warning.code === 'overlapping_date_ranges'), false);
+});
+
+test('article registry combines master-only, movement-only, and matched articles deterministically', () => {
+  const orders = csv.importCsv(
+    'order_id;article_id;quantity;order_date;article_name\nO-1;SKU-MATCH;2;2026-09-12;Movement name\nO-2;SKU-MOVEMENT;1;2026-09-13;Only movement\n',
+    { order_id: 0, article_id: 1, quantity: 2, order_date: 3, article_name: 4 },
+    { sourceFile: { id: 'source-orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines' } }
+  );
+  const master = csv.importCsv(
+    'article_id;article_name;location;zone\nSKU-MATCH;Master name;A-01;Cold\nSKU-MASTER;Master only;B-02;Ambient\n',
+    { article_id: 0, article_name: 1, location: 2 },
+    {
+      sourceFile: { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' },
+      customFields: [{ id: 'zone', name: 'Zone', type: 'text', active: true }],
+      customFieldMapping: { zone: 3 }
+    }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'source-orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines', result: orders },
+    { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master', result: master }
+  ]);
+  assert.deepEqual(combined.articleRegistry.map((entry) => [entry.article_id, entry.movement_status]), [
+    ['SKU-MASTER', 'master-only'],
+    ['SKU-MATCH', 'matched'],
+    ['SKU-MOVEMENT', 'movement-only']
+  ]);
+  const matched = combined.articleRegistry.find((entry) => entry.article_id === 'SKU-MATCH');
+  assert.equal(matched.article_name, 'Master name');
+  assert.deepEqual(matched.master_data, { article_name: 'Master name', location: 'A-01' });
+  assert.deepEqual(matched.custom_fields, { zone: 'Cold' });
+  assert.deepEqual(matched.master_source_file_ids, ['source-master']);
+  assert.deepEqual(matched.movement_source_file_ids, ['source-orders']);
+  assert.deepEqual(matched.master_row_refs.map((ref) => [ref.source_file_id, ref.source_line]), [['source-master', 2]]);
+  assert.ok(matched.value_provenance.some((item) => item.field === 'location' && item.source_line === 2));
+  assert.equal(combined.rows.some((row) => Object.hasOwn(row, 'master_data')), false);
+  const withoutCustomFields = csv.buildArticleRegistry(combined.retainedRows, { activeCustomFieldIds: [] });
+  assert.deepEqual(withoutCustomFields.find((entry) => entry.article_id === 'SKU-MATCH').custom_fields, {});
+});
+
+test('article registry keeps provenance for repeated equal values', () => {
+  const master = csv.importCsv(
+    'article_id;article_name;location\nSKU-1;Widget;A-01\nSKU-1;Widget;A-01\n',
+    { article_id: 0, article_name: 1, location: 2 },
+    { sourceFile: { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' } }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master', result: master }
+  ]);
+  const entry = combined.articleRegistry[0];
+  assert.equal(entry.value_provenance.filter((item) => item.field === 'location').length, 2);
+  assert.equal(entry.value_conflicts.length, 0);
+});
+
+test('article registry trusts the source file type when normalized rows carry another type', () => {
+  const imported = csv.importCsv(
+    'article_id;article_name\nSKU-1;Widget\n',
+    { article_id: 0, article_name: 1 },
+    { sourceFile: { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' } }
+  );
+  imported.rows[0].source_type = 'order-lines';
+  const combined = csv.combineImportResults([
+    { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master', result: imported }
+  ]);
+  assert.equal(combined.rows.length, 0);
+  assert.equal(combined.articleRegistry[0].movement_status, 'master-only');
+  assert.deepEqual(combined.articleRegistry[0].master_source_file_ids, ['source-master']);
 });
 
 test('incremental analysis consumes provenance finalized by batch combination', () => {
