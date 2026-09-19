@@ -6,9 +6,13 @@ This document defines the current import, normalization, multi-export aggregatio
 
 Every imported source carries a stable `sourceType`. The supported values are
 `order-lines` and `article-master`; existing sources and new imports default to
-`order-lines`. Article-master-specific parsing and joins are not part of the
-current implementation, but the source type is preserved through mapping,
-storage, backup, restore, and worker preparation for future use.
+`order-lines`. The mapping screen lets users choose the source type per file.
+Article-master sources use the same decoding, profiling, column mapping,
+validation, storage, backup, and restore pipeline as order-line sources. They
+require only `article_id`; description, location, selling-unit/package fields,
+and workspace custom fields are optional. Article-master rows are retained in
+the workspace and source traceability, but are not included in the existing
+order-line analysis until a later article-master join/analysis milestone.
 
 Every readable source also exposes an ordered `columnCatalog`. Each entry uses
 the zero-based physical `position`, the trimmed source `header`, its
@@ -46,11 +50,11 @@ An unexpected quote in an unquoted field, a character after a closing quote, or 
 
 | Field | Required | Meaning |
 | --- | --- | --- |
-| `order_id` | Yes | Order identity. Non-empty text. |
-| `article_id` | Yes | Article/SKU identity and grouping key. Non-empty text. |
+| `order_id` | Order lines only | Order identity. Non-empty text for order-line sources. |
+| `article_id` | Yes | Article/SKU identity and grouping key. Non-empty text for every source type. |
 | `article_name` | No | Display description for the article. |
-| `quantity` | Yes | Positive quantity with at most seven decimal places. |
-| `order_date` | Yes | Valid order date in an accepted format. |
+| `quantity` | Order lines only | Positive quantity with at most seven decimal places. Optional for article-master sources. |
+| `order_date` | Order lines only | Valid order date in an accepted format. Optional for article-master sources. |
 | `customer_id` | No | Customer identity used for distinct-customer counts. |
 | `sales_value` | No | Sales amount with at most two decimal places. |
 | `location` | No | Source storage-location text. |
@@ -58,6 +62,12 @@ An unexpected quote in an unquoted field, a character after a closing quote, or 
 | `quantity_per_sales_unit` | No | Positive quantity per selling unit with at most seven decimal places. |
 
 Mapped text values are trimmed at their outer edges. Missing optional values normalize to `null`. A valid normalized row retains a batch-local source-file ID, the original source filename, a display label, and the one-based physical source line on which its CSV record starts. Original source fields are reconstructed on demand from the retained source bytes and headers, preserving duplicate headers, duplicate filenames, duplicate rows, and traceability without duplicating raw field arrays on every row. Only valid rows from included files are analyzed.
+
+Each normalized row also carries `source_type`. For `article-master` rows,
+order-line-only fields normalize to `null` when they are not mapped. Such rows
+remain available through the selected source file and workspace backup, while
+the order-line analysis result contains only rows with the complete order-line
+shape.
 
 ## Column mapping
 
@@ -106,7 +116,7 @@ Validation messages identify the source file, source line, and, where applicable
 
 The browser creates one in-memory batch from the current file selection. Duplicate filenames receive numbered display labels so they remain distinguishable. Each file keeps its own encoding result, headers, mapping, parser diagnostics, validation result, and row counts.
 
-A file is excluded when it cannot be read or decoded, has no header, has a parser error in its header, or has an invalid required mapping. Excluded files contribute no rows. A mapped file remains included even when all its data rows are invalid; those rows are reported and excluded under the ordinary row-validation rules.
+A file is excluded when it cannot be read or decoded, has no header, has a parser error in its header, or has an invalid required mapping. For `order-lines`, the required mapping is `order_id`, `article_id`, `quantity`, and `order_date`; for `article-master`, only `article_id` is required. Excluded files contribute no rows. A mapped file remains included even when all its data rows are invalid; those rows are reported and excluded under the ordinary row-validation rules.
 
 Valid normalized rows from included files are concatenated in file-selection order and source-record order. Existing article, order, customer, date, quantity, and sales aggregation then runs over this complete row list. Exact fixed-point quantities and exact accepted sales decimals therefore remain exact across files.
 

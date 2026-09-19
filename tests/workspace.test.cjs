@@ -50,6 +50,30 @@ function sourceFile(id, articleId) {
   };
 }
 
+function articleMasterSourceFile(id, articleId) {
+  const text = 'article_id;article_name;location\n' + articleId + ';Widget A;A-01\n';
+  const bytes = new TextEncoder().encode(text);
+  const result = csv.importCsv(text, { article_id: 0, article_name: 1, location: 2 }, {
+    sourceFile: { id, name: id + '.csv', label: id + '.csv', sourceType: 'article-master' }
+  });
+  return {
+    id,
+    name: id + '.csv',
+    label: id + '.csv',
+    size: bytes.byteLength,
+    lastModified: 1,
+    buffer: bytes.buffer,
+    encodingMode: 'auto',
+    activeEncoding: 'utf-8',
+    detectedEncoding: 'utf-8',
+    errorKey: null,
+    mapping: result.mapping,
+    confirmedMapping: result.mapping,
+    result,
+    sourceType: 'article-master'
+  };
+}
+
 function analyzedWorkspace(id, name, articleId) {
   const record = workspace.createWorkspace(name, {
     id,
@@ -124,6 +148,23 @@ test('source types are explicit, constrained, and available for future import ki
     () => workspace.validateWorkspace(invalid),
     (error) => error.code === 'invalid_source_type'
   );
+});
+
+test('article-master rows validate and survive workspace backup round trips', () => {
+  const record = workspace.createWorkspace('Article master', {
+    id: 'workspace-article-master',
+    now: '2026-09-12T08:00:00.000Z'
+  });
+  record.files.push(articleMasterSourceFile('source-master', 'SKU-MASTER'));
+  const validated = workspace.validateWorkspace(record);
+  assert.equal(validated.files[0].sourceType, 'article-master');
+  assert.equal(validated.files[0].result.rows[0].article_id, 'SKU-MASTER');
+  assert.equal(validated.files[0].result.rows[0].quantity, null);
+  const restored = workspace.prepareRestore(workspace.parseBackup(workspace.stringifyBackup(validated, {
+    now: '2026-09-12T09:00:00.000Z'
+  })), { mode: 'new', newId: 'workspace-article-master-restored' });
+  assert.equal(restored.files[0].sourceType, 'article-master');
+  assert.equal(restored.files[0].result.rows[0].location, 'A-01');
 });
 
 test('workspace validation preserves an ordered source column catalog', () => {

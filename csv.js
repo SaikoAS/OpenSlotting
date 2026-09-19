@@ -730,10 +730,14 @@
     return suggestions;
   }
 
-  function validateMapping(mapping, locale) {
+  function validateMapping(mapping, locale, sourceType) {
+    const normalizedSourceType = sourceType === 'article-master' ? 'article-master' : 'order-lines';
     const issues = FIELD_DEFINITIONS
       .filter(function (definition) {
-        return definition.required && !Number.isInteger(mapping[definition.key]);
+        const required = normalizedSourceType === 'article-master'
+          ? definition.key === 'article_id'
+          : definition.required;
+        return required && !Number.isInteger(mapping[definition.key]);
       })
       .map(function (definition) {
         return {
@@ -977,6 +981,7 @@
   function normalizeRecord(record, headers, mapping, locale, sourceFile, customFields, customFieldMapping) {
     const values = record.values;
     const issues = [];
+    const sourceType = sourceFile && sourceFile.sourceType === 'article-master' ? 'article-master' : 'order-lines';
 
     function rawValue(field) {
       const sourceIndex = mapping[field];
@@ -997,13 +1002,13 @@
       return value || null;
     }
 
-    const orderId = requiredText('order_id', 'Auftrags-ID');
+    const orderId = sourceType === 'article-master' ? rawValue('order_id') || null : requiredText('order_id', 'Auftrags-ID');
     const articleId = requiredText('article_id', 'Artikel-ID');
     const articleNameRaw = rawValue('article_name');
     const quantityRaw = rawValue('quantity');
     const quantityResult = parseQuantity(quantityRaw);
     const quantity = quantityResult.value;
-    if (!quantityRaw) {
+    if (sourceType !== 'article-master' && !quantityRaw) {
       issues.push({
         sourceLine: record.sourceLine,
         field: 'quantity',
@@ -1011,7 +1016,7 @@
         rawValue: quantityRaw,
         message: message(locale, 'requiredValue', { label: getFieldLabel('quantity', locale) })
       });
-    } else if (quantityResult.precisionExceeded) {
+    } else if (quantityRaw && quantityResult.precisionExceeded) {
       issues.push({
         sourceLine: record.sourceLine,
         field: 'quantity',
@@ -1019,7 +1024,7 @@
         rawValue: quantityRaw,
         message: message(locale, 'quantityPrecision', { digits: QUANTITY_DECIMAL_PLACES })
       });
-    } else if (quantity === null || quantity <= 0n) {
+    } else if (quantityRaw && (quantity === null || quantity <= 0n)) {
       issues.push({
         sourceLine: record.sourceLine,
         field: 'quantity',
@@ -1031,7 +1036,7 @@
 
     const dateRaw = rawValue('order_date');
     const orderDate = normalizeDate(dateRaw);
-    if (!dateRaw) {
+    if (sourceType !== 'article-master' && !dateRaw) {
       issues.push({
         sourceLine: record.sourceLine,
         field: 'order_date',
@@ -1039,7 +1044,7 @@
         rawValue: dateRaw,
         message: message(locale, 'requiredValue', { label: getFieldLabel('order_date', locale) })
       });
-    } else if (orderDate === null) {
+    } else if (dateRaw && orderDate === null) {
       issues.push({
         sourceLine: record.sourceLine,
         field: 'order_date',
@@ -1142,6 +1147,7 @@
         source_file_id: sourceFile.id,
         source_file_name: sourceFile.name,
         source_file_label: sourceFile.label,
+        source_type: sourceType,
         source_line: record.sourceLine,
         order_id: orderId,
         article_id: articleId,
@@ -1202,7 +1208,7 @@
           columnProfileStates = createColumnProfileStates(headers.length);
           headerHasParserError = parserErrors.length > 0;
           selectedMapping = selectedMapping || detectMapping(headers);
-          mappingIssues = validateMapping(selectedMapping, locale).concat(validateCustomFieldMapping(customFieldMapping, customFields, locale, selectedMapping));
+          mappingIssues = validateMapping(selectedMapping, locale, sourceFile.sourceType).concat(validateCustomFieldMapping(customFieldMapping, customFields, locale, selectedMapping));
           return;
         }
 
@@ -1371,7 +1377,7 @@
     const selectedMapping = mapping || detectMapping(headers);
     const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
     const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
-    const mappingIssues = validateMapping(selectedMapping, locale).concat(validateCustomFieldMapping(customFieldMapping, customFields, locale, selectedMapping));
+    const mappingIssues = validateMapping(selectedMapping, locale, sourceFile.sourceType).concat(validateCustomFieldMapping(customFieldMapping, customFields, locale, selectedMapping));
     if (mappingIssues.length > 0) {
       return {
         headers: headers,
@@ -1903,6 +1909,16 @@
       if (included) {
         includedFiles += 1;
         normalizedRows.forEach(function (row) {
+          const isArticleMaster = source.sourceType === 'article-master' || row.source_type === 'article-master';
+          const hasOrderLineShape = typeof row.order_id === 'string' && row.order_id.length > 0 &&
+            typeof row.quantity === 'bigint' && row.quantity > 0n &&
+            typeof row.order_date === 'string' && row.order_date.length > 0;
+          // Article-master rows are retained in their source result for persistence,
+          // but only rows with a complete order-line shape participate in the
+          // existing order-line analysis until master-data joins are introduced.
+          if (isArticleMaster && !hasOrderLineShape) {
+            return;
+          }
           const detailIndex = rows.length;
           rows.push(row);
           if (analysisAccumulator && typeof analysisAccumulator.consume === 'function') {

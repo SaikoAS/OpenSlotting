@@ -9,7 +9,8 @@ The project starts with a deliberately small scope: importing and analyzing orde
 ## Current development implementation
 
 OpenSlotting provides a browser-local workflow for creating separate workspaces,
-importing and analyzing order-line CSV files, and reopening the saved state.
+importing order-line and article-master CSV files, analyzing order-line data,
+and reopening the saved state.
 Open `index.html` directly in a supported browser, select a workspace from the
 metadata-first start overview or create a new one, explicitly open it,
 choose one or more CSV files, review the detected column mapping for each file,
@@ -36,6 +37,7 @@ The current implementation includes:
 - English as the default interface language, with German available from the language selector
 - multiple source files in one in-memory analysis batch
 - explicit persisted source types (`order-lines` and `article-master`), with order-line defaults for existing and new imports
+- article-master imports that require only `article_id`, retain optional master attributes and custom fields, and remain available for later joins
 - ordered source-column catalogs with duplicate-header and physical-position metadata
 - bounded streaming source-column profiles with representative and frequent values
 - explainable mapping suggestions and a source-column overview with profile evidence
@@ -360,11 +362,12 @@ acceptance before a future release claim.
 - XYZ classification
 - Combined ABC/XYZ matrix
 
-### V0.6 — Article Master Data
+### V0.6 — Article Master Data (import foundation implemented; joins and analysis planned)
 
+- Import article-master CSV sources with persistent source type and provenance
+- Additional article attributes through workspace custom fields
+- Join article-master attributes into order-line analysis
 - Configurable article master data
-- Additional article attributes
-- Custom fields
 - Reusable mapping templates
 
 ### V0.7 — Existing Storage Locations

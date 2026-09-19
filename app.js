@@ -158,6 +158,9 @@
       source_column_confidence_medium: 'medium',
       source_column_confidence_low: 'low',
       encoding_label: 'Encoding',
+      source_type_label: 'Source type',
+      source_type_order_lines: 'Order lines',
+      source_type_article_master: 'Article master',
       encoding_auto: 'Automatic',
       encoding_auto_detected: 'Automatic (detected: {{encoding}})',
       remove_file: 'Remove file',
@@ -546,6 +549,9 @@
       source_column_confidence_medium: 'mittel',
       source_column_confidence_low: 'niedrig',
       encoding_label: 'Kodierung',
+      source_type_label: 'Quelltyp',
+      source_type_order_lines: 'Auftragszeilen',
+      source_type_article_master: 'Artikelstamm',
       encoding_auto: 'Automatisch',
       encoding_auto_detected: 'Automatisch (erkannt: {{encoding}})',
       remove_file: 'Datei entfernen',
@@ -1638,6 +1644,20 @@
       encodingField.appendChild(encodingSelect);
       section.appendChild(encodingField);
 
+      const sourceTypeField = document.createElement('label');
+      sourceTypeField.className = 'compact-field source-type-field';
+      const sourceTypeLabel = document.createElement('span');
+      setText(sourceTypeLabel, translate('source_type_label'));
+      const sourceTypeSelect = document.createElement('select');
+      sourceTypeSelect.dataset.sourceTypeFileId = file.id;
+      sourceTypeSelect.disabled = editsLocked || file.reading;
+      addOption(sourceTypeSelect, 'order-lines', translate('source_type_order_lines'));
+      addOption(sourceTypeSelect, 'article-master', translate('source_type_article_master'));
+      sourceTypeSelect.value = workspaceModel.normalizeSourceType(file.sourceType);
+      sourceTypeField.appendChild(sourceTypeLabel);
+      sourceTypeField.appendChild(sourceTypeSelect);
+      section.appendChild(sourceTypeField);
+
       if (file.errorKey) {
         const errorMessage = document.createElement('div');
         errorMessage.className = 'message mapping-file-message';
@@ -1652,8 +1672,11 @@
         const fields = document.createElement('div');
         fields.className = 'mapping-fields';
         core.FIELD_DEFINITIONS.forEach(function (definition) {
+          const required = file.sourceType === 'article-master'
+            ? definition.key === 'article_id'
+            : definition.required;
           const wrapper = document.createElement('div');
-          wrapper.className = 'mapping-field' + (definition.required ? ' required' : '');
+          wrapper.className = 'mapping-field' + (required ? ' required' : '');
           const label = document.createElement('label');
           const selectId = 'mapping-' + file.id + '-' + definition.key;
           label.htmlFor = selectId;
@@ -1662,8 +1685,8 @@
           const fieldName = document.createElement('span');
           setText(fieldName, core.getFieldLabel(definition.key, state.language));
           const fieldBadge = document.createElement('span');
-          fieldBadge.className = 'field-badge ' + (definition.required ? 'required' : 'optional');
-          setText(fieldBadge, translate(definition.required ? 'required_label' : 'optional_label'));
+          fieldBadge.className = 'field-badge ' + (required ? 'required' : 'optional');
+          setText(fieldBadge, translate(required ? 'required_label' : 'optional_label'));
           labelLine.appendChild(fieldName);
           labelLine.appendChild(fieldBadge);
           label.appendChild(labelLine);
@@ -4658,6 +4681,25 @@
     }
   });
   elements.fileInput.addEventListener('change', handleFileChange);
+  elements.mappingGrid.addEventListener('change', function (event) {
+    const select = event.target.closest('select[data-source-type-file-id]');
+    if (!select || !elements.mappingGrid.contains(select)) {
+      return;
+    }
+    const file = state.files.find(function (item) { return item.id === select.dataset.sourceTypeFileId; });
+    if (!file) {
+      return;
+    }
+    file.sourceType = workspaceModel.normalizeSourceType(select.value);
+    file.mapping = file.headers && file.headers.length ? core.detectMapping(file.headers) : {};
+    file.confirmedMapping = null;
+    file.confirmedCustomFieldMapping = null;
+    file.result = null;
+    clearAnalysis();
+    renderMapping();
+    updateSourceStatus();
+    persistActiveWorkspace().catch(function () {});
+  });
   elements.mappingGrid.addEventListener('change', function (event) {
     const select = event.target.closest('select[data-encoding-file-id]');
     if (!select || !elements.mappingGrid.contains(select)) {
