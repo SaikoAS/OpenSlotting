@@ -82,6 +82,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(appSource, /rename\.disabled\s*=\s*state\.workspaceLoading/);
   assert.match(appSource, /remove\.disabled\s*=\s*state\.workspaceLoading/);
   assert.match(appSource, /activeCustomFieldIds/);
+  assert.match(appSource, /stored\.confirmedCustomFieldMapping === null \|\| stored\.confirmedCustomFieldMapping === undefined/);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /id="workspace-open"/);
   assert.match(indexSource, /id="workspace-load-progress"/);

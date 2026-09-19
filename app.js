@@ -3460,7 +3460,9 @@
   function runtimeFileFromStored(stored) {
     const savedMapping = Object.assign({}, stored.mapping || {});
     const savedCustomFieldMapping = workspaceModel.normalizeCustomFieldMapping(stored.customFieldMapping);
-    const savedConfirmedCustomFieldMapping = workspaceModel.normalizeCustomFieldMapping(stored.confirmedCustomFieldMapping);
+    const savedConfirmedCustomFieldMapping = stored.confirmedCustomFieldMapping === null || stored.confirmedCustomFieldMapping === undefined
+      ? null
+      : workspaceModel.normalizeCustomFieldMapping(stored.confirmedCustomFieldMapping);
     const savedConfirmedMapping = stored.confirmedMapping ? Object.assign({}, stored.confirmedMapping) : null;
     const file = {
       id: stored.id,
