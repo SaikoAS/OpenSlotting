@@ -312,10 +312,12 @@
         });
       });
     });
-    const registryFragments = (Array.isArray(workspace.articleRegistry) ? workspace.articleRegistry : [])
-      .reduce(function (fragments, entry) {
-        return fragments.concat(registryEntryFragments(entry));
-      }, []);
+    const registryFragments = [];
+    (Array.isArray(workspace.articleRegistry) ? workspace.articleRegistry : []).forEach(function (entry) {
+      registryEntryFragments(entry).forEach(function (fragment) {
+        registryFragments.push(fragment);
+      });
+    });
     const registryChunks = chunkRegistryFragments(registryFragments);
     registryChunks.forEach(function (chunk, index) {
       registryChunkRecords.push({
