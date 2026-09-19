@@ -94,6 +94,35 @@ test('persists isolated workspaces and the active selection across repository in
   assert.equal(indexedDB.inspect('isolation-test', 'workspaceManifests').length, 2);
 });
 
+test('persists the workspace article registry alongside chunked sources', async () => {
+  const indexedDB = createFakeIndexedDB();
+  const repository = storage.createRepository({ indexedDB, databaseName: 'article-registry-storage-test' });
+  const record = workspace.createWorkspace('Registry', { id: 'workspace-registry', now: '2026-09-12T08:00:00.000Z' });
+  record.articleRegistry = [{
+    article_id: 'SKU-1',
+    article_name: 'Widget',
+    master_data: { location: 'A-01' },
+    custom_fields: {},
+    has_master_data: true,
+    has_movement_data: false,
+    movement_status: 'master-only',
+    master_row_count: 1,
+    movement_row_count: 0,
+    source_file_ids: ['source-master'],
+    source_files: ['master.csv'],
+    master_source_file_ids: ['source-master'],
+    master_source_files: ['master.csv'],
+    movement_source_file_ids: [],
+    movement_source_files: [],
+    master_row_refs: [{ source_file_id: 'source-master', source_line: 2 }],
+    value_provenance: [],
+    value_conflicts: []
+  }];
+  await repository.createWorkspace(workspace.validateWorkspace(record));
+  const loaded = await repository.loadWorkspace(record.id);
+  assert.deepEqual(loaded.articleRegistry, record.articleRegistry);
+});
+
 test('persists large results as independently addressable row and issue chunks', async () => {
   const indexedDB = createFakeIndexedDB();
   const databaseName = 'chunked-results-test';

@@ -18,7 +18,7 @@ It contains the metadata/settings stores plus independently persisted workspace 
 | --- | --- | --- |
 | `workspaces` | `id` | Small workspace metadata used for listing and selection, including period settings plus cached source-byte and normalized-row counts for newly saved records. |
 | `workspacePayloads` | `workspaceId` | Legacy monolithic payload retained only as a migration source for version-1 databases. New writes do not use it. |
-| `workspaceManifests` | `workspaceId` | Ordered source/chunk keys for one workspace. |
+| `workspaceManifests` | `workspaceId` | Ordered source/chunk keys and the normalized article registry for one workspace. |
 | `workspaceSources` | `key` | One source's metadata, mappings, and result summary without row or issue arrays. |
 | `workspaceSourceBytes` | `key` | Original bytes for one source. |
 | `workspaceRowChunks` | `key` | Up to 5,000 normalized rows for one source per record. |
@@ -38,7 +38,7 @@ Every workspace has:
 | Field | Type | Contract |
 | --- | --- | --- |
 | `id` | string | Stable browser-local identity. |
-| `schemaVersion` | integer | Stored-workspace schema version; currently `7`. |
+| `schemaVersion` | integer | Stored-workspace schema version; currently `8`. |
 | `name` | string | Trimmed, non-empty, at most 120 characters. Names do not have to be unique. |
 | `createdAt` | ISO timestamp | Creation time. |
 | `updatedAt` | ISO timestamp | Time of the latest successful snapshot. |
@@ -46,6 +46,7 @@ Every workspace has:
 | `analyzed` | boolean | Whether the saved source state had an analysis result. |
 | `periodSettings` | object | Selection mode (`weeks` or `custom`), expected weekdays, and the names and inclusive boundaries of Period A and Period B. Detected week options remain derived from normalized rows. |
 | `customFields` | array | Workspace-level custom-field definitions with stable IDs, supported types (`text`, `number`, or `date`), and active/inactive lifecycle state. |
+| `articleRegistry` | array | Deterministic workspace-level article identities with master fields, custom values, master/movement status, and source provenance. |
 | `files` | array | Ordered and strictly workspace-local source records. |
 
 Source IDs must be unique within one workspace. The same source ID in another workspace has no relationship to it.
@@ -71,7 +72,16 @@ Each source retains:
 
 The browser `File` object, DOM nodes, object URLs, rendered tables, filters, page numbers, and other transient UI objects are not stored.
 
-## Derived analysis
+## Article registry and derived analysis
+
+The workspace article registry is normalized from all retained source rows and
+stored independently of period and order-line aggregation. It keeps
+master-only, movement-only, and matched article identities under one stable
+`article_id`, stores master attributes once, and retains source-line
+provenance for each master value. Conflicts are preserved for later data
+quality checks; no master attribute is copied into normalized order-line rows.
+When an analyzed workspace is reopened, the registry is rebuilt from the
+durable source bytes and saved together with the current validated workspace.
 
 Article aggregation is derived data. When an analyzed workspace is reopened, OpenSlotting decodes the retained original bytes, recreates the parser and mapping state, validates the files, combines the current source results, and runs the existing article analysis again.
 
@@ -204,6 +214,6 @@ The restore worker returns the already validated persisted payload and prepared 
 
 ## Schema migration
 
-Workspace records carry `schemaVersion`. The current reader uses version `7`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, accepts version `5` catalogs without profiles by supplying an empty profile, and adds the workspace custom-field registry and source mappings in version `7`. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `2` creates the chunk stores. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis is rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
+Workspace records carry `schemaVersion`. The current reader uses version `8`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, accepts version `5` catalogs without profiles by supplying an empty profile, adds the workspace custom-field registry and source mappings in version `7`, and adds an empty article registry when migrating version `7` records to version `8`. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `2` creates the chunk stores. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis and the registry are rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
 
 Future migrations must produce a fully valid current workspace before saving it and require automated migration and backup-round-trip tests.

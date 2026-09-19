@@ -568,6 +568,34 @@ test('custom field definitions keep stable IDs through rename, removal, and back
   assert.deepEqual(restored.customFields, current.customFields);
 });
 
+test('article registry is validated and survives workspace backup round trips', () => {
+  const current = workspace.createWorkspace('Article registry', { id: 'workspace-registry' });
+  current.articleRegistry = [{
+    article_id: 'SKU-1',
+    article_name: 'Widget',
+    master_data: { location: 'A-01' },
+    custom_fields: { 'custom-zone': 'Cold' },
+    has_master_data: true,
+    has_movement_data: true,
+    movement_status: 'matched',
+    master_row_count: 1,
+    movement_row_count: 2,
+    source_file_ids: ['source-master', 'source-orders'],
+    source_files: ['master.csv', 'orders.csv'],
+    master_source_file_ids: ['source-master'],
+    master_source_files: ['master.csv'],
+    movement_source_file_ids: ['source-orders'],
+    movement_source_files: ['orders.csv'],
+    master_row_refs: [{ source_file_id: 'source-master', source_line: 2 }],
+    value_provenance: [{ field: 'location', value: 'A-01', source_file_id: 'source-master', source_line: 2 }],
+    value_conflicts: []
+  }];
+  const validated = workspace.validateWorkspace(current);
+  assert.equal(validated.articleRegistry[0].movement_status, 'matched');
+  const restored = workspace.parseBackup(workspace.stringifyBackup(validated));
+  assert.deepEqual(restored.articleRegistry, validated.articleRegistry);
+});
+
 test('workspace validation checks confirmed custom-field mappings against the registry', () => {
   const current = analyzedWorkspace('workspace-custom-confirmed', 'Custom confirmed', 'SKU-1');
   current.customFields = [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }];
@@ -586,4 +614,13 @@ test('schema-six migration adds an empty custom-field registry', () => {
   const migrated = workspace.migrateWorkspace(legacy);
   assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
   assert.deepEqual(migrated.customFields, []);
+});
+
+test('schema-seven migration adds an empty article registry', () => {
+  const legacy = workspace.createWorkspace('Legacy registry', { id: 'workspace-legacy-registry' });
+  legacy.schemaVersion = 7;
+  delete legacy.articleRegistry;
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.deepEqual(migrated.articleRegistry, []);
 });

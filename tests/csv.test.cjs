@@ -683,6 +683,41 @@ test('combined results separate retained rows from demand-analysis rows', () => 
   assert.equal(combined.warnings.some((warning) => warning.code === 'overlapping_date_ranges'), false);
 });
 
+test('article registry combines master-only, movement-only, and matched articles deterministically', () => {
+  const orders = csv.importCsv(
+    'order_id;article_id;quantity;order_date;article_name\nO-1;SKU-MATCH;2;2026-09-12;Movement name\nO-2;SKU-MOVEMENT;1;2026-09-13;Only movement\n',
+    { order_id: 0, article_id: 1, quantity: 2, order_date: 3, article_name: 4 },
+    { sourceFile: { id: 'source-orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines' } }
+  );
+  const master = csv.importCsv(
+    'article_id;article_name;location;zone\nSKU-MATCH;Master name;A-01;Cold\nSKU-MASTER;Master only;B-02;Ambient\n',
+    { article_id: 0, article_name: 1, location: 2 },
+    {
+      sourceFile: { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' },
+      customFields: [{ id: 'zone', name: 'Zone', type: 'text', active: true }],
+      customFieldMapping: { zone: 3 }
+    }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'source-orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines', result: orders },
+    { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master', result: master }
+  ]);
+  assert.deepEqual(combined.articleRegistry.map((entry) => [entry.article_id, entry.movement_status]), [
+    ['SKU-MASTER', 'master-only'],
+    ['SKU-MATCH', 'matched'],
+    ['SKU-MOVEMENT', 'movement-only']
+  ]);
+  const matched = combined.articleRegistry.find((entry) => entry.article_id === 'SKU-MATCH');
+  assert.equal(matched.article_name, 'Master name');
+  assert.deepEqual(matched.master_data, { article_name: 'Master name', location: 'A-01' });
+  assert.deepEqual(matched.custom_fields, { zone: 'Cold' });
+  assert.deepEqual(matched.master_source_file_ids, ['source-master']);
+  assert.deepEqual(matched.movement_source_file_ids, ['source-orders']);
+  assert.deepEqual(matched.master_row_refs.map((ref) => [ref.source_file_id, ref.source_line]), [['source-master', 2]]);
+  assert.ok(matched.value_provenance.some((item) => item.field === 'location' && item.source_line === 2));
+  assert.equal(combined.rows.some((row) => Object.hasOwn(row, 'master_data')), false);
+});
+
 test('incremental analysis consumes provenance finalized by batch combination', () => {
   const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
   const result = csv.importCsvStreaming('order_id;article_id;quantity;order_date\nO-1;SKU-C;1;2026-09-12\n', mapping);

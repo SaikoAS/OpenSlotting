@@ -812,6 +812,7 @@
     files: [],
     fileSelectionVersion: 0,
     result: null,
+    articleRegistry: [],
     detailRowsByRef: [],
     analysis: null,
     periodSettings: periods.normalizeSettings(),
@@ -3075,6 +3076,9 @@
   function renderResults(result, options) {
     const preserveView = Boolean(options && options.preserveView);
     state.result = result;
+    state.articleRegistry = Array.isArray(result.articleRegistry)
+      ? result.articleRegistry
+      : core.buildArticleRegistry(result.retainedRows || result.rows || []);
     state.detailRowsByRef = Array.isArray(result.rows) ? result.rows : [];
     state.analysis = options && options.analysis ? options.analysis : core.analyzeRows(result.rows);
     core.prepareArticleSearchProjections(state.analysis.articles, state.language);
@@ -3223,6 +3227,7 @@
   function clearAnalysis(options) {
     const preserveMappings = Boolean(options && options.preserveMappings);
     state.result = null;
+    state.articleRegistry = [];
     state.detailRowsByRef = [];
     state.analysis = null;
     state.comparison = null;
@@ -3652,6 +3657,9 @@
         analyzed: validated.analyzed,
         periodSettings: validated.periodSettings,
         customFields: validated.customFields,
+        articleRegistry: result && Array.isArray(result.articleRegistry)
+          ? result.articleRegistry
+          : validated.articleRegistry,
         sourceCount: files.length,
         sourceBytes: files.reduce(function (sum, file) {
           return sum + (file.buffer instanceof ArrayBuffer ? file.buffer.byteLength : 0);
@@ -4109,6 +4117,7 @@
         storageRevision: committedMetadata.storageRevision
       }));
       state.customFields = workspaceModel.normalizeCustomFields(prepared.workspace.customFields);
+      state.articleRegistry = workspaceModel.normalizeArticleRegistry(prepared.workspace.articleRegistry);
       state.language = targetLanguage;
       elements.languageSelect.value = targetLanguage;
       state.workspaces = state.workspaces.map(function (workspace) {
@@ -4117,6 +4126,7 @@
       clearWorkspaceView();
       state.periodSettings = periods.normalizeSettings(prepared.workspace.periodSettings);
       state.files = prepared.files;
+      state.articleRegistry = workspaceModel.normalizeArticleRegistry(prepared.workspace.articleRegistry);
       if (state.files.length > 0) {
         renderMapping();
         updateSourceStatus();

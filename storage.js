@@ -185,6 +185,7 @@
       manifest: {
         workspaceId: workspace.id,
         schemaVersion: workspace.schemaVersion,
+        articleRegistry: workspace.articleRegistry,
         sources: sources
       },
       sourceRecords: sourceRecords,
@@ -299,6 +300,7 @@
         analyzed: metadata.analyzed,
         periodSettings: metadata.periodSettings,
         customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
+        articleRegistry: Array.isArray(manifest && manifest.articleRegistry) ? manifest.articleRegistry : [],
         storageRevision: storageRevisionOf(metadata),
         files: files
       };
@@ -325,6 +327,7 @@
       analyzed: metadata.analyzed,
       periodSettings: metadata.periodSettings,
       customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
+      articleRegistry: Array.isArray(payload.articleRegistry) ? payload.articleRegistry : [],
       storageRevision: storageRevisionOf(metadata),
       files: files
     };

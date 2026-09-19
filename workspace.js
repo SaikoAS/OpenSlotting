@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 7;
+  const WORKSPACE_SCHEMA_VERSION = 8;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -137,6 +137,62 @@
       normalized[key] = value;
     });
     return normalized;
+  }
+
+  function normalizeArticleRegistry(registry, options) {
+    if (registry === undefined || registry === null) {
+      return [];
+    }
+    if (!Array.isArray(registry)) {
+      validationError('invalid_article_registry', 'Article registry must be an array.');
+    }
+    const usedIds = new Set();
+    return registry.map(function (entry) {
+      if (!isPlainObject(entry)) {
+        validationError('invalid_article_registry_entry', 'Article registry entry is invalid.');
+      }
+      const normalized = cloneValue(entry, options);
+      const articleId = String(normalized.article_id || '');
+      if (!articleId || usedIds.has(articleId)) {
+        validationError('invalid_article_registry_id', 'Article registry contains a missing or duplicate article ID.');
+      }
+      usedIds.add(articleId);
+      if (!isPlainObject(normalized.master_data)) {
+        normalized.master_data = {};
+      }
+      if (!isPlainObject(normalized.custom_fields)) {
+        normalized.custom_fields = {};
+      }
+      if (!Array.isArray(normalized.value_provenance)) {
+        normalized.value_provenance = [];
+      }
+      if (!Array.isArray(normalized.value_conflicts)) {
+        normalized.value_conflicts = [];
+      }
+      if (!Array.isArray(normalized.master_row_refs)) {
+        normalized.master_row_refs = [];
+      }
+      ['source_file_ids', 'source_files', 'master_source_file_ids', 'master_source_files', 'movement_source_file_ids', 'movement_source_files'].forEach(function (field) {
+        if (!Array.isArray(normalized[field])) {
+          normalized[field] = [];
+        }
+      });
+      normalized.article_id = articleId;
+      if (normalized.article_name === undefined) {
+        normalized.article_name = null;
+      }
+      ['master_row_count', 'movement_row_count'].forEach(function (field) {
+        normalized[field] = Number.isInteger(normalized[field]) && normalized[field] >= 0 ? normalized[field] : 0;
+      });
+      normalized.has_master_data = Boolean(normalized.has_master_data);
+      normalized.has_movement_data = Boolean(normalized.has_movement_data);
+      normalized.movement_status = normalized.has_master_data && normalized.has_movement_data
+        ? 'matched'
+        : (normalized.has_master_data ? 'master-only' : 'movement-only');
+      return normalized;
+    }).sort(function (left, right) {
+      return left.article_id < right.article_id ? -1 : (left.article_id > right.article_id ? 1 : 0);
+    });
   }
 
   function validateCustomFieldMappingRange(mapping, headerCount) {
@@ -626,6 +682,7 @@
       analyzed: false,
       periodSettings: normalizePeriodSettings(settings.periodSettings),
       customFields: normalizeCustomFields(settings.customFields),
+      articleRegistry: normalizeArticleRegistry(settings.articleRegistry),
       files: []
     };
   }
@@ -661,6 +718,7 @@
       validationError('invalid_workspace', 'Workspace sources must be an array.');
     }
     const customFields = normalizeCustomFields(workspace.customFields);
+    const articleRegistry = normalizeArticleRegistry(workspace.articleRegistry);
     const customFieldIds = new Set(customFields.map(function (field) { return field.id; }));
     const usedSourceIds = new Set();
     const files = workspace.files.map(function (file) {
@@ -688,6 +746,7 @@
       analyzed: workspace.analyzed,
       periodSettings: normalizePeriodSettings(workspace.periodSettings),
       customFields: customFields,
+      articleRegistry: articleRegistry,
       files: files
     };
   }
@@ -697,7 +756,7 @@
       validationError('invalid_workspace', 'Workspace must be an object.');
     }
     const schemaVersion = Number(workspace.schemaVersion);
-    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5 || schemaVersion === 6) {
+    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5 || schemaVersion === 6 || schemaVersion === 7) {
       const migrated = cloneValue(workspace, options);
       const migrationTarget = options && options.clonePayload === false ? Object.assign({}, migrated) : migrated;
       if (schemaVersion === 0) {
@@ -733,6 +792,9 @@
       if (schemaVersion <= 6 || !Array.isArray(migrationTarget.customFields)) {
         migrationTarget.customFields = [];
       }
+      if (schemaVersion <= 7 || !Array.isArray(migrationTarget.articleRegistry)) {
+        migrationTarget.articleRegistry = [];
+      }
       migrationTarget.schemaVersion = WORKSPACE_SCHEMA_VERSION;
       migrationTarget.periodSettings = normalizePeriodSettings(migrationTarget.periodSettings);
       return validateWorkspace(migrationTarget, options);
@@ -756,6 +818,7 @@
       analyzed: Boolean(state && state.analysis),
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
       customFields: normalizeCustomFields(state && state.customFields),
+      articleRegistry: normalizeArticleRegistry(state && state.articleRegistry),
       files: state && Array.isArray(state.files) ? state.files : []
     }, settings);
   }
@@ -800,6 +863,7 @@
       analyzed: Boolean(state && state.analysis),
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
       customFields: normalizeCustomFields(state && state.customFields),
+      articleRegistry: normalizeArticleRegistry(state && state.articleRegistry, settings),
       files: files
     };
   }
@@ -1011,6 +1075,7 @@
     normalizeSourceType: normalizeSourceType,
     CUSTOM_FIELD_TYPES: CUSTOM_FIELD_TYPES,
     normalizeCustomFields: normalizeCustomFields,
+    normalizeArticleRegistry: normalizeArticleRegistry,
     normalizeCustomFieldMapping: normalizeCustomFieldMapping,
     validateCustomFieldMappingRange: validateCustomFieldMappingRange,
     createId: createId,
