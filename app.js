@@ -94,6 +94,7 @@
       custom_field_type_prompt: 'Type (text, number, or date):',
       custom_field_rename: 'Rename',
       custom_field_remove: 'Remove',
+      custom_field_remove_confirm: 'Deactivate custom field “{{name}}”? Existing source values remain stored, but new mappings will no longer use this field.',
       custom_field_removed: 'Removed',
       custom_field_mapping_title: 'Custom fields',
       custom_field_mapping_help: 'Map optional workspace fields to source columns.',
@@ -471,6 +472,7 @@
       custom_field_type_prompt: 'Typ (text, number oder date):',
       custom_field_rename: 'Umbenennen',
       custom_field_remove: 'Entfernen',
+      custom_field_remove_confirm: 'Benutzerdefiniertes Feld „{{name}}“ deaktivieren? Vorhandene Quellwerte bleiben gespeichert, neue Zuordnungen verwenden dieses Feld nicht mehr.',
       custom_field_removed: 'Entfernt',
       custom_field_mapping_title: 'Benutzerdefinierte Felder',
       custom_field_mapping_help: 'Optionale Workspace-Felder einer Quellspalte zuordnen.',
@@ -4137,11 +4139,11 @@
     const type = window.prompt(translate('custom_field_type_prompt'), 'text');
     if (type === null) return;
     try {
-      const current = workspaceModel.captureWorkspace(state.activeWorkspace, state);
-      const updated = workspaceModel.createCustomField(current, name, type);
-      state.customFields = updated.customFields;
-      state.activeWorkspace = workspaceMetadata(updated);
-      await persistActiveWorkspace();
+      state.customFields = workspaceModel.normalizeCustomFields((state.customFields || []).concat([{
+        id: workspaceModel.createId('custom'), name: name, type: type, active: true
+      }]));
+      state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
+      await persistActiveWorkspace(undefined, { metadataOnly: true });
       renderWorkspaceControls();
       renderMapping();
     } catch (error) {
@@ -4161,12 +4163,11 @@
     const type = window.prompt(translate('custom_field_type_prompt'), 'text');
     if (type === null) return;
     try {
-      const current = workspaceModel.captureWorkspace(state.activeWorkspace, state);
-      const updated = workspaceModel.createCustomField(current, name, type);
-      const created = updated.customFields[updated.customFields.length - 1];
+      const created = { id: workspaceModel.createId('custom'), name: name, type: type, active: true };
+      state.customFields = workspaceModel.normalizeCustomFields((state.customFields || []).concat([created]));
       file.customFieldMapping = Object.assign({}, file.customFieldMapping, { [created.id]: position });
-      state.customFields = updated.customFields;
-      state.activeWorkspace = workspaceMetadata(updated);
+      clearAnalysis();
+      state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
       await persistActiveWorkspace();
       renderWorkspaceControls(); renderMapping();
     } catch (error) { showWorkspaceError(error); }
@@ -4179,11 +4180,11 @@
     const name = window.prompt(translate('custom_field_name_prompt'), field.name);
     if (name === null) return;
     try {
-      const current = workspaceModel.captureWorkspace(state.activeWorkspace, state);
-      const updated = workspaceModel.renameCustomField(current, fieldId, name);
-      state.customFields = updated.customFields;
-      state.activeWorkspace = workspaceMetadata(updated);
-      await persistActiveWorkspace();
+      state.customFields = workspaceModel.normalizeCustomFields(state.customFields.map(function (item) {
+        return item.id === fieldId ? Object.assign({}, item, { name: name }) : item;
+      }));
+      state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
+      await persistActiveWorkspace(undefined, { metadataOnly: true });
       renderWorkspaceControls(); renderMapping();
     } catch (error) { showWorkspaceError(error); }
   }
@@ -4191,13 +4192,13 @@
   async function removeCustomField(fieldId) {
     if (!state.activeWorkspace) return;
     const field = state.customFields.find(function (item) { return item.id === fieldId; });
-    if (!field || !window.confirm(translate('workspace_reset_confirm', { name: field.name }))) return;
+    if (!field || !window.confirm(translate('custom_field_remove_confirm', { name: field.name }))) return;
     try {
-      const current = workspaceModel.captureWorkspace(state.activeWorkspace, state);
-      const updated = workspaceModel.removeCustomField(current, fieldId);
-      state.customFields = updated.customFields;
-      state.activeWorkspace = workspaceMetadata(updated);
-      await persistActiveWorkspace();
+      state.customFields = workspaceModel.normalizeCustomFields(state.customFields.map(function (item) {
+        return item.id === fieldId ? Object.assign({}, item, { active: false }) : item;
+      }));
+      state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
+      await persistActiveWorkspace(undefined, { metadataOnly: true });
       renderWorkspaceControls(); renderMapping();
     } catch (error) { showWorkspaceError(error); }
   }
