@@ -765,6 +765,30 @@
     return issues;
   }
 
+  function validateCustomFieldMapping(mapping, customFields, locale, coreMapping) {
+    const definitions = Array.isArray(customFields) ? customFields : [];
+    const byId = new Map(definitions.map(function (field) { return [String(field.id), field]; }));
+    const issues = [];
+    const used = new Map();
+    Object.keys(mapping || {}).forEach(function (fieldId) {
+      const field = byId.get(fieldId);
+      if (!field || field.active === false) {
+        issues.push({ sourceLine: null, field: fieldId, code: 'custom_field_unknown', message: 'Custom field is not available for mapping.' });
+        return;
+      }
+      const position = mapping[fieldId];
+      if (!Number.isInteger(position)) return;
+      if (coreMapping && Object.keys(coreMapping).some(function (key) { return coreMapping[key] === position; })) {
+        issues.push({ sourceLine: null, field: fieldId, code: 'source_column_reused', message: 'A source column can be mapped only once.' });
+      } else if (used.has(position)) {
+        issues.push({ sourceLine: null, field: fieldId, code: 'source_column_reused', message: 'A source column can be mapped only once.' });
+      } else {
+        used.set(position, fieldId);
+      }
+    });
+    return issues;
+  }
+
   function normalizeNumericText(value) {
     if (isBlank(value)) {
       return null;
@@ -945,7 +969,7 @@
     return normalizeDate(String(values[sourceIndex]).trim());
   }
 
-  function normalizeRecord(record, headers, mapping, locale, sourceFile) {
+  function normalizeRecord(record, headers, mapping, locale, sourceFile, customFields, customFieldMapping) {
     const values = record.values;
     const issues = [];
 
@@ -1098,6 +1122,16 @@
       issue.orderDate = orderDate;
     });
 
+    const customValues = {};
+    (Array.isArray(customFields) ? customFields : []).forEach(function (field) {
+      if (field.active === false) return;
+      const sourceIndex = customFieldMapping && customFieldMapping[field.id];
+      if (Number.isInteger(sourceIndex)) {
+        const value = String(values[sourceIndex] === undefined ? '' : values[sourceIndex]).trim();
+        if (value) customValues[field.id] = value;
+      }
+    });
+
     return {
       record: {
         source_file_id: sourceFile.id,
@@ -1116,7 +1150,8 @@
         sales_unit_count: salesUnitCount,
         quantity_per_sales_unit: quantityPerSalesUnit,
         sales_unit_quantity_matches: salesUnitQuantityMatches,
-        sales_unit_quantity_relation: salesUnitQuantityRelation
+        sales_unit_quantity_relation: salesUnitQuantityRelation,
+        custom_fields: customValues
       },
       issues: issues
     };
@@ -1141,6 +1176,8 @@
     let headers = null;
     let totalRows = 0;
     let selectedMapping = mapping || null;
+    const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
+    const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
     let columnCatalog = [];
     let columnProfileStates = [];
     let mappingIssues = null;
@@ -1160,7 +1197,7 @@
           columnProfileStates = createColumnProfileStates(headers.length);
           headerHasParserError = parserErrors.length > 0;
           selectedMapping = selectedMapping || detectMapping(headers);
-          mappingIssues = validateMapping(selectedMapping, locale);
+          mappingIssues = validateMapping(selectedMapping, locale).concat(validateCustomFieldMapping(customFieldMapping, customFields, locale, selectedMapping));
           return;
         }
 
@@ -1183,7 +1220,7 @@
           return;
         }
 
-        const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile);
+        const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping);
         if (normalized.record.order_date) {
           dateByLine.set(dataRow.sourceLine, normalized.record.order_date);
         }
@@ -1327,7 +1364,9 @@
       };
     }
     const selectedMapping = mapping || detectMapping(headers);
-    const mappingIssues = validateMapping(selectedMapping, locale);
+    const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
+    const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
+    const mappingIssues = validateMapping(selectedMapping, locale).concat(validateCustomFieldMapping(customFieldMapping, customFields, locale, selectedMapping));
     if (mappingIssues.length > 0) {
       return {
         headers: headers,
@@ -1364,7 +1403,7 @@
         return;
       }
 
-      const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile);
+      const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping);
       if (normalized.record.order_date) {
         dateByLine.set(dataRow.sourceLine, normalized.record.order_date);
       }
@@ -2291,6 +2330,7 @@
     parseCsv: parseCsv,
     parseCsvChunks: parseCsvChunks,
     reconstructRawSource: reconstructRawSource,
-    validateMapping: validateMapping
+    validateMapping: validateMapping,
+    validateCustomFieldMapping: validateCustomFieldMapping
   };
 }));

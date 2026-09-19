@@ -1159,6 +1159,35 @@ test('article search matches IDs and descriptions', () => {
   assert.equal(csv.articleMatchesQuery(article, '', 'de'), true);
 });
 
+test('custom field mappings preserve source values without changing core analysis', () => {
+  const result = csv.importCsvStreaming(
+    'order_id;article_id;quantity;order_date;Zone\nO1;A1;2;2026-09-01;Cold\n',
+    { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    {
+      sourceFile: { id: 'source-custom', name: 'custom.csv', label: 'custom.csv' },
+      customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }],
+      customFieldMapping: { 'custom-zone': 4 }
+    }
+  );
+  assert.equal(result.blocking, false);
+  assert.deepEqual(result.rows[0].custom_fields, { 'custom-zone': 'Cold' });
+  assert.equal(csv.analyzeRows(result.rows).articles[0].article_id, 'A1');
+});
+
+test('custom field mappings cannot reuse a core source column', () => {
+  const result = csv.importCsvStreaming(
+    'order_id;article_id;quantity;order_date\nO1;A1;2;2026-09-01\n',
+    { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    {
+      sourceFile: { id: 'source-custom-duplicate', name: 'custom.csv', label: 'custom.csv' },
+      customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }],
+      customFieldMapping: { 'custom-zone': 1 }
+    }
+  );
+  assert.equal(result.blocking, true);
+  assert.ok(result.issues.some((issue) => issue.code === 'source_column_reused'));
+});
+
 test('article search projections include variants and refresh for locale changes', () => {
   const analysis = csv.analyzeRows(csv.importCsv(fixture('article-descriptions.csv')).rows, { locale: 'en' });
   const article = analysis.articles.find((item) => item.article_id === 'SKU-ALPHA');

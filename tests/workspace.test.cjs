@@ -514,3 +514,24 @@ test('workspace names and portable filenames are validated', () => {
   assert.throws(() => workspace.createWorkspace('x'.repeat(121)), (error) => error.code === 'workspace_name_too_long');
   assert.equal(workspace.backupFilename(' September / Nord '), 'OpenSlotting-September-Nord.workspace.json');
 });
+
+test('custom field definitions keep stable IDs through rename, removal, and backup round trip', () => {
+  let current = workspace.createWorkspace('Custom fields', { randomUuid: () => 'workspace-id' });
+  current = workspace.createCustomField(current, 'Zone', 'text', { id: 'custom-zone' });
+  current = workspace.renameCustomField(current, 'custom-zone', 'Pick zone');
+  assert.equal(current.customFields[0].id, 'custom-zone');
+  assert.equal(current.customFields[0].name, 'Pick zone');
+  current = workspace.removeCustomField(current, 'custom-zone');
+  assert.equal(current.customFields[0].active, false);
+  const restored = workspace.parseBackup(workspace.stringifyBackup(current));
+  assert.deepEqual(restored.customFields, current.customFields);
+});
+
+test('schema-six migration adds an empty custom-field registry', () => {
+  const legacy = workspace.createWorkspace('Legacy', { id: 'workspace-legacy' });
+  legacy.schemaVersion = 6;
+  delete legacy.customFields;
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.deepEqual(migrated.customFields, []);
+});
