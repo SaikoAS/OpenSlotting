@@ -92,6 +92,16 @@
       custom_field_empty: 'No custom fields defined yet.',
       custom_field_name_prompt: 'Custom field name:',
       custom_field_type_prompt: 'Type (text, number, or date):',
+      custom_field_name_required: 'Custom field name is required.',
+      custom_field_name_too_long: 'Custom field name is too long.',
+      invalid_custom_field_type: 'Custom field type is not supported.',
+      invalid_custom_field: 'Custom field definition is invalid.',
+      invalid_custom_field_id: 'Custom field ID is invalid or duplicated.',
+      duplicate_custom_field_name: 'Custom field names must be unique.',
+      invalid_custom_fields: 'Custom fields must be an array.',
+      invalid_custom_field_mapping: 'Custom field mapping is invalid.',
+      unknown_custom_field: 'Source mapping references an unknown custom field.',
+      custom_field_not_found: 'Custom field does not exist.',
       custom_field_rename: 'Rename',
       custom_field_remove: 'Remove',
       custom_field_remove_confirm: 'Deactivate custom field “{{name}}”? Existing source values remain stored, but new mappings will no longer use this field.',
@@ -470,6 +480,16 @@
       custom_field_empty: 'Noch keine benutzerdefinierten Felder definiert.',
       custom_field_name_prompt: 'Name des benutzerdefinierten Feldes:',
       custom_field_type_prompt: 'Typ (text, number oder date):',
+      custom_field_name_required: 'Der Name des benutzerdefinierten Feldes ist erforderlich.',
+      custom_field_name_too_long: 'Der Name des benutzerdefinierten Feldes ist zu lang.',
+      invalid_custom_field_type: 'Der Typ des benutzerdefinierten Feldes wird nicht unterstützt.',
+      invalid_custom_field: 'Die Definition des benutzerdefinierten Feldes ist ungültig.',
+      invalid_custom_field_id: 'Die ID des benutzerdefinierten Feldes ist ungültig oder doppelt vorhanden.',
+      duplicate_custom_field_name: 'Namen benutzerdefinierter Felder müssen eindeutig sein.',
+      invalid_custom_fields: 'Benutzerdefinierte Felder müssen als Liste vorliegen.',
+      invalid_custom_field_mapping: 'Die Zuordnung des benutzerdefinierten Feldes ist ungültig.',
+      unknown_custom_field: 'Die Quellzuordnung verweist auf ein unbekanntes benutzerdefiniertes Feld.',
+      custom_field_not_found: 'Das benutzerdefinierte Feld ist nicht vorhanden.',
       custom_field_rename: 'Umbenennen',
       custom_field_remove: 'Entfernen',
       custom_field_remove_confirm: 'Benutzerdefiniertes Feld „{{name}}“ deaktivieren? Vorhandene Quellwerte bleiben gespeichert, neue Zuordnungen verwenden dieses Feld nicht mehr.',
@@ -1475,7 +1495,17 @@
     const suggestions = core.buildMappingSuggestions(file.headers, catalog.map(function (entry) { return entry.profile || {}; }));
     const mappedByPosition = {};
     Object.keys(file.mapping || {}).forEach(function (field) {
-      if (Number.isInteger(file.mapping[field])) mappedByPosition[file.mapping[field]] = field;
+      if (Number.isInteger(file.mapping[field])) mappedByPosition[file.mapping[field]] = core.getFieldLabel(field, state.language);
+    });
+    const activeCustomFields = new Map((state.customFields || [])
+      .filter(function (field) { return field && field.active !== false; })
+      .map(function (field) { return [String(field.id), field]; }));
+    Object.keys(file.customFieldMapping || {}).forEach(function (fieldId) {
+      const field = activeCustomFields.get(String(fieldId));
+      const position = file.customFieldMapping[fieldId];
+      if (field && Number.isInteger(position)) {
+        mappedByPosition[position] = field.name;
+      }
     });
     const wrapper = document.createElement('div');
     wrapper.className = 'source-column-overview';
@@ -1510,7 +1540,7 @@
       row.appendChild(sourceCell);
       const mappingCell = document.createElement('td');
       const mappedField = mappedByPosition[position];
-      setText(mappingCell, mappedField ? core.getFieldLabel(mappedField, state.language) : translate('source_column_unused'));
+      setText(mappingCell, mappedField || translate('source_column_unused'));
       const candidates = Object.keys(suggestions).map(function (field) {
         return (suggestions[field] || []).find(function (candidate) { return candidate.sourcePosition === position; });
       }).filter(Boolean).sort(function (left, right) { return right.score - left.score; });

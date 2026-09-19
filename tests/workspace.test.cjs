@@ -527,6 +527,17 @@ test('custom field definitions keep stable IDs through rename, removal, and back
   assert.deepEqual(restored.customFields, current.customFields);
 });
 
+test('workspace validation checks confirmed custom-field mappings against the registry', () => {
+  const current = analyzedWorkspace('workspace-custom-confirmed', 'Custom confirmed', 'SKU-1');
+  current.customFields = [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }];
+  current.files[0].customFieldMapping = {};
+  current.files[0].confirmedCustomFieldMapping = { 'custom-missing': 3 };
+  assert.throws(
+    () => workspace.validateWorkspace(current),
+    (error) => error.code === 'unknown_custom_field'
+  );
+});
+
 test('schema-six migration adds an empty custom-field registry', () => {
   const legacy = workspace.createWorkspace('Legacy', { id: 'workspace-legacy' });
   legacy.schemaVersion = 6;

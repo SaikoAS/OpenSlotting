@@ -657,10 +657,12 @@
     const usedSourceIds = new Set();
     const files = workspace.files.map(function (file) {
       const normalized = validateFile(file, options);
-      Object.keys(normalized.customFieldMapping).forEach(function (fieldId) {
-        if (!customFieldIds.has(fieldId)) {
-          validationError('unknown_custom_field', 'Source mapping references an unknown custom field.');
-        }
+      [normalized.customFieldMapping, normalized.confirmedCustomFieldMapping || {}].forEach(function (mapping) {
+        Object.keys(mapping).forEach(function (fieldId) {
+          if (!customFieldIds.has(fieldId)) {
+            validationError('unknown_custom_field', 'Source mapping references an unknown custom field.');
+          }
+        });
       });
       if (usedSourceIds.has(normalized.id)) {
         validationError('duplicate_source_id', 'Workspace contains duplicate source IDs.');
