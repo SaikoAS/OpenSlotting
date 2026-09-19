@@ -82,6 +82,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(appSource, /rename\.disabled\s*=\s*state\.workspaceLoading/);
   assert.match(appSource, /remove\.disabled\s*=\s*state\.workspaceLoading/);
   assert.match(appSource, /activeCustomFieldIds/);
+  assert.match(appSource, /state\.articleRegistry = core\.buildArticleRegistry\(retainedRows, \{ activeCustomFieldIds: activeCustomFieldIds \}\)/);
   assert.match(appSource, /stored\.confirmedCustomFieldMapping === null \|\| stored\.confirmedCustomFieldMapping === undefined/);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /id="workspace-open"/);
@@ -277,6 +278,7 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /metadataOnly/);
   assert.match(storageSource, /workspaceRowChunks/);
   assert.match(storageSource, /workspaceIssueChunks/);
+  assert.match(storageSource, /workspaceRegistryChunks/);
   assert.match(appSource, /decodeBufferChunksDetailed/);
   assert.match(appSource, /importCsvStreamingChunks/);
   assert.match(appSource, /profileCsvStreamingChunks/);
@@ -716,6 +718,37 @@ test('article registry combines master-only, movement-only, and matched articles
   assert.deepEqual(matched.master_row_refs.map((ref) => [ref.source_file_id, ref.source_line]), [['source-master', 2]]);
   assert.ok(matched.value_provenance.some((item) => item.field === 'location' && item.source_line === 2));
   assert.equal(combined.rows.some((row) => Object.hasOwn(row, 'master_data')), false);
+  const withoutCustomFields = csv.buildArticleRegistry(combined.retainedRows, { activeCustomFieldIds: [] });
+  assert.deepEqual(withoutCustomFields.find((entry) => entry.article_id === 'SKU-MATCH').custom_fields, {});
+});
+
+test('article registry keeps provenance for repeated equal values', () => {
+  const master = csv.importCsv(
+    'article_id;article_name;location\nSKU-1;Widget;A-01\nSKU-1;Widget;A-01\n',
+    { article_id: 0, article_name: 1, location: 2 },
+    { sourceFile: { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' } }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master', result: master }
+  ]);
+  const entry = combined.articleRegistry[0];
+  assert.equal(entry.value_provenance.filter((item) => item.field === 'location').length, 2);
+  assert.equal(entry.value_conflicts.length, 0);
+});
+
+test('article registry trusts the source file type when normalized rows carry another type', () => {
+  const imported = csv.importCsv(
+    'article_id;article_name\nSKU-1;Widget\n',
+    { article_id: 0, article_name: 1 },
+    { sourceFile: { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' } }
+  );
+  imported.rows[0].source_type = 'order-lines';
+  const combined = csv.combineImportResults([
+    { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master', result: imported }
+  ]);
+  assert.equal(combined.rows.length, 0);
+  assert.equal(combined.articleRegistry[0].movement_status, 'master-only');
+  assert.deepEqual(combined.articleRegistry[0].master_source_file_ids, ['source-master']);
 });
 
 test('incremental analysis consumes provenance finalized by batch combination', () => {

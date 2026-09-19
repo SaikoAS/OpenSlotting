@@ -4290,6 +4290,18 @@
       state.customFields = workspaceModel.normalizeCustomFields(state.customFields.map(function (item) {
         return item.id === fieldId ? Object.assign({}, item, { active: false }) : item;
       }));
+      const activeCustomFieldIds = state.customFields.filter(function (item) {
+        return item.active !== false;
+      }).map(function (item) { return item.id; });
+      const retainedRows = state.result && Array.isArray(state.result.retainedRows)
+        ? state.result.retainedRows
+        : state.files.reduce(function (rows, file) {
+          return rows.concat(file.result && Array.isArray(file.result.rows) ? file.result.rows : []);
+        }, []);
+      state.articleRegistry = core.buildArticleRegistry(retainedRows, { activeCustomFieldIds: activeCustomFieldIds });
+      if (state.result) {
+        state.result.articleRegistry = state.articleRegistry;
+      }
       state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
       await persistActiveWorkspace(undefined, { metadataOnly: true });
       renderWorkspaceControls(); renderMapping();

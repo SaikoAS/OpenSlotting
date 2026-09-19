@@ -119,6 +119,10 @@ test('persists the workspace article registry alongside chunked sources', async 
     value_conflicts: []
   }];
   await repository.createWorkspace(workspace.validateWorkspace(record));
+  const manifest = indexedDB.inspect('article-registry-storage-test', 'workspaceManifests')[0];
+  assert.equal(Object.hasOwn(manifest, 'articleRegistry'), false);
+  assert.deepEqual(manifest.registryChunkKeys, ['workspace-registry::registry::0']);
+  assert.equal(indexedDB.inspect('article-registry-storage-test', 'workspaceRegistryChunks').length, 1);
   const loaded = await repository.loadWorkspace(record.id);
   assert.deepEqual(loaded.articleRegistry, record.articleRegistry);
 });
@@ -135,6 +139,7 @@ test('persists large results as independently addressable row and issue chunks',
   assert.equal(indexedDB.inspect(databaseName, 'workspaceSourceBytes').length, 1);
   assert.equal(indexedDB.inspect(databaseName, 'workspaceRowChunks').length, 3);
   assert.equal(indexedDB.inspect(databaseName, 'workspaceIssueChunks').length, 0);
+  assert.equal(indexedDB.inspect(databaseName, 'workspaceRegistryChunks').length, 0);
 
   const restored = await repository.loadWorkspace(original.id);
   assert.equal(restored.files[0].result.rows.length, 10001);

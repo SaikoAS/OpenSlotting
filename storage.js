@@ -8,7 +8,7 @@
   'use strict';
 
   const DATABASE_NAME = 'openslotting-workspaces';
-  const DATABASE_VERSION = 2;
+  const DATABASE_VERSION = 3;
   const ACTIVE_WORKSPACE_SETTING = 'active-workspace-id';
   const ROW_CHUNK_SIZE = 5000;
   const ISSUE_CHUNK_SIZE = 5000;
@@ -19,7 +19,8 @@
     'workspaceSources',
     'workspaceSourceBytes',
     'workspaceRowChunks',
-    'workspaceIssueChunks'
+    'workspaceIssueChunks',
+    'workspaceRegistryChunks'
   ];
 
   class WorkspaceStorageError extends Error {
@@ -93,6 +94,10 @@
     return sourceStorageKey(workspaceId, sourceId) + '::' + kind + '::' + String(index);
   }
 
+  function registryChunkStorageKey(workspaceId, index) {
+    return String(workspaceId) + '::registry::' + String(index);
+  }
+
   function chunkValues(values, size) {
     const chunks = [];
     for (let index = 0; index < values.length; index += size) {
@@ -114,6 +119,7 @@
     const sourceByteRecords = [];
     const rowChunkRecords = [];
     const issueChunkRecords = [];
+    const registryChunkRecords = [];
     workspace.files.forEach(function (file) {
       const sourceKey = sourceStorageKey(workspace.id, file.id);
       const result = file.result || null;
@@ -181,17 +187,27 @@
         });
       });
     });
+    const registryChunks = chunkValues(Array.isArray(workspace.articleRegistry) ? workspace.articleRegistry : [], ROW_CHUNK_SIZE);
+    registryChunks.forEach(function (chunk, index) {
+      registryChunkRecords.push({
+        key: registryChunkStorageKey(workspace.id, index),
+        workspaceId: workspace.id,
+        index: index,
+        entries: chunk
+      });
+    });
     return {
       manifest: {
         workspaceId: workspace.id,
         schemaVersion: workspace.schemaVersion,
-        articleRegistry: workspace.articleRegistry,
+        registryChunkKeys: registryChunks.map(function (_, index) { return registryChunkStorageKey(workspace.id, index); }),
         sources: sources
       },
       sourceRecords: sourceRecords,
       sourceByteRecords: sourceByteRecords,
       rowChunkRecords: rowChunkRecords,
-      issueChunkRecords: issueChunkRecords
+      issueChunkRecords: issueChunkRecords,
+      registryChunkRecords: registryChunkRecords
     };
   }
 
@@ -221,6 +237,7 @@
     records.sourceByteRecords.forEach(function (record) { stores.workspaceSourceBytes.put(record); });
     records.rowChunkRecords.forEach(function (record) { stores.workspaceRowChunks.put(record); });
     records.issueChunkRecords.forEach(function (record) { stores.workspaceIssueChunks.put(record); });
+    records.registryChunkRecords.forEach(function (record) { stores.workspaceRegistryChunks.put(record); });
     return records.manifest;
   }
 
@@ -235,6 +252,7 @@
         (source.rowChunkKeys || []).forEach(function (key) { stores.workspaceRowChunks.delete(key); });
         (source.issueChunkKeys || []).forEach(function (key) { stores.workspaceIssueChunks.delete(key); });
       });
+      (manifest.registryChunkKeys || []).forEach(function (key) { stores.workspaceRegistryChunks.delete(key); });
       stores.workspaceManifests.delete(workspaceId);
     });
   }
@@ -286,7 +304,16 @@
         };
       });
     });
-    return Promise.all(requests).then(function (files) {
+    const registryRequests = manifest && Array.isArray(manifest.registryChunkKeys)
+      ? manifest.registryChunkKeys.map(function (key) { return requestPromise(stores.workspaceRegistryChunks.get(key)); })
+      : [];
+    return Promise.all([Promise.all(requests), Promise.all(registryRequests)]).then(function (values) {
+      const files = values[0];
+      const registry = [];
+      values[1].forEach(function (chunk) { appendChunkValues(registry, chunk, 'entries'); });
+      if (registry.length === 0 && (!manifest || !Array.isArray(manifest.registryChunkKeys)) && Array.isArray(manifest && manifest.articleRegistry)) {
+        manifest.articleRegistry.forEach(function (entry) { registry.push(entry); });
+      }
       if (files.some(function (file) { return file === null; })) {
         return null;
       }
@@ -300,7 +327,7 @@
         analyzed: metadata.analyzed,
         periodSettings: metadata.periodSettings,
         customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
-        articleRegistry: Array.isArray(manifest && manifest.articleRegistry) ? manifest.articleRegistry : [],
+        articleRegistry: registry,
         storageRevision: storageRevisionOf(metadata),
         files: files
       };
@@ -384,6 +411,9 @@
           }
           if (!db.objectStoreNames.contains('workspaceIssueChunks')) {
             db.createObjectStore('workspaceIssueChunks', { keyPath: 'key' });
+          }
+          if (!db.objectStoreNames.contains('workspaceRegistryChunks')) {
+            db.createObjectStore('workspaceRegistryChunks', { keyPath: 'key' });
           }
           if (!db.objectStoreNames.contains('settings')) {
             db.createObjectStore('settings', { keyPath: 'key' });

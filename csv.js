@@ -1829,9 +1829,12 @@
     return left === right;
   }
 
-  function buildArticleRegistry(rows) {
+  function buildArticleRegistry(rows, options) {
     const registry = new Map();
     const fixedMasterFields = ['article_name', 'location', 'sales_unit_count', 'quantity_per_sales_unit'];
+    const activeCustomFieldIds = options && Array.isArray(options.activeCustomFieldIds)
+      ? new Set(options.activeCustomFieldIds.map(function (fieldId) { return String(fieldId); }))
+      : null;
 
     function sourceDetails(row) {
       const sourceId = row && row.source_file_id !== undefined && row.source_file_id !== null
@@ -1872,13 +1875,12 @@
         source_file_label: source.label,
         source_line: Number.isInteger(row.source_line) ? row.source_line : null
       };
+      entry.value_provenance.push(provenance);
       const target = field.indexOf('custom:') === 0 ? entry.custom_fields : entry.master_data;
       const targetField = field.indexOf('custom:') === 0 ? field.slice('custom:'.length) : field;
       if (target[targetField] === undefined || target[targetField] === null || target[targetField] === '') {
         target[targetField] = value;
-        entry.value_provenance.push(provenance);
       } else if (!registryValueEqual(target[targetField], value)) {
-        entry.value_provenance.push(provenance);
         entry.value_conflicts.push({
           field: field,
           existing: target[targetField],
@@ -1940,7 +1942,9 @@
         }
       }
       const customFields = row.custom_fields && typeof row.custom_fields === 'object' ? row.custom_fields : {};
-      Object.keys(customFields).sort().forEach(function (fieldId) {
+      Object.keys(customFields).filter(function (fieldId) {
+        return !activeCustomFieldIds || activeCustomFieldIds.has(String(fieldId));
+      }).sort().forEach(function (fieldId) {
         addValue(entry, 'custom:' + fieldId, customFields[fieldId], row, source, isMaster ? 'article-master' : 'order-lines');
       });
       if (entry.master_data.article_name) {
@@ -2005,14 +2009,16 @@
       const rowsNeedSourceDecoration = resultRows.some(function (row) {
         return row.source_file_id !== source.id ||
           row.source_file_name !== source.name ||
-          row.source_file_label !== source.label;
+          row.source_file_label !== source.label ||
+          row.source_type !== source.sourceType;
       });
       const normalizedRows = rowsNeedSourceDecoration
         ? resultRows.map(function (row) {
           return Object.assign({}, row, {
             source_file_id: source.id,
             source_file_name: source.name,
-            source_file_label: source.label
+            source_file_label: source.label,
+            source_type: source.sourceType
           });
         })
         : resultRows;

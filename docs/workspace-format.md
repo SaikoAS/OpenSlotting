@@ -10,7 +10,7 @@ Browser-local data is not an application file beside `index.html`. Moving the ap
 
 ## Database contract
 
-The IndexedDB database is named `openslotting-workspaces` and currently uses database version `2`.
+The IndexedDB database is named `openslotting-workspaces` and currently uses database version `3`.
 
 It contains the metadata/settings stores plus independently persisted workspace stores:
 
@@ -18,14 +18,15 @@ It contains the metadata/settings stores plus independently persisted workspace 
 | --- | --- | --- |
 | `workspaces` | `id` | Small workspace metadata used for listing and selection, including period settings plus cached source-byte and normalized-row counts for newly saved records. |
 | `workspacePayloads` | `workspaceId` | Legacy monolithic payload retained only as a migration source for version-1 databases. New writes do not use it. |
-| `workspaceManifests` | `workspaceId` | Ordered source/chunk keys and the normalized article registry for one workspace. |
+| `workspaceManifests` | `workspaceId` | Ordered source/chunk keys plus keys for the normalized article-registry chunks for one workspace. |
 | `workspaceSources` | `key` | One source's metadata, mappings, and result summary without row or issue arrays. |
 | `workspaceSourceBytes` | `key` | Original bytes for one source. |
 | `workspaceRowChunks` | `key` | Up to 5,000 normalized rows for one source per record. |
 | `workspaceIssueChunks` | `key` | Up to 5,000 validation issues for one source per record. |
+| `workspaceRegistryChunks` | `key` | Up to 5,000 normalized article-registry entries per record. |
 | `settings` | `key` | Browser-local application settings, including the last active workspace ID. |
 
-Saving a workspace writes its metadata, manifest, source records, source bytes, row chunks, and issue chunks in one IndexedDB read/write transaction. A failed or quota-exceeded transaction must not leave one half updated. Metadata-only changes such as renaming, language, or period settings use the metadata store alone and do not rewrite source bytes or row chunks.
+Saving a workspace writes its metadata, manifest, source records, source bytes, row chunks, issue chunks, and article-registry chunks in one IndexedDB read/write transaction. A failed or quota-exceeded transaction must not leave one half updated. Metadata-only changes such as renaming, language, or period settings use the metadata store alone and do not rewrite source bytes, row chunks, or article-registry chunks.
 
 Autosaves capture the already validated live runtime into the persisted shape without walking every normalized row again. New sources, mappings, encodings, and analyses are validated at their import or edit boundaries; backup and storage restore paths retain the full validation walk before committing.
 
@@ -214,6 +215,6 @@ The restore worker returns the already validated persisted payload and prepared 
 
 ## Schema migration
 
-Workspace records carry `schemaVersion`. The current reader uses version `8`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, accepts version `5` catalogs without profiles by supplying an empty profile, adds the workspace custom-field registry and source mappings in version `7`, and adds an empty article registry when migrating version `7` records to version `8`. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `2` creates the chunk stores. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis and the registry are rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
+Workspace records carry `schemaVersion`. The current reader uses version `8`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, accepts version `5` catalogs without profiles by supplying an empty profile, adds the workspace custom-field registry and source mappings in version `7`, and adds an empty article registry when migrating version `7` records to version `8`. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `3` creates the chunk stores, including article-registry chunks. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis and the registry are rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
 
 Future migrations must produce a fully valid current workspace before saving it and require automated migration and backup-round-trip tests.
