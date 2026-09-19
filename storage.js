@@ -13,7 +13,7 @@
   const ROW_CHUNK_SIZE = 5000;
   const ISSUE_CHUNK_SIZE = 5000;
   const REGISTRY_CHUNK_SIZE = 1000;
-  const REGISTRY_ARRAY_CHUNK_SIZE = 250;
+  const REGISTRY_ARRAY_CHUNK_SIZE = 64;
   const CHUNKED_WORKSPACE_STORES = [
     'workspaces',
     'workspacePayloads',
@@ -116,7 +116,18 @@
   }
 
   function registryEntryFragments(entry) {
-    const arrayFields = ['article_name_variants', 'master_row_refs', 'value_provenance', 'value_conflicts'];
+    const arrayFields = [
+      'article_name_variants',
+      'source_file_ids',
+      'source_files',
+      'master_source_file_ids',
+      'master_source_files',
+      'movement_source_file_ids',
+      'movement_source_files',
+      'master_row_refs',
+      'value_provenance',
+      'value_conflicts'
+    ];
     const values = arrayFields.reduce(function (result, field) {
       result[field] = Array.isArray(entry[field]) ? entry[field] : [];
       return result;
@@ -149,7 +160,18 @@
         let entry = byArticleId.get(articleId);
         if (!entry) {
           entry = Object.assign({}, fragment);
-          ['article_name_variants', 'master_row_refs', 'value_provenance', 'value_conflicts'].forEach(function (field) {
+          [
+            'article_name_variants',
+            'source_file_ids',
+            'source_files',
+            'master_source_file_ids',
+            'master_source_files',
+            'movement_source_file_ids',
+            'movement_source_files',
+            'master_row_refs',
+            'value_provenance',
+            'value_conflicts'
+          ].forEach(function (field) {
             if (Object.prototype.hasOwnProperty.call(fragment, field)) {
               entry[field] = [];
             }
@@ -157,7 +179,18 @@
           byArticleId.set(articleId, entry);
           target.push(entry);
         }
-        ['article_name_variants', 'master_row_refs', 'value_provenance', 'value_conflicts'].forEach(function (field) {
+        [
+          'article_name_variants',
+          'source_file_ids',
+          'source_files',
+          'master_source_file_ids',
+          'master_source_files',
+          'movement_source_file_ids',
+          'movement_source_files',
+          'master_row_refs',
+          'value_provenance',
+          'value_conflicts'
+        ].forEach(function (field) {
           if (!Object.prototype.hasOwnProperty.call(fragment, field)) {
             return;
           }
@@ -176,7 +209,18 @@
     let current = [];
     let currentWeight = 0;
     fragments.forEach(function (fragment) {
-      const weight = ['article_name_variants', 'master_row_refs', 'value_provenance', 'value_conflicts']
+      const weight = [
+        'article_name_variants',
+        'source_file_ids',
+        'source_files',
+        'master_source_file_ids',
+        'master_source_files',
+        'movement_source_file_ids',
+        'movement_source_files',
+        'master_row_refs',
+        'value_provenance',
+        'value_conflicts'
+      ]
         .reduce(function (sum, field) {
           return sum + (Array.isArray(fragment[field]) ? fragment[field].length : 0);
         }, 0) || 1;
