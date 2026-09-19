@@ -100,7 +100,7 @@ OpenSlotting-v<APP_VERSION>/
 
 ## Manual Microsoft Edge Desktop acceptance
 
-Run these checks on Windows in Microsoft Edge Desktop with the network unavailable. Extract the candidate ZIP into a new directory and open its `index.html` directly. Record failures with the candidate commit and source fixture; use only fully synthetic data. Complete the multi-export checks in `docs/acceptance-v0.2.md`, the launcher/shortcut checks in `docs/acceptance-v0.2.1.md`, and both runtime profiles in `docs/acceptance-runtime-profiles.md` on this same candidate.
+Run these checks on Windows in Microsoft Edge Desktop with the network unavailable. Extract the candidate ZIP into a new directory and open its `index.html` directly. Record failures with the candidate commit and source fixture; use only fully synthetic data. This checklist is the reusable candidate record. The versioned V0.2 and V0.2.1 acceptance files below are historical evidence only; do not use their results as evidence for a later candidate. Use `docs/acceptance-runtime-profiles.md`, `docs/acceptance-workspaces.md`, and `docs/acceptance-period-comparison.md` as detailed references while recording the fresh results here.
 
 The V0.2 and V0.2.1 acceptance checklists are historical records. A future release candidate requires a new exact-commit acceptance run; do not copy historical results into the current candidate record.
 
@@ -137,6 +137,12 @@ The V0.2 and V0.2.1 acceptance checklists are historical records. A future relea
 31. [ ] Removal deletes only OpenSlotting-managed shortcuts.
 32. [ ] Direct `index.html` startup remains independent of setup and shortcuts.
 33. [ ] Setup leaves taskbar pinning to the user and does not change taskbar policy.
+34. [ ] Enhanced Local Mode starts through its loopback launcher and displays the expected runtime diagnostics.
+35. [ ] A workspace can be created, reopened, renamed, cleared, and deleted without affecting another workspace.
+36. [ ] Workspace backup and restore as new or explicit replacement preserve source bytes, mappings, normalized rows, validation results, and provenance.
+37. [ ] Multiple sources can be mapped, validated, combined, and traced to their source file and line; blocked files remain excluded.
+38. [ ] Date coverage and missing expected weekdays are reported for the candidate workspace.
+39. [ ] Calendar-week and custom periods can be compared, including article details and comparison export.
 
 ## Pull request and release
 

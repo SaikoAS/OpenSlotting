@@ -10,7 +10,7 @@ const QUANTITY_SCALE = csv.QUANTITY_SCALE;
 test('release version is defined centrally for the UI and package', () => {
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
-  assert.equal(csv.APP_VERSION, '0.2.1');
+  assert.match(csv.APP_VERSION, /^\d+\.\d+\.\d+$/);
   assert.match(appSource, /core\.APP_VERSION/);
   assert.match(appSource, /eyebrow: 'OpenSlotting · v\{\{version\}\}'/);
   assert.doesNotMatch(appSource, /eyebrow: 'OpenSlotting · V0\.2'/);

@@ -323,7 +323,7 @@ The public project and demo data must not contain real company, customer, articl
 - Use an optional local icon and remove only OpenSlotting-managed shortcuts safely
 - Preserve direct `file:///` startup as the independent core runtime
 
-### V0.3 — Local Workspaces (implemented on `main`; release claim pending)
+### V0.3 — Local Workspaces (implemented and included in published 0.2.1)
 
 - Create and reopen separate workspaces in browser-local IndexedDB storage
 - Start with a metadata-only overview and load a large workspace only after explicit selection
@@ -336,8 +336,10 @@ The public project and demo data must not contain real company, customer, articl
 - Portable workspace backups for migration between browser profiles or `file:///` origins
 - No mandatory cloud storage, backend, account, or network connection
 
-The implementation is on `main`. Exact-candidate automated checks and manual
-Microsoft Edge `file:///` acceptance remain required before a release claim.
+The implementation is on `main` and was included in the published 0.2.1
+release. Current `main` may contain later workspace improvements that still
+require exact-candidate automated checks and manual Microsoft Edge `file:///`
+acceptance before a future release claim.
 
 ### V0.4 — Period Comparison (implemented on `main`; release claim pending)
 
