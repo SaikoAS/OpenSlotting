@@ -197,19 +197,19 @@
           <section class="coverage-detail-card" aria-labelledby="coverage-sources-title">
             <h3 id="coverage-sources-title" data-i18n="coverage_sources_title">Coverage by source</h3>
             <p class="table-note" data-i18n="coverage_sources_intro">Review ranges, valid rows, dated invalid rows, and selling-unit coverage per source.</p>
-            <div class="table-scroll"><table><thead><tr><th data-i18n="source_file_column">Source file</th><th data-i18n="coverage_range">Observed range</th><th class="number" data-i18n="column_days">Days</th><th class="number" data-i18n="valid_rows_column">Valid</th><th class="number" data-i18n="invalid_rows_column">Invalid</th><th class="number" data-i18n="selling_unit_rows">VKU rows</th><th><span class="visually-hidden" data-i18n="comparison_action">Action</span></th></tr></thead><tbody id="coverage-source-table-body"></tbody></table></div>
+            <div class="table-scroll"><table><thead><tr><th data-i18n="source_file_column">Source file</th><th data-i18n="coverage_range">Observed range</th><th class="number" data-i18n="column_days">Days</th><th class="number" data-i18n="valid_rows_column">Valid</th><th class="number" data-i18n="invalid_rows_column">Invalid</th><th class="number" data-i18n="selling_unit_rows">Selling-unit rows</th><th><span class="visually-hidden" data-i18n="comparison_action">Action</span></th></tr></thead><tbody id="coverage-source-table-body"></tbody></table></div>
           </section>
           <section class="coverage-detail-card" aria-labelledby="coverage-dates-title">
             <h3 id="coverage-dates-title" data-i18n="coverage_dates_title">Coverage by date</h3>
-            <p class="table-note" data-i18n="coverage_dates_intro">Invalid rows appear on a date only when that row contains a valid mapped order date.</p>
-            <div class="table-scroll"><table><thead><tr><th data-i18n="detail_order_date">Order date</th><th class="number" data-i18n="valid_rows_column">Valid</th><th class="number" data-i18n="invalid_rows_column">Invalid</th><th data-i18n="source_files_title">Source files</th><th><span class="visually-hidden" data-i18n="comparison_action">Action</span></th></tr></thead><tbody id="coverage-date-table-body"></tbody></table></div>
+            <p class="table-note" data-i18n="coverage_dates_intro">Invalid rows appear on a date only when that row contains a valid mapped delivery date.</p>
+            <div class="table-scroll"><table><thead><tr><th data-i18n="detail_order_date">Delivery date</th><th class="number" data-i18n="valid_rows_column">Valid</th><th class="number" data-i18n="invalid_rows_column">Invalid</th><th data-i18n="source_files_title">Source files</th><th><span class="visually-hidden" data-i18n="comparison_action">Action</span></th></tr></thead><tbody id="coverage-date-table-body"></tbody></table></div>
             <div id="coverage-date-pagination" class="table-pagination hidden" aria-live="polite"><button id="coverage-date-previous" class="secondary-button" type="button" data-i18n="previous_page">Previous</button><span id="coverage-date-page-status" class="table-note"></span><button id="coverage-date-next" class="secondary-button" type="button" data-i18n="next_page">Next</button></div>
           </section>
         </div>
         <section id="coverage-drilldown" class="coverage-drilldown hidden" aria-labelledby="coverage-drilldown-title">
           <div class="coverage-drilldown-heading"><div><p class="step" data-i18n="coverage_drilldown_label">Coverage evidence</p><h3 id="coverage-drilldown-title" tabindex="-1"></h3></div><button id="coverage-drilldown-close" class="text-button" type="button" data-i18n="coverage_drilldown_close">Close evidence</button></div>
           <p id="coverage-drilldown-summary" class="table-note"></p>
-          <div class="table-scroll"><table><thead><tr><th data-i18n="coverage_evidence_type">Type</th><th data-i18n="detail_source_file">Source file</th><th class="number" data-i18n="detail_source_line">Source line</th><th data-i18n="detail_order_date">Order date</th><th data-i18n="column_article_id">Article ID</th><th data-i18n="issue_message">Message</th></tr></thead><tbody id="coverage-drilldown-table-body"></tbody></table></div>
+          <div class="table-scroll"><table><thead><tr><th data-i18n="coverage_evidence_type">Type</th><th data-i18n="detail_source_file">Source file</th><th class="number" data-i18n="detail_source_line">Source line</th><th data-i18n="detail_order_date">Delivery date</th><th data-i18n="column_article_id">Article ID / SKU</th><th data-i18n="issue_message">Message</th></tr></thead><tbody id="coverage-drilldown-table-body"></tbody></table></div>
         </section>
         <fieldset class="weekday-fieldset">
           <legend data-i18n="expected_weekdays">Expected weekdays</legend>
@@ -283,14 +283,14 @@
         <div id="comparison-metrics" class="comparison-metrics"></div>
         <section class="panel comparison-table-panel">
           <div class="comparison-toolbar">
-            <label class="compact-field comparison-search"><span data-i18n="search_label">Search</span><input id="comparison-search" type="search" data-i18n-placeholder="comparison_search_placeholder" placeholder="Article ID or description"></label>
+            <label class="compact-field comparison-search"><span data-i18n="search_label">Search</span><input id="comparison-search" type="search" data-i18n-placeholder="comparison_search_placeholder" placeholder="Article ID / SKU or description"></label>
             <label class="compact-field"><span data-i18n="change_filter">Change</span><select id="comparison-filter"><option value="all" data-i18n="change_all">All changes</option><option value="increased" data-i18n="change_increased">Increased</option><option value="decreased" data-i18n="change_decreased">Decreased</option><option value="new" data-i18n="change_new">New</option><option value="inactive" data-i18n="change_inactive">Inactive</option><option value="incomplete" data-i18n="change_incomplete">Incomplete data</option><option value="conflict" data-i18n="change_conflict">Selling-unit conflict</option></select></label>
-            <label class="compact-field"><span data-i18n="sort_label">Sort by</span><select id="comparison-sort"><option value="change" data-i18n="sort_change">Largest quantity change</option><option value="percent" data-i18n="sort_percent">Largest percent change</option><option value="article" data-i18n="sort_article">Article ID</option></select></label>
+            <label class="compact-field"><span data-i18n="sort_label">Sort by</span><select id="comparison-sort"><option value="change" data-i18n="sort_change">Largest quantity change</option><option value="percent" data-i18n="sort_percent">Largest percent change</option><option value="article" data-i18n="sort_article">Article ID / SKU</option></select></label>
           </div>
           <div class="table-scroll">
             <table class="comparison-table">
               <thead>
-                <tr><th rowspan="2" data-i18n="column_article_id">Article ID</th><th rowspan="2" data-i18n="column_article_name">Article description</th><th colspan="3" data-i18n="period_a">Period A</th><th colspan="3" data-i18n="period_b">Period B</th><th colspan="2" data-i18n="comparison_change">Change</th><th rowspan="2" data-i18n="comparison_quality">Data quality</th><th rowspan="2"><span class="visually-hidden" data-i18n="comparison_action">Action</span></th></tr>
+                <tr><th rowspan="2" data-i18n="column_article_id">Article ID / SKU</th><th rowspan="2" data-i18n="column_article_name">Article description</th><th colspan="3" data-i18n="period_a">Period A</th><th colspan="3" data-i18n="period_b">Period B</th><th colspan="2" data-i18n="comparison_change">Change</th><th rowspan="2" data-i18n="comparison_quality">Data quality</th><th rowspan="2"><span class="visually-hidden" data-i18n="comparison_action">Action</span></th></tr>
                 <tr><th class="number" data-i18n="column_lines">Lines</th><th class="number" data-i18n="column_quantity">Quantity</th><th class="number" data-i18n="column_sales_units">Colli</th><th class="number" data-i18n="column_lines">Lines</th><th class="number" data-i18n="column_quantity">Quantity</th><th class="number" data-i18n="column_sales_units">Colli</th><th class="number" data-i18n="quantity_change">Quantity change</th><th class="number" data-i18n="percent_change">Percent change</th></tr>
               </thead>
               <tbody id="comparison-table-body"></tbody>
@@ -301,7 +301,7 @@
         <section id="comparison-detail" class="panel comparison-detail hidden" aria-labelledby="comparison-detail-title">
           <div class="comparison-detail-heading"><div><p class="step" data-i18n="comparison_detail_label">Period-specific article evidence</p><h3 id="comparison-detail-title" tabindex="-1"></h3><p id="comparison-detail-description" class="table-note"></p></div><button id="comparison-detail-close" class="text-button" type="button" data-i18n="comparison_detail_close">Close details</button></div>
           <div id="comparison-detail-periods" class="comparison-detail-periods"></div>
-          <div class="table-scroll"><table><thead><tr><th data-i18n="comparison_detail_period">Period</th><th data-i18n="detail_source_file">Source file</th><th class="number" data-i18n="detail_source_line">Source line</th><th data-i18n="detail_order_id">Order ID</th><th data-i18n="detail_order_date">Order date</th><th class="number" data-i18n="column_quantity">Quantity</th><th class="number" data-i18n="column_sales_units">Colli</th><th class="number" data-i18n="detail_sales_value">Sales value</th><th data-i18n="detail_location">Location</th></tr></thead><tbody id="comparison-detail-table-body"></tbody></table></div>
+          <div class="table-scroll"><table><thead><tr><th data-i18n="comparison_detail_period">Period</th><th data-i18n="detail_source_file">Source file</th><th class="number" data-i18n="detail_source_line">Source line</th><th data-i18n="detail_order_id">Order ID</th><th data-i18n="detail_order_date">Delivery date</th><th class="number" data-i18n="column_quantity">Quantity</th><th class="number" data-i18n="column_sales_units">Selling units / cases</th><th class="number" data-i18n="detail_sales_value">Legacy sales value</th><th data-i18n="detail_location">Location</th></tr></thead><tbody id="comparison-detail-table-body"></tbody></table></div>
           <div id="comparison-detail-pagination" class="table-pagination hidden" aria-live="polite"><button id="comparison-detail-previous" class="secondary-button" type="button" data-i18n="previous_page">Previous</button><span id="comparison-detail-page-status" class="table-note"></span><button id="comparison-detail-next" class="secondary-button" type="button" data-i18n="next_page">Next</button></div>
         </section>
       </section>
@@ -353,15 +353,15 @@
             </div>
             <label class="compact-field">
               <span data-i18n="search_label">Search</span>
-              <input id="article-filter" type="search" placeholder="Article ID or description" data-i18n-placeholder="search_placeholder">
+              <input id="article-filter" type="search" placeholder="Article ID / SKU or description" data-i18n-placeholder="search_placeholder">
             </label>
             <label class="compact-field">
               <span data-i18n="sort_label">Sort by</span>
               <select id="article-sort">
                 <option value="lines" data-i18n="sort_lines">Order lines</option>
                 <option value="quantity" data-i18n="sort_quantity">Total quantity</option>
-                <option value="sales" data-i18n="sort_sales">Sales value</option>
-                <option value="article" data-i18n="sort_article">Article ID</option>
+                <option value="sales" data-i18n="sort_sales">Legacy sales value</option>
+                <option value="article" data-i18n="sort_article">Article ID / SKU</option>
               </select>
             </label>
           </div>
@@ -369,11 +369,12 @@
             <table>
               <thead>
                 <tr>
-                  <th data-i18n="column_article_id">Article ID</th>
+                  <th data-i18n="column_article_id">Article ID / SKU</th>
                   <th data-i18n="column_article_name">Article description</th>
+                  <th data-i18n="column_master_status">Master-data status</th>
                   <th class="number" data-i18n="column_lines">Lines</th>
                   <th class="number" data-i18n="column_quantity">Quantity</th>
-                  <th class="number" data-i18n="column_sales">Sales value / coverage</th>
+                  <th class="number" data-i18n="column_sales">Legacy sales value / coverage</th>
                   <th class="number" data-i18n="column_orders">Orders</th>
                   <th class="number" data-i18n="column_customers">Customers</th>
                   <th class="number" data-i18n="column_days">Days</th>
@@ -413,12 +414,17 @@
                   <th data-i18n="detail_source_file">Source file</th>
                   <th class="number" data-i18n="detail_source_line">Source line</th>
                   <th data-i18n="detail_order_id">Order ID</th>
-                  <th data-i18n="detail_order_date">Order date</th>
+                  <th data-i18n="detail_order_date">Delivery date</th>
                   <th class="number" data-i18n="column_quantity">Quantity</th>
-                  <th class="number" data-i18n="detail_sales_units">Selling units / Colli</th>
+                  <th class="number" data-i18n="detail_sales_units">Selling units / cases</th>
                   <th class="number" data-i18n="detail_quantity_per_sales_unit">Quantity per selling unit</th>
                   <th data-i18n="detail_customer_id">Customer ID</th>
-                  <th class="number" data-i18n="detail_sales_value">Sales value</th>
+                  <th data-i18n="detail_customer_name">Customer name</th>
+                  <th class="number" data-i18n="detail_sales_value_net">Sales value excl. VAT</th>
+                  <th class="number" data-i18n="detail_sales_value_gross">Sales value incl. VAT</th>
+                  <th class="number" data-i18n="detail_unit_price_net">Unit price excl. VAT</th>
+                  <th class="number" data-i18n="detail_unit_price_gross">Unit price incl. VAT</th>
+                  <th class="number" data-i18n="detail_sales_value">Legacy sales value</th>
                   <th data-i18n="detail_location">Location</th>
                   <th data-i18n="column_article_name">Article description</th>
                   <th data-i18n="detail_source_values_action">Show source</th>

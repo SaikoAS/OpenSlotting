@@ -1,4 +1,4 @@
-order_id;article_id;Article Name;quantity;order_date;customer_id;sales_value;location
+order_id;article_id;Article Name;quantity;delivery_date;customer_id;sales_value;location
 ORD-100;SKU-ALPHA;Citrus Juice 1L;1;2026-09-01;CUST-001;10.50;A-01
 ORD-101;SKU-ALPHA;Citrus Juice 1L;2;2026-09-02;CUST-002;20.00;A-02
 ORD-102;SKU-ALPHA;"Citrus Juice; ""Special"" 1 L";3;2026-09-03;CUST-001;30.25;A-01

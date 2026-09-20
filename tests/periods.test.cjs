@@ -6,7 +6,7 @@ const periods = require('../periods.js');
 
 function fixtureRows() {
   return csv.importCsv([
-    'order_id;article_id;article_name;quantity;order_date;sales_value;sales_unit_count;quantity_per_sales_unit',
+    'order_id;article_id;article_name;quantity;delivery_date;sales_value;sales_unit_count;quantity_per_sales_unit',
     'O-1;A-1;Article one;10;2026-09-01;10.10;2;5',
     'O-2;A-1;Article one;5;2026-09-02;5;1;5',
     'O-3;A-1;Article one;8;2026-09-04;20.25;2;4',
@@ -125,7 +125,7 @@ test('comparison CSV exports period boundaries, unit metrics, and formula-safe t
 
 test('comparison export reports conflicts across period boundaries', () => {
   const rows = fixtureRows();
-  rows.find((row) => row.article_id === 'A-1' && row.order_date === '2026-09-04').article_name = 'Article one revised';
+  rows.find((row) => row.article_id === 'A-1' && row.delivery_date === '2026-09-04').article_name = 'Article one revised';
   const comparison = periods.comparePeriods(rows, {
     expectedWeekdays: [0, 1, 2, 3, 4, 5, 6],
     periodA: { name: 'Before', start: '2026-09-01', end: '2026-09-02' },
@@ -171,9 +171,9 @@ test('default periods use the detected ISO calendar week boundaries', () => {
 
 test('calendar-week detection follows ISO years and reports observed rows', () => {
   const weeks = periods.detectedCalendarWeeks([
-    { order_date: '2026-12-31' },
-    { order_date: '2027-01-01' },
-    { order_date: '2027-01-04' }
+    { delivery_date: '2026-12-31' },
+    { delivery_date: '2027-01-01' },
+    { delivery_date: '2027-01-04' }
   ]);
 
   assert.deepEqual(weeks, [
@@ -183,7 +183,7 @@ test('calendar-week detection follows ISO years and reports observed rows', () =
 });
 
 test('calendar-week detection handles early ISO week-years without the Date.UTC 1900 offset', () => {
-  const weeks = periods.detectedCalendarWeeks([{ order_date: '0100-01-01' }]);
+  const weeks = periods.detectedCalendarWeeks([{ delivery_date: '0100-01-01' }]);
 
   assert.equal(weeks.length, 1);
   assert.equal(weeks[0].id, '0099-W53');
@@ -192,7 +192,7 @@ test('calendar-week detection handles early ISO week-years without the Date.UTC 
 });
 
 test('calendar-week detection keeps the upper supported date representable', () => {
-  const rows = [{ order_date: '9999-12-31' }];
+  const rows = [{ delivery_date: '9999-12-31' }];
   const weeks = periods.detectedCalendarWeeks(rows);
 
   assert.equal(weeks.length, 1);
@@ -207,9 +207,9 @@ test('calendar-week detection keeps the upper supported date representable', () 
 
 test('default calendar-week comparison selects the latest two detected weeks', () => {
   const settings = periods.defaultSettings([
-    { order_date: '2026-08-10' },
-    { order_date: '2026-08-17' },
-    { order_date: '2026-08-24' }
+    { delivery_date: '2026-08-10' },
+    { delivery_date: '2026-08-17' },
+    { delivery_date: '2026-08-24' }
   ]);
 
   assert.deepEqual(settings.periodA, { name: 'KW34/2026', start: '2026-08-17', end: '2026-08-23' });
@@ -224,7 +224,7 @@ test('large period comparisons remain stack-safe and exact', () => {
       article_id: 'A-' + (index % 250),
       article_name: 'Article ' + (index % 250),
       quantity: 10000000n,
-      order_date: index < 10000 ? '2026-09-01' : '2026-09-02',
+      delivery_date: index < 10000 ? '2026-09-01' : '2026-09-02',
       customer_id: null,
       location: null,
       sales_value: null,

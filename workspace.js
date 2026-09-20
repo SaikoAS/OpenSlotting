@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 8;
+  const WORKSPACE_SCHEMA_VERSION = 9;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -491,15 +491,25 @@
       validationError('invalid_normalized_row', 'Normalized row contains an invalid source line.');
     }
     const sourceType = row.source_type === 'article-master' ? 'article-master' : 'order-lines';
-    if (typeof row.article_id !== 'string' || !row.article_id || (sourceType !== 'article-master' && (typeof row.order_id !== 'string' || !row.order_id))) {
+    if (typeof row.article_id !== 'string' || !row.article_id) {
       validationError('invalid_normalized_row', 'Normalized row is missing a required identity.');
+    }
+    if (row.order_id !== undefined && row.order_id !== null && typeof row.order_id !== 'string') {
+      validationError('invalid_normalized_row', 'Normalized order ID must be text when present.');
     }
     if (sourceType !== 'article-master' && (typeof row.quantity !== 'bigint' || row.quantity <= 0n)) {
       validationError('invalid_normalized_row', 'Normalized quantity must be a positive scaled integer.');
     }
-    if (sourceType === 'article-master' && row.order_id !== undefined && row.order_id !== null && typeof row.order_id !== 'string') {
-      validationError('invalid_normalized_row', 'Normalized article-master order ID must be text when present.');
-    }
+    ['customer_id', 'customer_name', 'article_name', 'location', 'unit_of_measure'].forEach(function (field) {
+      if (row[field] !== undefined && row[field] !== null && typeof row[field] !== 'string') {
+        validationError('invalid_normalized_row', 'Normalized text field is invalid.');
+      }
+    });
+    ['sales_value', 'sales_value_net', 'sales_value_gross', 'unit_price_net', 'unit_price_gross', 'vat_rate'].forEach(function (field) {
+      if (row[field] !== undefined && row[field] !== null && (!Number.isFinite(row[field]) || typeof row[field] !== 'number')) {
+        validationError('invalid_normalized_row', 'Normalized numeric field is invalid.');
+      }
+    });
     const salesUnitCount = row.sales_unit_count === undefined || row.sales_unit_count === null ? null : row.sales_unit_count;
     const quantityPerSalesUnit = row.quantity_per_sales_unit === undefined || row.quantity_per_sales_unit === null ? null : row.quantity_per_sales_unit;
     if (salesUnitCount !== null && (typeof salesUnitCount !== 'bigint' || salesUnitCount < 0n)) {
@@ -520,11 +530,11 @@
     if (row.sales_unit_quantity_relation !== undefined && row.sales_unit_quantity_relation !== expectedUnitRelation) {
       validationError('invalid_normalized_row', 'Normalized selling-unit quantity relation is invalid.');
     }
-    if (sourceType !== 'article-master' && (typeof row.order_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.order_date))) {
+    if (sourceType !== 'article-master' && (typeof row.delivery_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.delivery_date))) {
       validationError('invalid_normalized_row', 'Normalized row contains an invalid date.');
     }
-    if (sourceType === 'article-master' && row.order_date !== undefined && row.order_date !== null &&
-      (typeof row.order_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.order_date))) {
+    if (sourceType === 'article-master' && row.delivery_date !== undefined && row.delivery_date !== null &&
+      (typeof row.delivery_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.delivery_date))) {
       validationError('invalid_normalized_row', 'Normalized article-master date must be valid when present.');
     }
     if (row.custom_fields !== undefined) {
@@ -756,7 +766,7 @@
       validationError('invalid_workspace', 'Workspace must be an object.');
     }
     const schemaVersion = Number(workspace.schemaVersion);
-    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5 || schemaVersion === 6 || schemaVersion === 7) {
+    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5 || schemaVersion === 6 || schemaVersion === 7 || schemaVersion === 8) {
       const migrated = cloneValue(workspace, options);
       const migrationTarget = options && options.clonePayload === false ? Object.assign({}, migrated) : migrated;
       if (schemaVersion === 0) {
@@ -794,6 +804,52 @@
       }
       if (schemaVersion <= 7 || !Array.isArray(migrationTarget.articleRegistry)) {
         migrationTarget.articleRegistry = [];
+      }
+      if (schemaVersion <= 8) {
+        function renameDateMapping(mapping) {
+          if (!isPlainObject(mapping)) return mapping;
+          if (mapping.delivery_date === undefined && mapping.order_date !== undefined) {
+            mapping.delivery_date = mapping.order_date;
+          }
+          delete mapping.order_date;
+          return mapping;
+        }
+        migrationTarget.files = Array.isArray(migrationTarget.files) ? migrationTarget.files.map(function (file) {
+          const migratedFile = isPlainObject(file) ? file : {};
+          renameDateMapping(migratedFile.mapping);
+          renameDateMapping(migratedFile.confirmedMapping);
+          if (isPlainObject(migratedFile.result)) {
+            renameDateMapping(migratedFile.result.mapping);
+            migratedFile.result.rows = Array.isArray(migratedFile.result.rows) ? migratedFile.result.rows.map(function (row) {
+              if (!isPlainObject(row)) return row;
+              if (row.delivery_date === undefined && row.order_date !== undefined) {
+                row.delivery_date = row.order_date;
+              }
+              delete row.order_date;
+              return row;
+            }) : [];
+            migratedFile.result.issues = Array.isArray(migratedFile.result.issues) ? migratedFile.result.issues.map(function (issue) {
+              if (!isPlainObject(issue)) return issue;
+              if (issue.field === 'order_date') issue.field = 'delivery_date';
+              if (issue.deliveryDate === undefined && issue.orderDate !== undefined) {
+                issue.deliveryDate = issue.orderDate;
+              }
+              delete issue.orderDate;
+              return issue;
+            }) : [];
+          }
+          return migratedFile;
+        }) : [];
+        migrationTarget.articleRegistry = Array.isArray(migrationTarget.articleRegistry) ? migrationTarget.articleRegistry.map(function (entry) {
+          if (!isPlainObject(entry)) return entry;
+          (entry.value_provenance || []).forEach(function (provenance) {
+            if (provenance && provenance.field === 'order_date') provenance.field = 'delivery_date';
+          });
+          (entry.value_conflicts || []).forEach(function (conflict) {
+            if (conflict && conflict.field === 'order_date') conflict.field = 'delivery_date';
+          });
+          return entry;
+        }) : [];
       }
       migrationTarget.schemaVersion = WORKSPACE_SCHEMA_VERSION;
       migrationTarget.periodSettings = normalizePeriodSettings(migrationTarget.periodSettings);

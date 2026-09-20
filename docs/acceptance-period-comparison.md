@@ -14,8 +14,8 @@ Use synthetic or approved non-sensitive CSV files. Do not attach operational exp
 ## Import and mapping
 
 - [ ] Required fields and optional fields are visually distinct.
-- [ ] `Colli` or `VKU` maps to Selling units / Colli.
-- [ ] `Menge pro VKU` maps to Quantity per selling unit.
+- [ ] Legacy `Colli` or `VKU` headers map to Selling units / cases.
+- [ ] Legacy `Menge pro VKU` maps to Quantity per selling unit.
 - [ ] `Colli = 0` remains valid and represents a pure partial sale or remainder.
 - [ ] Invalid negative, malformed, zero-content, or over-precision optional unit values remain traceable as advisory notes and do not exclude otherwise valid rows.
 - [ ] Quantity remains unchanged and included when the optional unit product is smaller; the difference is shown as a partial sale, not a data-quality error.

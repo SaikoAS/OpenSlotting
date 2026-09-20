@@ -18,17 +18,38 @@
   const COLUMN_PROFILE_VALUE_LIMIT = 256;
 
   const FIELD_DEFINITIONS = Object.freeze([
-    { key: 'order_id', label: 'Order ID', labels: { en: 'Order ID', de: 'Auftrags-ID' }, required: true },
-    { key: 'article_id', label: 'Article ID', labels: { en: 'Article ID', de: 'Artikel-ID' }, required: true },
-    { key: 'article_name', label: 'Article description', labels: { en: 'Article description', de: 'Artikelbezeichnung' }, required: false },
-    { key: 'quantity', label: 'Quantity', labels: { en: 'Quantity', de: 'Menge' }, required: true },
-    { key: 'order_date', label: 'Order date', labels: { en: 'Order date', de: 'Auftragsdatum' }, required: true },
-    { key: 'customer_id', label: 'Customer ID', labels: { en: 'Customer ID', de: 'Kunden-ID' }, required: false },
-    { key: 'sales_value', label: 'Sales value', labels: { en: 'Sales value', de: 'Umsatz' }, required: false },
-    { key: 'location', label: 'Location', labels: { en: 'Location', de: 'Stellplatz' }, required: false },
-    { key: 'sales_unit_count', label: 'Selling units / Colli', labels: { en: 'Selling units / Colli', de: 'Verkaufseinheiten / VKU / Colli' }, required: false },
-    { key: 'quantity_per_sales_unit', label: 'Quantity per selling unit', labels: { en: 'Quantity per selling unit', de: 'Menge pro VKU' }, required: false }
+    { key: 'order_id', dataType: 'text', label: 'Order ID', labels: { en: 'Order ID', de: 'Auftrags-ID' }, sourceTypes: ['order-lines'], requiredFor: [], group: 'order', capabilities: { 'order-lines': 'movement.order_identity' } },
+    { key: 'article_id', dataType: 'text', label: 'Article ID / SKU', labels: { en: 'Article ID / SKU', de: 'Artikel-ID / SKU' }, sourceTypes: ['order-lines', 'article-master'], requiredFor: ['order-lines', 'article-master'], group: 'core', capabilities: { 'order-lines': 'movement.article_identity', 'article-master': 'article.identity' } },
+    { key: 'article_name', dataType: 'text', label: 'Article description', labels: { en: 'Article description', de: 'Artikelbezeichnung' }, sourceTypes: ['order-lines', 'article-master'], requiredFor: [], group: 'article', capabilities: { 'order-lines': 'article.description', 'article-master': 'article.description' } },
+    { key: 'quantity', dataType: 'scaled-quantity', label: 'Quantity', labels: { en: 'Quantity', de: 'Menge' }, sourceTypes: ['order-lines'], requiredFor: ['order-lines'], group: 'core', capabilities: { 'order-lines': 'movement.quantity' } },
+    { key: 'delivery_date', dataType: 'date', label: 'Delivery date', labels: { en: 'Delivery date', de: 'Lieferdatum' }, sourceTypes: ['order-lines'], requiredFor: ['order-lines'], group: 'core', capabilities: { 'order-lines': 'movement.delivery_date' } },
+    { key: 'customer_id', dataType: 'text', label: 'Customer ID', labels: { en: 'Customer ID', de: 'Kunden-ID' }, sourceTypes: ['order-lines'], requiredFor: [], group: 'customer', capabilities: { 'order-lines': 'movement.customer_identity' } },
+    { key: 'customer_name', dataType: 'text', label: 'Customer name', labels: { en: 'Customer name', de: 'Kundenname' }, sourceTypes: ['order-lines'], requiredFor: [], group: 'customer', capabilities: { 'order-lines': 'movement.customer_name' } },
+    { key: 'sales_value_net', dataType: 'decimal', label: 'Sales value excl. VAT', labels: { en: 'Sales value excl. VAT', de: 'Verkaufswert ohne Mehrwertsteuer' }, sourceTypes: ['order-lines'], requiredFor: [], group: 'sales', capabilities: { 'order-lines': 'movement.sales_value_net' } },
+    { key: 'sales_value_gross', dataType: 'decimal', label: 'Sales value incl. VAT', labels: { en: 'Sales value incl. VAT', de: 'Verkaufswert mit Mehrwertsteuer' }, sourceTypes: ['order-lines'], requiredFor: [], group: 'sales', capabilities: { 'order-lines': 'movement.sales_value_gross' } },
+    { key: 'unit_price_net', dataType: 'decimal', label: 'Unit price excl. VAT', labels: { en: 'Unit price excl. VAT', de: 'Verkaufspreis ohne Mehrwertsteuer' }, sourceTypes: ['order-lines'], requiredFor: [], group: 'sales', capabilities: { 'order-lines': 'movement.unit_price_net' } },
+    { key: 'unit_price_gross', dataType: 'decimal', label: 'Unit price incl. VAT', labels: { en: 'Unit price incl. VAT', de: 'Verkaufspreis mit Mehrwertsteuer' }, sourceTypes: ['order-lines'], requiredFor: [], group: 'sales', capabilities: { 'order-lines': 'movement.unit_price_gross' } },
+    { key: 'sales_value', dataType: 'decimal', label: 'Legacy sales value (unclassified)', labels: { en: 'Legacy sales value (unclassified)', de: 'Bisheriger Verkaufswert (nicht klassifiziert)' }, sourceTypes: ['order-lines'], requiredFor: [], group: 'sales', legacy: true, capabilities: { 'order-lines': 'movement.legacy_sales_value' } },
+    { key: 'location', dataType: 'text', label: 'Location', labels: { en: 'Location', de: 'Stellplatz' }, sourceTypes: ['order-lines', 'article-master'], requiredFor: [], group: 'location', capabilities: { 'order-lines': 'movement.location', 'article-master': 'article.current_location' } },
+    { key: 'sales_unit_count', dataType: 'scaled-quantity', label: 'Selling units / cases', labels: { en: 'Selling units / cases', de: 'Anzahl Verkaufseinheiten / Colli' }, sourceTypes: ['order-lines'], requiredFor: [], group: 'selling-unit', capabilities: { 'order-lines': 'movement.sales_units' } },
+    { key: 'quantity_per_sales_unit', dataType: 'scaled-quantity', label: 'Quantity per selling unit', labels: { en: 'Quantity per selling unit', de: 'Menge je Verkaufseinheit' }, sourceTypes: ['order-lines', 'article-master'], requiredFor: [], group: 'selling-unit', capabilities: { 'order-lines': 'movement.quantity_per_sales_unit', 'article-master': 'article.quantity_per_sales_unit' } },
+    { key: 'unit_of_measure', dataType: 'text', label: 'Unit of measure', labels: { en: 'Unit of measure', de: 'Mengeneinheit' }, sourceTypes: ['article-master'], requiredFor: [], group: 'article', capabilities: { 'article-master': 'article.unit_of_measure' } },
+    { key: 'vat_rate', dataType: 'decimal', label: 'VAT rate', labels: { en: 'VAT rate', de: 'Mehrwertsteuersatz' }, sourceTypes: ['article-master'], requiredFor: [], group: 'article', capabilities: { 'article-master': 'article.vat_rate' } }
   ]);
+
+  const FEATURE_REQUIREMENTS = Object.freeze({
+    periodComparison: Object.freeze({
+      requires: Object.freeze(['movement.article_identity', 'movement.quantity', 'movement.delivery_date']),
+      components: Object.freeze({
+        distinctOrders: Object.freeze({ requires: Object.freeze(['movement.order_identity']) }),
+        customers: Object.freeze({ requires: Object.freeze(['movement.customer_identity']) }),
+        netSales: Object.freeze({ requires: Object.freeze(['movement.sales_value_net']) }),
+        grossSales: Object.freeze({ requires: Object.freeze(['movement.sales_value_gross']) }),
+        netUnitPrice: Object.freeze({ requires: Object.freeze(['movement.unit_price_net']) }),
+        grossUnitPrice: Object.freeze({ requires: Object.freeze(['movement.unit_price_gross']) })
+      })
+    })
+  });
 
   const MESSAGES = Object.freeze({
     en: {
@@ -40,13 +61,27 @@
       requiredValue: 'A required value for “{{label}}” is missing.',
       positiveQuantity: 'Quantity must be a positive number.',
       quantityPrecision: 'Quantity supports at most {{digits}} decimal places.',
-      salesPrecision: 'Sales value supports at most {{digits}} decimal places.',
+      salesPrecision: 'Monetary values support at most {{digits}} decimal places.',
       salesUnitPrecision: 'Selling units support at most {{digits}} decimal places.',
       quantityPerSalesUnitPrecision: 'Quantity per selling unit supports at most {{digits}} decimal places.',
       nonNegativeSalesUnitCount: 'Selling units must be zero or a positive number. The optional value is ignored for this row.',
       positiveQuantityPerSalesUnit: 'Quantity per selling unit must be a positive number.',
-      invalidDate: 'The order date is invalid.',
-      invalidNumber: 'The sales value must be a valid number.',
+      invalidDate: 'The delivery date is invalid.',
+      invalidNumber: 'The numeric value is invalid.',
+      invalidCustomValue: 'The value does not match the custom field type “{{type}}”.',
+      qualityMissingMasterId: 'Article master row has no article ID.',
+      qualityDuplicateMasterId: 'Article ID occurs more than once in article master data.',
+      qualityMasterConflict: 'Duplicate article master rows contain conflicting values.',
+      qualityDescriptionConflict: 'Article description differs between movement and article master data.',
+      qualityMovementWithoutMaster: 'Active article has no matching article master row.',
+      qualityMasterWithoutActivity: 'Article master row has no observed order-line activity.',
+      capabilityReady: 'All included order-line sources provide this capability.',
+      capabilityPartial: 'Only some included order-line sources provide this capability.',
+      capabilityBlocked: 'No included order-line source provides this capability.',
+      featureUnknown: 'The feature contract is unknown.',
+      featureReady: 'All required capabilities are available.',
+      featurePartial: 'Required capabilities are available for only part of the included sources.',
+      featureBlocked: 'At least one required capability is unavailable.',
       bareQuote: 'A quote in an unquoted field is not allowed.',
       unexpectedQuote: 'An unexpected character was found after a closing quote.',
       unterminatedQuote: 'A quote was not closed.',
@@ -62,13 +97,27 @@
       requiredValue: 'Erforderlicher Wert für „{{label}}“ fehlt.',
       positiveQuantity: 'Die Menge muss eine positive Zahl sein.',
       quantityPrecision: 'Die Menge darf höchstens {{digits}} Nachkommastellen haben.',
-      salesPrecision: 'Der Umsatz darf höchstens {{digits}} Nachkommastellen haben.',
+      salesPrecision: 'Geldwerte dürfen höchstens {{digits}} Nachkommastellen haben.',
       salesUnitPrecision: 'Verkaufseinheiten dürfen höchstens {{digits}} Nachkommastellen haben.',
-      quantityPerSalesUnitPrecision: 'Die Menge pro VKU darf höchstens {{digits}} Nachkommastellen haben.',
+      quantityPerSalesUnitPrecision: 'Die Menge je Verkaufseinheit darf höchstens {{digits}} Nachkommastellen haben.',
       nonNegativeSalesUnitCount: 'Die Anzahl Verkaufseinheiten muss null oder eine positive Zahl sein. Der optionale Wert wird für diese Zeile ignoriert.',
-      positiveQuantityPerSalesUnit: 'Die Menge pro VKU muss eine positive Zahl sein. Der optionale Wert wird für diese Zeile ignoriert.',
-      invalidDate: 'Das Auftragsdatum ist ungültig.',
-      invalidNumber: 'Der Umsatz muss eine gültige Zahl sein.',
+      positiveQuantityPerSalesUnit: 'Die Menge je Verkaufseinheit muss eine positive Zahl sein. Der optionale Wert wird für diese Zeile ignoriert.',
+      invalidDate: 'Das Lieferdatum ist ungültig.',
+      invalidNumber: 'Der Zahlenwert ist ungültig.',
+      invalidCustomValue: 'Der Wert entspricht nicht dem Typ „{{type}}“ des benutzerdefinierten Feldes.',
+      qualityMissingMasterId: 'Der Artikelstammsatz enthält keine Artikel-ID.',
+      qualityDuplicateMasterId: 'Die Artikel-ID kommt mehrfach in den Artikelstammdaten vor.',
+      qualityMasterConflict: 'Doppelte Artikelstammsätze enthalten widersprüchliche Werte.',
+      qualityDescriptionConflict: 'Die Artikelbezeichnung unterscheidet sich zwischen Bewegungs- und Artikelstammdaten.',
+      qualityMovementWithoutMaster: 'Für den aktiven Artikel existiert kein passender Artikelstammsatz.',
+      qualityMasterWithoutActivity: 'Für den Artikelstammsatz wurde keine Auftragszeilenaktivität beobachtet.',
+      capabilityReady: 'Alle einbezogenen Auftragszeilenquellen stellen diese Fähigkeit bereit.',
+      capabilityPartial: 'Nur ein Teil der einbezogenen Auftragszeilenquellen stellt diese Fähigkeit bereit.',
+      capabilityBlocked: 'Keine einbezogene Auftragszeilenquelle stellt diese Fähigkeit bereit.',
+      featureUnknown: 'Der Funktionsvertrag ist unbekannt.',
+      featureReady: 'Alle erforderlichen Fähigkeiten sind verfügbar.',
+      featurePartial: 'Erforderliche Fähigkeiten sind nur für einen Teil der einbezogenen Quellen verfügbar.',
+      featureBlocked: 'Mindestens eine erforderliche Fähigkeit ist nicht verfügbar.',
       bareQuote: 'Ein Anführungszeichen in einem unquotierten Feld ist nicht zulässig.',
       unexpectedQuote: 'Nach einem geschlossenen Anführungszeichen wurde ein unerwartetes Zeichen gefunden.',
       unterminatedQuote: 'Ein Anführungszeichen wurde nicht geschlossen.',
@@ -88,12 +137,19 @@
     article_id: ['article_id', 'article id', 'sku', 'material', 'artnr', 'artikelnummer', 'artikelnr', 'materialnr', 'materialnummer', 'produktnr', 'produktnummer', 'skunr'],
     article_name: ['article_name', 'article name', 'article description', 'description', 'product name', 'artikelbezeichnung', 'bezeichnung', 'artikeltext', 'kurztext', 'artikelname', 'produktbezeichnung', 'materialbezeichnung', 'warenbezeichnung', 'produkttext', 'langtext'],
     quantity: ['quantity', 'qty', 'menge', 'anzahl', 'stück', 'stueck', 'gmenge', 'gesamtmenge', 'mengegesamt', 'auftragsmenge', 'kommissioniermenge', 'pickmenge', 'entnahmemenge'],
-    order_date: ['order_date', 'order date', 'date', 'datum', 'bestelldatum', 'lfdat', 'lieferdatum'],
+    delivery_date: ['delivery_date', 'delivery date', 'order_date', 'order date', 'date', 'datum', 'bestelldatum', 'lfdat', 'lieferdatum'],
     customer_id: ['customer_id', 'customer id', 'customer', 'kdnr', 'kundennummer', 'kundenid', 'debitor', 'debitornr', 'debitorennr'],
-    sales_value: ['sales_value', 'sales value', 'sales', 'revenue', 'umsatz', 'wert', 'vkwert', 'verkaufswert', 'umsatzwert', 'positionswert', 'nettowert', 'positionsnettowert'],
+    customer_name: ['customer_name', 'customer name', 'kundenname', 'kundenbezeichnung', 'debitorenname'],
+    sales_value_net: ['sales_value_net', 'sales value net', 'net sales value', 'net revenue', 'nettowert', 'positionsnettowert', 'verkaufswert netto', 'umsatz netto'],
+    sales_value_gross: ['sales_value_gross', 'sales value gross', 'gross sales value', 'gross revenue', 'bruttowert', 'positionsbruttowert', 'verkaufswert brutto', 'umsatz brutto'],
+    unit_price_net: ['unit_price_net', 'unit price net', 'net unit price', 'net price', 'verkaufspreis netto', 'einzelpreis netto'],
+    unit_price_gross: ['unit_price_gross', 'unit price gross', 'gross unit price', 'gross price', 'verkaufspreis brutto', 'einzelpreis brutto'],
+    sales_value: ['sales_value', 'sales value', 'sales', 'revenue', 'umsatz', 'wert', 'vkwert', 'verkaufswert', 'umsatzwert', 'positionswert'],
     location: ['location', 'storage location', 'stellplatz', 'lagerplatz', 'lgpl', 'lagerfach', 'lagerfachnr', 'kommissionierplatz', 'pickplatz', 'entnahmeplatz'],
     sales_unit_count: ['sales_unit_count', 'sales unit count', 'sales units', 'selling units', 'verkaufseinheit', 'verkaufseinheiten', 'vku', 'colli'],
-    quantity_per_sales_unit: ['quantity_per_sales_unit', 'quantity per sales unit', 'quantity per selling unit', 'menge pro vku', 'menge je vku', 'inhalt', 'inh']
+    quantity_per_sales_unit: ['quantity_per_sales_unit', 'quantity per sales unit', 'quantity per selling unit', 'menge pro vku', 'menge je vku', 'menge je verkaufseinheit', 'inhalt', 'inh'],
+    unit_of_measure: ['unit_of_measure', 'unit of measure', 'uom', 'mengeneinheit', 'einheit', 'meins'],
+    vat_rate: ['vat_rate', 'vat rate', 'tax rate', 'mwst', 'mehrwertsteuer', 'mehrwertsteuersatz', 'steuersatz']
   });
 
   function isBlank(value) {
@@ -119,6 +175,31 @@
       return fieldKey || '';
     }
     return definition.labels[normalizeLocale(locale)] || definition.label;
+  }
+
+  function normalizeFieldSourceType(sourceType) {
+    return sourceType === 'article-master' ? 'article-master' : 'order-lines';
+  }
+
+  function fieldAppliesToSource(definition, sourceType) {
+    return Boolean(definition && Array.isArray(definition.sourceTypes) &&
+      definition.sourceTypes.indexOf(normalizeFieldSourceType(sourceType)) >= 0);
+  }
+
+  function fieldRequiredForSource(definition, sourceType) {
+    return Boolean(definition && Array.isArray(definition.requiredFor) &&
+      definition.requiredFor.indexOf(normalizeFieldSourceType(sourceType)) >= 0);
+  }
+
+  function getFieldDefinitionsForSource(sourceType, options) {
+    const settings = options || {};
+    const mapping = settings.mapping || {};
+    return FIELD_DEFINITIONS.filter(function (definition) {
+      if (!fieldAppliesToSource(definition, sourceType)) {
+        return false;
+      }
+      return !definition.legacy || settings.includeLegacy === true || Number.isInteger(mapping[definition.key]);
+    });
   }
 
   function normalizeHeader(value) {
@@ -617,12 +698,12 @@
     return parser.finish();
   }
 
-  function detectMapping(headers) {
+  function detectMapping(headers, sourceType) {
     const normalizedHeaders = headers.map(normalizeHeader);
     const usedIndexes = new Set();
     const mapping = {};
 
-    FIELD_DEFINITIONS.forEach(function (definition) {
+    getFieldDefinitionsForSource(sourceType, { includeLegacy: true }).forEach(function (definition) {
       const aliases = new Set((FIELD_ALIASES[definition.key] || []).map(normalizeHeader));
       let foundIndex = null;
       normalizedHeaders.some(function (header, index) {
@@ -671,7 +752,10 @@
     const sourceProfiles = Array.isArray(profiles) ? profiles : [];
     const used = new Set();
     const suggestions = {};
-    FIELD_DEFINITIONS.forEach(function (definition) {
+    getFieldDefinitionsForSource(options && options.sourceType, {
+      mapping: options && options.mapping,
+      includeLegacy: Boolean(options && options.includeLegacy)
+    }).forEach(function (definition) {
       const rawAliases = FIELD_ALIASES[definition.key] || [];
       const aliases = rawAliases.map(normalizeHeader);
       const candidates = values.map(function (header, position) {
@@ -693,13 +777,13 @@
         const total = Number(profile.nonEmptyCount || 0);
         if (total > 0) {
           const ratio = function (count) { return Number(count || 0) / total; };
-          if (definition.key === 'order_date' && ratio(profile.dateCompatibleCount) >= 0.8) {
+          if (definition.key === 'delivery_date' && ratio(profile.dateCompatibleCount) >= 0.8) {
             score += exactAlias ? 0 : 18;
             reasons.push('date_compatible');
-          } else if (['quantity', 'sales_value', 'sales_unit_count', 'quantity_per_sales_unit'].indexOf(definition.key) >= 0 && ratio(profile.numericCompatibleCount) >= 0.8) {
+          } else if (['quantity', 'sales_value', 'sales_value_net', 'sales_value_gross', 'unit_price_net', 'unit_price_gross', 'sales_unit_count', 'quantity_per_sales_unit', 'vat_rate'].indexOf(definition.key) >= 0 && ratio(profile.numericCompatibleCount) >= 0.8) {
             score += exactAlias ? 0 : 18;
             reasons.push('number_compatible');
-          } else if (['order_id', 'article_id', 'article_name', 'customer_id', 'location'].indexOf(definition.key) >= 0 && ratio(profile.textCompatibleCount) >= 0.8) {
+          } else if (['order_id', 'article_id', 'article_name', 'customer_id', 'customer_name', 'location', 'unit_of_measure'].indexOf(definition.key) >= 0 && ratio(profile.textCompatibleCount) >= 0.8) {
             score += exactAlias ? 0 : 8;
             reasons.push('text_compatible');
           }
@@ -731,13 +815,11 @@
   }
 
   function validateMapping(mapping, locale, sourceType) {
-    const normalizedSourceType = sourceType === 'article-master' ? 'article-master' : 'order-lines';
-    const issues = FIELD_DEFINITIONS
+    const normalizedSourceType = normalizeFieldSourceType(sourceType);
+    const applicableDefinitions = getFieldDefinitionsForSource(normalizedSourceType, { mapping: mapping, includeLegacy: true });
+    const issues = applicableDefinitions
       .filter(function (definition) {
-        const required = normalizedSourceType === 'article-master'
-          ? definition.key === 'article_id'
-          : definition.required;
-        return required && !Number.isInteger(mapping[definition.key]);
+        return fieldRequiredForSource(definition, normalizedSourceType) && !Number.isInteger(mapping[definition.key]);
       })
       .map(function (definition) {
         return {
@@ -749,7 +831,7 @@
       });
 
     const mappedFields = new Map();
-    FIELD_DEFINITIONS.forEach(function (definition) {
+    applicableDefinitions.forEach(function (definition) {
       const sourceIndex = mapping[definition.key];
       if (!Number.isInteger(sourceIndex)) {
         return;
@@ -970,8 +1052,8 @@
     return sellingUnitQuantity < totalQuantity ? 'partial' : 'exceeds';
   }
 
-  function mappedOrderDate(values, mapping) {
-    const sourceIndex = mapping && mapping.order_date;
+  function mappedDeliveryDate(values, mapping) {
+    const sourceIndex = mapping && mapping.delivery_date;
     if (!Number.isInteger(sourceIndex) || !Array.isArray(values) || values[sourceIndex] === undefined) {
       return null;
     }
@@ -1002,7 +1084,7 @@
       return value || null;
     }
 
-    const orderId = sourceType === 'article-master' ? rawValue('order_id') || null : requiredText('order_id', 'Auftrags-ID');
+    const orderId = rawValue('order_id') || null;
     const articleId = requiredText('article_id', 'Artikel-ID');
     const articleNameRaw = rawValue('article_name');
     const quantityRaw = rawValue('quantity');
@@ -1034,20 +1116,20 @@
       });
     }
 
-    const dateRaw = rawValue('order_date');
-    const orderDate = normalizeDate(dateRaw);
+    const dateRaw = rawValue('delivery_date');
+    const deliveryDate = normalizeDate(dateRaw);
     if (sourceType !== 'article-master' && !dateRaw) {
       issues.push({
         sourceLine: record.sourceLine,
-        field: 'order_date',
+        field: 'delivery_date',
         code: 'required_value_missing',
         rawValue: dateRaw,
-        message: message(locale, 'requiredValue', { label: getFieldLabel('order_date', locale) })
+        message: message(locale, 'requiredValue', { label: getFieldLabel('delivery_date', locale) })
       });
-    } else if (dateRaw && orderDate === null) {
+    } else if (dateRaw && deliveryDate === null) {
       issues.push({
         sourceLine: record.sourceLine,
-        field: 'order_date',
+        field: 'delivery_date',
         code: 'invalid_date',
         rawValue: dateRaw,
         message: message(locale, 'invalidDate')
@@ -1055,28 +1137,55 @@
     }
 
     const customerIdRaw = rawValue('customer_id');
-    const salesValueRaw = rawValue('sales_value');
+    const customerNameRaw = rawValue('customer_name');
     const locationRaw = rawValue('location');
+    const unitOfMeasureRaw = rawValue('unit_of_measure');
+    const vatRateRaw = rawValue('vat_rate');
     const salesUnitCountRaw = rawValue('sales_unit_count');
     const quantityPerSalesUnitRaw = rawValue('quantity_per_sales_unit');
-    const salesValueResult = parseExactNumber(salesValueRaw, SALES_DECIMAL_PLACES);
-    const salesValue = salesValueResult && !salesValueResult.precisionExceeded ? salesValueResult.number : null;
-    if (salesValueRaw && salesValueResult === null) {
-      issues.push({
+
+    function monetaryValue(field) {
+      const raw = rawValue(field);
+      const parsed = parseExactNumber(raw, SALES_DECIMAL_PLACES);
+      if (raw && parsed === null) {
+        issues.push({
+          sourceLine: record.sourceLine,
+          field: field,
+          code: 'invalid_number',
+          rawValue: raw,
+          message: message(locale, 'invalidNumber')
+        });
+      } else if (raw && parsed.precisionExceeded) {
+        issues.push({
+          sourceLine: record.sourceLine,
+          field: field,
+          code: 'sales_precision_exceeded',
+          rawValue: raw,
+          message: message(locale, 'salesPrecision', { digits: SALES_DECIMAL_PLACES })
+        });
+      }
+      return {
+        value: parsed && !parsed.precisionExceeded ? parsed.number : null,
+        exact: parsed && !parsed.precisionExceeded ? parsed.text : null
+      };
+    }
+
+    const legacySalesValue = monetaryValue('sales_value');
+    const salesValueNet = monetaryValue('sales_value_net');
+    const salesValueGross = monetaryValue('sales_value_gross');
+    const unitPriceNet = monetaryValue('unit_price_net');
+    const unitPriceGross = monetaryValue('unit_price_gross');
+
+    const vatRateResult = parseExactNumber(vatRateRaw, 4);
+    const vatRate = vatRateResult && !vatRateResult.precisionExceeded ? vatRateResult.number : null;
+    if (vatRateRaw && (vatRateResult === null || vatRateResult.precisionExceeded || vatRate < 0)) {
+      issues.push(advisoryIssue({
         sourceLine: record.sourceLine,
-        field: 'sales_value',
-        code: 'invalid_number',
-        rawValue: salesValueRaw,
+        field: 'vat_rate',
+        code: 'invalid_master_value',
+        rawValue: vatRateRaw,
         message: message(locale, 'invalidNumber')
-      });
-    } else if (salesValueRaw && salesValueResult.precisionExceeded) {
-      issues.push({
-        sourceLine: record.sourceLine,
-        field: 'sales_value',
-        code: 'sales_precision_exceeded',
-        rawValue: salesValueRaw,
-        message: message(locale, 'salesPrecision', { digits: SALES_DECIMAL_PLACES })
-      });
+      }));
     }
 
     const salesUnitCountResult = parseQuantity(salesUnitCountRaw);
@@ -1128,18 +1237,33 @@
     const salesUnitQuantityRelation = sellingUnitQuantityRelation(salesUnitCount, quantityPerSalesUnit, quantity);
     const salesUnitQuantityMatches = salesUnitQuantityRelation === null ? null : salesUnitQuantityRelation === 'exact';
 
-    issues.forEach(function (issue) {
-      issue.orderDate = orderDate;
-    });
-
     const customValues = {};
     (Array.isArray(customFields) ? customFields : []).forEach(function (field) {
       if (field.active === false) return;
       const sourceIndex = customFieldMapping && customFieldMapping[field.id];
       if (Number.isInteger(sourceIndex)) {
         const value = String(values[sourceIndex] === undefined ? '' : values[sourceIndex]).trim();
-        if (value) customValues[field.id] = value;
+        if (value) {
+          customValues[field.id] = value;
+          const invalidNumber = field.type === 'number' && normalizeNumber(value) === null;
+          const invalidDate = field.type === 'date' && normalizeDate(value) === null;
+          if (invalidNumber || invalidDate) {
+            issues.push(advisoryIssue({
+              sourceLine: record.sourceLine,
+              field: 'custom:' + field.id,
+              customFieldId: field.id,
+              code: 'invalid_custom_field_value',
+              rawValue: value,
+              message: message(locale, 'invalidCustomValue', { type: field.type })
+            }));
+          }
+        }
       }
+    });
+
+    issues.forEach(function (issue) {
+      issue.deliveryDate = deliveryDate;
+      issue.articleId = articleId;
     });
 
     return {
@@ -1153,13 +1277,25 @@
         article_id: articleId,
         article_name: articleNameRaw || null,
         quantity: quantity,
-        order_date: orderDate,
+        delivery_date: deliveryDate,
         customer_id: customerIdRaw || null,
-        sales_value: salesValue,
-        sales_value_exact: salesValueResult ? salesValueResult.text : null,
+        customer_name: customerNameRaw || null,
+        sales_value: legacySalesValue.value,
+        sales_value_exact: legacySalesValue.exact,
+        sales_value_net: salesValueNet.value,
+        sales_value_net_exact: salesValueNet.exact,
+        sales_value_gross: salesValueGross.value,
+        sales_value_gross_exact: salesValueGross.exact,
+        unit_price_net: unitPriceNet.value,
+        unit_price_net_exact: unitPriceNet.exact,
+        unit_price_gross: unitPriceGross.value,
+        unit_price_gross_exact: unitPriceGross.exact,
         location: locationRaw || null,
         sales_unit_count: salesUnitCount,
         quantity_per_sales_unit: quantityPerSalesUnit,
+        unit_of_measure: unitOfMeasureRaw || null,
+        vat_rate: vatRate,
+        vat_rate_exact: vatRateResult && !vatRateResult.precisionExceeded && vatRate >= 0 ? vatRateResult.text : null,
         sales_unit_quantity_matches: salesUnitQuantityMatches,
         sales_unit_quantity_relation: salesUnitQuantityRelation,
         custom_fields: customValues
@@ -1207,7 +1343,7 @@
           columnCatalog = buildColumnCatalog(headers, sourceFile);
           columnProfileStates = createColumnProfileStates(headers.length);
           headerHasParserError = parserErrors.length > 0;
-          selectedMapping = selectedMapping || detectMapping(headers);
+          selectedMapping = selectedMapping || detectMapping(headers, sourceFile.sourceType);
           mappingIssues = validateMapping(selectedMapping, locale, sourceFile.sourceType).concat(validateCustomFieldMapping(customFieldMapping, customFields, locale, selectedMapping));
           return;
         }
@@ -1222,7 +1358,7 @@
             sourceLine: dataRow.sourceLine,
             field: null,
             code: 'column_count_mismatch',
-            orderDate: mappedOrderDate(dataRow.values, selectedMapping),
+            deliveryDate: mappedDeliveryDate(dataRow.values, selectedMapping),
             message: message(locale, 'columnCount', { actual: dataRow.values.length, expected: headers.length })
           });
           return;
@@ -1232,8 +1368,8 @@
         }
 
         const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping);
-        if (normalized.record.order_date) {
-          dateByLine.set(dataRow.sourceLine, normalized.record.order_date);
+        if (normalized.record.delivery_date) {
+          dateByLine.set(dataRow.sourceLine, normalized.record.delivery_date);
         }
         if (rowHasParserError) {
           invalidLines.add(dataRow.sourceLine);
@@ -1254,7 +1390,7 @@
         sourceLine: error.sourceLine,
         field: null,
         code: error.code,
-        orderDate: dateByLine.get(error.sourceLine) || null,
+        deliveryDate: dateByLine.get(error.sourceLine) || null,
         message: parserErrorMessage(error, locale)
       };
     });
@@ -1329,7 +1465,7 @@
         sourceLine: error.sourceLine,
         field: null,
         code: error.code,
-        orderDate: null,
+        deliveryDate: null,
         message: parserErrorMessage(error, locale)
       };
     });
@@ -1374,7 +1510,7 @@
         blocking: true
       };
     }
-    const selectedMapping = mapping || detectMapping(headers);
+    const selectedMapping = mapping || detectMapping(headers, sourceFile.sourceType);
     const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
     const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
     const mappingIssues = validateMapping(selectedMapping, locale, sourceFile.sourceType).concat(validateCustomFieldMapping(customFieldMapping, customFields, locale, selectedMapping));
@@ -1408,15 +1544,15 @@
           sourceLine: dataRow.sourceLine,
           field: null,
           code: 'column_count_mismatch',
-          orderDate: mappedOrderDate(dataRow.values, selectedMapping),
+          deliveryDate: mappedDeliveryDate(dataRow.values, selectedMapping),
           message: message(locale, 'columnCount', { actual: dataRow.values.length, expected: headers.length })
         });
         return;
       }
 
       const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping);
-      if (normalized.record.order_date) {
-        dateByLine.set(dataRow.sourceLine, normalized.record.order_date);
+      if (normalized.record.delivery_date) {
+        dateByLine.set(dataRow.sourceLine, normalized.record.delivery_date);
       }
       const rowIssues = normalized.issues;
       if (parserErrorLines.has(dataRow.sourceLine)) {
@@ -1434,7 +1570,7 @@
     });
 
     parserIssues.forEach(function (issue) {
-      issue.orderDate = dateByLine.get(issue.sourceLine) || null;
+      issue.deliveryDate = dateByLine.get(issue.sourceLine) || null;
     });
 
     return {
@@ -1668,8 +1804,16 @@
     const descriptionVariants = article && Array.isArray(article.article_name_variants)
       ? article.article_name_variants
       : [];
+    const masterValues = article && article.master_data ? Object.keys(article.master_data).map(function (key) {
+      return article.master_data[key];
+    }) : [];
+    const customValues = article && article.master_custom_fields ? Object.keys(article.master_custom_fields).map(function (key) {
+      return article.master_custom_fields[key];
+    }) : [];
     return [article && article.article_id, article && article.article_name]
       .concat(descriptionVariants)
+      .concat(masterValues)
+      .concat(customValues)
       .map(function (value) {
         return String(value === undefined || value === null ? '' : value)
           .toLocaleLowerCase(languageTag);
@@ -1751,14 +1895,14 @@
       if (row.source_type === 'article-master') {
         return;
       }
-      if (!row.order_date) {
+      if (!row.delivery_date) {
         return;
       }
-      if (start === null || row.order_date < start) {
-        start = row.order_date;
+      if (start === null || row.delivery_date < start) {
+        start = row.delivery_date;
       }
-      if (end === null || row.order_date > end) {
-        end = row.order_date;
+      if (end === null || row.delivery_date > end) {
+        end = row.delivery_date;
       }
     });
     return { start: start, end: end };
@@ -1831,7 +1975,7 @@
 
   function buildArticleRegistry(rows, options) {
     const registry = new Map();
-    const fixedMasterFields = ['article_name', 'location', 'sales_unit_count', 'quantity_per_sales_unit'];
+    const fixedMasterFields = ['article_name', 'location', 'quantity_per_sales_unit', 'unit_of_measure', 'vat_rate'];
     const activeCustomFieldIds = options && Array.isArray(options.activeCustomFieldIds)
       ? new Set(options.activeCustomFieldIds.map(function (fieldId) { return String(fieldId); }))
       : null;
@@ -1914,6 +2058,7 @@
           master_source_files: [],
           movement_source_file_ids: [],
           movement_source_files: [],
+          movement_article_names: [],
           master_row_refs: [],
           value_provenance: [],
           value_conflicts: []
@@ -1940,6 +2085,7 @@
         if (entry.article_name === null && row.article_name) {
           entry.article_name = row.article_name;
         }
+        addUnique(entry.movement_article_names, row.article_name);
       }
       const customFields = row.custom_fields && typeof row.custom_fields === 'object' ? row.custom_fields : {};
       Object.keys(customFields).filter(function (fieldId) {
@@ -1962,6 +2108,242 @@
       .sort(function (left, right) {
         return left.article_id < right.article_id ? -1 : (left.article_id > right.article_id ? 1 : 0);
       });
+  }
+
+  function buildCapabilityReadiness(files, locale) {
+    const evidence = {};
+    const relevantFiles = (files || []).filter(function (file) {
+      return file && file.sourceType === 'order-lines' && file.result && !file.result.blocking;
+    });
+
+    FIELD_DEFINITIONS.forEach(function (definition) {
+      const capability = definition.capabilities && definition.capabilities['order-lines'];
+      if (!capability || definition.legacy) return;
+      function usableValue(row) {
+        const value = row && row[definition.key];
+        return value !== null && value !== undefined && value !== '';
+      }
+      const mappedFiles = relevantFiles.filter(function (file) {
+        const mapping = file.result && file.result.mapping ? file.result.mapping : file.mapping;
+        return mapping && Number.isInteger(mapping[definition.key]) &&
+          Array.isArray(file.result.rows) && file.result.rows.some(usableValue);
+      });
+      const totalRows = relevantFiles.reduce(function (count, file) {
+        return count + (Array.isArray(file.result.rows) ? file.result.rows.length : 0);
+      }, 0);
+      const providedRows = relevantFiles.reduce(function (count, file) {
+        const mapping = file.result && file.result.mapping ? file.result.mapping : file.mapping;
+        if (!mapping || !Number.isInteger(mapping[definition.key]) || !Array.isArray(file.result.rows)) return count;
+        return count + file.result.rows.filter(usableValue).length;
+      }, 0);
+      const status = relevantFiles.length === 0 || mappedFiles.length === 0 || providedRows === 0
+        ? 'blocked'
+        : (mappedFiles.length === relevantFiles.length && providedRows === totalRows ? 'ready' : 'partial');
+      evidence[capability] = {
+        capability: capability,
+        field: definition.key,
+        status: status,
+        mappedSources: mappedFiles.length,
+        totalSources: relevantFiles.length,
+        providedRows: providedRows,
+        totalRows: totalRows,
+        mappedSourceIds: mappedFiles.map(function (file) { return String(file.id); }),
+        missingSourceIds: relevantFiles.filter(function (file) {
+          return mappedFiles.indexOf(file) < 0;
+        }).map(function (file) { return String(file.id); }),
+        reason: message(locale, status === 'ready' ? 'capabilityReady' : (status === 'partial' ? 'capabilityPartial' : 'capabilityBlocked'))
+      };
+    });
+    return evidence;
+  }
+
+  function evaluateFeatureReadiness(capabilities, featureName, locale) {
+    const contract = FEATURE_REQUIREMENTS[featureName];
+    if (!contract) {
+      return { feature: featureName, status: 'blocked', reason: message(locale, 'featureUnknown'), required: [], components: {} };
+    }
+
+    function evaluate(requirements) {
+      const items = requirements.map(function (capability) {
+        return capabilities[capability] || {
+          capability: capability,
+          status: 'blocked',
+          mappedSources: 0,
+          totalSources: 0,
+          missingSourceIds: [],
+          reason: message(locale, 'capabilityBlocked')
+        };
+      });
+      const blocked = items.some(function (item) { return item.status === 'blocked'; });
+      const partial = items.some(function (item) { return item.status === 'partial'; });
+      const status = blocked ? 'blocked' : (partial ? 'partial' : 'ready');
+      return {
+        status: status,
+        capabilities: items,
+        reason: message(locale, status === 'ready' ? 'featureReady' : (status === 'partial' ? 'featurePartial' : 'featureBlocked'))
+      };
+    }
+
+    const required = evaluate(contract.requires);
+    const components = {};
+    Object.keys(contract.components || {}).forEach(function (componentName) {
+      components[componentName] = evaluate(contract.components[componentName].requires);
+    });
+    return {
+      feature: featureName,
+      status: required.status,
+      reason: required.reason,
+      required: required.capabilities,
+      components: components
+    };
+  }
+
+  function enrichAnalysisWithRegistry(analysis, registry, options) {
+    const result = Object.assign({}, analysis || {});
+    const byId = new Map((registry || []).map(function (entry) { return [entry.article_id, entry]; }));
+    const movementArticles = Array.isArray(result.articles) ? result.articles : [];
+    const enriched = movementArticles.map(function (article) {
+      const registryEntry = byId.get(article.article_id);
+      byId.delete(article.article_id);
+      if (!registryEntry) {
+        return Object.assign({}, article, {
+          movement_status: 'movement-only',
+          has_master_data: false,
+          master_data: {},
+          master_custom_fields: {},
+          master_value_conflicts: [],
+          master_row_refs: []
+        });
+      }
+      const masterData = Object.assign({}, registryEntry.master_data || {});
+      return Object.assign({}, article, {
+        movement_status: registryEntry.movement_status,
+        has_master_data: registryEntry.has_master_data,
+        movement_article_name: article.article_name,
+        article_name: masterData.article_name || article.article_name,
+        current_location: masterData.location || null,
+        current_quantity_per_sales_unit: masterData.quantity_per_sales_unit === undefined ? null : masterData.quantity_per_sales_unit,
+        unit_of_measure: masterData.unit_of_measure || null,
+        vat_rate: masterData.vat_rate === undefined ? null : masterData.vat_rate,
+        master_data: masterData,
+        master_custom_fields: Object.assign({}, registryEntry.custom_fields || {}),
+        master_value_conflicts: (registryEntry.value_conflicts || []).slice(),
+        master_row_refs: (registryEntry.master_row_refs || []).slice()
+      });
+    });
+
+    byId.forEach(function (registryEntry) {
+      if (!registryEntry.has_master_data) return;
+      const masterData = Object.assign({}, registryEntry.master_data || {});
+      enriched.push({
+        article_id: registryEntry.article_id,
+        article_name: masterData.article_name || registryEntry.article_name || null,
+        movement_article_name: null,
+        article_name_variants: [],
+        article_name_conflict: false,
+        movement_status: 'master-only',
+        has_master_data: true,
+        order_line_count: 0,
+        total_quantity: 0n,
+        distinct_orders: 0,
+        distinct_customers: 0,
+        active_days: 0,
+        total_sales: 0,
+        total_sales_exact: '0',
+        sales_value_rows: 0,
+        total_sales_units: 0n,
+        sales_unit_rows: 0,
+        quantity_per_sales_unit_values: [],
+        selling_unit_conflict: false,
+        selling_unit_partial_rows: 0,
+        selling_unit_overage_rows: 0,
+        locations: [],
+        source_file_count: 0,
+        source_files: [],
+        order_line_refs: [],
+        share_of_order_lines: 0,
+        cumulative_share_of_order_lines: 1,
+        current_location: masterData.location || null,
+        current_quantity_per_sales_unit: masterData.quantity_per_sales_unit === undefined ? null : masterData.quantity_per_sales_unit,
+        unit_of_measure: masterData.unit_of_measure || null,
+        vat_rate: masterData.vat_rate === undefined ? null : masterData.vat_rate,
+        master_data: masterData,
+        master_custom_fields: Object.assign({}, registryEntry.custom_fields || {}),
+        master_value_conflicts: (registryEntry.value_conflicts || []).slice(),
+        master_row_refs: (registryEntry.master_row_refs || []).slice()
+      });
+    });
+    prepareArticleSearchProjections(enriched, options && options.locale);
+    result.articles = enriched;
+    return result;
+  }
+
+  function buildDataQualityFindings(registry, importIssues, locale) {
+    const findings = [];
+    (importIssues || []).forEach(function (issue) {
+      const isMasterIssue = issue && issue.sourceType === 'article-master';
+      if (!isMasterIssue) return;
+      if (issue.code === 'required_value_missing' && issue.field === 'article_id') {
+        findings.push({
+          category: 'article-master', code: 'master_article_id_missing', severity: 'error', article_id: null,
+          sourceFileId: issue.sourceFileId || null, sourceFileLabel: issue.sourceFileLabel || issue.sourceFileName || null, sourceLine: issue.sourceLine || null,
+          evidence: { rawValue: issue.rawValue || '' }, message: message(locale, 'qualityMissingMasterId')
+        });
+      } else if (issue.code === 'invalid_custom_field_value' || issue.code === 'invalid_master_value' ||
+        issue.code === 'quantity_per_sales_unit_precision_exceeded' || issue.code === 'quantity_per_sales_unit_must_be_positive') {
+        findings.push({
+          category: 'article-master', code: issue.code === 'invalid_custom_field_value' ? issue.code : 'invalid_master_value', severity: 'warning', article_id: issue.articleId || null,
+          sourceFileId: issue.sourceFileId || null, sourceFileLabel: issue.sourceFileLabel || issue.sourceFileName || null, sourceLine: issue.sourceLine || null,
+          evidence: { field: issue.field, rawValue: issue.rawValue, validationCode: issue.code }, message: issue.message
+        });
+      }
+    });
+
+    (registry || []).forEach(function (entry) {
+      if (entry.master_row_count > 1) {
+        const firstMasterRow = (entry.master_row_refs || [])[0] || {};
+        findings.push({
+          category: 'article-master', code: 'duplicate_master_article_id', severity: 'warning', article_id: entry.article_id,
+          sourceFileId: firstMasterRow.source_file_id || null, sourceFileLabel: firstMasterRow.source_file_label || firstMasterRow.source_file_name || null, sourceLine: firstMasterRow.source_line || null,
+          evidence: { rowCount: entry.master_row_count, rows: (entry.master_row_refs || []).slice() },
+          message: message(locale, 'qualityDuplicateMasterId')
+        });
+      }
+      (entry.value_conflicts || []).forEach(function (conflict) {
+        findings.push({
+          category: 'article-master', code: 'conflicting_master_value', severity: 'warning', article_id: entry.article_id,
+          sourceFileId: conflict.source_file_id || null, sourceFileLabel: conflict.source_file_label || null, sourceLine: conflict.source_line || null,
+          evidence: Object.assign({}, conflict), message: message(locale, 'qualityMasterConflict')
+        });
+      });
+      const masterName = entry.master_data && entry.master_data.article_name;
+      const movementNames = entry.movement_article_names || [];
+      if (masterName && movementNames.some(function (name) { return name && name !== masterName; })) {
+        findings.push({
+          category: 'cross-source', code: 'conflicting_article_description', severity: 'warning', article_id: entry.article_id,
+          sourceFileId: null, sourceLine: null,
+          evidence: { masterValue: masterName, movementValues: movementNames.slice() },
+          message: message(locale, 'qualityDescriptionConflict')
+        });
+      }
+      if (entry.movement_status === 'movement-only') {
+        findings.push({
+          category: 'cross-source', code: 'movement_article_without_master', severity: 'warning', article_id: entry.article_id,
+          sourceFileId: (entry.movement_source_file_ids || [])[0] || null, sourceFileLabel: (entry.movement_source_files || [])[0] || null, sourceLine: null,
+          evidence: { sourceFileIds: (entry.movement_source_file_ids || []).slice() },
+          message: message(locale, 'qualityMovementWithoutMaster')
+        });
+      } else if (entry.movement_status === 'master-only') {
+        const firstMasterRow = (entry.master_row_refs || [])[0] || {};
+        findings.push({
+          category: 'cross-source', code: 'master_article_without_activity', severity: 'info', article_id: entry.article_id,
+          sourceFileId: firstMasterRow.source_file_id || null, sourceFileLabel: firstMasterRow.source_file_label || firstMasterRow.source_file_name || null, sourceLine: firstMasterRow.source_line || null,
+          evidence: { rows: (entry.master_row_refs || []).slice() },
+          message: message(locale, 'qualityMasterWithoutActivity')
+        });
+      }
+    });
+    return findings;
   }
 
   function combineImportResults(files, options) {
@@ -2028,14 +2410,16 @@
       const issuesNeedSourceDecoration = resultIssues.some(function (issue) {
         return issue.sourceFileId !== source.id ||
           issue.sourceFileName !== source.name ||
-          issue.sourceFileLabel !== source.label;
+          issue.sourceFileLabel !== source.label ||
+          issue.sourceType !== source.sourceType;
       });
       const normalizedIssues = issuesNeedSourceDecoration
         ? resultIssues.map(function (issue) {
           return Object.assign({}, issue, {
             sourceFileId: source.id,
             sourceFileName: source.name,
-            sourceFileLabel: source.label
+            sourceFileLabel: source.label,
+            sourceType: source.sourceType
           });
         })
         : resultIssues;
@@ -2094,10 +2478,17 @@
       };
     });
 
+    const articleRegistry = buildArticleRegistry(retainedRows);
+    const capabilities = buildCapabilityReadiness(normalizedFiles, options && options.locale);
     return {
       rows: rows,
       retainedRows: retainedRows,
-      articleRegistry: buildArticleRegistry(retainedRows),
+      articleRegistry: articleRegistry,
+      qualityFindings: buildDataQualityFindings(articleRegistry, issues, options && options.locale),
+      capabilities: capabilities,
+      featureReadiness: {
+        periodComparison: evaluateFeatureReadiness(capabilities, 'periodComparison', options && options.locale)
+      },
       issues: issues,
       totalRows: totalRows,
       validRows: retainedRows.length,
@@ -2138,11 +2529,13 @@
         : nextDetailIndex;
       nextDetailIndex += 1;
       totalLines += 1;
-      orderIds.add(row.order_id);
+      if (row.order_id) {
+        orderIds.add(row.order_id);
+      }
       if (row.customer_id) {
         customerIds.add(row.customer_id);
       }
-      activeDays.add(row.order_date);
+      activeDays.add(row.delivery_date);
       const sourceFileId = row.source_file_id === undefined || row.source_file_id === null
         ? ''
         : String(row.source_file_id);
@@ -2202,11 +2595,13 @@
       }
       article.order_line_count += 1;
       article.total_quantity += row.quantity;
-      article.order_ids.add(row.order_id);
+      if (row.order_id) {
+        article.order_ids.add(row.order_id);
+      }
       if (row.customer_id) {
         article.customer_ids.add(row.customer_id);
       }
-      article.active_days.add(row.order_date);
+      article.active_days.add(row.delivery_date);
       if (rowSales !== null) {
         article.total_sales = addDecimals(article.total_sales, rowSales);
         article.sales_value_rows += 1;
@@ -2401,6 +2796,16 @@
     return JSON.stringify(sourceFiles.map(protectSpreadsheetText));
   }
 
+  function serializeObject(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).length === 0) {
+      return '';
+    }
+    return JSON.stringify(value, function (_key, item) {
+      if (typeof item === 'bigint') return scaledQuantityToText(item);
+      return typeof item === 'string' ? protectSpreadsheetText(item) : item;
+    });
+  }
+
   function exportAnalysisCsv(articles, options) {
     const delimiter = options && options.delimiter ? options.delimiter : ';';
     const headers = [
@@ -2408,6 +2813,12 @@
       'article_name',
       'article_name_conflict',
       'article_name_variants',
+      'movement_status',
+      'current_location',
+      'current_quantity_per_sales_unit',
+      'unit_of_measure',
+      'vat_rate',
+      'master_custom_fields',
       'source_file_count',
       'source_files',
       'order_line_count',
@@ -2438,6 +2849,12 @@
         protectSpreadsheetText(article.article_name),
         article.article_name_conflict ? 'true' : 'false',
         protectSpreadsheetText(serializeArticleNameVariants(article.article_name_variants)),
+        article.movement_status || 'movement-only',
+        protectSpreadsheetText(article.current_location),
+        serializeQuantity(article.current_quantity_per_sales_unit),
+        protectSpreadsheetText(article.unit_of_measure),
+        article.vat_rate === null || article.vat_rate === undefined ? '' : article.vat_rate,
+        protectSpreadsheetText(serializeObject(article.master_custom_fields)),
         sourceFileCount,
         protectSpreadsheetText(serializeSourceFiles(article.source_files)),
         article.order_line_count,
@@ -2465,6 +2882,7 @@
   return {
     APP_VERSION: APP_VERSION,
     FIELD_DEFINITIONS: FIELD_DEFINITIONS,
+    FEATURE_REQUIREMENTS: FEATURE_REQUIREMENTS,
     QUANTITY_DECIMAL_PLACES: QUANTITY_DECIMAL_PLACES,
     QUANTITY_SCALE: QUANTITY_SCALE,
     SALES_DECIMAL_PLACES: SALES_DECIMAL_PLACES,
@@ -2476,6 +2894,10 @@
     detectMapping: detectMapping,
     combineImportResults: combineImportResults,
     buildArticleRegistry: buildArticleRegistry,
+    buildCapabilityReadiness: buildCapabilityReadiness,
+    buildDataQualityFindings: buildDataQualityFindings,
+    enrichAnalysisWithRegistry: enrichAnalysisWithRegistry,
+    evaluateFeatureReadiness: evaluateFeatureReadiness,
     detectBatchWarnings: detectBatchWarnings,
     analyzeRows: analyzeRows,
     articleMatchesQuery: articleMatchesQuery,
@@ -2488,6 +2910,9 @@
     formatSalesValue: formatSalesValue,
     formatScaledQuantity: formatScaledQuantity,
     getFieldLabel: getFieldLabel,
+    getFieldDefinitionsForSource: getFieldDefinitionsForSource,
+    fieldAppliesToSource: fieldAppliesToSource,
+    fieldRequiredForSource: fieldRequiredForSource,
     normalizeSearchQuery: normalizeSearchQuery,
     prepareArticleSearchProjection: prepareArticleSearchProjection,
     prepareArticleSearchProjections: prepareArticleSearchProjections,

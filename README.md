@@ -2,7 +2,7 @@
 
 OpenSlotting is an open-source, local-first web tool for analyzing warehouse order lines and building a data-driven foundation for warehouse slotting.
 
-The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The latest published application release is `0.2.1`; current `main` development continues the local-workspace, article-master, and period-comparison foundation. Future versions are planned to expand this foundation through ABC/XYZ classification, configurable master data joins, slotting scores, and warehouse slotting recommendations.
+The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The latest published application release is `0.2.1`; current `main` development continues the local-workspace, article-master, and period-comparison foundation. Future versions are planned to expand this foundation through ABC/XYZ classification, reusable mapping templates, slotting scores, and warehouse slotting recommendations.
 
 > **Project status:** The latest published release is `0.2.1`. `main` contains unreleased development after that release, including persistent workspaces, article-master imports and registry preparation, period comparison, runtime profiles, and large-import performance work. No next release version has been assigned yet.
 
@@ -37,8 +37,11 @@ The current implementation includes:
 - English as the default interface language, with German available from the language selector
 - multiple source files in one in-memory analysis batch
 - explicit persisted source types (`order-lines` and `article-master`), with order-line defaults for existing and new imports
-- article-master imports that require only `article_id`, retain optional master attributes and custom fields, and remain available for later joins
-- a deterministic workspace-level article registry combining master-only and movement-only identities with matched status and source provenance
+- source-scoped field mappings with the core movement contract `article_id + quantity + delivery_date`; order identity, customer, sales, location, selling-unit, and master-data capabilities remain optional
+- independent net/gross sales-value and unit-price fields, with legacy unclassified sales values preserved without guessing their tax semantics
+- article-master imports that require only `article_id` and retain optional description, current location, quantity per selling unit, unit of measure, VAT rate, and custom fields
+- article analysis enriched from a deterministic workspace registry, including matched, movement-only, and master-only states without changing historical demand facts
+- structured, source-traceable master-data quality findings for duplicate IDs, conflicting values, missing master data, master-only articles, and invalid typed values
 - ordered source-column catalogs with duplicate-header and physical-position metadata
 - bounded streaming source-column profiles with representative and frequent values
 - explainable mapping suggestions and a source-column overview with profile evidence
@@ -59,7 +62,7 @@ The current implementation includes:
 - approximate browser usage/quota display with a clear unavailable fallback
 - complete single-workspace JSON backup and validated restore as new or explicit replacement
 - versioned workspace and backup schemas without a workspace merge path
-- optional selling-unit / VKU / Colli and quantity-per-selling-unit import fields with zero-VKU and partial-sale support
+- optional selling-unit / cases and quantity-per-selling-unit import fields with zero-unit and partial-sale support
 - visible date coverage with configurable expected weekdays and missing-day warnings
 - automatic ISO-calendar-week selection plus optional custom, workspace-persisted comparison periods
 - article-level comparison filters, data-quality indicators, detail links, and CSV export
@@ -154,15 +157,19 @@ V0.1 focuses exclusively on **order-line analysis**.
 A typical order-line dataset may contain fields such as:
 
 - Order ID
-- Article / SKU ID
+- Article ID / SKU
 - Article description
 - Quantity
-- Date
+- Delivery date
 - Customer ID
-- Sales value
+- Customer name
+- Sales value excluding or including VAT
+- Unit price excluding or including VAT
 - Current storage location
+- Selling units / cases
+- Quantity per selling unit
 
-Only order ID, article ID, quantity, and order date are required. The other listed fields are optional.
+Only article ID / SKU, quantity, and delivery date are required for the core quantity/time/period analysis. Order ID and the other listed fields enable optional metrics or enrichment.
 
 Different ERP, WMS, and CSV export headers are supported through configurable column mapping instead of hard-coded field names.
 
@@ -197,7 +204,8 @@ The current analysis includes metrics such as:
 - Average quantity per order
 - Share of total order lines
 - Cumulative share of order lines
-- Selling units / Colli and selling-unit coverage
+- Legacy unclassified sales value and row coverage for compatible existing workspaces
+- Selling units / cases and selling-unit coverage
 - Period A versus Period B changes for lines, quantity, orders, customers, and selling units
 
 A key principle of the project is to distinguish between **quantity** and **order-line frequency**.
@@ -212,7 +220,7 @@ Quantities support up to seven decimal places. Values with more decimal places a
 
 Numeric fields accept one decimal separator (`.` or `,`) and optional surrounding whitespace. Internal whitespace and mixed separators are rejected; thousands-grouped values such as `1.234,56` are not accepted.
 
-Sales values support up to two decimal places, matching the displayed and exported monetary precision. Values with more decimal places, values outside the safe range, or values with lost decimal precision are rejected during import. Accepted sales values are aggregated as exact decimals, so totals remain correct even when their sum exceeds the safe range. Exported location collections use JSON arrays so commas inside a location remain unambiguous.
+Explicit net/gross sales values and unit prices support up to two decimal places and remain independent authoritative imports. Values with more decimal places, values outside the safe range, or values with lost decimal precision are rejected during import. OpenSlotting does not derive one monetary field from another. Existing unclassified `sales_value` data remains available as a clearly labeled legacy compatibility metric instead of being guessed as net or gross. Exported location collections use JSON arrays so commas inside a location remain unambiguous.
 
 ## Configurable Data Mapping
 
@@ -222,9 +230,9 @@ For example:
 
 | Source column | OpenSlotting field |
 | --- | --- |
-| ArtNr | Article ID |
-| SKU | Article ID |
-| Material | Article ID |
+| ArtNr | Article ID / SKU |
+| SKU | Article ID / SKU |
+| Material | Article ID / SKU |
 | Article Name | Article description |
 | Description | Article description |
 | Artikelbezeichnung | Article description |
@@ -363,14 +371,15 @@ acceptance before a future release claim.
 - XYZ classification
 - Combined ABC/XYZ matrix
 
-### V0.6 — Article Master Data (registry foundation implemented; joins and analysis planned)
+### V0.6 — Article Master Data (import, registry, enrichment, and initial quality checks implemented on `main`)
 
 - Import article-master CSV sources with persistent source type and provenance
 - Additional article attributes through workspace custom fields
 - Normalize master-only, movement-only, and matched article identities in a workspace-level registry
-- Join article-master attributes into order-line analysis
+- Enrich article analysis with current master attributes without rewriting historical movement facts
+- Detect duplicate/conflicting master rows, missing master data, and master-only articles with source evidence
 - Configurable article master data
-- Reusable mapping templates
+- Reusable mapping templates (planned)
 
 ### V0.7 — Existing Storage Locations
 

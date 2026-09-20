@@ -1,4 +1,4 @@
-order_id;article_id;quantity;order_date;customer_id;sales_value;location
+order_id;article_id;quantity;delivery_date;customer_id;sales_value;location
 ORD-6001;SKU-901;2;2026-09-01;CUST-01;20.00;A-01-01
 ORD-6002;;1;2026-09-01;CUST-01;10.00;A-01-01
 ORD-6003;SKU-903;;2026-09-02;CUST-02;12.00;A-01-02

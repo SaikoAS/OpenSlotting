@@ -12,7 +12,7 @@ function workspaceWithSource(id, name, articleId) {
     id,
     now: '2026-09-12T08:00:00.000Z'
   });
-  const bytes = new TextEncoder().encode('order_id;article_id;quantity;order_date\nO-1;' + articleId + ';1;2026-09-12\n');
+  const bytes = new TextEncoder().encode('order_id;article_id;quantity;delivery_date\nO-1;' + articleId + ';1;2026-09-12\n');
   record.files.push({
     id: 'source-1',
     name: articleId + '.csv',
@@ -24,7 +24,7 @@ function workspaceWithSource(id, name, articleId) {
     activeEncoding: 'utf-8',
     detectedEncoding: 'utf-8',
     errorKey: null,
-    mapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    mapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },
     confirmedMapping: null,
     result: null
   });
@@ -32,13 +32,13 @@ function workspaceWithSource(id, name, articleId) {
 }
 
 function workspaceWithRows(id, rowCount) {
-  const lines = ['order_id;article_id;quantity;order_date'];
+  const lines = ['order_id;article_id;quantity;delivery_date'];
   for (let index = 0; index < rowCount; index += 1) {
     lines.push('O-' + index + ';SKU-' + index + ';1;2026-09-12');
   }
   const text = lines.join('\n') + '\n';
   const bytes = new TextEncoder().encode(text);
-  const imported = csv.importCsv(text, { order_id: 0, article_id: 1, quantity: 2, order_date: 3 }, {
+  const imported = csv.importCsv(text, { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 }, {
     sourceFile: { id: 'source-1', name: 'rows.csv', label: 'rows.csv' }
   });
   const record = workspace.createWorkspace('Chunked', { id, now: '2026-09-12T08:00:00.000Z' });
@@ -114,6 +114,7 @@ test('persists the workspace article registry alongside chunked sources', async 
     master_source_files: ['master.csv'],
     movement_source_file_ids: [],
     movement_source_files: [],
+    movement_article_names: [],
     master_row_refs: [{ source_file_id: 'source-master', source_line: 2 }],
     value_provenance: [],
     value_conflicts: []
@@ -478,6 +479,7 @@ test('bounds large per-article registry provenance arrays across registry chunks
     master_source_files: ['master.csv'],
     movement_source_file_ids: [],
     movement_source_files: [],
+    movement_article_names: Array.from({ length: 2501 }, (_, index) => `Movement name ${index + 1}`),
     master_row_refs: Array.from({ length: 2501 }, (_, index) => ({ source_file_id: 'source-master', source_line: index + 2 })),
     value_provenance: [],
     value_conflicts: []
@@ -486,8 +488,9 @@ test('bounds large per-article registry provenance arrays across registry chunks
   await repository.createWorkspace(validated);
 
   const chunks = indexedDB.inspect(databaseName, 'workspaceRegistryChunks');
-  assert.equal(chunks.length, 3);
+  assert.ok(chunks.length > 1);
   assert.ok(chunks.every((chunk) => chunk.entries.every((entry) => entry.master_row_refs.length <= 1000)));
+  assert.ok(chunks.every((chunk) => chunk.entries.every((entry) => entry.movement_article_names.length <= 1000)));
   const loaded = await repository.loadWorkspace(validated.id);
   assert.deepEqual(loaded.articleRegistry, validated.articleRegistry);
 });

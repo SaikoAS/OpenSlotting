@@ -53,7 +53,7 @@
 
   function observedDates(rows) {
     return Array.from(new Set((rows || []).map(function (row) {
-      return row && validDate(row.order_date) ? row.order_date : null;
+      return row && validDate(row.delivery_date) ? row.delivery_date : null;
     }).filter(Boolean))).sort();
   }
 
@@ -110,7 +110,7 @@
   function detectedCalendarWeeks(rows) {
     const weekMap = new Map();
     (rows || []).forEach(function (row) {
-      const detected = row && calendarWeekForDate(row.order_date);
+      const detected = row && calendarWeekForDate(row.delivery_date);
       if (!detected) {
         return;
       }
@@ -122,7 +122,7 @@
       }
       const week = weekMap.get(detected.id);
       week.rowCount += 1;
-      week.observedDates.add(row.order_date);
+      week.observedDates.add(row.delivery_date);
     });
     return Array.from(weekMap.values()).sort(function (left, right) {
       return left.start.localeCompare(right.start);
@@ -186,7 +186,7 @@
       return [];
     }
     return (rows || []).filter(function (row) {
-      return row && row.order_date >= period.start && row.order_date <= period.end;
+      return row && row.delivery_date >= period.start && row.delivery_date <= period.end;
     });
   }
 
@@ -208,12 +208,12 @@
     let rowCount = 0;
 
     function consume(row) {
-      if (!validRange || !row || row.order_date < normalized.start || row.order_date > normalized.end) {
+      if (!validRange || !row || row.delivery_date < normalized.start || row.delivery_date > normalized.end) {
         return;
       }
       rowCount += 1;
-      if (validDate(row.order_date)) {
-        observedSet.add(row.order_date);
+      if (validDate(row.delivery_date)) {
+        observedSet.add(row.delivery_date);
       }
       const id = row.source_file_id || row.source_file_label || row.source_file_name;
       if (id) {
@@ -375,9 +375,9 @@
           return;
         }
         const inA = normalized.periodA && validDate(normalized.periodA.start) && validDate(normalized.periodA.end) &&
-          row.order_date >= normalized.periodA.start && row.order_date <= normalized.periodA.end;
+          row.delivery_date >= normalized.periodA.start && row.delivery_date <= normalized.periodA.end;
         const inB = normalized.periodB && validDate(normalized.periodB.start) && validDate(normalized.periodB.end) &&
-          row.order_date >= normalized.periodB.start && row.order_date <= normalized.periodB.end;
+          row.delivery_date >= normalized.periodB.start && row.delivery_date <= normalized.periodB.end;
         if (inA) {
           accumulatorA.consume(row, index);
         }
@@ -401,12 +401,12 @@
           return;
         }
         if (normalized.periodA && validDate(normalized.periodA.start) && validDate(normalized.periodA.end) &&
-          row.order_date >= normalized.periodA.start && row.order_date <= normalized.periodA.end) {
+          row.delivery_date >= normalized.periodA.start && row.delivery_date <= normalized.periodA.end) {
           rowsA.push(row);
           indexesA.push(index);
         }
         if (normalized.periodB && validDate(normalized.periodB.start) && validDate(normalized.periodB.end) &&
-          row.order_date >= normalized.periodB.start && row.order_date <= normalized.periodB.end) {
+          row.delivery_date >= normalized.periodB.start && row.delivery_date <= normalized.periodB.end) {
           rowsB.push(row);
           indexesB.push(index);
         }

@@ -386,12 +386,12 @@ test('incremental analysis accumulator matches batch analysis', () => {
 });
 
 test('incremental analysis keeps multi-source provenance and ordering deterministic', () => {
-  const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 };
   const accumulator = csv.createAnalysisAccumulator();
-  const first = csv.importCsvStreaming('order_id;article_id;quantity;order_date\nO-1;SKU-A;1;2026-09-12\n', mapping, {
+  const first = csv.importCsvStreaming('order_id;article_id;quantity;delivery_date\nO-1;SKU-A;1;2026-09-12\n', mapping, {
     sourceFile: { id: 'source-a', name: 'a.csv', label: 'a.csv' }
   });
-  const second = csv.importCsvStreaming('order_id;article_id;quantity;order_date\nO-2;SKU-A;2;2026-09-13\n', mapping, {
+  const second = csv.importCsvStreaming('order_id;article_id;quantity;delivery_date\nO-2;SKU-A;2;2026-09-13\n', mapping, {
     sourceFile: { id: 'source-b', name: 'b.csv', label: 'b.csv' }
   });
   const combined = csv.combineImportResults([
@@ -421,11 +421,11 @@ test('source column catalogs preserve duplicate, empty, German, and source owner
 });
 
 test('multi-source imports keep independent ordered column catalogs', () => {
-  const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
-  const first = csv.importCsv('order_id;article_id;quantity;order_date\nO-1;SKU-A;1;2026-09-12\n', mapping, {
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 };
+  const first = csv.importCsv('order_id;article_id;quantity;delivery_date\nO-1;SKU-A;1;2026-09-12\n', mapping, {
     sourceFile: { id: 'source-a', name: 'a.csv', label: 'a.csv' }
   });
-  const second = csv.importCsv('order_id;article_id;quantity;order_date;quantity\nO-2;SKU-B;2;2026-09-13;2\n', mapping, {
+  const second = csv.importCsv('order_id;article_id;quantity;delivery_date;quantity\nO-2;SKU-B;2;2026-09-13;2\n', mapping, {
     sourceFile: { id: 'source-b', name: 'b.csv', label: 'b.csv' }
   });
 
@@ -445,7 +445,7 @@ test('multi-source imports keep independent ordered column catalogs', () => {
 
 test('streaming imports profile every source column with bounded evidence', () => {
   const result = csv.importCsvStreaming([
-    'article_id;order_id;quantity;order_date;note',
+    'article_id;order_id;quantity;delivery_date;note',
     'A-1;O-1;1;2026-01-02;alpha',
     ';O-2;2;not-a-date;beta',
     'A-1;O-3;3;2026-01-03;alpha'
@@ -490,7 +490,7 @@ test('mapping profiles can be prepared before the mapping screen', () => {
 });
 
 test('column profile samples and distinct tracking remain bounded for high-cardinality sources', () => {
-  const rows = ['article_id;order_id;quantity;order_date'];
+  const rows = ['article_id;order_id;quantity;delivery_date'];
   for (let index = 0; index < 400; index += 1) {
     rows.push('A-' + index + ';O-' + index + ';1;2026-01-02');
   }
@@ -505,7 +505,7 @@ test('column profile samples and distinct tracking remain bounded for high-cardi
 });
 
 test('bounded frequency tracking retains values that become frequent late in the stream', () => {
-  const rows = ['article_id;order_id;quantity;order_date'];
+  const rows = ['article_id;order_id;quantity;delivery_date'];
   for (let index = 0; index < 256; index += 1) {
     rows.push('A-' + index + ';O-' + index + ';1;2026-01-02');
   }
@@ -521,7 +521,7 @@ test('bounded frequency tracking retains values that become frequent late in the
 });
 
 test('replacement frequency counts are explicitly marked as estimates', () => {
-  const rows = ['article_id;order_id;quantity;order_date'];
+  const rows = ['article_id;order_id;quantity;delivery_date'];
   for (let index = 0; index <= 256; index += 1) {
     rows.push('A-' + index + ';O-' + index + ';1;2026-01-02');
   }
@@ -568,7 +568,7 @@ test('mapping suggestions expose explainable confidence, profile reasons, and am
   assert.equal(suggestions.order_id[0].confidence, 'high');
   assert.ok(suggestions.order_id[0].reasons.includes('exact_alias'));
   assert.equal(suggestions.quantity[0].sourcePosition, 1);
-  assert.equal(suggestions.order_date[0].sourcePosition, 2);
+  assert.equal(suggestions.delivery_date[0].sourcePosition, 2);
   assert.equal(suggestions.quantity[0].automaticApplicationSafe, true);
 
   const ambiguous = csv.buildMappingSuggestions(
@@ -597,9 +597,9 @@ test('mapping similarity preserves word boundaries for multiword headers', () =>
 });
 
 test('import and combined results retain the explicit source type', () => {
-  const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 };
   const result = csv.importCsv(
-    'order_id;article_id;quantity;order_date\nO-1;SKU-TYPE;1;2026-09-12\n',
+    'order_id;article_id;quantity;delivery_date\nO-1;SKU-TYPE;1;2026-09-12\n',
     mapping,
     { sourceFile: { id: 'source-type', name: 'type.csv', label: 'type.csv', sourceType: 'article-master' } }
   );
@@ -634,17 +634,184 @@ test('article-master sources require only article identity and retain master att
     article_id: 'SKU-1',
     article_name: 'Widget A',
     quantity: null,
-    order_date: null,
+    delivery_date: null,
     customer_id: null,
+    customer_name: null,
     sales_value: null,
     sales_value_exact: null,
+    sales_value_net: null,
+    sales_value_net_exact: null,
+    sales_value_gross: null,
+    sales_value_gross_exact: null,
+    unit_price_net: null,
+    unit_price_net_exact: null,
+    unit_price_gross: null,
+    unit_price_gross_exact: null,
     location: 'A-01',
     sales_unit_count: null,
     quantity_per_sales_unit: null,
+    unit_of_measure: null,
+    vat_rate: null,
+    vat_rate_exact: null,
     sales_unit_quantity_matches: null,
     sales_unit_quantity_relation: null,
     custom_fields: { zone: 'Cold' }
   });
+});
+
+test('source-scoped field definitions hide non-applicable mappings', () => {
+  const masterDefinitions = csv.getFieldDefinitionsForSource('article-master').map((field) => field.key);
+  const orderDefinitions = csv.getFieldDefinitionsForSource('order-lines').map((field) => field.key);
+  const masterMapping = csv.detectMapping([
+    'article_id', 'order_id', 'quantity', 'delivery_date', 'customer_name', 'sales_value_net',
+    'sales_unit_count', 'unit_of_measure', 'vat_rate'
+  ], 'article-master');
+
+  assert.deepEqual(masterDefinitions, [
+    'article_id', 'article_name', 'location', 'quantity_per_sales_unit', 'unit_of_measure', 'vat_rate'
+  ]);
+  assert.ok(orderDefinitions.includes('customer_name'));
+  assert.ok(orderDefinitions.includes('sales_value_net'));
+  assert.ok(!orderDefinitions.includes('unit_of_measure'));
+  assert.equal(csv.FIELD_DEFINITIONS.find((field) => field.key === 'quantity').dataType, 'scaled-quantity');
+  assert.equal(csv.FIELD_DEFINITIONS.find((field) => field.key === 'delivery_date').dataType, 'date');
+  assert.equal(masterMapping.article_id, 0);
+  assert.equal(masterMapping.unit_of_measure, 7);
+  assert.equal(masterMapping.vat_rate, 8);
+  assert.equal(Object.hasOwn(masterMapping, 'order_id'), false);
+  assert.equal(Object.hasOwn(masterMapping, 'sales_unit_count'), false);
+});
+
+test('minimum movement contract works without order identity or article master data', () => {
+  const result = csv.importCsv(
+    'article_id;quantity;delivery_date\nSKU-1;3;2026-09-12\nSKU-1;2;2026-09-13\n',
+    undefined,
+    { sourceFile: { id: 'minimal', name: 'minimal.csv', label: 'minimal.csv', sourceType: 'order-lines' } }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'minimal', name: 'minimal.csv', label: 'minimal.csv', sourceType: 'order-lines', result }
+  ]);
+  const analysis = csv.analyzeRows(combined.rows);
+
+  assert.equal(result.blocking, false);
+  assert.equal(result.validRows, 2);
+  assert.equal(analysis.total_lines, 2);
+  assert.equal(analysis.total_quantity, 50000000n);
+  assert.equal(analysis.distinct_orders, 0);
+  assert.equal(combined.featureReadiness.periodComparison.status, 'ready');
+  assert.equal(combined.featureReadiness.periodComparison.components.distinctOrders.status, 'blocked');
+});
+
+test('explicit sales and price fields stay independent and authoritative', () => {
+  const result = csv.importCsv([
+    'article_id;quantity;delivery_date;customer_name;sales_value_net;sales_value_gross;unit_price_net;unit_price_gross',
+    'SKU-1;3;2026-09-12;Customer A;10.00;11.90;4.00;4.76'
+  ].join('\n') + '\n');
+  const row = result.rows[0];
+
+  assert.equal(result.validRows, 1);
+  assert.equal(row.customer_name, 'Customer A');
+  assert.equal(row.sales_value_net_exact, '10');
+  assert.equal(row.sales_value_gross_exact, '11.9');
+  assert.equal(row.unit_price_net_exact, '4');
+  assert.equal(row.unit_price_gross_exact, '4.76');
+  assert.equal(row.sales_value, null);
+  assert.notEqual(row.sales_value_net, 3 * row.unit_price_net);
+});
+
+test('capability readiness distinguishes partial source coverage', () => {
+  const first = csv.importCsv(
+    'article_id;quantity;delivery_date;sales_value_net\nSKU-1;1;2026-09-12;10.00\n',
+    undefined,
+    { sourceFile: { id: 'with-net', name: 'with-net.csv', label: 'with-net.csv', sourceType: 'order-lines' } }
+  );
+  const second = csv.importCsv(
+    'article_id;quantity;delivery_date\nSKU-2;1;2026-09-12\n',
+    undefined,
+    { sourceFile: { id: 'without-net', name: 'without-net.csv', label: 'without-net.csv', sourceType: 'order-lines' } }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'with-net', name: 'with-net.csv', label: 'with-net.csv', sourceType: 'order-lines', result: first },
+    { id: 'without-net', name: 'without-net.csv', label: 'without-net.csv', sourceType: 'order-lines', result: second }
+  ]);
+
+  assert.equal(combined.featureReadiness.periodComparison.status, 'ready');
+  assert.equal(combined.featureReadiness.periodComparison.components.netSales.status, 'partial');
+  assert.deepEqual(combined.capabilities['movement.sales_value_net'].missingSourceIds, ['without-net']);
+  const german = csv.combineImportResults([
+    { id: 'with-net', name: 'with-net.csv', label: 'with-net.csv', sourceType: 'order-lines', result: first },
+    { id: 'without-net', name: 'without-net.csv', label: 'without-net.csv', sourceType: 'order-lines', result: second }
+  ], { locale: 'de' });
+  assert.match(german.featureReadiness.periodComparison.components.netSales.reason, /Teil/);
+});
+
+test('article-master enrichment exposes semantic precedence without changing movement metrics', () => {
+  const orders = csv.importCsv(
+    'article_id;article_name;quantity;delivery_date;location;quantity_per_sales_unit;sales_value_net;sales_value_gross\nSKU-1;Old description;2;2026-09-12;HIST-01;5;15;17\n',
+    undefined,
+    { sourceFile: { id: 'orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines' } }
+  );
+  const master = csv.importCsv(
+    'article_id;article_name;location;quantity_per_sales_unit;unit_of_measure;vat_rate\nSKU-1;Current description;NOW-02;10;pcs;19\nSKU-2;Master only;NOW-03;4;pcs;7\n',
+    undefined,
+    { sourceFile: { id: 'master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' } }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines', result: orders },
+    { id: 'master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master', result: master }
+  ]);
+  const base = csv.analyzeRows(combined.rows);
+  const enriched = csv.enrichAnalysisWithRegistry(base, combined.articleRegistry);
+  const matched = enriched.articles.find((article) => article.article_id === 'SKU-1');
+  const masterOnly = enriched.articles.find((article) => article.article_id === 'SKU-2');
+
+  assert.equal(matched.article_name, 'Current description');
+  assert.equal(matched.movement_article_name, 'Old description');
+  assert.deepEqual(matched.locations, ['HIST-01']);
+  assert.equal(matched.current_location, 'NOW-02');
+  assert.deepEqual(matched.quantity_per_sales_unit_values, [50000000n]);
+  assert.equal(matched.current_quantity_per_sales_unit, 100000000n);
+  assert.equal(matched.unit_of_measure, 'pcs');
+  assert.equal(matched.vat_rate, 19);
+  assert.equal(combined.rows[0].sales_value_net, 15);
+  assert.equal(combined.rows[0].sales_value_gross, 17);
+  assert.equal(masterOnly.movement_status, 'master-only');
+  assert.equal(masterOnly.order_line_count, 0);
+  assert.deepEqual(masterOnly.order_line_refs, []);
+  assert.equal(enriched.total_lines, base.total_lines);
+  assert.equal(enriched.total_quantity, base.total_quantity);
+  const exportRows = parseAnalysisExport(enriched.articles).rows;
+  assert.equal(exportRows.find((row) => row.article_id === 'SKU-1').movement_status, 'matched');
+  assert.equal(exportRows.find((row) => row.article_id === 'SKU-1').current_location, 'NOW-02');
+  assert.equal(exportRows.find((row) => row.article_id === 'SKU-2').order_line_count, '0');
+});
+
+test('quality findings preserve duplicate, conflict, missing-master, and master-only evidence', () => {
+  const orders = csv.importCsv(
+    'article_id;quantity;delivery_date\nACTIVE-ONLY;1;2026-09-12\nDUP;2;2026-09-12\n',
+    undefined,
+    { sourceFile: { id: 'orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines' } }
+  );
+  const master = csv.importCsv(
+    'article_id;article_name;vat_rate;quantity_per_sales_unit\nDUP;First;19;5\nDUP;Second;7;5\nMASTER-ONLY;Unused;invalid;zero\n;Missing;19;5\n',
+    undefined,
+    { sourceFile: { id: 'master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' } }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines', result: orders },
+    { id: 'master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master', result: master }
+  ]);
+  const duplicate = combined.qualityFindings.find((finding) => finding.code === 'duplicate_master_article_id');
+
+  assert.equal(duplicate.article_id, 'DUP');
+  assert.deepEqual(duplicate.evidence.rows.map((row) => row.source_line), [2, 3]);
+  assert.ok(combined.qualityFindings.some((finding) => finding.code === 'conflicting_master_value' && finding.article_id === 'DUP'));
+  assert.ok(combined.qualityFindings.some((finding) => finding.code === 'movement_article_without_master' && finding.article_id === 'ACTIVE-ONLY'));
+  assert.ok(combined.qualityFindings.some((finding) => finding.code === 'master_article_without_activity' && finding.article_id === 'MASTER-ONLY' && finding.severity === 'info'));
+  assert.ok(combined.qualityFindings.some((finding) => finding.code === 'master_article_id_missing' && finding.sourceLine === 5));
+  assert.ok(combined.qualityFindings.some((finding) => finding.code === 'invalid_master_value' && finding.sourceLine === 4));
+  assert.ok(combined.qualityFindings.some((finding) => finding.code === 'invalid_master_value' && finding.article_id === 'MASTER-ONLY' && finding.sourceLine === 4 && finding.evidence.field === 'quantity_per_sales_unit'));
+  assert.equal(combined.rows.length, 2);
 });
 
 test('article-master rows remain persisted but do not enter order-line analysis', () => {
@@ -664,8 +831,8 @@ test('article-master rows remain persisted but do not enter order-line analysis'
 
 test('article-master rows with optional order-line-looking columns stay out of analysis', () => {
   const result = csv.importCsv(
-    'article_id;order_id;quantity;order_date\nSKU-1;O-1;4;2026-09-12\n',
-    { article_id: 0, order_id: 1, quantity: 2, order_date: 3 },
+    'article_id;order_id;quantity;delivery_date\nSKU-1;O-1;4;2026-09-12\n',
+    { article_id: 0, order_id: 1, quantity: 2, delivery_date: 3 },
     { sourceFile: { id: 'master-shaped', name: 'articles.csv', label: 'articles.csv', sourceType: 'article-master' } }
   );
   const combined = csv.combineImportResults([
@@ -677,13 +844,13 @@ test('article-master rows with optional order-line-looking columns stay out of a
 
 test('combined results separate retained rows from demand-analysis rows', () => {
   const orderLines = csv.importCsv(
-    'order_id;article_id;quantity;order_date\nO-1;SKU-1;2;2026-09-12\n',
-    { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    'order_id;article_id;quantity;delivery_date\nO-1;SKU-1;2;2026-09-12\n',
+    { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },
     { sourceFile: { id: 'source-orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines' } }
   );
   const master = csv.importCsv(
-    'article_id;order_date\nSKU-1;2026-09-12\n',
-    { article_id: 0, order_date: 1 },
+    'article_id;delivery_date\nSKU-1;2026-09-12\n',
+    { article_id: 0, delivery_date: 1 },
     { sourceFile: { id: 'source-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' } }
   );
   const combined = csv.combineImportResults([
@@ -699,8 +866,8 @@ test('combined results separate retained rows from demand-analysis rows', () => 
 
 test('article registry combines master-only, movement-only, and matched articles deterministically', () => {
   const orders = csv.importCsv(
-    'order_id;article_id;quantity;order_date;article_name\nO-1;SKU-MATCH;2;2026-09-12;Movement name\nO-2;SKU-MOVEMENT;1;2026-09-13;Only movement\n',
-    { order_id: 0, article_id: 1, quantity: 2, order_date: 3, article_name: 4 },
+    'order_id;article_id;quantity;delivery_date;article_name\nO-1;SKU-MATCH;2;2026-09-12;Movement name\nO-2;SKU-MOVEMENT;1;2026-09-13;Only movement\n',
+    { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3, article_name: 4 },
     { sourceFile: { id: 'source-orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines' } }
   );
   const master = csv.importCsv(
@@ -764,8 +931,8 @@ test('article registry trusts the source file type when normalized rows carry an
 });
 
 test('incremental analysis consumes provenance finalized by batch combination', () => {
-  const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
-  const result = csv.importCsvStreaming('order_id;article_id;quantity;order_date\nO-1;SKU-C;1;2026-09-12\n', mapping);
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 };
+  const result = csv.importCsvStreaming('order_id;article_id;quantity;delivery_date\nO-1;SKU-C;1;2026-09-12\n', mapping);
   const accumulator = csv.createAnalysisAccumulator();
   const combined = csv.combineImportResults([
     { id: 'source-c', name: 'catalog.csv', label: 'catalog.csv', result: result }
@@ -778,7 +945,7 @@ test('incremental analysis consumes provenance finalized by batch combination', 
 
 test('normalized rows keep compact provenance and reconstruct source fields on demand', () => {
   const text = [
-    'order_id;article_id;quantity;order_date;note;note',
+    'order_id;article_id;quantity;delivery_date;note;note',
     'O-1;SKU-1;1;2026-09-12;"first;value";A',
     'O-2;SKU-2;2;2026-09-13;"multi',
     'line";B'
@@ -787,7 +954,7 @@ test('normalized rows keep compact provenance and reconstruct source fields on d
     order_id: 0,
     article_id: 1,
     quantity: 2,
-    order_date: 3
+    delivery_date: 3
   }, { sourceFile: { id: 'compact-source', name: 'compact.csv', label: 'compact.csv' } });
 
   assert.equal(Object.hasOwn(result.rows[0], 'raw_values'), false);
@@ -803,7 +970,7 @@ test('normalized rows keep compact provenance and reconstruct source fields on d
 
 test('source reconstruction stops parsing after the requested row', () => {
   const text = [
-    'order_id;article_id;quantity;order_date',
+    'order_id;article_id;quantity;delivery_date',
     'O-1;SKU-1;1;2026-09-12',
     'O-2;SKU-2;2;2026-09-13',
     'O-3;SKU-3;3;2026-09-14'
@@ -823,12 +990,12 @@ test('source reconstruction stops parsing after the requested row', () => {
 
 test('streaming import keeps large batches stack-safe and source-complete', () => {
   const rowCount = 130000;
-  const lines = ['order_id;article_id;quantity;order_date'];
+  const lines = ['order_id;article_id;quantity;delivery_date'];
   for (let index = 0; index < rowCount; index += 1) {
     lines.push(`O-${index};SKU-${index % 1000};1;2026-09-12`);
   }
   const source = { id: 'large-source', name: 'large.csv', label: 'large.csv' };
-  const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 };
   const result = csv.importCsv(lines.join('\n'), mapping, { sourceFile: source });
 
   assert.equal(result.totalRows, rowCount);
@@ -845,7 +1012,7 @@ test('streaming import keeps large batches stack-safe and source-complete', () =
 
 test('streaming import handles parser errors per row without rescanning history', () => {
   const malformedRows = 20000;
-  const lines = ['order_id;article_id;quantity;order_date'];
+  const lines = ['order_id;article_id;quantity;delivery_date'];
   for (let index = 0; index < malformedRows; index += 1) {
     lines.push(`\"O-${index}\"oops;SKU-${index};1;2026-09-12`);
     lines.push(`O-valid-${index};SKU-valid-${index};1;2026-09-12`);
@@ -854,7 +1021,7 @@ test('streaming import handles parser errors per row without rescanning history'
     order_id: 0,
     article_id: 1,
     quantity: 2,
-    order_date: 3
+    delivery_date: 3
   }, {
     sourceFile: { id: 'parser-errors', name: 'parser-errors.csv', label: 'parser-errors.csv' }
   });
@@ -867,7 +1034,7 @@ test('streaming import handles parser errors per row without rescanning history'
 });
 
 test('chunked parser preserves quoted fields and line provenance across boundaries', () => {
-  const text = 'order_id;article_id;quantity;order_date;article_name\r\n'
+  const text = 'order_id;article_id;quantity;delivery_date;article_name\r\n'
     + 'O-1;SKU-1;1;2026-09-12;"Multi\r\nline ""quoted"""\r\n'
     + 'O-2;SKU-2;2;2026-09-13;Plain\n';
   const chunks = [];
@@ -875,7 +1042,7 @@ test('chunked parser preserves quoted fields and line provenance across boundari
     chunks.push(text.slice(index, index + 1));
   }
   const parsed = csv.parseCsvChunks(chunks, { retainRows: false });
-  assert.deepEqual(parsed.headers, ['order_id', 'article_id', 'quantity', 'order_date', 'article_name']);
+  assert.deepEqual(parsed.headers, ['order_id', 'article_id', 'quantity', 'delivery_date', 'article_name']);
   assert.equal(parsed.dataRowCount, 2);
   assert.equal(parsed.rows.length, 0);
   assert.deepEqual(parsed.errors, []);
@@ -884,7 +1051,7 @@ test('chunked parser preserves quoted fields and line provenance across boundari
     order_id: 0,
     article_id: 1,
     quantity: 2,
-    order_date: 3,
+    delivery_date: 3,
     article_name: 4
   }, { sourceFile: { id: 'chunked', name: 'chunked.csv', label: 'chunked.csv' } });
   assert.equal(result.validRows, 2);
@@ -894,13 +1061,13 @@ test('chunked parser preserves quoted fields and line provenance across boundari
 });
 
 test('chunked parser removes only a BOM at the beginning of the stream', () => {
-  const parsed = csv.parseCsvChunks(['\uFEFForder_id;article_id;quantity;order_date\n', 'O-1;SKU-\uFEFF1;1;2026-09-12\n'], { retainRows: false });
-  assert.deepEqual(parsed.headers, ['order_id', 'article_id', 'quantity', 'order_date']);
-  const result = csv.importCsvStreamingChunks(['\uFEFForder_id;article_id;quantity;order_date\n', 'O-1;SKU-\uFEFF1;1;2026-09-12\n'], {
+  const parsed = csv.parseCsvChunks(['\uFEFForder_id;article_id;quantity;delivery_date\n', 'O-1;SKU-\uFEFF1;1;2026-09-12\n'], { retainRows: false });
+  assert.deepEqual(parsed.headers, ['order_id', 'article_id', 'quantity', 'delivery_date']);
+  const result = csv.importCsvStreamingChunks(['\uFEFForder_id;article_id;quantity;delivery_date\n', 'O-1;SKU-\uFEFF1;1;2026-09-12\n'], {
     order_id: 0,
     article_id: 1,
     quantity: 2,
-    order_date: 3
+    delivery_date: 3
   });
   assert.equal(result.validRows, 1);
   assert.equal(result.rows[0].article_id, 'SKU-\uFEFF1');
@@ -936,7 +1103,7 @@ test('generated source labels do not collide with original filenames', () => {
 });
 
 test('source coverage is counted by stable file ID instead of display label', () => {
-  const text = 'order_id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
+  const text = 'order_id;article_id;quantity;delivery_date\nO1;A1;1;2026-09-01\n';
   const sources = ['source-1', 'source-2', 'source-3'].map((id) => ({
     id,
     name: 'orders.csv',
@@ -963,8 +1130,8 @@ test('multiple imports combine exact values while preserving file and line prove
     { id: 'source-1', name: 'orders-a.csv', size: 100, lastModified: 1 },
     { id: 'source-2', name: 'orders-b.csv', size: 120, lastModified: 2 }
   ]);
-  const firstText = 'order_id;article_id;article_name;quantity;order_date;sales_value\nO1;A1;Primary;0.1;2026-09-01;0.10\nO2;A1;Primary;1;2026-09-03;1.00\n';
-  const secondText = 'order_id;article_id;article_name;quantity;order_date;sales_value\nO1;A1;Special;0.2;2026-09-02;0.20\nO3;A2;Other;2;2026-09-04;2.00\n';
+  const firstText = 'order_id;article_id;article_name;quantity;delivery_date;sales_value\nO1;A1;Primary;0.1;2026-09-01;0.10\nO2;A1;Primary;1;2026-09-03;1.00\n';
+  const secondText = 'order_id;article_id;article_name;quantity;delivery_date;sales_value\nO1;A1;Special;0.2;2026-09-02;0.20\nO3;A2;Other;2;2026-09-04;2.00\n';
   const files = sources.map((source, index) => {
     const content = index === 0 ? firstText : secondText;
     return {
@@ -1029,7 +1196,7 @@ test('documented multi-export fixtures produce the expected combined analysis', 
 });
 
 test('batch warnings do not deduplicate identical files or duplicate rows', () => {
-  const text = 'order_id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
+  const text = 'order_id;article_id;quantity;delivery_date\nO1;A1;1;2026-09-01\n';
   const sources = csv.assignSourceFileLabels([
     { id: 'source-1', name: 'orders.csv', size: text.length, lastModified: 1 },
     { id: 'source-2', name: 'orders.csv', size: text.length, lastModified: 1 }
@@ -1048,8 +1215,8 @@ test('batch warnings do not deduplicate identical files or duplicate rows', () =
 });
 
 test('matching file metadata warns without treating different content as identical', () => {
-  const firstText = 'order_id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
-  const secondText = 'order_id;article_id;quantity;order_date\nO2;A2;1;2026-10-01\n';
+  const firstText = 'order_id;article_id;quantity;delivery_date\nO1;A1;1;2026-09-01\n';
+  const secondText = 'order_id;article_id;quantity;delivery_date\nO2;A2;1;2026-10-01\n';
   const sources = csv.assignSourceFileLabels([
     { id: 'source-1', name: 'orders.csv', size: 100, lastModified: 123 },
     { id: 'source-2', name: 'orders.csv', size: 100, lastModified: 123 }
@@ -1079,11 +1246,11 @@ test('content fingerprints preserve duplicate warnings after decoded text is rel
 });
 
 test('blocking files are excluded without hiding their source-specific issues', () => {
-  const text = 'order_id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
+  const text = 'order_id;article_id;quantity;delivery_date\nO1;A1;1;2026-09-01\n';
   const readySource = { id: 'source-1', name: 'ready.csv', label: 'ready.csv' };
   const blockedSource = { id: 'source-2', name: 'blocked.csv', label: 'blocked.csv' };
-  const blockedMapping = csv.detectMapping(['order_id', 'article_id', 'quantity', 'order_date']);
-  blockedMapping.order_date = null;
+  const blockedMapping = csv.detectMapping(['order_id', 'article_id', 'quantity', 'delivery_date']);
+  blockedMapping.delivery_date = null;
   const files = [
     { ...readySource, content: text, result: csv.importCsv(text, undefined, { sourceFile: readySource }) },
     { ...blockedSource, content: text, result: csv.importCsv(text, blockedMapping, { sourceFile: blockedSource }) }
@@ -1104,7 +1271,7 @@ test('blocking files are excluded without hiding their source-specific issues', 
 test('row validation identifies both source file and source line', () => {
   const source = { id: 'source-7', name: 'invalid.csv', label: 'invalid.csv' };
   const result = csv.importCsv(
-    'order_id;article_id;quantity;order_date\nO1;;1;2026-09-01\n',
+    'order_id;article_id;quantity;delivery_date\nO1;;1;2026-09-01\n',
     undefined,
     { sourceFile: source }
   );
@@ -1121,7 +1288,7 @@ test('combined export reports protected source-file coverage', () => {
     { id: 'source-1', name: '=orders.csv', label: '=orders.csv' },
     { id: 'source-2', name: 'orders-b.csv', label: 'orders-b.csv' }
   ];
-  const text = 'order_id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
+  const text = 'order_id;article_id;quantity;delivery_date\nO1;A1;1;2026-09-01\n';
   const batch = csv.combineImportResults(sources.map((source) => ({
     ...source,
     content: text + source.id,
@@ -1138,7 +1305,7 @@ test('German headers, dates and decimal commas are detected and normalized', () 
 
   assert.equal(result.validRows, 5);
   assert.equal(result.invalidRows, 0);
-  assert.equal(result.rows[0].order_date, '2026-09-01');
+  assert.equal(result.rows[0].delivery_date, '2026-09-01');
   assert.equal(result.rows[0].sales_value, 19.98);
   assert.equal(result.rows[0].article_id, 'ART-001');
 });
@@ -1149,9 +1316,10 @@ test('high-confidence German warehouse aliases map to their intended fields', ()
     article_id: ['ArtikelNr', 'MaterialNr', 'Materialnummer', 'ProduktNr', 'Produktnummer', 'SKUNr'],
     article_name: ['Artikelname', 'Produktbezeichnung', 'Materialbezeichnung', 'Warenbezeichnung', 'Produkttext', 'Langtext'],
     quantity: ['GMenge', 'Gesamtmenge', 'MengeGesamt', 'Auftragsmenge', 'Kommissioniermenge', 'Pickmenge', 'Entnahmemenge'],
-    order_date: ['LfDat', 'Lieferdatum'],
+    delivery_date: ['LfDat', 'Lieferdatum'],
     customer_id: ['KundenID', 'Debitor', 'DebitorNr', 'DebitorenNr'],
-    sales_value: ['VkWert', 'Verkaufswert', 'Umsatzwert', 'Positionswert', 'Nettowert', 'Positionsnettowert'],
+    sales_value: ['VkWert', 'Verkaufswert', 'Umsatzwert', 'Positionswert'],
+    sales_value_net: ['Nettowert', 'Positionsnettowert'],
     location: ['LgPl', 'Lagerfach', 'LagerfachNr', 'Kommissionierplatz', 'Pickplatz', 'Entnahmeplatz']
   };
 
@@ -1216,7 +1384,7 @@ test('selling-unit fields import with exact quantities and keep total quantity a
 
 test('invalid optional selling-unit values remain traceable without excluding their rows', () => {
   const text = [
-    'order_id;article_id;quantity;order_date;sales_unit_count;quantity_per_sales_unit',
+    'order_id;article_id;quantity;delivery_date;sales_unit_count;quantity_per_sales_unit',
     'O-1;A-1;10;2026-09-01;0;5',
     'O-2;A-2;10;2026-09-02;2;1.00000001',
     'O-3;A-3;10;2026-09-03;-1;5',
@@ -1236,7 +1404,7 @@ test('invalid optional selling-unit values remain traceable without excluding th
     assert.equal(importResult.rows[3].sales_unit_count, null);
     assert.equal(importResult.rows[4].quantity_per_sales_unit, null);
     assert.ok(importResult.issues.every((issue) => issue.severity === 'warning' && issue.blocking === false));
-    assert.ok(importResult.issues.some((issue) => issue.sourceLine === 3 && issue.code === 'quantity_per_sales_unit_precision_exceeded' && issue.orderDate === '2026-09-02'));
+    assert.ok(importResult.issues.some((issue) => issue.sourceLine === 3 && issue.code === 'quantity_per_sales_unit_precision_exceeded' && issue.deliveryDate === '2026-09-02'));
     assert.ok(importResult.issues.some((issue) => issue.sourceLine === 4 && issue.code === 'sales_unit_must_be_non_negative'));
     assert.ok(importResult.issues.some((issue) => issue.sourceLine === 5 && issue.code === 'sales_unit_must_be_non_negative'));
     assert.ok(importResult.issues.some((issue) => issue.sourceLine === 6 && issue.code === 'quantity_per_sales_unit_must_be_positive'));
@@ -1258,7 +1426,7 @@ test('article description aliases are detected in English and German', () => {
   ];
 
   aliases.forEach((alias) => {
-    const mapping = csv.detectMapping(['order_id', 'article_id', alias, 'quantity', 'order_date']);
+    const mapping = csv.detectMapping(['order_id', 'article_id', alias, 'quantity', 'delivery_date']);
     assert.equal(mapping.article_name, 2, alias);
   });
   const germanImport = csv.importCsv('AuftragsNr;ArtNr;Artikelbezeichnung;Menge;Datum\nO-1;A-1;Synthetischer Artikel;1;01.09.2026\n');
@@ -1285,7 +1453,7 @@ test('manual mapping supports article descriptions', () => {
     article_id: 1,
     article_name: 2,
     quantity: 3,
-    order_date: 4,
+    delivery_date: 4,
     customer_id: null,
     sales_value: null,
     location: null
@@ -1335,8 +1503,8 @@ test('article search matches IDs and descriptions', () => {
 
 test('custom field mappings preserve source values without changing core analysis', () => {
   const result = csv.importCsvStreaming(
-    'order_id;article_id;quantity;order_date;Zone\nO1;A1;2;2026-09-01;Cold\n',
-    { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    'order_id;article_id;quantity;delivery_date;Zone\nO1;A1;2;2026-09-01;Cold\n',
+    { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },
     {
       sourceFile: { id: 'source-custom', name: 'custom.csv', label: 'custom.csv' },
       customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }],
@@ -1350,8 +1518,8 @@ test('custom field mappings preserve source values without changing core analysi
 
 test('custom field mappings cannot reuse a core source column', () => {
   const result = csv.importCsvStreaming(
-    'order_id;article_id;quantity;order_date\nO1;A1;2;2026-09-01\n',
-    { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    'order_id;article_id;quantity;delivery_date\nO1;A1;2;2026-09-01\n',
+    { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },
     {
       sourceFile: { id: 'source-custom-duplicate', name: 'custom.csv', label: 'custom.csv' },
       customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }],
@@ -1364,8 +1532,8 @@ test('custom field mappings cannot reuse a core source column', () => {
 
 test('custom field mapping diagnostics follow the selected locale', () => {
   const result = csv.importCsvStreaming(
-    'order_id;article_id;quantity;order_date\nO1;A1;2;2026-09-01\n',
-    { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    'order_id;article_id;quantity;delivery_date\nO1;A1;2;2026-09-01\n',
+    { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },
     {
       locale: 'de',
       sourceFile: { id: 'source-custom-locale', name: 'custom.csv', label: 'custom.csv' },
@@ -1380,8 +1548,8 @@ test('custom field mapping diagnostics follow the selected locale', () => {
 
 test('inactive custom fields do not block existing source mappings', () => {
   const result = csv.importCsvStreaming(
-    'order_id;article_id;quantity;order_date;Zone\nO1;A1;2;2026-09-01;Cold\n',
-    { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    'order_id;article_id;quantity;delivery_date;Zone\nO1;A1;2;2026-09-01;Cold\n',
+    { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },
     {
       sourceFile: { id: 'source-custom-inactive', name: 'custom.csv', label: 'custom.csv' },
       customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: false }],
@@ -1434,7 +1602,7 @@ test('analysis export includes protected article descriptions and conflict metad
 });
 
 test('quantity precision is explicit and enforced during import', () => {
-  const text = 'order_id;article_id;quantity;order_date\nO1;A1;0.0000001;2026-09-01\nO2;A2;0.00000001;2026-09-01\n';
+  const text = 'order_id;article_id;quantity;delivery_date\nO1;A1;0.0000001;2026-09-01\nO2;A2;0.00000001;2026-09-01\n';
   const result = csv.importCsv(text);
 
   assert.equal(csv.QUANTITY_DECIMAL_PLACES, 7);
@@ -1447,7 +1615,7 @@ test('quantity precision is explicit and enforced during import', () => {
 });
 
 test('numeric fields reject internal whitespace and ambiguous separators', () => {
-  const text = 'order_id;article_id;quantity;order_date;customer_id;sales_value;location\nO1;A1;1 2;2026-09-01;C1;10;A-01\nO2;A2;1;2026-09-01;C2;1.234,56;A-02\n';
+  const text = 'order_id;article_id;quantity;delivery_date;customer_id;sales_value;location\nO1;A1;1 2;2026-09-01;C1;10;A-01\nO2;A2;1;2026-09-01;C2;1.234,56;A-02\n';
   const result = csv.importCsv(text);
 
   assert.equal(result.validRows, 0);
@@ -1457,7 +1625,7 @@ test('numeric fields reject internal whitespace and ambiguous separators', () =>
 });
 
 test('sales values outside the exact numeric range are rejected', () => {
-  const text = 'order_id;article_id;quantity;order_date;sales_value\nO1;A1;1;2026-09-01;9007199254740991\nO2;A2;1;2026-09-01;9007199254740993\n';
+  const text = 'order_id;article_id;quantity;delivery_date;sales_value\nO1;A1;1;2026-09-01;9007199254740991\nO2;A2;1;2026-09-01;9007199254740993\n';
   const result = csv.importCsv(text);
 
   assert.equal(result.validRows, 1);
@@ -1466,7 +1634,7 @@ test('sales values outside the exact numeric range are rejected', () => {
 });
 
 test('sales values accept a leading decimal separator', () => {
-  const text = 'order_id;article_id;quantity;order_date;sales_value\nO1;A1;1;2026-09-01;.5\nO2;A2;1;2026-09-01;-.5\nO3;A3;1;2026-09-01;,5\n';
+  const text = 'order_id;article_id;quantity;delivery_date;sales_value\nO1;A1;1;2026-09-01;.5\nO2;A2;1;2026-09-01;-.5\nO3;A3;1;2026-09-01;,5\n';
   const result = csv.importCsv(text);
 
   assert.equal(result.validRows, 3);
@@ -1474,7 +1642,7 @@ test('sales values accept a leading decimal separator', () => {
 });
 
 test('sales values above the supported precision are rejected', () => {
-  const text = 'order_id;article_id;quantity;order_date;sales_value\nO1;A1;1;2026-09-01;0.001\n';
+  const text = 'order_id;article_id;quantity;delivery_date;sales_value\nO1;A1;1;2026-09-01;0.001\n';
   const result = csv.importCsv(text);
 
   assert.equal(csv.SALES_DECIMAL_PLACES, 2);
@@ -1484,7 +1652,7 @@ test('sales values above the supported precision are rejected', () => {
 });
 
 test('sales aggregation preserves exact totals beyond the safe numeric range', () => {
-  const text = 'order_id;article_id;quantity;order_date;sales_value\nO1;A1;1;2026-09-01;9007199254740991\nO2;A1;1;2026-09-01;2\n';
+  const text = 'order_id;article_id;quantity;delivery_date;sales_value\nO1;A1;1;2026-09-01;9007199254740991\nO2;A1;1;2026-09-01;2\n';
   const result = csv.importCsv(text);
   const analysis = csv.analyzeRows(result.rows);
   const article = analysis.articles[0];
@@ -1497,7 +1665,7 @@ test('sales aggregation preserves exact totals beyond the safe numeric range', (
 });
 
 test('quoted CR-only newlines keep later source lines accurate', () => {
-  const text = 'order_id;article_id;quantity;order_date\nO1;"A\rB";1;2026-09-01\rO2;;1;2026-09-01';
+  const text = 'order_id;article_id;quantity;delivery_date\nO1;"A\rB";1;2026-09-01\rO2;;1;2026-09-01';
   const result = csv.importCsv(text);
 
   assert.equal(result.validRows, 1);
@@ -1540,7 +1708,7 @@ test('invalid values are reported with source lines and excluded from aggregatio
   assert.equal(result.validRows, 1);
   assert.equal(result.invalidRows, 6);
   assert.ok(result.issues.some((issue) => issue.sourceLine === 3 && issue.field === 'article_id'));
-  assert.ok(result.issues.some((issue) => issue.sourceLine === 7 && issue.field === 'order_date'));
+  assert.ok(result.issues.some((issue) => issue.sourceLine === 7 && issue.field === 'delivery_date'));
 });
 
 test('malformed column counts are reported without dropping the evidence silently', () => {
@@ -1554,7 +1722,7 @@ test('malformed column counts are reported without dropping the evidence silentl
 });
 
 test('delimiter-only and quoted-empty records remain traceable', () => {
-  const text = 'order_id;article_id;quantity;order_date\n;;;\n"";"";"";""\n';
+  const text = 'order_id;article_id;quantity;delivery_date\n;;;\n"";"";"";""\n';
   const result = csv.importCsv(text);
 
   assert.equal(result.totalRows, 2);
@@ -1565,7 +1733,7 @@ test('delimiter-only and quoted-empty records remain traceable', () => {
 });
 
 test('quoted-empty record at EOF remains traceable without a newline', () => {
-  const text = 'order_id;article_id;quantity;order_date\n""';
+  const text = 'order_id;article_id;quantity;delivery_date\n""';
   const result = csv.importCsv(text);
 
   assert.equal(result.totalRows, 1);
@@ -1579,7 +1747,7 @@ test('reusing one source column for multiple fields is rejected', () => {
     order_id: 0,
     article_id: 0,
     quantity: 2,
-    order_date: 3,
+    delivery_date: 3,
     customer_id: 4,
     sales_value: 5,
     location: 6
@@ -1604,15 +1772,15 @@ test('English is the default message language and German is selectable', () => {
     'order_id',
     'article_id',
     'quantity',
-    'order_date'
+    'delivery_date'
   ]);
-  const english = csv.validateMapping({ ...mapping, order_date: null }, 'en');
-  const german = csv.validateMapping({ ...mapping, order_date: null }, 'de');
+  const english = csv.validateMapping({ ...mapping, delivery_date: null }, 'en');
+  const german = csv.validateMapping({ ...mapping, delivery_date: null }, 'de');
 
   assert.match(english[0].message, /required field/i);
   assert.match(german[0].message, /erforderliche Feld/i);
-  assert.equal(csv.getFieldLabel('article_id', 'en'), 'Article ID');
-  assert.equal(csv.getFieldLabel('article_id', 'de'), 'Artikel-ID');
+  assert.equal(csv.getFieldLabel('article_id', 'en'), 'Article ID / SKU');
+  assert.equal(csv.getFieldLabel('article_id', 'de'), 'Artikel-ID / SKU');
 
   const englishImport = csv.importCsv(fixture('invalid-values.csv'));
   const germanImport = csv.importCsv(fixture('invalid-values.csv'), undefined, { locale: 'de' });
@@ -1621,7 +1789,7 @@ test('English is the default message language and German is selectable', () => {
 });
 
 test('CSV parser diagnostics follow the selected locale', () => {
-  const malformed = 'order_id;article_id;quantity;order_date\nO1;"A;1;2026-09-01\n';
+  const malformed = 'order_id;article_id;quantity;delivery_date\nO1;"A;1;2026-09-01\n';
   const english = csv.importCsv(malformed);
   const parsed = csv.parseCsv(malformed);
   const german = csv.importParsedCsv(parsed, undefined, { locale: 'de' });
@@ -1631,7 +1799,7 @@ test('CSV parser diagnostics follow the selected locale', () => {
 });
 
 test('bare quotes in unquoted fields are rejected', () => {
-  const text = 'order_id;article_id;quantity;order_date\nO1;A"BROKEN;1;2026-09-01\n';
+  const text = 'order_id;article_id;quantity;delivery_date\nO1;A"BROKEN;1;2026-09-01\n';
   const result = csv.importCsv(text);
 
   assert.equal(result.validRows, 0);
@@ -1640,7 +1808,7 @@ test('bare quotes in unquoted fields are rejected', () => {
 });
 
 test('parser errors on the header reject all data rows', () => {
-  const text = 'order_"id;article_id;quantity;order_date\nO1;A1;1;2026-09-01\n';
+  const text = 'order_"id;article_id;quantity;delivery_date\nO1;A1;1;2026-09-01\n';
   const result = csv.importCsv(text);
 
   assert.equal(result.validRows, 0);
@@ -1691,7 +1859,7 @@ test('quantity sorting is descending for scaled integers', () => {
 });
 
 test('analysis sorts equal-frequency articles by quantity descending', () => {
-  const text = 'order_id;article_id;quantity;order_date\nO1;A1;2;2026-09-01\nO2;A2;10;2026-09-01\n';
+  const text = 'order_id;article_id;quantity;delivery_date\nO1;A1;2;2026-09-01\nO2;A2;10;2026-09-01\n';
   const result = csv.importCsv(text);
   const analysis = csv.analyzeRows(result.rows);
 
@@ -1723,7 +1891,7 @@ test('cumulative shares use exact running line counts', () => {
     order_id: 'O' + (index + 1),
     article_id: 'A' + (index + 1),
     quantity: 10000000n,
-    order_date: '2026-09-01',
+    delivery_date: '2026-09-01',
     customer_id: null,
     sales_value: null,
     location: null
@@ -1738,7 +1906,7 @@ test('cumulative shares use exact running line counts', () => {
 });
 
 test('fixed-point aggregation avoids floating-point quantity artifacts', () => {
-  const result = csv.importCsv('order_id;article_id;quantity;order_date\nO1;A1;0.1;2026-09-01\nO2;A1;0.2;2026-09-01\n');
+  const result = csv.importCsv('order_id;article_id;quantity;delivery_date\nO1;A1;0.1;2026-09-01\nO2;A1;0.2;2026-09-01\n');
   const analysis = csv.analyzeRows(result.rows);
 
   assert.equal(result.rows[0].quantity, 1000000n);
@@ -1748,7 +1916,7 @@ test('fixed-point aggregation avoids floating-point quantity artifacts', () => {
 });
 
 test('analysis CSV export preserves very small positive quantities', () => {
-  const result = csv.importCsv('order_id;article_id;quantity;order_date\nO1;A1;0.0000001;2026-09-01\n');
+  const result = csv.importCsv('order_id;article_id;quantity;delivery_date\nO1;A1;0.0000001;2026-09-01\n');
   const analysis = csv.analyzeRows(result.rows);
 
   assert.equal(result.rows[0].quantity, 1n);
@@ -1756,7 +1924,7 @@ test('analysis CSV export preserves very small positive quantities', () => {
 });
 
 test('analysis CSV export preserves safe integer quantities exactly', () => {
-  const result = csv.importCsv('order_id;article_id;quantity;order_date\nO1;A1;1234567890123456;2026-09-01\n');
+  const result = csv.importCsv('order_id;article_id;quantity;delivery_date\nO1;A1;1234567890123456;2026-09-01\n');
   const analysis = csv.analyzeRows(result.rows);
 
   assert.equal(parseAnalysisExport(analysis.articles).rows[0].total_quantity, '1234567890123456');
@@ -1764,9 +1932,9 @@ test('analysis CSV export preserves safe integer quantities exactly', () => {
 
 test('analysis CSV export includes per-article sales-value coverage', () => {
   const analysis = csv.analyzeRows([
-    { order_id: 'O1', article_id: 'A1', quantity: 10000000n, order_date: '2026-09-01', customer_id: null, sales_value: 10, location: null },
-    { order_id: 'O2', article_id: 'A1', quantity: 10000000n, order_date: '2026-09-02', customer_id: null, sales_value: null, location: null },
-    { order_id: 'O3', article_id: 'A2', quantity: 10000000n, order_date: '2026-09-02', customer_id: null, sales_value: null, location: null }
+    { order_id: 'O1', article_id: 'A1', quantity: 10000000n, delivery_date: '2026-09-01', customer_id: null, sales_value: 10, location: null },
+    { order_id: 'O2', article_id: 'A1', quantity: 10000000n, delivery_date: '2026-09-02', customer_id: null, sales_value: null, location: null },
+    { order_id: 'O3', article_id: 'A2', quantity: 10000000n, delivery_date: '2026-09-02', customer_id: null, sales_value: null, location: null }
   ]);
 
   const exported = csv.exportAnalysisCsv(analysis.articles);
@@ -1819,7 +1987,7 @@ test('analysis CSV export keeps location boundaries as JSON', () => {
 
 test('analysis CSV export protects spreadsheet formula text', () => {
   const analysis = csv.analyzeRows([
-    { order_id: 'O1', article_id: '=SUM(1,2)', quantity: 10000000n, order_date: '2026-09-01', customer_id: null, sales_value: null, location: '@ZONE' }
+    { order_id: 'O1', article_id: '=SUM(1,2)', quantity: 10000000n, delivery_date: '2026-09-01', customer_id: null, sales_value: null, location: '@ZONE' }
   ]);
 
   const exported = csv.exportAnalysisCsv(analysis.articles);
