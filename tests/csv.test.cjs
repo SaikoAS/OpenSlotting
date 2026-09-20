@@ -86,6 +86,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(appSource, /activeCustomFieldIds/);
   assert.match(appSource, /state\.articleRegistry = core\.buildArticleRegistry\(retainedRows, \{ activeCustomFieldIds: activeCustomFieldIds \}\)/);
   assert.match(removeCustomFieldBody[1], /await persistActiveWorkspace\(\);/);
+  assert.match(removeCustomFieldBody[1], /enrichAnalysisWithRegistry\(state\.analysis/);
   assert.match(appSource, /stored\.confirmedCustomFieldMapping === null \|\| stored\.confirmedCustomFieldMapping === undefined/);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /id="workspace-open"/);
@@ -109,6 +110,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.doesNotMatch(activateBody[1], /updateWorkspaceSummary/);
   assert.match(activateBody[1], /state\.selectedWorkspaceId = state\.activeWorkspace\.id/);
   assert.match(controlsBody[1], /const editsLocked = state\.workspaceLoading \|\| fileReadPending/);
+  assert.match(controlsBody[1], /state\.analysis\.articles\.length === 0/);
   assert.match(controlsBody[1], /workspaceCancel\.classList\.toggle\('hidden', !state\.workspaceLoading \|\| !state\.workspaceLoadCancellable\)/);
   assert.match(activateBody[1], /if \(error && error\.code === 'workspace_not_found'\) \{\s*await recoverWorkspaceCatalogAfterMissing\(\);/);
   assert.match(activateBody[1], /state\.workspaceLoadCancellable = false;\s*renderWorkspaceControls\(\);\s*if \(revision !== workspaceLoadRevision\)/);
@@ -118,6 +120,8 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(appSource, /renderWorkspaceMessage\(\);\s*if \(state\.files\.length > 0\)/);
   assert.match(controlsBody[1], /workspaceBackup\.disabled = !hasSelection/);
   assert.match(fileChangeBody[1], /state\.files\.some\(function \(file\) \{ return Boolean\(file\.reading\); \}\)/);
+  assert.match(appSource, /file\.customFieldMapping = \{\};/);
+  assert.match(appSource, /blocking: finding\.severity === 'error'/);
   assert.match(backupBody[1], /state\.selectedWorkspaceId/);
   assert.match(backupBody[1], /loadWorkspaceRaw\(selected\.id\)/);
   assert.match(backupBody[1], /loadWorkspace\(selected\.id\)/);
@@ -700,6 +704,11 @@ test('minimum movement contract works without order identity or article master d
   assert.equal(analysis.distinct_orders, 0);
   assert.equal(combined.featureReadiness.periodComparison.status, 'ready');
   assert.equal(combined.featureReadiness.periodComparison.components.distinctOrders.status, 'blocked');
+  const readinessAnalysis = csv.applyFeatureReadinessToAnalysis(analysis, combined.featureReadiness);
+  assert.equal(readinessAnalysis.distinct_orders, null);
+  assert.equal(readinessAnalysis.average_quantity_per_order, null);
+  assert.equal(readinessAnalysis.articles[0].distinct_orders, null);
+  assert.equal(readinessAnalysis.order_metrics_status, 'blocked');
 });
 
 test('explicit sales and price fields stay independent and authoritative', () => {
@@ -776,6 +785,8 @@ test('article-master enrichment exposes semantic precedence without changing mov
   assert.equal(combined.rows[0].sales_value_net, 15);
   assert.equal(combined.rows[0].sales_value_gross, 17);
   assert.equal(masterOnly.movement_status, 'master-only');
+  assert.equal(masterOnly.source_file_count, 1);
+  assert.deepEqual(masterOnly.source_files, ['master.csv']);
   assert.equal(masterOnly.order_line_count, 0);
   assert.deepEqual(masterOnly.order_line_refs, []);
   assert.equal(enriched.total_lines, base.total_lines);
@@ -784,6 +795,19 @@ test('article-master enrichment exposes semantic precedence without changing mov
   assert.equal(exportRows.find((row) => row.article_id === 'SKU-1').movement_status, 'matched');
   assert.equal(exportRows.find((row) => row.article_id === 'SKU-1').current_location, 'NOW-02');
   assert.equal(exportRows.find((row) => row.article_id === 'SKU-2').order_line_count, '0');
+  assert.equal(exportRows.find((row) => row.article_id === 'SKU-2').source_file_count, '1');
+  assert.deepEqual(JSON.parse(exportRows.find((row) => row.article_id === 'SKU-2').source_files), ['master.csv']);
+});
+
+test('negative VAT rates are rejected without retaining the invalid value', () => {
+  const result = csv.importCsv(
+    'article_id;article_name;vat_rate\nSKU-NEG;Invalid VAT;-19\n',
+    undefined,
+    { sourceFile: { id: 'master-negative-vat', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' } }
+  );
+  assert.equal(result.rows[0].vat_rate, null);
+  assert.equal(result.rows[0].vat_rate_exact, null);
+  assert.ok(result.issues.some((issue) => issue.code === 'invalid_master_value'));
 });
 
 test('quality findings preserve duplicate, conflict, missing-master, and master-only evidence', () => {

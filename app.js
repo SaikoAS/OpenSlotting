@@ -1276,7 +1276,7 @@
     elements.filePicker.classList.toggle('disabled', !hasWorkspace);
     elements.languageSelect.disabled = editsLocked;
     elements.analyzeButton.disabled = editsLocked || !state.activeWorkspace || !state.files.some(function (file) { return Boolean(file.parsed); });
-    elements.exportButton.disabled = editsLocked || !state.result || analysisRowCount(state.result) === 0;
+    elements.exportButton.disabled = editsLocked || !state.result || !state.analysis || state.analysis.articles.length === 0;
     elements.mappingGrid.querySelectorAll('select, button').forEach(function (control) {
       const fileId = control.dataset.encodingFileId || control.dataset.removeFileId || control.dataset.fileId;
       const file = state.files.find(function (item) { return item.id === fileId; });
@@ -1469,6 +1469,9 @@
   }
 
   function formatNumber(value, digits) {
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+      return translate('percent_unavailable');
+    }
     return new Intl.NumberFormat(state.language === 'de' ? 'de-DE' : 'en-US', {
       maximumFractionDigits: digits === undefined ? 2 : digits,
       minimumFractionDigits: 0
@@ -2717,7 +2720,7 @@
       showPeriodMessage('period_invalid', 'warning-message');
       return;
     }
-    state.comparison = periods.comparePeriods(state.result.rows, settings, core.analyzeRows);
+    state.comparison = periods.comparePeriods(state.result.rows, settings, core.analyzeRows, state.result.featureReadiness);
     core.prepareArticleSearchProjections(state.comparison.articles, state.language);
     invalidateViewCaches();
     state.comparisonPage = 1;
@@ -3158,12 +3161,13 @@
       : core.buildArticleRegistry(result.retainedRows || result.rows || []);
     state.detailRowsByRef = Array.isArray(result.rows) ? result.rows : [];
     const movementAnalysis = options && options.analysis ? options.analysis : core.analyzeRows(result.rows);
-    state.analysis = core.enrichAnalysisWithRegistry(movementAnalysis, state.articleRegistry, { locale: state.language });
+    state.analysis = core.applyFeatureReadinessToAnalysis(movementAnalysis, result.featureReadiness);
+    state.analysis = core.enrichAnalysisWithRegistry(state.analysis, state.articleRegistry, { locale: state.language });
     core.prepareArticleSearchProjections(state.analysis.articles, state.language);
     invalidateViewCaches();
     state.periodSettings = settingsForDetectedCalendarWeeks(state.periodSettings, result.rows);
     if (state.comparison) {
-      state.comparison = periods.comparePeriods(result.rows, state.periodSettings, core.analyzeRows);
+      state.comparison = periods.comparePeriods(result.rows, state.periodSettings, core.analyzeRows, result.featureReadiness);
       core.prepareArticleSearchProjections(state.comparison.articles, state.language);
       invalidateViewCaches();
     }
@@ -3217,13 +3221,13 @@
         code: finding.code,
         message: finding.message,
         severity: finding.severity,
-        blocking: false
+        blocking: finding.severity === 'error'
       };
     });
     renderIssues(result.issues.concat(qualityIssues));
     renderCoverage();
     renderComparison();
-    elements.exportButton.disabled = analysisRowCount(result) === 0;
+    elements.exportButton.disabled = !state.analysis || state.analysis.articles.length === 0;
     elements.resultsPanel.classList.remove('hidden');
     renderWorkflow(state.comparison ? 'comparison-panel' : 'coverage-panel');
   }
@@ -4405,9 +4409,15 @@
       if (state.result) {
         state.result.articleRegistry = state.articleRegistry;
       }
+      if (state.analysis) {
+        state.analysis = core.enrichAnalysisWithRegistry(state.analysis, state.articleRegistry, { locale: state.language });
+        core.prepareArticleSearchProjections(state.analysis.articles, state.language);
+      }
       state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
       await persistActiveWorkspace();
       renderWorkspaceControls(); renderMapping();
+      renderArticles();
+      if (state.selectedArticleId && selectedArticle()) renderArticleDetail();
     } catch (error) { showWorkspaceError(error); }
   }
 
@@ -4847,6 +4857,7 @@
     file.sourceType = workspaceModel.normalizeSourceType(select.value);
     file.mapping = core.detectMapping(file.headers || [], file.sourceType);
     file.confirmedMapping = null;
+    file.customFieldMapping = {};
     file.confirmedCustomFieldMapping = null;
     file.result = null;
     clearAnalysis();

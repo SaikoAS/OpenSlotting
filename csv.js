@@ -1177,7 +1177,7 @@
     const unitPriceGross = monetaryValue('unit_price_gross');
 
     const vatRateResult = parseExactNumber(vatRateRaw, 4);
-    const vatRate = vatRateResult && !vatRateResult.precisionExceeded ? vatRateResult.number : null;
+    let vatRate = vatRateResult && !vatRateResult.precisionExceeded ? vatRateResult.number : null;
     if (vatRateRaw && (vatRateResult === null || vatRateResult.precisionExceeded || vatRate < 0)) {
       issues.push(advisoryIssue({
         sourceLine: record.sourceLine,
@@ -1186,6 +1186,7 @@
         rawValue: vatRateRaw,
         message: message(locale, 'invalidNumber')
       }));
+      vatRate = null;
     }
 
     const salesUnitCountResult = parseQuantity(salesUnitCountRaw);
@@ -1295,7 +1296,7 @@
         quantity_per_sales_unit: quantityPerSalesUnit,
         unit_of_measure: unitOfMeasureRaw || null,
         vat_rate: vatRate,
-        vat_rate_exact: vatRateResult && !vatRateResult.precisionExceeded && vatRate >= 0 ? vatRateResult.text : null,
+        vat_rate_exact: vatRateResult && !vatRateResult.precisionExceeded && vatRate !== null && vatRate >= 0 ? vatRateResult.text : null,
         sales_unit_quantity_matches: salesUnitQuantityMatches,
         sales_unit_quantity_relation: salesUnitQuantityRelation,
         custom_fields: customValues
@@ -2157,6 +2158,30 @@
     return evidence;
   }
 
+  function applyFeatureReadinessToAnalysis(analysis, featureReadiness) {
+    const result = analysis || {};
+    const component = featureReadiness && featureReadiness.periodComparison &&
+      featureReadiness.periodComparison.components && featureReadiness.periodComparison.components.distinctOrders;
+    if (!component) {
+      return result;
+    }
+    const status = component.status || 'blocked';
+    result.order_metrics_status = status;
+    result.order_metrics_available = status === 'ready';
+    if (!result.order_metrics_available) {
+      result.distinct_orders = null;
+      result.average_quantity_per_order = null;
+      result.articles = (result.articles || []).map(function (article) {
+        return Object.assign({}, article, { distinct_orders: null, order_metrics_status: status });
+      });
+    } else {
+      result.articles = (result.articles || []).map(function (article) {
+        return Object.assign({}, article, { order_metrics_status: status });
+      });
+    }
+    return result;
+  }
+
   function evaluateFeatureReadiness(capabilities, featureName, locale) {
     const contract = FEATURE_REQUIREMENTS[featureName];
     if (!contract) {
@@ -2242,10 +2267,11 @@
         article_name_variants: [],
         article_name_conflict: false,
         movement_status: 'master-only',
+        order_metrics_status: analysis.order_metrics_status || 'ready',
         has_master_data: true,
         order_line_count: 0,
         total_quantity: 0n,
-        distinct_orders: 0,
+        distinct_orders: analysis.order_metrics_available === false ? null : 0,
         distinct_customers: 0,
         active_days: 0,
         total_sales: 0,
@@ -2258,8 +2284,8 @@
         selling_unit_partial_rows: 0,
         selling_unit_overage_rows: 0,
         locations: [],
-        source_file_count: 0,
-        source_files: [],
+        source_file_count: Array.isArray(registryEntry.source_files) ? registryEntry.source_files.length : 0,
+        source_files: Array.isArray(registryEntry.source_files) ? registryEntry.source_files.slice() : [],
         order_line_refs: [],
         share_of_order_lines: 0,
         cumulative_share_of_order_lines: 1,
@@ -2814,6 +2840,7 @@
       'article_name_conflict',
       'article_name_variants',
       'movement_status',
+      'order_metrics_status',
       'current_location',
       'current_quantity_per_sales_unit',
       'unit_of_measure',
@@ -2850,6 +2877,7 @@
         article.article_name_conflict ? 'true' : 'false',
         protectSpreadsheetText(serializeArticleNameVariants(article.article_name_variants)),
         article.movement_status || 'movement-only',
+        article.order_metrics_status || 'ready',
         protectSpreadsheetText(article.current_location),
         serializeQuantity(article.current_quantity_per_sales_unit),
         protectSpreadsheetText(article.unit_of_measure),
@@ -2895,6 +2923,7 @@
     combineImportResults: combineImportResults,
     buildArticleRegistry: buildArticleRegistry,
     buildCapabilityReadiness: buildCapabilityReadiness,
+    applyFeatureReadinessToAnalysis: applyFeatureReadinessToAnalysis,
     buildDataQualityFindings: buildDataQualityFindings,
     enrichAnalysisWithRegistry: enrichAnalysisWithRegistry,
     evaluateFeatureReadiness: evaluateFeatureReadiness,

@@ -67,6 +67,27 @@ test('period comparison keeps absolute and relative changes separate', () => {
   assert.deepEqual(articleOne.period_b.order_line_refs.map((index) => rows[index].order_id), ['O-3']);
 });
 
+test('period comparison marks order metrics unavailable when order identity is missing', () => {
+  const rows = csv.importCsv('article_id;quantity;delivery_date\nA-1;2;2026-09-01\n').rows;
+  const readiness = {
+    periodComparison: {
+      components: { distinctOrders: { status: 'blocked' } }
+    }
+  };
+  const comparison = periods.comparePeriods(rows, {
+    expectedWeekdays: [2],
+    periodA: { name: 'Before', start: '2026-09-01', end: '2026-09-01' },
+    periodB: { name: 'After', start: '2026-09-02', end: '2026-09-02' }
+  }, csv.analyzeRows, readiness);
+
+  assert.equal(comparison.order_metrics_status, 'blocked');
+  assert.equal(comparison.analysisA.distinct_orders, null);
+  assert.equal(comparison.analysisA.average_quantity_per_order, null);
+  assert.equal(comparison.summary.orderChange, null);
+  assert.equal(comparison.articles[0].period_a.distinct_orders, null);
+  assert.match(periods.exportComparisonCsv(comparison, csv), /change_state;order_metrics_status;/);
+});
+
 test('single-pass comparison matches the reference metrics and coverage', () => {
   const rows = fixtureRows();
   const settings = {
