@@ -4411,6 +4411,11 @@
       state.articleRegistry = core.buildArticleRegistry(retainedRows, { activeCustomFieldIds: activeCustomFieldIds });
       if (state.result) {
         state.result.articleRegistry = state.articleRegistry;
+        const activeFieldIds = new Set(activeCustomFieldIds.map(function (id) { return String(id); }));
+        state.result.issues = (state.result.issues || []).filter(function (issue) {
+          return !issue.customFieldId || activeFieldIds.has(String(issue.customFieldId));
+        });
+        state.result.qualityFindings = core.buildDataQualityFindings(state.articleRegistry, state.result.issues, state.language);
       }
       if (state.analysis) {
         state.analysis = core.enrichAnalysisWithRegistry(state.analysis, state.articleRegistry, { locale: state.language });
@@ -4421,6 +4426,21 @@
       renderWorkspaceControls(); renderMapping();
       renderArticles();
       if (state.selectedArticleId && selectedArticle()) renderArticleDetail();
+      if (state.result) {
+        const qualityIssues = (state.result.qualityFindings || []).map(function (finding) {
+          return {
+            sourceFileId: finding.sourceFileId,
+            sourceFileLabel: finding.sourceFileLabel || finding.sourceFileId,
+            sourceLine: finding.sourceLine,
+            field: finding.article_id || finding.category,
+            code: finding.code,
+            message: finding.message,
+            severity: finding.severity,
+            blocking: finding.severity === 'error'
+          };
+        });
+        renderIssues((state.result.issues || []).concat(qualityIssues));
+      }
     } catch (error) { showWorkspaceError(error); }
   }
 

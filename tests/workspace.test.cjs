@@ -687,3 +687,18 @@ test('schema-eight migration renames order date and preserves legacy sales value
   assert.deepEqual(migrated.files[0].customFieldMapping, {});
   assert.equal(migrated.files[0].confirmedCustomFieldMapping, null);
 });
+
+test('schema-eight migration removes hidden order-line mappings from article-master sources', () => {
+  const legacy = workspace.createWorkspace('Legacy master mapping', { id: 'workspace-v8-master' });
+  legacy.schemaVersion = 8;
+  const file = articleMasterSourceFile('source-legacy-master', 'SKU-MASTER');
+  file.mapping = { article_id: 0, quantity: 1, delivery_date: 2, sales_value: 3 };
+  file.confirmedMapping = { article_id: 0, quantity: 1, delivery_date: 2, sales_value: 3 };
+  file.result.mapping = { article_id: 0, quantity: 1, delivery_date: 2, sales_value: 3 };
+  legacy.files.push(file);
+
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.deepEqual(migrated.files[0].mapping, { article_id: 0 });
+  assert.deepEqual(migrated.files[0].confirmedMapping, { article_id: 0 });
+  assert.deepEqual(migrated.files[0].result.mapping, { article_id: 0 });
+});

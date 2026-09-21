@@ -87,6 +87,8 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(appSource, /state\.articleRegistry = core\.buildArticleRegistry\(retainedRows, \{ activeCustomFieldIds: activeCustomFieldIds \}\)/);
   assert.match(removeCustomFieldBody[1], /await persistActiveWorkspace\(\);/);
   assert.match(removeCustomFieldBody[1], /enrichAnalysisWithRegistry\(state\.analysis/);
+  assert.match(removeCustomFieldBody[1], /state\.result\.qualityFindings = core\.buildDataQualityFindings/);
+  assert.match(removeCustomFieldBody[1], /renderIssues\(\(state\.result\.issues \|\| \[\]\)\.concat/);
   assert.match(appSource, /stored\.confirmedCustomFieldMapping === null \|\| stored\.confirmedCustomFieldMapping === undefined/);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /id="workspace-open"/);

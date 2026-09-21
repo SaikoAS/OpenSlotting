@@ -806,6 +806,14 @@
         migrationTarget.articleRegistry = [];
       }
       if (schemaVersion <= 8) {
+        const articleMasterFields = new Set(['article_id', 'article_name', 'location', 'quantity_per_sales_unit', 'unit_of_measure', 'vat_rate']);
+        function removeNonApplicableMappings(mapping, sourceType) {
+          if (!isPlainObject(mapping) || normalizeSourceType(sourceType) !== 'article-master') return mapping;
+          Object.keys(mapping).forEach(function (fieldId) {
+            if (!articleMasterFields.has(fieldId)) delete mapping[fieldId];
+          });
+          return mapping;
+        }
         function renameDateMapping(mapping) {
           if (!isPlainObject(mapping)) return mapping;
           if (mapping.delivery_date === undefined && mapping.order_date !== undefined) {
@@ -821,9 +829,13 @@
           if (normalizeSourceType(migratedFile.sourceType) === 'order-lines') {
             migratedFile.customFieldMapping = {};
             migratedFile.confirmedCustomFieldMapping = null;
+          } else {
+            removeNonApplicableMappings(migratedFile.mapping, migratedFile.sourceType);
+            removeNonApplicableMappings(migratedFile.confirmedMapping, migratedFile.sourceType);
           }
           if (isPlainObject(migratedFile.result)) {
             renameDateMapping(migratedFile.result.mapping);
+            removeNonApplicableMappings(migratedFile.result.mapping, migratedFile.sourceType);
             migratedFile.result.rows = Array.isArray(migratedFile.result.rows) ? migratedFile.result.rows.map(function (row) {
               if (!isPlainObject(row)) return row;
               if (row.delivery_date === undefined && row.order_date !== undefined) {
