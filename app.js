@@ -2314,7 +2314,7 @@
       appendCell(row, String(rowData.source_line), 'number');
       appendCell(row, rowData.delivery_date);
       appendCell(row, rowData.article_id);
-      appendCell(row, rowData.order_id + ' · ' + formatQuantity(rowData.quantity));
+      appendCell(row, optionalText(rowData.order_id) + ' · ' + formatQuantity(rowData.quantity));
       elements.coverageDrilldownTableBody.appendChild(row);
     });
     issues.forEach(function (issue) {

@@ -198,7 +198,7 @@
       if (!fieldAppliesToSource(definition, sourceType)) {
         return false;
       }
-      return !definition.legacy || settings.includeLegacy === true || Number.isInteger(mapping[definition.key]);
+      return !definition.legacy || settings.includeLegacy === true || Object.hasOwn(mapping, definition.key);
     });
   }
 
@@ -2301,7 +2301,7 @@
         source_files: Array.isArray(registryEntry.source_files) ? registryEntry.source_files.slice() : [],
         order_line_refs: [],
         share_of_order_lines: 0,
-        cumulative_share_of_order_lines: 1,
+        cumulative_share_of_order_lines: analysis.total_lines === 0 ? 0 : 1,
         current_location: masterData.location || null,
         current_quantity_per_sales_unit: masterData.quantity_per_sales_unit === undefined ? null : masterData.quantity_per_sales_unit,
         unit_of_measure: masterData.unit_of_measure || null,

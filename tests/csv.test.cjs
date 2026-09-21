@@ -123,6 +123,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(appSource, /file\.customFieldMapping = \{\};/);
   assert.match(appSource, /blocking: finding\.severity === 'error'/);
   assert.match(appSource, /function formatQuantity\(value\) \{\s*if \(value === null \|\| value === undefined\)/);
+  assert.match(appSource, /optionalText\(rowData\.order_id\) \+ ' · ' \+ formatQuantity/);
   assert.match(backupBody[1], /state\.selectedWorkspaceId/);
   assert.match(backupBody[1], /loadWorkspaceRaw\(selected\.id\)/);
   assert.match(backupBody[1], /loadWorkspace\(selected\.id\)/);
@@ -676,6 +677,7 @@ test('source-scoped field definitions hide non-applicable mappings', () => {
     'article_id', 'article_name', 'location', 'quantity_per_sales_unit', 'unit_of_measure', 'vat_rate'
   ]);
   assert.ok(orderDefinitions.includes('customer_name'));
+  assert.ok(csv.getFieldDefinitionsForSource('order-lines', { mapping: { sales_value: null } }).some((field) => field.key === 'sales_value'));
   assert.ok(orderDefinitions.includes('sales_value_net'));
   assert.ok(!orderDefinitions.includes('unit_of_measure'));
   assert.equal(csv.FIELD_DEFINITIONS.find((field) => field.key === 'quantity').dataType, 'scaled-quantity');
@@ -814,6 +816,7 @@ test('article-master enrichment exposes semantic precedence without changing mov
   assert.equal(masterOnly.source_file_count, 1);
   assert.deepEqual(masterOnly.source_files, ['master.csv']);
   assert.equal(masterOnly.order_line_count, 0);
+  assert.equal(masterOnly.cumulative_share_of_order_lines, 1);
   assert.deepEqual(masterOnly.order_line_refs, []);
   assert.equal(enriched.total_lines, base.total_lines);
   assert.equal(enriched.total_quantity, base.total_quantity);
@@ -835,6 +838,23 @@ test('negative VAT rates are rejected without retaining the invalid value', () =
   assert.equal(result.rows[0].vat_rate, null);
   assert.equal(result.rows[0].vat_rate_exact, null);
   assert.ok(result.issues.some((issue) => issue.code === 'invalid_master_value'));
+});
+
+test('master-only enrichment keeps cumulative share at zero without movement rows', () => {
+  const master = csv.importCsv(
+    'article_id;article_name\nSKU-MASTER;Master only\n',
+    undefined,
+    { sourceFile: { id: 'master-share', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' } }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'master-share', name: 'master.csv', label: 'master.csv', sourceType: 'article-master', result: master }
+  ]);
+  const enriched = csv.enrichAnalysisWithRegistry(csv.analyzeRows(combined.rows), combined.articleRegistry);
+  const article = enriched.articles[0];
+  assert.equal(article.share_of_order_lines, 0);
+  assert.equal(article.cumulative_share_of_order_lines, 0);
+  const exported = parseAnalysisExport(enriched.articles).rows[0];
+  assert.equal(exported.cumulative_share_of_order_lines, '0');
 });
 
 test('quality findings preserve duplicate, conflict, missing-master, and master-only evidence', () => {
