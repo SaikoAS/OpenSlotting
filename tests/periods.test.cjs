@@ -111,6 +111,9 @@ test('period comparison marks customer metrics unavailable and uses master descr
   assert.equal(comparison.summary.customerChange, null);
   assert.equal(comparison.articles[0].article_name, 'Master name');
   assert.equal(comparison.articles[0].period_a.article_name, 'Master name');
+  assert.deepEqual(comparison.articles[0].article_name_variants, ['Old name', 'Master name']);
+  assert.equal(comparison.articles[0].period_a.article_name_conflict, true);
+  assert.equal(comparison.articles[0].period_b.article_name_conflict, false);
   assert.match(periods.exportComparisonCsv(comparison, csv), /change_state;order_metrics_status;customer_metrics_status;/);
 });
 

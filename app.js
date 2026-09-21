@@ -4389,6 +4389,7 @@
       state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
       await persistActiveWorkspace(undefined, { metadataOnly: true });
       renderWorkspaceControls(); renderMapping();
+      if (state.selectedArticleId && selectedArticle()) renderArticleDetail();
     } catch (error) { showWorkspaceError(error); }
   }
 

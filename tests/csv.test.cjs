@@ -126,6 +126,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(appSource, /blocking: finding\.severity === 'error'/);
   assert.match(appSource, /function formatQuantity\(value\) \{\s*if \(value === null \|\| value === undefined\)/);
   assert.match(appSource, /optionalText\(rowData\.order_id\) \+ ' · ' \+ formatQuantity/);
+  assert.match(appSource, /renderWorkspaceControls\(\); renderMapping\(\);\s*if \(state\.selectedArticleId && selectedArticle\(\)\) renderArticleDetail\(\);/);
   assert.match(backupBody[1], /state\.selectedWorkspaceId/);
   assert.match(backupBody[1], /loadWorkspaceRaw\(selected\.id\)/);
   assert.match(backupBody[1], /loadWorkspace\(selected\.id\)/);
@@ -817,6 +818,7 @@ test('article-master enrichment exposes semantic precedence without changing mov
   assert.equal(combined.rows[0].sales_value_net, 15);
   assert.equal(combined.rows[0].sales_value_gross, 17);
   assert.equal(masterOnly.movement_status, 'master-only');
+  assert.deepEqual(masterOnly.article_name_variants, ['Master only']);
   assert.equal(masterOnly.source_file_count, 1);
   assert.deepEqual(masterOnly.source_files, ['master.csv']);
   assert.equal(masterOnly.order_line_count, 0);
@@ -831,6 +833,19 @@ test('article-master enrichment exposes semantic precedence without changing mov
   assert.equal(exportRows.find((row) => row.article_id === 'SKU-2').source_file_count, '1');
   assert.deepEqual(JSON.parse(exportRows.find((row) => row.article_id === 'SKU-2').source_files), ['master.csv']);
   assert.equal(exportRows.find((row) => row.article_id === 'SKU-1').source_file_count, '2');
+});
+
+test('master-only enrichment marks the line average unavailable', () => {
+  const master = csv.importCsv(
+    'article_id;article_name\nSKU-MASTER;Master only\n',
+    undefined,
+    { sourceFile: { id: 'master-average', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' } }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'master-average', name: 'master.csv', label: 'master.csv', sourceType: 'article-master', result: master }
+  ]);
+  const enriched = csv.enrichAnalysisWithRegistry(csv.analyzeRows(combined.rows), combined.articleRegistry);
+  assert.equal(enriched.average_quantity_per_line, null);
 });
 
 test('negative VAT rates are rejected without retaining the invalid value', () => {

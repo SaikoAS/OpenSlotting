@@ -470,8 +470,12 @@
         ? Object.assign({}, existingB, { article_name: masterName || existingB.article_name })
         : emptyArticle(articleId, articleName, { orderMetricsAvailable: orderMetricsAvailable, customerMetricsAvailable: customerMetricsAvailable });
       const articleNameVariants = Array.from(new Set(
-        (periodA.article_name_variants || []).concat(periodB.article_name_variants || [])
+        (periodA.article_name_variants || []).concat(periodB.article_name_variants || []).concat(masterName ? [masterName] : [])
       ));
+      periodA.article_name_variants = Array.from(new Set((periodA.article_name_variants || []).concat(masterName ? [masterName] : [])));
+      periodA.article_name_conflict = periodA.article_name_variants.length > 1;
+      periodB.article_name_variants = Array.from(new Set((periodB.article_name_variants || []).concat(masterName ? [masterName] : [])));
+      periodB.article_name_conflict = periodB.article_name_variants.length > 1;
       const quantityChange = periodB.total_quantity - periodA.total_quantity;
       return {
         article_id: articleId,

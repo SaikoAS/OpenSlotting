@@ -2289,7 +2289,7 @@
         article_id: registryEntry.article_id,
         article_name: masterData.article_name || registryEntry.article_name || null,
         movement_article_name: null,
-        article_name_variants: [],
+        article_name_variants: masterData.article_name ? [masterData.article_name] : [],
         article_name_conflict: false,
         movement_status: 'master-only',
         order_metrics_status: analysis.order_metrics_status || 'ready',
@@ -2326,6 +2326,9 @@
       });
     });
     prepareArticleSearchProjections(enriched, options && options.locale);
+    if (result.total_lines === 0) {
+      result.average_quantity_per_line = null;
+    }
     result.articles = enriched;
     return result;
   }
