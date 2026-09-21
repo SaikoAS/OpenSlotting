@@ -1257,7 +1257,9 @@
               message: message(locale, 'invalidCustomValue', { type: field.type })
             }));
           } else {
-            customValues[field.id] = value;
+            customValues[field.id] = field.type === 'number'
+              ? parseExactNumber(value).text
+              : (field.type === 'date' ? normalizeDate(value) : value);
           }
         }
       }
@@ -2251,11 +2253,22 @@
         });
       }
       const masterData = Object.assign({}, registryEntry.master_data || {});
+      const articleNameVariants = [];
+      (Array.isArray(article.article_name_variants) ? article.article_name_variants : [])
+        .concat(Array.isArray(registryEntry.movement_article_names) ? registryEntry.movement_article_names : [])
+        .concat(masterData.article_name ? [masterData.article_name] : [])
+        .forEach(function (name) {
+          if (name && articleNameVariants.indexOf(name) < 0) {
+            articleNameVariants.push(name);
+          }
+        });
       return Object.assign({}, article, {
         movement_status: registryEntry.movement_status,
         has_master_data: registryEntry.has_master_data,
         movement_article_name: article.article_name,
         article_name: masterData.article_name || article.article_name,
+        article_name_variants: articleNameVariants,
+        article_name_conflict: articleNameVariants.length > 1,
         current_location: masterData.location || null,
         current_quantity_per_sales_unit: masterData.quantity_per_sales_unit === undefined ? null : masterData.quantity_per_sales_unit,
         unit_of_measure: masterData.unit_of_measure || null,

@@ -804,6 +804,8 @@ test('article-master enrichment exposes semantic precedence without changing mov
 
   assert.equal(matched.article_name, 'Current description');
   assert.equal(matched.movement_article_name, 'Old description');
+  assert.deepEqual(matched.article_name_variants, ['Old description', 'Current description']);
+  assert.equal(matched.article_name_conflict, true);
   assert.deepEqual(matched.locations, ['HIST-01']);
   assert.equal(matched.current_location, 'NOW-02');
   assert.deepEqual(matched.quantity_per_sales_unit_values, [50000000n]);
@@ -1602,6 +1604,31 @@ test('invalid typed custom values are omitted from normalized enrichment values'
   assert.equal(result.blocking, false);
   assert.deepEqual(result.rows[0].custom_fields, {});
   assert.ok(result.issues.some((issue) => issue.code === 'invalid_custom_field_value'));
+});
+
+test('typed custom values use canonical number and date representations', () => {
+  const result = csv.importCsvStreaming(
+    'article_id;article_name;Zone Number;Review Date\nA1;Article;1.0;1.9.2026\nA1;Article;1;2026-09-01\n',
+    { article_id: 0, article_name: 1 },
+    {
+      sourceFile: { id: 'source-custom-canonical', name: 'custom.csv', label: 'custom.csv', sourceType: 'article-master' },
+      customFields: [
+        { id: 'custom-zone', name: 'Zone Number', type: 'number', active: true },
+        { id: 'custom-review-date', name: 'Review Date', type: 'date', active: true }
+      ],
+      customFieldMapping: { 'custom-zone': 2, 'custom-review-date': 3 }
+    }
+  );
+  assert.deepEqual(result.rows[0].custom_fields, {
+    'custom-zone': '1',
+    'custom-review-date': '2026-09-01'
+  });
+  assert.deepEqual(result.rows[1].custom_fields, {
+    'custom-zone': '1',
+    'custom-review-date': '2026-09-01'
+  });
+  const combined = csv.combineImportResults([{ id: 'source-custom-canonical', name: 'custom.csv', label: 'custom.csv', sourceType: 'article-master', result }]);
+  assert.equal(combined.qualityFindings.some((finding) => finding.code === 'conflicting_master_value'), false);
 });
 
 test('custom field mappings cannot reuse a core source column', () => {

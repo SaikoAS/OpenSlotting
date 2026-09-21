@@ -265,6 +265,8 @@ The analysis export uses semicolons and CRLF line endings by default. Its stable
 | `article_name_conflict` | `true` when multiple non-empty variants exist; otherwise `false`. |
 | `article_name_variants` | JSON array of retained descriptions, or empty when none exist. |
 | `movement_status` | `matched`, `movement-only`, or `master-only`. |
+| `order_metrics_status` | `ready`, `partial`, or `blocked`; indicates whether order-dependent metrics are available. |
+| `customer_metrics_status` | `ready`, `partial`, or `blocked`; indicates whether customer-dependent metrics are available. |
 | `current_location` | Current article-master location, kept separate from historical movement locations. |
 | `current_quantity_per_sales_unit` | Current article-master quantity per selling unit, kept separate from movement values. |
 | `unit_of_measure` | Current article-master unit of measure. |
