@@ -88,6 +88,32 @@ test('period comparison marks order metrics unavailable when order identity is m
   assert.match(periods.exportComparisonCsv(comparison, csv), /change_state;order_metrics_status;/);
 });
 
+test('period comparison marks customer metrics unavailable and uses master descriptions', () => {
+  const rows = csv.importCsv('article_id;article_name;quantity;delivery_date\nA-1;Old name;2;2026-09-01\n').rows;
+  const readiness = {
+    periodComparison: {
+      components: { customers: { status: 'blocked' } }
+    }
+  };
+  const comparison = periods.comparePeriods(rows, {
+    expectedWeekdays: [2],
+    periodA: { name: 'Before', start: '2026-09-01', end: '2026-09-01' },
+    periodB: { name: 'After', start: '2026-09-02', end: '2026-09-02' }
+  }, csv.analyzeRows, readiness, [{
+    article_id: 'A-1',
+    article_name: 'Master name',
+    has_master_data: true,
+    master_data: { article_name: 'Master name' }
+  }]);
+
+  assert.equal(comparison.customer_metrics_status, 'blocked');
+  assert.equal(comparison.analysisA.distinct_customers, null);
+  assert.equal(comparison.summary.customerChange, null);
+  assert.equal(comparison.articles[0].article_name, 'Master name');
+  assert.equal(comparison.articles[0].period_a.article_name, 'Master name');
+  assert.match(periods.exportComparisonCsv(comparison, csv), /change_state;order_metrics_status;customer_metrics_status;/);
+});
+
 test('single-pass comparison matches the reference metrics and coverage', () => {
   const rows = fixtureRows();
   const settings = {

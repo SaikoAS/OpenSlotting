@@ -1245,7 +1245,6 @@
       if (Number.isInteger(sourceIndex)) {
         const value = String(values[sourceIndex] === undefined ? '' : values[sourceIndex]).trim();
         if (value) {
-          customValues[field.id] = value;
           const invalidNumber = field.type === 'number' && normalizeNumber(value) === null;
           const invalidDate = field.type === 'date' && normalizeDate(value) === null;
           if (invalidNumber || invalidDate) {
@@ -1257,6 +1256,8 @@
               rawValue: value,
               message: message(locale, 'invalidCustomValue', { type: field.type })
             }));
+          } else {
+            customValues[field.id] = value;
           }
         }
       }
@@ -2114,7 +2115,8 @@
   function buildCapabilityReadiness(files, locale) {
     const evidence = {};
     const relevantFiles = (files || []).filter(function (file) {
-      return file && file.sourceType === 'order-lines' && file.result && !file.result.blocking;
+      return file && file.sourceType === 'order-lines' && file.result && !file.result.blocking &&
+        Array.isArray(file.result.rows) && file.result.rows.length > 0;
     });
 
     FIELD_DEFINITIONS.forEach(function (definition) {
@@ -2160,25 +2162,33 @@
 
   function applyFeatureReadinessToAnalysis(analysis, featureReadiness) {
     const result = analysis || {};
-    const component = featureReadiness && featureReadiness.periodComparison &&
+    const orderComponent = featureReadiness && featureReadiness.periodComparison &&
       featureReadiness.periodComparison.components && featureReadiness.periodComparison.components.distinctOrders;
-    if (!component) {
+    const customerComponent = featureReadiness && featureReadiness.periodComparison &&
+      featureReadiness.periodComparison.components && featureReadiness.periodComparison.components.customers;
+    if (!orderComponent && !customerComponent) {
       return result;
     }
-    const status = component.status || 'blocked';
-    result.order_metrics_status = status;
-    result.order_metrics_available = status === 'ready';
+    const orderStatus = orderComponent ? (orderComponent.status || 'blocked') : 'ready';
+    const customerStatus = customerComponent ? (customerComponent.status || 'blocked') : 'ready';
+    result.order_metrics_status = orderStatus;
+    result.order_metrics_available = orderStatus === 'ready';
+    result.customer_metrics_status = customerStatus;
+    result.customer_metrics_available = customerStatus === 'ready';
     if (!result.order_metrics_available) {
       result.distinct_orders = null;
       result.average_quantity_per_order = null;
-      result.articles = (result.articles || []).map(function (article) {
-        return Object.assign({}, article, { distinct_orders: null, order_metrics_status: status });
-      });
-    } else {
-      result.articles = (result.articles || []).map(function (article) {
-        return Object.assign({}, article, { order_metrics_status: status });
-      });
     }
+    if (!result.customer_metrics_available) result.distinct_customers = null;
+    result.articles = (result.articles || []).map(function (article) {
+      const update = {
+        order_metrics_status: orderStatus,
+        customer_metrics_status: customerStatus
+      };
+      if (!result.order_metrics_available) update.distinct_orders = null;
+      if (!result.customer_metrics_available) update.distinct_customers = null;
+      return Object.assign({}, article, update);
+    });
     return result;
   }
 
@@ -2250,6 +2260,8 @@
         current_quantity_per_sales_unit: masterData.quantity_per_sales_unit === undefined ? null : masterData.quantity_per_sales_unit,
         unit_of_measure: masterData.unit_of_measure || null,
         vat_rate: masterData.vat_rate === undefined ? null : masterData.vat_rate,
+        source_file_count: Array.isArray(registryEntry.source_files) ? registryEntry.source_files.length : article.source_file_count,
+        source_files: Array.isArray(registryEntry.source_files) ? registryEntry.source_files.slice() : (article.source_files || []),
         master_data: masterData,
         master_custom_fields: Object.assign({}, registryEntry.custom_fields || {}),
         master_value_conflicts: (registryEntry.value_conflicts || []).slice(),
@@ -2268,11 +2280,12 @@
         article_name_conflict: false,
         movement_status: 'master-only',
         order_metrics_status: analysis.order_metrics_status || 'ready',
+        customer_metrics_status: analysis.customer_metrics_status || 'ready',
         has_master_data: true,
         order_line_count: 0,
         total_quantity: 0n,
         distinct_orders: analysis.order_metrics_available === false ? null : 0,
-        distinct_customers: 0,
+        distinct_customers: analysis.customer_metrics_available === false ? null : 0,
         active_days: 0,
         total_sales: 0,
         total_sales_exact: '0',
@@ -2841,6 +2854,7 @@
       'article_name_variants',
       'movement_status',
       'order_metrics_status',
+      'customer_metrics_status',
       'current_location',
       'current_quantity_per_sales_unit',
       'unit_of_measure',
@@ -2878,6 +2892,7 @@
         protectSpreadsheetText(serializeArticleNameVariants(article.article_name_variants)),
         article.movement_status || 'movement-only',
         article.order_metrics_status || 'ready',
+        article.customer_metrics_status || 'ready',
         protectSpreadsheetText(article.current_location),
         serializeQuantity(article.current_quantity_per_sales_unit),
         protectSpreadsheetText(article.unit_of_measure),

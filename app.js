@@ -1479,6 +1479,9 @@
   }
 
   function formatQuantity(value) {
+    if (value === null || value === undefined) {
+      return translate('percent_unavailable');
+    }
     return core.formatScaledQuantity(value, state.language);
   }
 
@@ -2720,7 +2723,7 @@
       showPeriodMessage('period_invalid', 'warning-message');
       return;
     }
-    state.comparison = periods.comparePeriods(state.result.rows, settings, core.analyzeRows, state.result.featureReadiness);
+    state.comparison = periods.comparePeriods(state.result.rows, settings, core.analyzeRows, state.result.featureReadiness, state.articleRegistry);
     core.prepareArticleSearchProjections(state.comparison.articles, state.language);
     invalidateViewCaches();
     state.comparisonPage = 1;
@@ -3167,7 +3170,7 @@
     invalidateViewCaches();
     state.periodSettings = settingsForDetectedCalendarWeeks(state.periodSettings, result.rows);
     if (state.comparison) {
-      state.comparison = periods.comparePeriods(result.rows, state.periodSettings, core.analyzeRows, result.featureReadiness);
+      state.comparison = periods.comparePeriods(result.rows, state.periodSettings, core.analyzeRows, result.featureReadiness, state.articleRegistry);
       core.prepareArticleSearchProjections(state.comparison.articles, state.language);
       invalidateViewCaches();
     }

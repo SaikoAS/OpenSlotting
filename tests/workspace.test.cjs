@@ -650,7 +650,10 @@ test('schema-seven migration adds an empty article registry', () => {
 test('schema-eight migration renames order date and preserves legacy sales value semantics', () => {
   const legacy = analyzedWorkspace('workspace-v8', 'Version eight', 'SKU-V8');
   legacy.schemaVersion = 8;
+  legacy.customFields = [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }];
   const file = legacy.files[0];
+  file.customFieldMapping = { 'custom-zone': 4 };
+  file.confirmedCustomFieldMapping = { 'custom-zone': 4 };
   file.mapping = { article_id: 1, quantity: 2, order_date: 3, sales_value: null };
   file.confirmedMapping = { article_id: 1, quantity: 2, order_date: 3, sales_value: null };
   file.result.mapping = { article_id: 1, quantity: 2, order_date: 3, sales_value: null };
@@ -681,4 +684,6 @@ test('schema-eight migration renames order date and preserves legacy sales value
   assert.equal(migrated.files[0].result.rows[0].sales_value, 12.5);
   assert.equal(migrated.files[0].result.rows[0].sales_value_net, undefined);
   assert.equal(migrated.files[0].result.rows[0].sales_value_gross, undefined);
+  assert.deepEqual(migrated.files[0].customFieldMapping, {});
+  assert.equal(migrated.files[0].confirmedCustomFieldMapping, null);
 });

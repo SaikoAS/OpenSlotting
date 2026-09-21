@@ -283,7 +283,7 @@
       order_line_count: 0,
       total_quantity: 0n,
       distinct_orders: settings.orderMetricsAvailable === false ? null : 0,
-      distinct_customers: 0,
+      distinct_customers: settings.customerMetricsAvailable === false ? null : 0,
       active_days: 0,
       total_sales: 0,
       total_sales_exact: '0',
@@ -356,7 +356,7 @@
     return 'unchanged';
   }
 
-  function comparePeriods(rows, settings, analyzeRows, featureReadiness) {
+  function comparePeriods(rows, settings, analyzeRows, featureReadiness, articleRegistry) {
     if (typeof analyzeRows !== 'function') {
       throw new TypeError('An analyzeRows function is required.');
     }
@@ -419,8 +419,12 @@
     }
     const orderComponent = featureReadiness && featureReadiness.periodComparison &&
       featureReadiness.periodComparison.components && featureReadiness.periodComparison.components.distinctOrders;
+    const customerComponent = featureReadiness && featureReadiness.periodComparison &&
+      featureReadiness.periodComparison.components && featureReadiness.periodComparison.components.customers;
     const orderMetricsAvailable = !orderComponent || orderComponent.status === 'ready';
     const orderMetricsStatus = orderComponent ? (orderComponent.status || 'blocked') : 'ready';
+    const customerMetricsAvailable = !customerComponent || customerComponent.status === 'ready';
+    const customerMetricsStatus = customerComponent ? (customerComponent.status || 'blocked') : 'ready';
     [analysisA, analysisB].forEach(function (analysis) {
       analysis.order_metrics_status = orderMetricsStatus;
       analysis.order_metrics_available = orderMetricsAvailable;
@@ -435,16 +439,36 @@
           return Object.assign({}, article, { order_metrics_status: orderMetricsStatus });
         });
       }
+      analysis.customer_metrics_status = customerMetricsStatus;
+      analysis.customer_metrics_available = customerMetricsAvailable;
+      if (!customerMetricsAvailable) {
+        analysis.distinct_customers = null;
+        analysis.articles = (analysis.articles || []).map(function (article) {
+          return Object.assign({}, article, { distinct_customers: null, customer_metrics_status: customerMetricsStatus });
+        });
+      } else {
+        analysis.articles = (analysis.articles || []).map(function (article) {
+          return Object.assign({}, article, { customer_metrics_status: customerMetricsStatus });
+        });
+      }
     });
     const mapA = new Map(analysisA.articles.map(function (article) { return [article.article_id, article]; }));
     const mapB = new Map(analysisB.articles.map(function (article) { return [article.article_id, article]; }));
     const articleIds = Array.from(new Set(Array.from(mapA.keys()).concat(Array.from(mapB.keys()))));
+    const registryById = new Map((articleRegistry || []).map(function (entry) { return [entry.article_id, entry]; }));
     const articles = articleIds.map(function (articleId) {
       const existingA = mapA.get(articleId);
       const existingB = mapB.get(articleId);
-      const articleName = (existingB && existingB.article_name) || (existingA && existingA.article_name) || null;
-      const periodA = existingA || emptyArticle(articleId, articleName, { orderMetricsAvailable: orderMetricsAvailable });
-      const periodB = existingB || emptyArticle(articleId, articleName, { orderMetricsAvailable: orderMetricsAvailable });
+      const registryEntry = registryById.get(articleId);
+      const masterName = registryEntry && registryEntry.master_data && registryEntry.master_data.article_name ||
+        (registryEntry && registryEntry.has_master_data ? registryEntry.article_name : null);
+      const articleName = masterName || (existingB && existingB.article_name) || (existingA && existingA.article_name) || null;
+      const periodA = existingA
+        ? Object.assign({}, existingA, { article_name: masterName || existingA.article_name })
+        : emptyArticle(articleId, articleName, { orderMetricsAvailable: orderMetricsAvailable, customerMetricsAvailable: customerMetricsAvailable });
+      const periodB = existingB
+        ? Object.assign({}, existingB, { article_name: masterName || existingB.article_name })
+        : emptyArticle(articleId, articleName, { orderMetricsAvailable: orderMetricsAvailable, customerMetricsAvailable: customerMetricsAvailable });
       const articleNameVariants = Array.from(new Set(
         (periodA.article_name_variants || []).concat(periodB.article_name_variants || [])
       ));
@@ -486,14 +510,15 @@
         quantityChange: analysisB.total_quantity - analysisA.total_quantity,
         quantityPercentChange: percentageChange(analysisA.total_quantity, analysisB.total_quantity),
         orderChange: orderMetricsAvailable ? analysisB.distinct_orders - analysisA.distinct_orders : null,
-        customerChange: analysisB.distinct_customers - analysisA.distinct_customers,
+        customerChange: customerMetricsAvailable ? analysisB.distinct_customers - analysisA.distinct_customers : null,
         activeDayChange: analysisB.active_days - analysisA.active_days,
         salesChangeExact: decimalDifference(analysisA.total_sales_exact, analysisB.total_sales_exact),
         salesRowChange: analysisB.sales_value_rows - analysisA.sales_value_rows,
         salesUnitChange: analysisB.total_sales_units - analysisA.total_sales_units,
         salesUnitRowChange: analysisB.sales_unit_rows - analysisA.sales_unit_rows
       },
-      order_metrics_status: orderMetricsStatus
+      order_metrics_status: orderMetricsStatus,
+      customer_metrics_status: customerMetricsStatus
     };
   }
 
@@ -515,7 +540,7 @@
     }
     const delimiter = options && options.delimiter ? options.delimiter : ';';
     const headers = [
-      'article_id', 'article_name', 'article_name_conflict', 'article_name_variants', 'change_state', 'order_metrics_status',
+      'article_id', 'article_name', 'article_name_conflict', 'article_name_variants', 'change_state', 'order_metrics_status', 'customer_metrics_status',
       'period_a_start', 'period_a_end', 'period_a_lines', 'period_a_quantity', 'period_a_orders', 'period_a_customers', 'period_a_active_days', 'period_a_sales', 'period_a_sales_rows', 'period_a_sales_units', 'period_a_sales_unit_rows', 'period_a_locations',
       'period_b_start', 'period_b_end', 'period_b_lines', 'period_b_quantity', 'period_b_orders', 'period_b_customers', 'period_b_active_days', 'period_b_sales', 'period_b_sales_rows', 'period_b_sales_units', 'period_b_sales_unit_rows', 'period_b_locations',
       'line_change', 'quantity_change', 'quantity_percent_change',
@@ -539,6 +564,7 @@
         protectSpreadsheetText(JSON.stringify(articleNameVariants)),
         article.state,
         comparison.order_metrics_status || 'ready',
+        comparison.customer_metrics_status || 'ready',
         comparison.settings.periodA.start,
         comparison.settings.periodA.end,
         article.period_a.order_line_count,

@@ -818,6 +818,10 @@
           const migratedFile = isPlainObject(file) ? file : {};
           renameDateMapping(migratedFile.mapping);
           renameDateMapping(migratedFile.confirmedMapping);
+          if (normalizeSourceType(migratedFile.sourceType) === 'order-lines') {
+            migratedFile.customFieldMapping = {};
+            migratedFile.confirmedCustomFieldMapping = null;
+          }
           if (isPlainObject(migratedFile.result)) {
             renameDateMapping(migratedFile.result.mapping);
             migratedFile.result.rows = Array.isArray(migratedFile.result.rows) ? migratedFile.result.rows.map(function (row) {

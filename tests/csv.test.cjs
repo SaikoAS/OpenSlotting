@@ -122,6 +122,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(fileChangeBody[1], /state\.files\.some\(function \(file\) \{ return Boolean\(file\.reading\); \}\)/);
   assert.match(appSource, /file\.customFieldMapping = \{\};/);
   assert.match(appSource, /blocking: finding\.severity === 'error'/);
+  assert.match(appSource, /function formatQuantity\(value\) \{\s*if \(value === null \|\| value === undefined\)/);
   assert.match(backupBody[1], /state\.selectedWorkspaceId/);
   assert.match(backupBody[1], /loadWorkspaceRaw\(selected\.id\)/);
   assert.match(backupBody[1], /loadWorkspace\(selected\.id\)/);
@@ -704,11 +705,15 @@ test('minimum movement contract works without order identity or article master d
   assert.equal(analysis.distinct_orders, 0);
   assert.equal(combined.featureReadiness.periodComparison.status, 'ready');
   assert.equal(combined.featureReadiness.periodComparison.components.distinctOrders.status, 'blocked');
+  assert.equal(combined.featureReadiness.periodComparison.components.customers.status, 'blocked');
   const readinessAnalysis = csv.applyFeatureReadinessToAnalysis(analysis, combined.featureReadiness);
   assert.equal(readinessAnalysis.distinct_orders, null);
   assert.equal(readinessAnalysis.average_quantity_per_order, null);
   assert.equal(readinessAnalysis.articles[0].distinct_orders, null);
   assert.equal(readinessAnalysis.order_metrics_status, 'blocked');
+  assert.equal(readinessAnalysis.distinct_customers, null);
+  assert.equal(readinessAnalysis.customer_metrics_status, 'blocked');
+  assert.equal(readinessAnalysis.articles[0].distinct_customers, null);
 });
 
 test('explicit sales and price fields stay independent and authoritative', () => {
@@ -754,6 +759,25 @@ test('capability readiness distinguishes partial source coverage', () => {
   assert.match(german.featureReadiness.periodComparison.components.netSales.reason, /Teil/);
 });
 
+test('empty included sources do not reduce capability coverage', () => {
+  const populated = csv.importCsv(
+    'article_id;quantity;delivery_date;sales_value_net\nSKU-1;1;2026-09-12;10.00\n',
+    undefined,
+    { sourceFile: { id: 'populated', name: 'populated.csv', label: 'populated.csv', sourceType: 'order-lines' } }
+  );
+  const empty = csv.importCsv(
+    'article_id;quantity;delivery_date;sales_value_net\n',
+    undefined,
+    { sourceFile: { id: 'empty', name: 'empty.csv', label: 'empty.csv', sourceType: 'order-lines' } }
+  );
+  const combined = csv.combineImportResults([
+    { id: 'populated', name: 'populated.csv', label: 'populated.csv', sourceType: 'order-lines', result: populated },
+    { id: 'empty', name: 'empty.csv', label: 'empty.csv', sourceType: 'order-lines', result: empty }
+  ]);
+  assert.equal(empty.rows.length, 0);
+  assert.equal(combined.featureReadiness.periodComparison.components.netSales.status, 'ready');
+});
+
 test('article-master enrichment exposes semantic precedence without changing movement metrics', () => {
   const orders = csv.importCsv(
     'article_id;article_name;quantity;delivery_date;location;quantity_per_sales_unit;sales_value_net;sales_value_gross\nSKU-1;Old description;2;2026-09-12;HIST-01;5;15;17\n',
@@ -782,6 +806,8 @@ test('article-master enrichment exposes semantic precedence without changing mov
   assert.equal(matched.current_quantity_per_sales_unit, 100000000n);
   assert.equal(matched.unit_of_measure, 'pcs');
   assert.equal(matched.vat_rate, 19);
+  assert.equal(matched.source_file_count, 2);
+  assert.deepEqual(matched.source_files.sort(), ['master.csv', 'orders.csv']);
   assert.equal(combined.rows[0].sales_value_net, 15);
   assert.equal(combined.rows[0].sales_value_gross, 17);
   assert.equal(masterOnly.movement_status, 'master-only');
@@ -797,6 +823,7 @@ test('article-master enrichment exposes semantic precedence without changing mov
   assert.equal(exportRows.find((row) => row.article_id === 'SKU-2').order_line_count, '0');
   assert.equal(exportRows.find((row) => row.article_id === 'SKU-2').source_file_count, '1');
   assert.deepEqual(JSON.parse(exportRows.find((row) => row.article_id === 'SKU-2').source_files), ['master.csv']);
+  assert.equal(exportRows.find((row) => row.article_id === 'SKU-1').source_file_count, '2');
 });
 
 test('negative VAT rates are rejected without retaining the invalid value', () => {
@@ -1538,6 +1565,21 @@ test('custom field mappings preserve source values without changing core analysi
   assert.equal(result.blocking, false);
   assert.deepEqual(result.rows[0].custom_fields, { 'custom-zone': 'Cold' });
   assert.equal(csv.analyzeRows(result.rows).articles[0].article_id, 'A1');
+});
+
+test('invalid typed custom values are omitted from normalized enrichment values', () => {
+  const result = csv.importCsvStreaming(
+    'article_id;article_name;Zone Number\nA1;Article;not-a-number\n',
+    { article_id: 0, article_name: 1 },
+    {
+      sourceFile: { id: 'source-custom-invalid', name: 'custom.csv', label: 'custom.csv', sourceType: 'article-master' },
+      customFields: [{ id: 'custom-zone', name: 'Zone Number', type: 'number', active: true }],
+      customFieldMapping: { 'custom-zone': 2 }
+    }
+  );
+  assert.equal(result.blocking, false);
+  assert.deepEqual(result.rows[0].custom_fields, {});
+  assert.ok(result.issues.some((issue) => issue.code === 'invalid_custom_field_value'));
 });
 
 test('custom field mappings cannot reuse a core source column', () => {
