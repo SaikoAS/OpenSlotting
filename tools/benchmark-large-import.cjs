@@ -13,7 +13,7 @@ if (mode !== 'baseline' && mode !== 'chunked') {
 }
 
 const lines = new Array(rowCount + 1);
-lines[0] = 'order_id;article_id;quantity;order_date';
+lines[0] = 'order_id;article_id;quantity;delivery_date';
 for (let index = 0; index < rowCount; index += 1) {
   lines[index + 1] = 'O-' + index + ';SKU-' + (index % 1000) + ';1;2026-09-12';
 }
@@ -26,7 +26,7 @@ const sourceFile = {
   name: 'synthetic-large-import.csv',
   label: 'synthetic-large-import.csv'
 };
-const mapping = { order_id: 0, article_id: 1, quantity: 2, order_date: 3 };
+const mapping = { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 };
 const analysisAccumulator = csv.createAnalysisAccumulator();
 
 function megabytes(value) {

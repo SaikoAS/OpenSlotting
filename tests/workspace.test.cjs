@@ -6,7 +6,7 @@ const csv = require('../csv.js');
 const workspace = require('../workspace.js');
 
 function sourceFile(id, articleId) {
-  const text = 'order_id;article_id;quantity;order_date\nO-1;' + articleId + ';1.25;2026-09-12\n';
+  const text = 'order_id;article_id;quantity;delivery_date\nO-1;' + articleId + ';1.25;2026-09-12\n';
   const bytes = new TextEncoder().encode(text);
   return {
     id,
@@ -19,10 +19,10 @@ function sourceFile(id, articleId) {
     activeEncoding: 'utf-8',
     detectedEncoding: 'utf-8',
     errorKey: null,
-    mapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
-    confirmedMapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+    mapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },
+    confirmedMapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },
     result: {
-      headers: ['order_id', 'article_id', 'quantity', 'order_date'],
+      headers: ['order_id', 'article_id', 'quantity', 'delivery_date'],
       rows: [{
         source_file_id: id,
         source_file_name: id + '.csv',
@@ -32,7 +32,7 @@ function sourceFile(id, articleId) {
         article_id: articleId,
         article_name: null,
         quantity: 12500000n,
-        order_date: '2026-09-12',
+        delivery_date: '2026-09-12',
         customer_id: null,
         sales_value: null,
         sales_value_exact: null,
@@ -43,7 +43,7 @@ function sourceFile(id, articleId) {
       validRows: 1,
       invalidRows: 0,
       structuralRows: 0,
-      mapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },
+      mapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },
       sourceFile: { id, name: id + '.csv', label: id + '.csv' },
       blocking: false
     }
@@ -253,7 +253,7 @@ test('trusted runtime capture builds an autosave snapshot without traversing pay
 });
 
 test('captures and restores the real CSV importer result without changing provenance', () => {
-  const text = 'order_id;article_id;quantity;order_date;sales_unit_count;quantity_per_sales_unit\nO-1;SKU-REAL;0.3;2026-09-12;3;0.1\n';
+  const text = 'order_id;article_id;quantity;delivery_date;sales_unit_count;quantity_per_sales_unit\nO-1;SKU-REAL;0.3;2026-09-12;3;0.1\n';
   const bytes = new TextEncoder().encode(text);
   const source = {
     id: 'source-real',
@@ -266,8 +266,8 @@ test('captures and restores the real CSV importer result without changing proven
     activeEncoding: 'utf-8',
     detectedEncoding: 'utf-8',
     errorKey: null,
-    mapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3, sales_unit_count: 4, quantity_per_sales_unit: 5 },
-    confirmedMapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3, sales_unit_count: 4, quantity_per_sales_unit: 5 }
+    mapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3, sales_unit_count: 4, quantity_per_sales_unit: 5 },
+    confirmedMapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3, sales_unit_count: 4, quantity_per_sales_unit: 5 }
   };
   source.result = csv.importParsedCsv(csv.parseCsv(text), source.mapping, {
     locale: 'en',
@@ -518,7 +518,7 @@ test('schema-four migration adds an empty source column catalog', () => {
 test('schema-five migration keeps source catalogs and adds empty profiles', () => {
   const legacy = analyzedWorkspace('workspace-v5', 'Version five', 'SKU-V5');
   legacy.schemaVersion = 5;
-  legacy.files[0].columnCatalog = ['order_id', 'article_id', 'quantity', 'order_date'].map((header, position) => ({
+  legacy.files[0].columnCatalog = ['order_id', 'article_id', 'quantity', 'delivery_date'].map((header, position) => ({
     position,
     header,
     normalizedHeader: header,
@@ -645,4 +645,60 @@ test('schema-seven migration adds an empty article registry', () => {
   const migrated = workspace.migrateWorkspace(legacy);
   assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
   assert.deepEqual(migrated.articleRegistry, []);
+});
+
+test('schema-eight migration renames order date and preserves legacy sales value semantics', () => {
+  const legacy = analyzedWorkspace('workspace-v8', 'Version eight', 'SKU-V8');
+  legacy.schemaVersion = 8;
+  legacy.customFields = [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }];
+  const file = legacy.files[0];
+  file.customFieldMapping = { 'custom-zone': 4 };
+  file.confirmedCustomFieldMapping = { 'custom-zone': 4 };
+  file.mapping = { article_id: 1, quantity: 2, order_date: 3, sales_value: null };
+  file.confirmedMapping = { article_id: 1, quantity: 2, order_date: 3, sales_value: null };
+  file.result.mapping = { article_id: 1, quantity: 2, order_date: 3, sales_value: null };
+  file.result.rows[0].order_date = file.result.rows[0].delivery_date;
+  delete file.result.rows[0].delivery_date;
+  file.result.rows[0].sales_value = 12.5;
+  file.result.rows[0].sales_value_exact = '12.5';
+  file.result.issues = [{
+    sourceLine: 2,
+    sourceFileId: file.id,
+    field: 'order_date',
+    code: 'legacy_note',
+    orderDate: '2026-09-12',
+    message: 'Legacy note',
+    severity: 'warning',
+    blocking: false
+  }];
+
+  const migrated = workspace.migrateWorkspace(legacy);
+
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.equal(migrated.files[0].mapping.delivery_date, 3);
+  assert.equal(Object.hasOwn(migrated.files[0].mapping, 'order_date'), false);
+  assert.equal(migrated.files[0].result.rows[0].delivery_date, '2026-09-12');
+  assert.equal(Object.hasOwn(migrated.files[0].result.rows[0], 'order_date'), false);
+  assert.equal(migrated.files[0].result.issues[0].field, 'delivery_date');
+  assert.equal(migrated.files[0].result.issues[0].deliveryDate, '2026-09-12');
+  assert.equal(migrated.files[0].result.rows[0].sales_value, 12.5);
+  assert.equal(migrated.files[0].result.rows[0].sales_value_net, undefined);
+  assert.equal(migrated.files[0].result.rows[0].sales_value_gross, undefined);
+  assert.deepEqual(migrated.files[0].customFieldMapping, {});
+  assert.equal(migrated.files[0].confirmedCustomFieldMapping, null);
+});
+
+test('schema-eight migration removes hidden order-line mappings from article-master sources', () => {
+  const legacy = workspace.createWorkspace('Legacy master mapping', { id: 'workspace-v8-master' });
+  legacy.schemaVersion = 8;
+  const file = articleMasterSourceFile('source-legacy-master', 'SKU-MASTER');
+  file.mapping = { article_id: 0, quantity: 1, delivery_date: 2, sales_value: 3 };
+  file.confirmedMapping = { article_id: 0, quantity: 1, delivery_date: 2, sales_value: 3 };
+  file.result.mapping = { article_id: 0, quantity: 1, delivery_date: 2, sales_value: 3 };
+  legacy.files.push(file);
+
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.deepEqual(migrated.files[0].mapping, { article_id: 0 });
+  assert.deepEqual(migrated.files[0].confirmedMapping, { article_id: 0 });
+  assert.deepEqual(migrated.files[0].result.mapping, { article_id: 0 });
 });

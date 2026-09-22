@@ -64,7 +64,7 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.doesNotThrow(() => new vm.Script(generatedWorkerSource));
   vm.runInContext(generatedWorkerSource, context);
 
-  const text = 'order_id;article_id;quantity;order_date\nO-1;SKU-WORKER;0.3;2026-09-12\n';
+  const text = 'order_id;article_id;quantity;delivery_date\nO-1;SKU-WORKER;0.3;2026-09-12\n';
   vm.runInContext([
     'const workerText = ' + JSON.stringify(text) + ';',
     "const workerBytes = new TextEncoder().encode(workerText);",
@@ -74,8 +74,8 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
     "  id: 'source-worker', name: 'worker.csv', label: 'worker.csv',",
     '  size: workerBytes.byteLength, lastModified: 1, buffer: workerBytes.buffer,',
     "  encodingMode: 'auto', activeEncoding: 'utf-8', detectedEncoding: 'utf-8', errorKey: null,",
-    '  mapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },',
-    '  confirmedMapping: { order_id: 0, article_id: 1, quantity: 2, order_date: 3 },',
+    '  mapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },',
+    '  confirmedMapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },',
     "  sourceType: 'article-master',",
     '  result: null',
     '});',
@@ -104,7 +104,7 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.equal(completed.prepared.files[0].result.sourceFile.sourceType, 'article-master');
   assert.equal(completed.prepared.files[0].parsed.rows.length, 0);
   assert.equal(completed.prepared.files[0].parsed.dataRowCount, 1);
-  assert.deepEqual(Array.from(completed.prepared.files[0].parsed.headers), ['order_id', 'article_id', 'quantity', 'order_date']);
+  assert.deepEqual(Array.from(completed.prepared.files[0].parsed.headers), ['order_id', 'article_id', 'quantity', 'delivery_date']);
 
   messages.length = 0;
   vm.runInContext([

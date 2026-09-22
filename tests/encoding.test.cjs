@@ -74,7 +74,7 @@ test('streams decoded chunks without constructing one full source string', () =>
 test('manual mapping remains independent of input encoding', () => {
   const csv = require('../csv.js');
   const text = encoding.decodeBuffer(Uint8Array.from([0x58, 0x3B, 0x59, 0x3B, 0x5A, 0x3B, 0x44, 0x0A, 0x4F, 0x31, 0x3B, 0xC4, 0x31, 0x3B, 0x31, 0x3B, 0x32, 0x30, 0x32, 0x36, 0x2D, 0x30, 0x39, 0x2D, 0x31, 0x30]));
-  const result = csv.importCsv(text, { order_id: 0, article_id: 1, quantity: 2, order_date: 3 });
+  const result = csv.importCsv(text, { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 });
 
   assert.equal(result.validRows, 1);
   assert.equal(result.rows[0].article_id, 'Ä1');

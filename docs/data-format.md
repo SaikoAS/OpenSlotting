@@ -9,10 +9,10 @@ Every imported source carries a stable `sourceType`. The supported values are
 `order-lines`. The mapping screen lets users choose the source type per file.
 Article-master sources use the same decoding, profiling, column mapping,
 validation, storage, backup, and restore pipeline as order-line sources. They
-require only `article_id`; description, location, selling-unit/package fields,
-and workspace custom fields are optional. Article-master rows are retained in
-the workspace and source traceability, but are not included in the existing
-order-line analysis until a later article-master join/analysis milestone.
+require only `article_id`; description, current location, quantity per selling
+unit, unit of measure, VAT rate, and workspace custom fields are optional.
+Fields that do not apply to the selected source type are not offered in the
+mapping UI.
 
 ## Workspace article registry
 
@@ -20,16 +20,31 @@ The combined import result also exposes a deterministic `articleRegistry` built
 from all retained normalized rows. It is keyed by `article_id`, sorted by that
 identifier, and kept separate from order-line aggregation. Each registry entry
 records whether the article is `master-only`, `movement-only`, or `matched`,
-the normalized master fields (`article_name`, `location`, and selling-unit
-fields), mapped custom-field values, movement/master row counts, source-file
+the normalized master fields (`article_name`, `location`,
+`quantity_per_sales_unit`, `unit_of_measure`, and `vat_rate`), mapped
+custom-field values, movement/master row counts, source-file
 coverage, and master-row references. `value_provenance` retains the source
 file, source label, source line, source type, and value for each retained
 master or custom-field attribute. Conflicting values are preserved in
 `value_conflicts`; the first value in deterministic source/row order remains
 the normalized value. Master attributes are not copied into order-line rows.
 
-The registry is stored with the workspace and backup, so later joins can use
-the normalized identity without reparsing or mutating historical order lines.
+The registry enriches article analysis by `article_id`. The current master
+description may be used for display, while movement description variants,
+historical movement locations, and historical quantity-per-selling-unit values
+remain unchanged. Current master location and current master quantity per
+selling unit are exposed separately. Master-only articles have zero activity
+and no synthetic order lines. The registry is stored with the workspace and
+backup.
+
+The combined result also exposes structured `qualityFindings`. Article-master
+findings cover missing and duplicate article IDs, conflicting values across
+duplicate master rows, and invalid typed master/custom values. Cross-source
+findings distinguish active articles without master data from informational
+master-only articles and description conflicts. Findings retain article ID,
+severity, source file/line where available, and structured evidence such as all
+duplicate master-row references. A conflict is never hidden by the deterministic
+display value, and a quality finding never creates or deletes demand rows.
 
 Every readable source also exposes an ordered `columnCatalog`. Each entry uses
 the zero-based physical `position`, the trimmed source `header`, its
@@ -67,16 +82,23 @@ An unexpected quote in an unquoted field, a character after a closing quote, or 
 
 | Field | Required | Meaning |
 | --- | --- | --- |
-| `order_id` | Order lines only | Order identity. Non-empty text for order-line sources. |
+| `order_id` | No | Optional order identity. Required only for distinct-order metrics. Order-line sources only. |
 | `article_id` | Yes | Article/SKU identity and grouping key. Non-empty text for every source type. |
 | `article_name` | No | Display description for the article. |
-| `quantity` | Order lines only | Positive quantity with at most seven decimal places. Optional for article-master sources. |
-| `order_date` | Order lines only | Valid order date in an accepted format. Optional for article-master sources. |
-| `customer_id` | No | Customer identity used for distinct-customer counts. |
-| `sales_value` | No | Sales amount with at most two decimal places. |
-| `location` | No | Source storage-location text. |
-| `sales_unit_count` | No | Non-negative number of complete selling units, VKU, or Colli with at most seven decimal places. Zero is valid for a pure partial sale. |
-| `quantity_per_sales_unit` | No | Positive quantity per selling unit with at most seven decimal places. |
+| `quantity` | Order lines only | Core positive quantity with at most seven decimal places. |
+| `delivery_date` | Order lines only | Core delivery date in an accepted format. |
+| `customer_id` | No | Optional order-line customer identity used for distinct-customer counts. |
+| `customer_name` | No | Optional order-line customer description. |
+| `sales_value_net` | No | Optional authoritative order-line sales value excluding VAT. |
+| `sales_value_gross` | No | Optional authoritative order-line sales value including VAT. |
+| `unit_price_net` | No | Optional authoritative order-line unit price excluding VAT. |
+| `unit_price_gross` | No | Optional authoritative order-line unit price including VAT. |
+| `sales_value` | Legacy only | Preserved unclassified sales value from older workspaces; never guessed as net or gross. |
+| `location` | No | Historical movement location for order lines or current location for article master. The two meanings remain separate after enrichment. |
+| `sales_unit_count` | No | Non-negative order-line count of complete selling units / cases with at most seven decimal places. Zero is valid for a pure partial sale. |
+| `quantity_per_sales_unit` | No | Positive quantity per selling unit with at most seven decimal places. Movement and current master values remain separate. |
+| `unit_of_measure` | No | Optional current article-master unit of measure. |
+| `vat_rate` | No | Optional current article-master VAT rate. It never recalculates historical order-line values. |
 
 Mapped text values are trimmed at their outer edges. Missing optional values normalize to `null`. A valid normalized row retains a batch-local source-file ID, the original source filename, a display label, and the one-based physical source line on which its CSV record starts. Original source fields are reconstructed on demand from the retained source bytes and headers, preserving duplicate headers, duplicate filenames, duplicate rows, and traceability without duplicating raw field arrays on every row. Only valid rows from included files are analyzed.
 
@@ -98,12 +120,19 @@ The following aliases are detected automatically:
 | `article_id` | `article_id`, `article id`, `sku`, `material`, `artnr`, `artikelnummer`, `artikelnr`, `materialnr`, `materialnummer`, `produktnr`, `produktnummer`, `skunr` |
 | `article_name` | `article_name`, `article name`, `article description`, `description`, `product name`, `artikelbezeichnung`, `bezeichnung`, `artikeltext`, `kurztext`, `artikelname`, `produktbezeichnung`, `materialbezeichnung`, `warenbezeichnung`, `produkttext`, `langtext` |
 | `quantity` | `quantity`, `qty`, `menge`, `anzahl`, `stück`, `stueck`, `gmenge`, `gesamtmenge`, `mengegesamt`, `auftragsmenge`, `kommissioniermenge`, `pickmenge`, `entnahmemenge` |
-| `order_date` | `order_date`, `order date`, `date`, `datum`, `bestelldatum`, `lfdat`, `lieferdatum` |
+| `delivery_date` | `delivery_date`, `delivery date`, legacy `order_date`, `order date`, `date`, `datum`, `bestelldatum`, `lfdat`, `lieferdatum` |
 | `customer_id` | `customer_id`, `customer id`, `customer`, `kdnr`, `kundennummer`, `kundenid`, `debitor`, `debitornr`, `debitorennr` |
-| `sales_value` | `sales_value`, `sales value`, `sales`, `revenue`, `umsatz`, `wert`, `vkwert`, `verkaufswert`, `umsatzwert`, `positionswert`, `nettowert`, `positionsnettowert` |
+| `customer_name` | `customer_name`, `customer name`, `kundenname`, `kundenbezeichnung`, `debitorenname` |
+| `sales_value_net` | `sales_value_net`, `sales value net`, `net sales value`, `net revenue`, `nettowert`, `positionsnettowert`, `verkaufswert netto`, `umsatz netto` |
+| `sales_value_gross` | `sales_value_gross`, `sales value gross`, `gross sales value`, `gross revenue`, `bruttowert`, `positionsbruttowert`, `verkaufswert brutto`, `umsatz brutto` |
+| `unit_price_net` | `unit_price_net`, `unit price net`, `net unit price`, `net price`, `verkaufspreis netto`, `einzelpreis netto` |
+| `unit_price_gross` | `unit_price_gross`, `unit price gross`, `gross unit price`, `gross price`, `verkaufspreis brutto`, `einzelpreis brutto` |
+| `sales_value` | Legacy aliases such as `sales_value`, `sales value`, `umsatz`, `vkwert`, and `positionswert` remain unclassified. |
 | `location` | `location`, `storage location`, `stellplatz`, `lagerplatz`, `lgpl`, `lagerfach`, `lagerfachnr`, `kommissionierplatz`, `pickplatz`, `entnahmeplatz` |
-| `sales_unit_count` | `sales_unit_count`, `sales unit count`, `sales units`, `selling units`, `verkaufseinheit`, `verkaufseinheiten`, `vku`, `colli` |
-| `quantity_per_sales_unit` | `quantity_per_sales_unit`, `quantity per sales unit`, `quantity per selling unit`, `menge pro vku`, `menge je vku`, `inhalt`, `inh` |
+| `sales_unit_count` | `sales_unit_count`, `sales unit count`, `sales units`, `selling units`, `verkaufseinheit`, `verkaufseinheiten`, legacy `vku`, `colli` |
+| `quantity_per_sales_unit` | `quantity_per_sales_unit`, `quantity per sales unit`, `quantity per selling unit`, `menge je verkaufseinheit`, legacy `menge pro vku`, `inhalt`, `inh` |
+| `unit_of_measure` | `unit_of_measure`, `unit of measure`, `uom`, `mengeneinheit`, `einheit`, `meins` |
+| `vat_rate` | `vat_rate`, `vat rate`, `tax rate`, `mwst`, `mehrwertsteuer`, `mehrwertsteuersatz`, `steuersatz` |
 
 The mapping screen permits an independent manual source-column selection for every file in the current batch. Mappings are persisted inside the active local workspace. Automatic detection assigns the first unused matching source column within that file. A source column cannot be mapped to more than one OpenSlotting field. A reused source column or a missing required mapping blocks that file; it does not block ready files in the same batch.
 
@@ -116,6 +145,23 @@ Tied candidates are marked ambiguous and are never applied automatically.
 Only a unique high-confidence candidate that does not reuse a source position is
 eligible for automatic application by a future mapping workflow; the current UI
 leaves user mappings authoritative.
+
+## Capabilities and feature readiness
+
+Mapping requiredness is source-scoped and separate from analytical feature
+requirements. Each applicable normalized field declares the capability it can
+provide. Period comparison requires only `movement.article_identity`,
+`movement.quantity`, and `movement.delivery_date`; therefore quantity-over-time,
+calendar-week, and period analysis work without `order_id` and without article
+master data.
+
+Optional components declare their own capabilities. Distinct-order metrics use
+`movement.order_identity`; customer metrics use
+`movement.customer_identity`; net/gross sales and unit-price components use
+their matching explicit capability. Readiness is `ready` when every included
+order-line source provides the capability, `partial` when only some do, and
+`blocked` when none do. The result includes mapped and missing source IDs as
+evidence. A blocked optional component does not block the core feature.
 
 ## Validation behavior
 
@@ -133,7 +179,7 @@ Validation messages identify the source file, source line, and, where applicable
 
 The browser creates one in-memory batch from the current file selection. Duplicate filenames receive numbered display labels so they remain distinguishable. Each file keeps its own encoding result, headers, mapping, parser diagnostics, validation result, and row counts.
 
-A file is excluded when it cannot be read or decoded, has no header, has a parser error in its header, or has an invalid required mapping. For `order-lines`, the required mapping is `order_id`, `article_id`, `quantity`, and `order_date`; for `article-master`, only `article_id` is required. Excluded files contribute no rows. A mapped file remains included even when all its data rows are invalid; those rows are reported and excluded under the ordinary row-validation rules.
+A file is excluded when it cannot be read or decoded, has no header, has a parser error in its header, or has an invalid required mapping. For `order-lines`, the core required mapping is only `article_id`, `quantity`, and `delivery_date`; for `article-master`, only `article_id` is required. `order_id` gates distinct-order metrics rather than import. Excluded files contribute no rows. A mapped file remains included even when all its data rows are invalid; those rows are reported and excluded under the ordinary row-validation rules.
 
 Valid normalized rows from included files are retained in file-selection order and source-record order. The combined result exposes the retained rows separately from the order-line analysis rows: article-master rows remain valid and persisted, but only order-line rows feed article, order, customer, date, quantity, and sales aggregation. Exact fixed-point quantities and exact accepted sales decimals therefore remain exact across files. Date-overlap warnings are evaluated only between order-line sources.
 
@@ -157,14 +203,16 @@ Leading and trailing whitespace is ignored. Internal whitespace is rejected. An 
 - For example, `1.2345678` becomes `12345678` internally.
 - Aggregation, display, and export use that exact fixed-point value and do not add quantities with JavaScript floating-point arithmetic.
 
-### Sales value
+### Sales values and unit prices
 
-- The field is optional; zero and negative values are accepted.
+- All four explicit fields are optional and independent; zero and negative values are accepted.
 - At most two decimal places are accepted.
 - The value must be finite and within JavaScript's safe integer magnitude.
 - A value is rejected if conversion to a JavaScript number would lose its accepted decimal value.
-- Accepted values also retain an exact decimal representation, and totals are aggregated with exact decimal arithmetic.
-- The exported total is rounded to at most two decimal places and does not require trailing zeros.
+- Accepted values retain an exact decimal representation.
+- OpenSlotting never derives one value from another: imported values remain authoritative despite discounts, rounding, price bases, or VAT rules.
+- Current article-master `vat_rate` never recalculates or overwrites historical order-line sales values.
+- Legacy `sales_value` remains preserved as explicitly unclassified data until a user makes a mapping decision.
 
 ### Selling units and quantity per selling unit
 
@@ -216,15 +264,23 @@ The analysis export uses semicolons and CRLF line endings by default. Its stable
 | `article_name` | Primary description, or empty. |
 | `article_name_conflict` | `true` when multiple non-empty variants exist; otherwise `false`. |
 | `article_name_variants` | JSON array of retained descriptions, or empty when none exist. |
+| `movement_status` | `matched`, `movement-only`, or `master-only`. |
+| `order_metrics_status` | `ready`, `partial`, or `blocked`; indicates whether order-dependent metrics are available. |
+| `customer_metrics_status` | `ready`, `partial`, or `blocked`; indicates whether customer-dependent metrics are available. |
+| `current_location` | Current article-master location, kept separate from historical movement locations. |
+| `current_quantity_per_sales_unit` | Current article-master quantity per selling unit, kept separate from movement values. |
+| `unit_of_measure` | Current article-master unit of measure. |
+| `vat_rate` | Current article-master VAT rate. |
+| `master_custom_fields` | JSON object of current mapped master custom fields. |
 | `source_file_count` | Number of distinct batch-local source-file labels contributing to the article. |
 | `source_files` | JSON array of contributing source-file labels, or empty when no source metadata exists. |
 | `order_line_count` | Number of valid imported rows for the article. |
 | `total_quantity` | Exact sum at the supported seven-place quantity precision. |
 | `distinct_orders` | Number of distinct non-empty order IDs. |
 | `distinct_customers` | Number of distinct non-empty customer IDs. |
-| `active_days` | Number of distinct normalized order dates. |
-| `total_sales` | Exact accepted sales total, rounded to at most two decimal places; `0` when no accepted sales values exist. |
-| `sales_value_rows` | Number of rows containing an accepted sales value. |
+| `active_days` | Number of distinct normalized delivery dates. |
+| `total_sales` | Compatibility total of accepted legacy unclassified `sales_value`, rounded to at most two decimal places; `0` when no accepted legacy values exist. |
+| `sales_value_rows` | Number of rows containing an accepted legacy unclassified sales value. |
 | `total_sales_units` | Exact sum of mapped selling units / Colli. |
 | `sales_unit_rows` | Number of rows containing an accepted selling-unit value. |
 | `quantity_per_sales_unit_values` | JSON array of distinct exact quantities per selling unit. |

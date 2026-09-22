@@ -9,7 +9,7 @@ All notable changes to OpenSlotting are documented in this file.
 - visible date coverage with expected-weekday configuration and unknown-day warnings
 - inclusive Period A / Period B comparison with summary metrics, article filters, detail links, and CSV export
 - automatic ISO-calendar-week detection with selectable comparison weeks and an optional custom-period mode
-- optional selling-unit / VKU / Colli and quantity-per-selling-unit import fields
+- optional selling-unit / cases and quantity-per-selling-unit import fields
 - exact selling-unit comparison and per-article conflict indicators without replacing authoritative total quantity
 - workspace schema version 2 for persisted period settings and migration from schema version 1
 - portable and optional Enhanced Local runtime profiles with capability diagnostics
@@ -20,11 +20,17 @@ All notable changes to OpenSlotting are documented in this file.
 - generic ordered source-column catalogs that preserve duplicate headers and physical positions
 - bounded streaming source-column profiles with representative samples and frequent-value evidence
 - explainable mapping suggestions and a responsive source-column overview
+- source-scoped import fields and feature capability/readiness evidence
+- independent net/gross sales-value and unit-price mappings plus customer names, unit of measure, and VAT rate
+- article-master enrichment with matched, movement-only, and master-only article states
+- structured article-master and cross-source quality findings with source-row evidence
 
 ### Changed
 
 - the interface now uses a compact five-step workflow rail and clearer required/optional mapping labels
 - zero selling units and partial sales are valid; invalid optional unit values are advisory-only, while unit quantities above total quantity remain visible review notes
+- the core movement contract now requires only article ID / SKU, quantity, and delivery date; order identity gates only order metrics
+- `order_date` is migrated to `delivery_date`; schema version 9 preserves legacy unclassified sales values without assigning net/gross semantics
 
 ## 0.2.1 - 2026-09-14
 

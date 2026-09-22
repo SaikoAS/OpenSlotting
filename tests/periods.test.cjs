@@ -6,7 +6,7 @@ const periods = require('../periods.js');
 
 function fixtureRows() {
   return csv.importCsv([
-    'order_id;article_id;article_name;quantity;order_date;sales_value;sales_unit_count;quantity_per_sales_unit',
+    'order_id;article_id;article_name;quantity;delivery_date;sales_value;sales_unit_count;quantity_per_sales_unit',
     'O-1;A-1;Article one;10;2026-09-01;10.10;2;5',
     'O-2;A-1;Article one;5;2026-09-02;5;1;5',
     'O-3;A-1;Article one;8;2026-09-04;20.25;2;4',
@@ -67,6 +67,56 @@ test('period comparison keeps absolute and relative changes separate', () => {
   assert.deepEqual(articleOne.period_b.order_line_refs.map((index) => rows[index].order_id), ['O-3']);
 });
 
+test('period comparison marks order metrics unavailable when order identity is missing', () => {
+  const rows = csv.importCsv('article_id;quantity;delivery_date\nA-1;2;2026-09-01\n').rows;
+  const readiness = {
+    periodComparison: {
+      components: { distinctOrders: { status: 'blocked' } }
+    }
+  };
+  const comparison = periods.comparePeriods(rows, {
+    expectedWeekdays: [2],
+    periodA: { name: 'Before', start: '2026-09-01', end: '2026-09-01' },
+    periodB: { name: 'After', start: '2026-09-02', end: '2026-09-02' }
+  }, csv.analyzeRows, readiness);
+
+  assert.equal(comparison.order_metrics_status, 'blocked');
+  assert.equal(comparison.analysisA.distinct_orders, null);
+  assert.equal(comparison.analysisA.average_quantity_per_order, null);
+  assert.equal(comparison.summary.orderChange, null);
+  assert.equal(comparison.articles[0].period_a.distinct_orders, null);
+  assert.match(periods.exportComparisonCsv(comparison, csv), /change_state;order_metrics_status;/);
+});
+
+test('period comparison marks customer metrics unavailable and uses master descriptions', () => {
+  const rows = csv.importCsv('article_id;article_name;quantity;delivery_date\nA-1;Old name;2;2026-09-01\n').rows;
+  const readiness = {
+    periodComparison: {
+      components: { customers: { status: 'blocked' } }
+    }
+  };
+  const comparison = periods.comparePeriods(rows, {
+    expectedWeekdays: [2],
+    periodA: { name: 'Before', start: '2026-09-01', end: '2026-09-01' },
+    periodB: { name: 'After', start: '2026-09-02', end: '2026-09-02' }
+  }, csv.analyzeRows, readiness, [{
+    article_id: 'A-1',
+    article_name: 'Master name',
+    has_master_data: true,
+    master_data: { article_name: 'Master name' }
+  }]);
+
+  assert.equal(comparison.customer_metrics_status, 'blocked');
+  assert.equal(comparison.analysisA.distinct_customers, null);
+  assert.equal(comparison.summary.customerChange, null);
+  assert.equal(comparison.articles[0].article_name, 'Master name');
+  assert.equal(comparison.articles[0].period_a.article_name, 'Master name');
+  assert.deepEqual(comparison.articles[0].article_name_variants, ['Old name', 'Master name']);
+  assert.equal(comparison.articles[0].period_a.article_name_conflict, true);
+  assert.equal(comparison.articles[0].period_b.article_name_conflict, false);
+  assert.match(periods.exportComparisonCsv(comparison, csv), /change_state;order_metrics_status;customer_metrics_status;/);
+});
+
 test('single-pass comparison matches the reference metrics and coverage', () => {
   const rows = fixtureRows();
   const settings = {
@@ -125,7 +175,7 @@ test('comparison CSV exports period boundaries, unit metrics, and formula-safe t
 
 test('comparison export reports conflicts across period boundaries', () => {
   const rows = fixtureRows();
-  rows.find((row) => row.article_id === 'A-1' && row.order_date === '2026-09-04').article_name = 'Article one revised';
+  rows.find((row) => row.article_id === 'A-1' && row.delivery_date === '2026-09-04').article_name = 'Article one revised';
   const comparison = periods.comparePeriods(rows, {
     expectedWeekdays: [0, 1, 2, 3, 4, 5, 6],
     periodA: { name: 'Before', start: '2026-09-01', end: '2026-09-02' },
@@ -171,9 +221,9 @@ test('default periods use the detected ISO calendar week boundaries', () => {
 
 test('calendar-week detection follows ISO years and reports observed rows', () => {
   const weeks = periods.detectedCalendarWeeks([
-    { order_date: '2026-12-31' },
-    { order_date: '2027-01-01' },
-    { order_date: '2027-01-04' }
+    { delivery_date: '2026-12-31' },
+    { delivery_date: '2027-01-01' },
+    { delivery_date: '2027-01-04' }
   ]);
 
   assert.deepEqual(weeks, [
@@ -183,7 +233,7 @@ test('calendar-week detection follows ISO years and reports observed rows', () =
 });
 
 test('calendar-week detection handles early ISO week-years without the Date.UTC 1900 offset', () => {
-  const weeks = periods.detectedCalendarWeeks([{ order_date: '0100-01-01' }]);
+  const weeks = periods.detectedCalendarWeeks([{ delivery_date: '0100-01-01' }]);
 
   assert.equal(weeks.length, 1);
   assert.equal(weeks[0].id, '0099-W53');
@@ -192,7 +242,7 @@ test('calendar-week detection handles early ISO week-years without the Date.UTC 
 });
 
 test('calendar-week detection keeps the upper supported date representable', () => {
-  const rows = [{ order_date: '9999-12-31' }];
+  const rows = [{ delivery_date: '9999-12-31' }];
   const weeks = periods.detectedCalendarWeeks(rows);
 
   assert.equal(weeks.length, 1);
@@ -207,9 +257,9 @@ test('calendar-week detection keeps the upper supported date representable', () 
 
 test('default calendar-week comparison selects the latest two detected weeks', () => {
   const settings = periods.defaultSettings([
-    { order_date: '2026-08-10' },
-    { order_date: '2026-08-17' },
-    { order_date: '2026-08-24' }
+    { delivery_date: '2026-08-10' },
+    { delivery_date: '2026-08-17' },
+    { delivery_date: '2026-08-24' }
   ]);
 
   assert.deepEqual(settings.periodA, { name: 'KW34/2026', start: '2026-08-17', end: '2026-08-23' });
@@ -224,7 +274,7 @@ test('large period comparisons remain stack-safe and exact', () => {
       article_id: 'A-' + (index % 250),
       article_name: 'Article ' + (index % 250),
       quantity: 10000000n,
-      order_date: index < 10000 ? '2026-09-01' : '2026-09-02',
+      delivery_date: index < 10000 ? '2026-09-01' : '2026-09-02',
       customer_id: null,
       location: null,
       sales_value: null,

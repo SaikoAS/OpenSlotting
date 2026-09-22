@@ -39,7 +39,7 @@ Every workspace has:
 | Field | Type | Contract |
 | --- | --- | --- |
 | `id` | string | Stable browser-local identity. |
-| `schemaVersion` | integer | Stored-workspace schema version; currently `8`. |
+| `schemaVersion` | integer | Stored-workspace schema version; currently `9`. |
 | `name` | string | Trimmed, non-empty, at most 120 characters. Names do not have to be unique. |
 | `createdAt` | ISO timestamp | Creation time. |
 | `updatedAt` | ISO timestamp | Time of the latest successful snapshot. |
@@ -115,7 +115,7 @@ Backup input continues to use the strict copying and validation path.
 
 ## Exact number representation
 
-Normalized quantities remain scaled `BigInt` values with the existing scale of `10^7` while stored in IndexedDB. Sales rows retain `sales_value_exact` as the existing exact decimal string.
+Normalized quantities remain scaled `BigInt` values with the existing scale of `10^7` while stored in IndexedDB. Explicit net/gross sales values and unit prices retain their matching `*_exact` decimal strings. The legacy unclassified `sales_value` and `sales_value_exact` fields remain preserved rather than being guessed as net or gross.
 
 JSON cannot directly represent `BigInt` or `ArrayBuffer`. The portable backup therefore uses explicit tagged values:
 
@@ -219,6 +219,6 @@ The restore worker returns the already validated persisted payload and prepared 
 
 ## Schema migration
 
-Workspace records carry `schemaVersion`. The current reader uses version `8`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, accepts version `5` catalogs without profiles by supplying an empty profile, adds the workspace custom-field registry and source mappings in version `7`, and adds an empty article registry when migrating version `7` records to version `8`. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `3` creates the chunk stores, including article-registry chunks. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis and the registry are rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
+Workspace records carry `schemaVersion`. The current reader uses version `9`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, accepts version `5` catalogs without profiles by supplying an empty profile, adds the workspace custom-field registry and source mappings in version `7`, and adds an empty article registry when migrating version `7` records to version `8`. Version `8` mappings, normalized rows, issue fields, issue date evidence, and registry provenance are migrated from `order_date` to `delivery_date` for version `9`. Legacy `sales_value` mappings and values remain unchanged and unclassified. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `3` creates the chunk stores, including article-registry chunks. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis and the registry are rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
 
 Future migrations must produce a fully valid current workspace before saving it and require automated migration and backup-round-trip tests.

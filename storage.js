@@ -124,6 +124,7 @@
       'master_source_files',
       'movement_source_file_ids',
       'movement_source_files',
+      'movement_article_names',
       'master_row_refs',
       'value_provenance',
       'value_conflicts'
@@ -168,6 +169,7 @@
             'master_source_files',
             'movement_source_file_ids',
             'movement_source_files',
+            'movement_article_names',
             'master_row_refs',
             'value_provenance',
             'value_conflicts'
@@ -187,6 +189,7 @@
           'master_source_files',
           'movement_source_file_ids',
           'movement_source_files',
+          'movement_article_names',
           'master_row_refs',
           'value_provenance',
           'value_conflicts'
@@ -217,6 +220,7 @@
         'master_source_files',
         'movement_source_file_ids',
         'movement_source_files',
+        'movement_article_names',
         'master_row_refs',
         'value_provenance',
         'value_conflicts'

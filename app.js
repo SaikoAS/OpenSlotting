@@ -161,6 +161,13 @@
       source_type_label: 'Source type',
       source_type_order_lines: 'Order lines',
       source_type_article_master: 'Article master',
+      mapping_group_core: 'Core',
+      mapping_group_order: 'Order metrics',
+      mapping_group_customer: 'Customer metrics',
+      mapping_group_sales: 'Sales metrics',
+      mapping_group_location: 'Location functions',
+      mapping_group_selling_unit: 'Selling-unit analysis',
+      mapping_group_article: 'Article data',
       encoding_auto: 'Automatic',
       encoding_auto_detected: 'Automatic (detected: {{encoding}})',
       remove_file: 'Remove file',
@@ -172,17 +179,28 @@
       export_button: 'Export analysis',
       article_overview: 'Article overview',
       search_label: 'Search',
-      search_placeholder: 'Article ID or description',
+      search_placeholder: 'Article ID / SKU or description',
       sort_label: 'Sort by',
       sort_lines: 'Order lines',
       sort_quantity: 'Total quantity',
-      sort_sales: 'Sales value',
-      sort_article: 'Article ID',
-      column_article_id: 'Article ID',
+      sort_sales: 'Legacy sales value',
+      sort_article: 'Article ID / SKU',
+      column_article_id: 'Article ID / SKU',
       column_article_name: 'Article description',
+      column_master_status: 'Master-data status',
+      master_status_matched: 'Matched',
+      master_status_movement_only: 'No master data',
+      master_status_master_only: 'Master only',
+      master_current_location: 'Current master location',
+      master_quantity_per_sales_unit: 'Current quantity per selling unit',
+      master_unit_of_measure: 'Unit of measure',
+      master_vat_rate: 'VAT rate',
+      feature_readiness_ready: 'Period comparison ready.',
+      feature_readiness_partial: 'Period comparison is available only for part of the included source coverage.',
+      feature_readiness_blocked: 'Period comparison is blocked because a core capability is missing.',
       column_lines: 'Lines',
       column_quantity: 'Quantity',
-      column_sales: 'Sales value / coverage',
+      column_sales: 'Legacy sales value / coverage',
       column_orders: 'Orders',
       column_customers: 'Customers',
       column_days: 'Days',
@@ -202,9 +220,14 @@
       detail_source_line: 'Source line',
       detail_source_file: 'Source file',
       detail_order_id: 'Order ID',
-      detail_order_date: 'Order date',
+      detail_order_date: 'Delivery date',
       detail_customer_id: 'Customer ID',
-      detail_sales_value: 'Sales value',
+      detail_customer_name: 'Customer name',
+      detail_sales_value_net: 'Sales value excl. VAT',
+      detail_sales_value_gross: 'Sales value incl. VAT',
+      detail_unit_price_net: 'Unit price excl. VAT',
+      detail_unit_price_gross: 'Unit price incl. VAT',
+      detail_sales_value: 'Legacy sales value',
       detail_location: 'Location',
       no_detail_rows: 'No normalized order lines are available for this article.',
       empty_value: '—',
@@ -237,7 +260,7 @@
       metric_average_line_detail: 'quantity divided by lines',
       metric_average_order: 'Avg. quantity / order',
       metric_average_order_detail: 'quantity divided by orders',
-      metric_sales: 'Sales value',
+      metric_sales: 'Legacy sales value',
       metric_sales_detail: '{{count}} rows with sales value',
       article_count: '{{count}} articles shown',
       article_page: 'Page {{page}} of {{pages}} · {{count}} articles on this page',
@@ -295,9 +318,9 @@
       coverage_sources_title: 'Coverage by source',
       coverage_sources_intro: 'Review ranges, valid rows, dated invalid rows, and selling-unit coverage per source.',
       coverage_dates_title: 'Coverage by date',
-      coverage_dates_intro: 'Invalid rows appear on a date only when that row contains a valid mapped order date.',
+      coverage_dates_intro: 'Invalid rows appear on a date only when that row contains a valid mapped delivery date.',
       coverage_range: 'Observed range',
-      selling_unit_rows: 'VKU rows',
+      selling_unit_rows: 'Selling-unit rows',
       coverage_date_page: 'Page {{page}} of {{pages}} · {{count}} dates on this page',
       coverage_view_evidence: 'View evidence',
       coverage_drilldown_label: 'Coverage evidence',
@@ -338,7 +361,7 @@
       comparison_intro: 'Compare key figures and article-level changes between the selected periods.',
       edit_periods: 'Edit periods',
       export_comparison: 'Export comparison',
-      comparison_search_placeholder: 'Article ID or description',
+      comparison_search_placeholder: 'Article ID / SKU or description',
       change_filter: 'Change',
       change_all: 'All changes',
       change_increased: 'Increased',
@@ -349,20 +372,20 @@
       change_conflict: 'Selling-unit review',
       sort_change: 'Largest quantity change',
       sort_percent: 'Largest percent change',
-      column_sales_units: 'Colli',
+      column_sales_units: 'Selling units / cases',
       comparison_change: 'Change',
       comparison_quality: 'Data quality',
       comparison_action: 'Action',
       quantity_change: 'Quantity change',
       percent_change: 'Percent change',
       all_data_label: 'Reference view',
-      metric_sales_units: 'Selling units / Colli',
+      metric_sales_units: 'Selling units / cases',
       metric_sales_units_detail: 'Rows: {{rows}} · Partial sales: {{partials}} · Review notes: {{overages}}',
       metric_sales_unit_relations: 'Partial sales: {{partials}} · Review notes: {{overages}}',
-      detail_sales_units: 'Selling units / Colli',
+      detail_sales_units: 'Selling units / cases',
       detail_quantity_per_sales_unit: 'Quantity per selling unit',
       coverage_overview: '{{days}} observed days from {{start}} to {{end}} · {{dated}}/{{rows}} rows with a valid date',
-      coverage_no_dates: 'No valid order dates are available. Map and validate an order-date column first.',
+      coverage_no_dates: 'No valid delivery dates are available. Map and validate a delivery-date column first.',
       coverage_complete: '{{observed}}/{{expected}} expected days observed · complete coverage',
       coverage_partial: '{{observed}}/{{expected}} expected days observed · {{missing}} days unknown',
       coverage_empty: '0/{{expected}} expected days observed · no imported rows in this period',
@@ -377,8 +400,8 @@
       metric_period_orders: 'Orders',
       metric_period_customers: 'Customers',
       metric_period_days: 'Active observed days',
-      metric_period_sales: 'Sales value',
-      metric_period_sales_units: 'Selling units / Colli',
+      metric_period_sales: 'Legacy sales value',
+      metric_period_sales_units: 'Selling units / cases',
       metric_period_row_coverage: '{{rows}}/{{lines}} rows',
       percent_unavailable: 'n/a',
       comparison_empty: 'No articles match the current filters.',
@@ -552,6 +575,13 @@
       source_type_label: 'Quelltyp',
       source_type_order_lines: 'Auftragszeilen',
       source_type_article_master: 'Artikelstamm',
+      mapping_group_core: 'Kernfelder',
+      mapping_group_order: 'Auftragskennzahlen',
+      mapping_group_customer: 'Kundenkennzahlen',
+      mapping_group_sales: 'Verkaufskennzahlen',
+      mapping_group_location: 'Stellplatzfunktionen',
+      mapping_group_selling_unit: 'Verkaufseinheitenanalyse',
+      mapping_group_article: 'Artikeldaten',
       encoding_auto: 'Automatisch',
       encoding_auto_detected: 'Automatisch (erkannt: {{encoding}})',
       remove_file: 'Datei entfernen',
@@ -563,17 +593,28 @@
       export_button: 'Analyse exportieren',
       article_overview: 'Artikelübersicht',
       search_label: 'Suche',
-      search_placeholder: 'Artikel-ID oder Artikelbezeichnung',
+      search_placeholder: 'Artikel-ID / SKU oder Artikelbezeichnung',
       sort_label: 'Sortierung',
       sort_lines: 'Auftragszeilen',
       sort_quantity: 'Gesamtmenge',
-      sort_sales: 'Umsatz',
-      sort_article: 'Artikel-ID',
-      column_article_id: 'Artikel-ID',
+      sort_sales: 'Bisheriger Verkaufswert',
+      sort_article: 'Artikel-ID / SKU',
+      column_article_id: 'Artikel-ID / SKU',
       column_article_name: 'Artikelbezeichnung',
+      column_master_status: 'Stammdatenstatus',
+      master_status_matched: 'Verknüpft',
+      master_status_movement_only: 'Ohne Stammdaten',
+      master_status_master_only: 'Nur Stammdaten',
+      master_current_location: 'Aktueller Stamm-Stellplatz',
+      master_quantity_per_sales_unit: 'Aktuelle Menge je Verkaufseinheit',
+      master_unit_of_measure: 'Mengeneinheit',
+      master_vat_rate: 'Mehrwertsteuersatz',
+      feature_readiness_ready: 'Periodenvergleich ist bereit.',
+      feature_readiness_partial: 'Der Periodenvergleich ist nur für einen Teil der einbezogenen Quellen verfügbar.',
+      feature_readiness_blocked: 'Der Periodenvergleich ist blockiert, weil eine Kernfähigkeit fehlt.',
       column_lines: 'Zeilen',
       column_quantity: 'Menge',
-      column_sales: 'Umsatz / Abdeckung',
+      column_sales: 'Bisheriger Verkaufswert / Abdeckung',
       column_orders: 'Aufträge',
       column_customers: 'Kunden',
       column_days: 'Tage',
@@ -593,9 +634,14 @@
       detail_source_line: 'Quellzeile',
       detail_source_file: 'Quelldatei',
       detail_order_id: 'Auftrags-ID',
-      detail_order_date: 'Auftragsdatum',
+      detail_order_date: 'Lieferdatum',
       detail_customer_id: 'Kunden-ID',
-      detail_sales_value: 'Umsatz',
+      detail_customer_name: 'Kundenname',
+      detail_sales_value_net: 'Verkaufswert ohne Mehrwertsteuer',
+      detail_sales_value_gross: 'Verkaufswert mit Mehrwertsteuer',
+      detail_unit_price_net: 'Verkaufspreis ohne Mehrwertsteuer',
+      detail_unit_price_gross: 'Verkaufspreis mit Mehrwertsteuer',
+      detail_sales_value: 'Bisheriger Verkaufswert',
       detail_location: 'Stellplatz',
       no_detail_rows: 'Für diesen Artikel sind keine normalisierten Auftragszeilen verfügbar.',
       empty_value: '—',
@@ -628,7 +674,7 @@
       metric_average_line_detail: 'Menge geteilt durch Zeilen',
       metric_average_order: 'Ø Menge / Auftrag',
       metric_average_order_detail: 'Menge geteilt durch Aufträge',
-      metric_sales: 'Umsatz',
+      metric_sales: 'Bisheriger Verkaufswert',
       metric_sales_detail: '{{count}} Zeilen mit Umsatz',
       article_count: '{{count}} Artikel angezeigt',
       article_page: 'Seite {{page}} von {{pages}} · {{count}} Artikel auf dieser Seite',
@@ -684,11 +730,11 @@
       coverage_unknown_note: 'Tage ohne importierte Zeilen bleiben unbekannte Abdeckung und gelten nicht als Nullabsatz.',
       coverage_timeline_label: 'Beobachtete Datumsabdeckung',
       coverage_sources_title: 'Abdeckung nach Quelle',
-      coverage_sources_intro: 'Zeiträume, gültige Zeilen, datierbare fehlerhafte Zeilen und VKU-Abdeckung je Quelle prüfen.',
+      coverage_sources_intro: 'Zeiträume, gültige Zeilen, datierbare fehlerhafte Zeilen und Verkaufseinheiten-Abdeckung je Quelle prüfen.',
       coverage_dates_title: 'Abdeckung nach Datum',
-      coverage_dates_intro: 'Fehlerhafte Zeilen erscheinen nur dann bei einem Datum, wenn sie ein gültiges zugeordnetes Auftragsdatum enthalten.',
+      coverage_dates_intro: 'Fehlerhafte Zeilen erscheinen nur dann bei einem Datum, wenn sie ein gültiges zugeordnetes Lieferdatum enthalten.',
       coverage_range: 'Beobachteter Zeitraum',
-      selling_unit_rows: 'VKU-Zeilen',
+      selling_unit_rows: 'Verkaufseinheiten-Zeilen',
       coverage_date_page: 'Seite {{page}} von {{pages}} · {{count}} Datumswerte auf dieser Seite',
       coverage_view_evidence: 'Nachweise anzeigen',
       coverage_drilldown_label: 'Abdeckungsnachweise',
@@ -729,7 +775,7 @@
       comparison_intro: 'Kennzahlen und Änderungen je Artikel zwischen den ausgewählten Perioden vergleichen.',
       edit_periods: 'Perioden bearbeiten',
       export_comparison: 'Vergleich exportieren',
-      comparison_search_placeholder: 'Artikel-ID oder Bezeichnung',
+      comparison_search_placeholder: 'Artikel-ID / SKU oder Bezeichnung',
       change_filter: 'Änderung',
       change_all: 'Alle Änderungen',
       change_increased: 'Gestiegen',
@@ -737,7 +783,7 @@
       change_new: 'Neu',
       change_inactive: 'Inaktiv',
       change_incomplete: 'Unvollständige Daten',
-      change_conflict: 'VKU-Prüfhinweis',
+      change_conflict: 'Prüfhinweis Verkaufseinheiten',
       sort_change: 'Größte Mengenänderung',
       sort_percent: 'Größte prozentuale Änderung',
       column_sales_units: 'Colli',
@@ -751,9 +797,9 @@
       metric_sales_units_detail: 'Zeilen: {{rows}} · Teilmengen/Anbrüche: {{partials}} · Prüfhinweise: {{overages}}',
       metric_sales_unit_relations: 'Teilmengen/Anbrüche: {{partials}} · Prüfhinweise: {{overages}}',
       detail_sales_units: 'Verkaufseinheiten / Colli',
-      detail_quantity_per_sales_unit: 'Menge pro VKU',
+      detail_quantity_per_sales_unit: 'Menge je Verkaufseinheit',
       coverage_overview: '{{days}} beobachtete Tage von {{start}} bis {{end}} · {{dated}}/{{rows}} Zeilen mit gültigem Datum',
-      coverage_no_dates: 'Es sind keine gültigen Auftragsdaten vorhanden. Bitte zuerst eine Datumsspalte zuordnen und validieren.',
+      coverage_no_dates: 'Es sind keine gültigen Lieferdaten vorhanden. Bitte zuerst eine Lieferdatumsspalte zuordnen und validieren.',
       coverage_complete: '{{observed}}/{{expected}} erwartete Tage vorhanden · vollständige Abdeckung',
       coverage_partial: '{{observed}}/{{expected}} erwartete Tage vorhanden · {{missing}} Tage unbekannt',
       coverage_empty: '0/{{expected}} erwartete Tage vorhanden · keine importierten Zeilen in dieser Periode',
@@ -768,7 +814,7 @@
       metric_period_orders: 'Aufträge',
       metric_period_customers: 'Kunden',
       metric_period_days: 'Aktive beobachtete Tage',
-      metric_period_sales: 'Umsatz',
+      metric_period_sales: 'Bisheriger Verkaufswert',
       metric_period_sales_units: 'Verkaufseinheiten / Colli',
       metric_period_row_coverage: '{{rows}}/{{lines}} Zeilen',
       percent_unavailable: 'k. A.',
@@ -778,7 +824,7 @@
       quality_unknown_dates: 'Unbekannte Tage',
       quality_unit_conflict: 'Einheitenkonflikt',
       quality_unit_partial: 'Teilmenge/Anbruch',
-      quality_unit_exceeds: 'VKU-Menge größer als Gesamtmenge',
+      quality_unit_exceeds: 'Menge aus Verkaufseinheiten größer als Gesamtmenge',
       change_unchanged: 'Unverändert',
       open_article: 'Öffnen',
       comparison_detail_label: 'Periodenspezifische Artikelnachweise',
@@ -1230,7 +1276,7 @@
     elements.filePicker.classList.toggle('disabled', !hasWorkspace);
     elements.languageSelect.disabled = editsLocked;
     elements.analyzeButton.disabled = editsLocked || !state.activeWorkspace || !state.files.some(function (file) { return Boolean(file.parsed); });
-    elements.exportButton.disabled = editsLocked || !state.result || analysisRowCount(state.result) === 0;
+    elements.exportButton.disabled = editsLocked || !state.result || !state.analysis || state.analysis.articles.length === 0;
     elements.mappingGrid.querySelectorAll('select, button').forEach(function (control) {
       const fileId = control.dataset.encodingFileId || control.dataset.removeFileId || control.dataset.fileId;
       const file = state.files.find(function (item) { return item.id === fileId; });
@@ -1423,6 +1469,9 @@
   }
 
   function formatNumber(value, digits) {
+    if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+      return translate('percent_unavailable');
+    }
     return new Intl.NumberFormat(state.language === 'de' ? 'de-DE' : 'en-US', {
       maximumFractionDigits: digits === undefined ? 2 : digits,
       minimumFractionDigits: 0
@@ -1430,6 +1479,9 @@
   }
 
   function formatQuantity(value) {
+    if (value === null || value === undefined) {
+      return translate('percent_unavailable');
+    }
     return core.formatScaledQuantity(value, state.language);
   }
 
@@ -1499,7 +1551,10 @@
     const catalog = Array.isArray(file.columnCatalog) && file.columnCatalog.length === file.headers.length
       ? file.columnCatalog
       : file.headers.map(function (header, position) { return { position: position, header: header, profile: null }; });
-    const suggestions = core.buildMappingSuggestions(file.headers, catalog.map(function (entry) { return entry.profile || {}; }));
+    const suggestions = core.buildMappingSuggestions(file.headers, catalog.map(function (entry) { return entry.profile || {}; }), {
+      sourceType: file.sourceType,
+      mapping: file.mapping
+    });
     const mappedByPosition = {};
     Object.keys(file.mapping || {}).forEach(function (field) {
       if (Number.isInteger(file.mapping[field])) mappedByPosition[file.mapping[field]] = core.getFieldLabel(field, state.language);
@@ -1672,10 +1727,8 @@
         renderSourceColumnOverview(file, section);
         const fields = document.createElement('div');
         fields.className = 'mapping-fields';
-        core.FIELD_DEFINITIONS.forEach(function (definition) {
-          const required = file.sourceType === 'article-master'
-            ? definition.key === 'article_id'
-            : definition.required;
+        core.getFieldDefinitionsForSource(file.sourceType, { mapping: file.mapping }).forEach(function (definition) {
+          const required = core.fieldRequiredForSource(definition, file.sourceType);
           const wrapper = document.createElement('div');
           wrapper.className = 'mapping-field' + (required ? ' required' : '');
           const label = document.createElement('label');
@@ -1687,7 +1740,8 @@
           setText(fieldName, core.getFieldLabel(definition.key, state.language));
           const fieldBadge = document.createElement('span');
           fieldBadge.className = 'field-badge ' + (required ? 'required' : 'optional');
-          setText(fieldBadge, translate(required ? 'required_label' : 'optional_label'));
+          const groupKey = 'mapping_group_' + String(definition.group || 'article').replace(/-/g, '_');
+          setText(fieldBadge, required ? translate('required_label') : translate(groupKey));
           labelLine.appendChild(fieldName);
           labelLine.appendChild(fieldBadge);
           label.appendChild(labelLine);
@@ -1715,7 +1769,7 @@
           fields.appendChild(wrapper);
         });
         const customFields = state.customFields.filter(function (field) { return field.active !== false; });
-        {
+        if (file.sourceType === 'article-master') {
           const customHeading = document.createElement('h4');
           setText(customHeading, translate('custom_field_mapping_title'));
           fields.appendChild(customHeading);
@@ -2082,7 +2136,7 @@
   }
 
   function renderCoverageTimeline(rows) {
-    const dates = Array.from(new Set(rows.map(function (row) { return periods.validDate(row.order_date) ? row.order_date : null; }).filter(Boolean))).sort();
+    const dates = Array.from(new Set(rows.map(function (row) { return periods.validDate(row.delivery_date) ? row.delivery_date : null; }).filter(Boolean))).sort();
     elements.coverageTimeline.replaceChildren();
     if (dates.length === 0) {
       elements.coverageTimeline.classList.add('hidden');
@@ -2137,14 +2191,14 @@
     }
     state.result.rows.forEach(function (row) {
       const source = sourceMap.get(row.source_file_id);
-      if (source && periods.validDate(row.order_date)) {
-        source.dates.add(row.order_date);
+      if (source && periods.validDate(row.delivery_date)) {
+        source.dates.add(row.delivery_date);
         if (typeof row.sales_unit_count === 'bigint') {
           source.salesUnitRows += 1;
         }
       }
-      if (periods.validDate(row.order_date)) {
-        const entry = dateEntry(row.order_date);
+      if (periods.validDate(row.delivery_date)) {
+        const entry = dateEntry(row.delivery_date);
         entry.validRows += 1;
         if (row.source_file_id) {
           entry.sources.set(row.source_file_id, row.source_file_label || row.source_file_name || row.source_file_id);
@@ -2152,10 +2206,10 @@
       }
     });
     state.result.issues.forEach(function (issue) {
-      if (!sourceMap.has(issue.sourceFileId) || !core.issueIsBlocking(issue) || !periods.validDate(issue.orderDate) || !Number.isInteger(issue.sourceLine)) {
+      if (!sourceMap.has(issue.sourceFileId) || !core.issueIsBlocking(issue) || !periods.validDate(issue.deliveryDate) || !Number.isInteger(issue.sourceLine)) {
         return;
       }
-      const entry = dateEntry(issue.orderDate);
+      const entry = dateEntry(issue.deliveryDate);
       entry.invalidLines.add(String(issue.sourceFileId || '') + ':' + issue.sourceLine);
       if (issue.sourceFileId) {
         entry.sources.set(issue.sourceFileId, issue.sourceFileLabel || issue.sourceFileName || issue.sourceFileId);
@@ -2229,11 +2283,11 @@
     const isDate = selection.type === 'date';
     const sourceSummary = state.result.files.find(function (source) { return source.id === selection.value; });
     const validRows = state.result.rows.filter(function (row) {
-      return isDate ? row.order_date === selection.value : row.source_file_id === selection.value;
+      return isDate ? row.delivery_date === selection.value : row.source_file_id === selection.value;
     });
     const issues = state.result.issues.filter(function (issue) {
       const source = state.result.files.find(function (file) { return file.id === issue.sourceFileId; });
-      return source && source.sourceType !== 'article-master' && (isDate ? issue.orderDate === selection.value : issue.sourceFileId === selection.value);
+      return source && source.sourceType !== 'article-master' && (isDate ? issue.deliveryDate === selection.value : issue.sourceFileId === selection.value);
     });
     const invalidLines = new Set(issues.filter(function (issue) {
       return core.issueIsBlocking(issue) && Number.isInteger(issue.sourceLine);
@@ -2258,9 +2312,9 @@
       appendCell(row, translate('coverage_valid_row'));
       appendCell(row, optionalText(rowData.source_file_label || rowData.source_file_name));
       appendCell(row, String(rowData.source_line), 'number');
-      appendCell(row, rowData.order_date);
+      appendCell(row, rowData.delivery_date);
       appendCell(row, rowData.article_id);
-      appendCell(row, rowData.order_id + ' · ' + formatQuantity(rowData.quantity));
+      appendCell(row, optionalText(rowData.order_id) + ' · ' + formatQuantity(rowData.quantity));
       elements.coverageDrilldownTableBody.appendChild(row);
     });
     issues.forEach(function (issue) {
@@ -2268,7 +2322,7 @@
       appendCell(row, translate(core.issueIsBlocking(issue) ? 'coverage_invalid_row' : 'coverage_advisory_row'));
       appendCell(row, optionalText(issue.sourceFileLabel || issue.sourceFileName));
       appendCell(row, Number.isInteger(issue.sourceLine) ? String(issue.sourceLine) : translate('empty_value'), 'number');
-      appendCell(row, optionalText(issue.orderDate));
+      appendCell(row, optionalText(issue.deliveryDate));
       appendCell(row, translate('empty_value'));
       appendCell(row, issue.message);
       elements.coverageDrilldownTableBody.appendChild(row);
@@ -2282,8 +2336,8 @@
       return;
     }
     const rows = state.result.rows;
-    const dates = Array.from(new Set(rows.map(function (row) { return periods.validDate(row.order_date) ? row.order_date : null; }).filter(Boolean))).sort();
-    const datedRows = rows.filter(function (row) { return periods.validDate(row.order_date); }).length;
+    const dates = Array.from(new Set(rows.map(function (row) { return periods.validDate(row.delivery_date) ? row.delivery_date : null; }).filter(Boolean))).sort();
+    const datedRows = rows.filter(function (row) { return periods.validDate(row.delivery_date); }).length;
     elements.coverageOverview.replaceChildren();
     const summary = document.createElement('div');
     summary.className = 'coverage-stat';
@@ -2553,7 +2607,7 @@
       appendCell(row, optionalText(line.source_file_label || line.source_file_name));
       appendCell(row, String(line.source_line), 'number');
       appendCell(row, line.order_id);
-      appendCell(row, line.order_date);
+      appendCell(row, line.delivery_date);
       appendCell(row, formatQuantity(line.quantity), 'number');
       appendCell(row, line.sales_unit_count === null ? translate('empty_value') : formatQuantity(line.sales_unit_count), 'number');
       appendCell(row, line.sales_value === null ? translate('empty_value') : formatSalesValue(line.sales_value, line.sales_value_exact), 'number');
@@ -2669,7 +2723,7 @@
       showPeriodMessage('period_invalid', 'warning-message');
       return;
     }
-    state.comparison = periods.comparePeriods(state.result.rows, settings, core.analyzeRows);
+    state.comparison = periods.comparePeriods(state.result.rows, settings, core.analyzeRows, state.result.featureReadiness, state.articleRegistry);
     core.prepareArticleSearchProjections(state.comparison.articles, state.language);
     invalidateViewCaches();
     state.comparisonPage = 1;
@@ -2739,6 +2793,18 @@
     return value === null || value === undefined || String(value) === ''
       ? translate('empty_value')
       : String(value);
+  }
+
+  function masterStatusText(status) {
+    if (status === 'matched') return translate('master_status_matched');
+    if (status === 'master-only') return translate('master_status_master_only');
+    return translate('master_status_movement_only');
+  }
+
+  function readinessText(status) {
+    if (status === 'ready') return translate('feature_readiness_ready');
+    if (status === 'partial') return translate('feature_readiness_partial');
+    return translate('feature_readiness_blocked');
   }
 
   function formatLocations(locations) {
@@ -2830,9 +2896,10 @@
   }
 
   function renderArticleDetailMetrics(article) {
-    renderMetricCards(elements.articleDetailMetrics, [
+    const metrics = [
       [translate('column_article_id'), article.article_id, ''],
       [translate('column_article_name'), optionalText(article.article_name), ''],
+      [translate('column_master_status'), masterStatusText(article.movement_status), ''],
       [translate('metric_lines'), formatNumber(article.order_line_count, 0), translate('metric_lines_detail')],
       [translate('metric_quantity'), formatQuantity(article.total_quantity), translate('metric_quantity_detail')],
       [translate('metric_orders'), formatNumber(article.distinct_orders, 0), translate('metric_orders_detail')],
@@ -2844,8 +2911,18 @@
         partials: article.selling_unit_partial_rows,
         overages: article.selling_unit_overage_rows
       })],
-      [translate('column_locations'), formatLocations(article.locations), '']
-    ]);
+      [translate('column_locations'), formatLocations(article.locations), ''],
+      [translate('master_current_location'), optionalText(article.current_location), ''],
+      [translate('master_quantity_per_sales_unit'), article.current_quantity_per_sales_unit === null || article.current_quantity_per_sales_unit === undefined ? translate('empty_value') : formatQuantity(article.current_quantity_per_sales_unit), ''],
+      [translate('master_unit_of_measure'), optionalText(article.unit_of_measure), ''],
+      [translate('master_vat_rate'), article.vat_rate === null || article.vat_rate === undefined ? translate('empty_value') : String(article.vat_rate), '']
+    ];
+    const fieldsById = new Map((state.customFields || []).map(function (field) { return [field.id, field]; }));
+    Object.keys(article.master_custom_fields || {}).sort().forEach(function (fieldId) {
+      const definition = fieldsById.get(fieldId);
+      metrics.push([definition ? definition.name : fieldId, article.master_custom_fields[fieldId], '']);
+    });
+    renderMetricCards(elements.articleDetailMetrics, metrics);
   }
 
   function renderArticleDetail() {
@@ -2882,7 +2959,7 @@
       const emptyRow = document.createElement('tr');
       emptyRow.className = 'empty-row';
       const emptyCell = document.createElement('td');
-      emptyCell.colSpan = 12;
+      emptyCell.colSpan = 17;
       setText(emptyCell, translate('no_detail_rows'));
       emptyRow.appendChild(emptyCell);
       elements.articleDetailTableBody.appendChild(emptyRow);
@@ -2891,13 +2968,18 @@
         const row = document.createElement('tr');
         appendCell(row, optionalText(line.source_file_label || line.source_file_name));
         appendCell(row, String(line.source_line), 'number');
-        appendCell(row, line.order_id);
-        appendCell(row, line.order_date);
+        appendCell(row, optionalText(line.order_id));
+        appendCell(row, line.delivery_date);
         appendCell(row, formatQuantity(line.quantity), 'number');
         appendCell(row, line.sales_unit_count === null ? translate('empty_value') : formatQuantity(line.sales_unit_count), 'number');
         appendCell(row, line.quantity_per_sales_unit === null ? translate('empty_value') : formatQuantity(line.quantity_per_sales_unit), 'number');
         appendCell(row, optionalText(line.customer_id));
-        appendCell(row, line.sales_value === null ? translate('empty_value') : formatSalesValue(line.sales_value, line.sales_value_exact), 'number');
+        appendCell(row, optionalText(line.customer_name));
+        appendCell(row, line.sales_value_net === null || line.sales_value_net === undefined ? translate('empty_value') : formatSalesValue(line.sales_value_net, line.sales_value_net_exact), 'number');
+        appendCell(row, line.sales_value_gross === null || line.sales_value_gross === undefined ? translate('empty_value') : formatSalesValue(line.sales_value_gross, line.sales_value_gross_exact), 'number');
+        appendCell(row, line.unit_price_net === null || line.unit_price_net === undefined ? translate('empty_value') : formatSalesValue(line.unit_price_net, line.unit_price_net_exact), 'number');
+        appendCell(row, line.unit_price_gross === null || line.unit_price_gross === undefined ? translate('empty_value') : formatSalesValue(line.unit_price_gross, line.unit_price_gross_exact), 'number');
+        appendCell(row, line.sales_value === null || line.sales_value === undefined ? translate('empty_value') : formatSalesValue(line.sales_value, line.sales_value_exact), 'number');
         appendCell(row, optionalText(line.location), 'location-cell');
         appendCell(row, optionalText(line.article_name), 'article-name-cell');
         appendSourceInspectionCell(row, line);
@@ -2905,7 +2987,7 @@
       });
     }
 
-    elements.articleDetailPagination.classList.toggle('hidden', lines.length <= TABLE_PAGE_SIZE);
+    elements.articleDetailPagination.classList.toggle('hidden', references.length <= TABLE_PAGE_SIZE);
     elements.articleDetailPrevious.disabled = state.detailPage <= 1;
     elements.articleDetailNext.disabled = state.detailPage >= pageCount;
     setText(elements.articleDetailPageStatus, translate('detail_page', {
@@ -2961,7 +3043,7 @@
       const row = document.createElement('tr');
       row.className = 'empty-row';
       const cell = document.createElement('td');
-      cell.colSpan = 10;
+      cell.colSpan = 11;
       setText(cell, translate('no_matches'));
       row.appendChild(cell);
       elements.articleTableBody.appendChild(row);
@@ -2972,6 +3054,7 @@
       const row = document.createElement('tr');
       appendArticleIdCell(row, article);
       appendArticleNameCell(row, article);
+      appendCell(row, masterStatusText(article.movement_status));
       appendCell(row, formatNumber(article.order_line_count, 0), 'number');
       appendCell(row, formatQuantity(article.total_quantity), 'number');
       appendCell(row, formatArticleSales(article), 'number');
@@ -3080,12 +3163,14 @@
       ? result.articleRegistry
       : core.buildArticleRegistry(result.retainedRows || result.rows || []);
     state.detailRowsByRef = Array.isArray(result.rows) ? result.rows : [];
-    state.analysis = options && options.analysis ? options.analysis : core.analyzeRows(result.rows);
+    const movementAnalysis = options && options.analysis ? options.analysis : core.analyzeRows(result.rows);
+    state.analysis = core.applyFeatureReadinessToAnalysis(movementAnalysis, result.featureReadiness);
+    state.analysis = core.enrichAnalysisWithRegistry(state.analysis, state.articleRegistry, { locale: state.language });
     core.prepareArticleSearchProjections(state.analysis.articles, state.language);
     invalidateViewCaches();
     state.periodSettings = settingsForDetectedCalendarWeeks(state.periodSettings, result.rows);
     if (state.comparison) {
-      state.comparison = periods.comparePeriods(result.rows, state.periodSettings, core.analyzeRows);
+      state.comparison = periods.comparePeriods(result.rows, state.periodSettings, core.analyzeRows, result.featureReadiness, state.articleRegistry);
       core.prepareArticleSearchProjections(state.comparison.articles, state.language);
       invalidateViewCaches();
     }
@@ -3099,7 +3184,8 @@
       state.selectedComparisonArticleId = null;
       state.comparisonDetailPage = 1;
     }
-    const hasIssues = result.invalidRows > 0 || result.excludedFiles > 0 || result.warnings.length > 0;
+    const hasIssues = result.invalidRows > 0 || result.excludedFiles > 0 || result.warnings.length > 0 ||
+      (Array.isArray(result.qualityFindings) && result.qualityFindings.length > 0);
     elements.importSummary.className = 'import-summary' + (hasIssues ? ' warning' : '');
     let summary = translate('summary_valid', {
       included: result.includedFiles,
@@ -3117,6 +3203,9 @@
     if (result.excludedFiles > 0) {
       summary += ' ' + translate('summary_excluded', { count: result.excludedFiles });
     }
+    if (result.featureReadiness && result.featureReadiness.periodComparison) {
+      summary += ' ' + readinessText(result.featureReadiness.periodComparison.status);
+    }
     setText(elements.importSummary, summary);
     renderSourceFiles(result);
     renderMetrics(state.analysis);
@@ -3126,10 +3215,22 @@
     } else {
       showArticleOverview();
     }
-    renderIssues(result.issues);
+    const qualityIssues = (result.qualityFindings || []).map(function (finding) {
+      return {
+        sourceFileId: finding.sourceFileId,
+        sourceFileLabel: finding.sourceFileLabel || finding.sourceFileId,
+        sourceLine: finding.sourceLine,
+        field: finding.article_id || finding.category,
+        code: finding.code,
+        message: finding.message,
+        severity: finding.severity,
+        blocking: finding.severity === 'error'
+      };
+    });
+    renderIssues(result.issues.concat(qualityIssues));
     renderCoverage();
     renderComparison();
-    elements.exportButton.disabled = analysisRowCount(result) === 0;
+    elements.exportButton.disabled = !state.analysis || state.analysis.articles.length === 0;
     elements.resultsPanel.classList.remove('hidden');
     renderWorkflow(state.comparison ? 'comparison-panel' : 'coverage-panel');
   }
@@ -3219,7 +3320,7 @@
       }
       return file;
     });
-    const result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator });
+    const result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator, locale: state.language });
     renderMapping();
     renderResults(result, { preserveView: preserveView, analysis: analysisAccumulator.finish({ locale: state.language }) });
   }
@@ -3350,7 +3451,7 @@
           sourceType: file.sourceType
         });
       }
-      file.mapping = core.detectMapping(file.headers);
+      file.mapping = core.detectMapping(file.headers, file.sourceType);
       file.dataRowCount = streaming
         ? Number(parsed.dataRowCount || 0)
         : Math.max(0, parsed.rows.length - 1);
@@ -3634,7 +3735,7 @@
         }
         return file;
       });
-      result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator });
+      result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator, locale: language });
       analysis = analysisAccumulator.finish({ locale: language });
     }
     files.forEach(function (file) {
@@ -4288,6 +4389,7 @@
       state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
       await persistActiveWorkspace(undefined, { metadataOnly: true });
       renderWorkspaceControls(); renderMapping();
+      if (state.selectedArticleId && selectedArticle()) renderArticleDetail();
     } catch (error) { showWorkspaceError(error); }
   }
 
@@ -4310,10 +4412,36 @@
       state.articleRegistry = core.buildArticleRegistry(retainedRows, { activeCustomFieldIds: activeCustomFieldIds });
       if (state.result) {
         state.result.articleRegistry = state.articleRegistry;
+        const activeFieldIds = new Set(activeCustomFieldIds.map(function (id) { return String(id); }));
+        state.result.issues = (state.result.issues || []).filter(function (issue) {
+          return !issue.customFieldId || activeFieldIds.has(String(issue.customFieldId));
+        });
+        state.result.qualityFindings = core.buildDataQualityFindings(state.articleRegistry, state.result.issues, state.language);
+      }
+      if (state.analysis) {
+        state.analysis = core.enrichAnalysisWithRegistry(state.analysis, state.articleRegistry, { locale: state.language });
+        core.prepareArticleSearchProjections(state.analysis.articles, state.language);
       }
       state.activeWorkspace = Object.assign({}, state.activeWorkspace, { customFields: state.customFields });
       await persistActiveWorkspace();
       renderWorkspaceControls(); renderMapping();
+      renderArticles();
+      if (state.selectedArticleId && selectedArticle()) renderArticleDetail();
+      if (state.result) {
+        const qualityIssues = (state.result.qualityFindings || []).map(function (finding) {
+          return {
+            sourceFileId: finding.sourceFileId,
+            sourceFileLabel: finding.sourceFileLabel || finding.sourceFileId,
+            sourceLine: finding.sourceLine,
+            field: finding.article_id || finding.category,
+            code: finding.code,
+            message: finding.message,
+            severity: finding.severity,
+            blocking: finding.severity === 'error'
+          };
+        });
+        renderIssues((state.result.issues || []).concat(qualityIssues));
+      }
     } catch (error) { showWorkspaceError(error); }
   }
 
@@ -4751,7 +4879,9 @@
       return;
     }
     file.sourceType = workspaceModel.normalizeSourceType(select.value);
+    file.mapping = core.detectMapping(file.headers || [], file.sourceType);
     file.confirmedMapping = null;
+    file.customFieldMapping = {};
     file.confirmedCustomFieldMapping = null;
     file.result = null;
     clearAnalysis();
