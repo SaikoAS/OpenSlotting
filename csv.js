@@ -75,6 +75,9 @@
       qualityDescriptionConflict: 'Article description differs between movement and article master data.',
       qualityMovementWithoutMaster: 'Active article has no matching article master row.',
       qualityMasterWithoutActivity: 'Article master row has no observed order-line activity.',
+      qualityEmptyColumnHeader: 'The source column has no header.',
+      qualityColumnIncomplete: 'The mapped column is empty in {{count}} data rows.',
+      qualityColumnTypeMismatch: 'The mapped column contains {{count}} values that do not match the expected type.',
       capabilityReady: 'All included order-line sources provide this capability.',
       capabilityPartial: 'Only some included order-line sources provide this capability.',
       capabilityBlocked: 'No included order-line source provides this capability.',
@@ -111,6 +114,9 @@
       qualityDescriptionConflict: 'Die Artikelbezeichnung unterscheidet sich zwischen Bewegungs- und Artikelstammdaten.',
       qualityMovementWithoutMaster: 'Für den aktiven Artikel existiert kein passender Artikelstammsatz.',
       qualityMasterWithoutActivity: 'Für den Artikelstammsatz wurde keine Auftragszeilenaktivität beobachtet.',
+      qualityEmptyColumnHeader: 'Die Quellspalte hat keine Überschrift.',
+      qualityColumnIncomplete: 'Die zugeordnete Spalte ist in {{count}} Datenzeilen leer.',
+      qualityColumnTypeMismatch: 'Die zugeordnete Spalte enthält {{count}} Werte mit einem unerwarteten Typ.',
       capabilityReady: 'Alle einbezogenen Auftragszeilenquellen stellen diese Fähigkeit bereit.',
       capabilityPartial: 'Nur ein Teil der einbezogenen Auftragszeilenquellen stellt diese Fähigkeit bereit.',
       capabilityBlocked: 'Keine einbezogene Auftragszeilenquelle stellt diese Fähigkeit bereit.',
@@ -2333,6 +2339,160 @@
     return result;
   }
 
+  function createQualityFinding(input) {
+    const sourceColumnPosition = Number.isInteger(input && input.sourceColumnPosition)
+      ? input.sourceColumnPosition
+      : null;
+    const severity = input && input.severity === 'error' ? 'error'
+      : (input && input.severity === 'info' ? 'info' : 'warning');
+    const scope = input && ['source', 'column', 'row', 'article', 'cross-source'].indexOf(input.scope) >= 0
+      ? input.scope
+      : 'source';
+    const examples = input && Array.isArray(input.examples) ? input.examples.slice(0, 3) : [];
+    const affectedCount = input && Number.isFinite(input.affectedCount) ? Math.max(0, Math.floor(input.affectedCount)) : 1;
+    return Object.assign({}, input || {}, {
+      scope: scope,
+      severity: severity,
+      blocking: input && input.blocking !== undefined ? Boolean(input.blocking) : severity === 'error',
+      sourceFileId: input && input.sourceFileId !== undefined ? input.sourceFileId : null,
+      sourceFileLabel: input && input.sourceFileLabel !== undefined ? input.sourceFileLabel : null,
+      sourceFileName: input && input.sourceFileName !== undefined ? input.sourceFileName : null,
+      sourceType: input && input.sourceType !== undefined ? input.sourceType : null,
+      sourceColumnPosition: sourceColumnPosition,
+      sourceColumn: input && input.sourceColumn !== undefined ? input.sourceColumn : null,
+      field: input && input.field !== undefined ? input.field : null,
+      article_id: input && input.article_id !== undefined ? input.article_id : null,
+      affectedCount: affectedCount,
+      examples: examples,
+      origin: input && input.origin ? input.origin : 'quality'
+    });
+  }
+
+  function normalizeQualityFinding(finding, defaults) {
+    return createQualityFinding(Object.assign({}, defaults || {}, finding || {}));
+  }
+
+  function isSpecializedMasterQualityIssue(issue) {
+    if (!issue || issue.sourceType !== 'article-master') return false;
+    return (issue.code === 'required_value_missing' && issue.field === 'article_id') ||
+      issue.code === 'invalid_custom_field_value' ||
+      issue.code === 'invalid_master_value' ||
+      issue.code === 'quantity_per_sales_unit_precision_exceeded' ||
+      issue.code === 'quantity_per_sales_unit_must_be_positive';
+  }
+
+  function adaptValidationIssues(importIssues) {
+    const groups = new Map();
+    (importIssues || []).forEach(function (issue) {
+      if (isSpecializedMasterQualityIssue(issue)) return;
+      const sourceId = issue && issue.sourceFileId ? String(issue.sourceFileId) : '';
+      const sourceType = issue && issue.sourceType === 'article-master' ? 'article-master' : 'order-lines';
+      const field = issue && issue.field ? String(issue.field) : '';
+      const code = issue && issue.code ? String(issue.code) : 'unknown_validation_issue';
+      const severity = issue && issue.severity === 'warning' ? 'warning' : (issue && issue.severity === 'info' ? 'info' : 'error');
+      const articleId = issue && issue.articleId ? String(issue.articleId) : '';
+      const key = [sourceId, sourceType, field, code, severity, articleId].join('\u0000');
+      if (!groups.has(key)) {
+        groups.set(key, {
+          scope: Number.isInteger(issue && issue.sourceLine) ? 'row' : (field ? 'column' : 'source'),
+          code: code,
+          severity: severity,
+          blocking: issue && issue.blocking !== undefined ? Boolean(issue.blocking) : issueIsBlocking(issue),
+          sourceFileId: issue && issue.sourceFileId || null,
+          sourceFileLabel: issue && (issue.sourceFileLabel || issue.sourceFileName) || null,
+          sourceFileName: issue && issue.sourceFileName || null,
+          sourceType: sourceType,
+          field: field || null,
+          article_id: issue && issue.articleId || null,
+          message: issue && issue.message || code,
+          affectedCount: 0,
+          examples: [],
+          origin: 'validation'
+        });
+      }
+      const finding = groups.get(key);
+      finding.affectedCount += 1;
+      if (finding.examples.length < 3) {
+        finding.examples.push({
+          sourceLine: Number.isInteger(issue && issue.sourceLine) ? issue.sourceLine : null,
+          rawValue: issue && issue.rawValue !== undefined ? issue.rawValue : null,
+          deliveryDate: issue && issue.deliveryDate || null
+        });
+      }
+    });
+    return Array.from(groups.values()).map(function (finding) { return createQualityFinding(finding); });
+  }
+
+  function buildColumnQualityFindings(files, locale) {
+    const findings = [];
+    (files || []).forEach(function (file) {
+      const sourceType = normalizeFieldSourceType(file && file.sourceType);
+      const result = file && file.result || {};
+      const mapping = result.mapping || file.mapping || {};
+      const catalog = Array.isArray(file && file.columnCatalog) ? file.columnCatalog : [];
+      const headers = Array.isArray(result.headers) ? result.headers : [];
+      const profiles = catalog.length > 0 ? catalog : headers.map(function (header, position) {
+        return { position: position, header: header, profile: null };
+      });
+      profiles.forEach(function (entry, index) {
+        const position = Number.isInteger(entry.position) ? entry.position : index;
+        const header = entry.header === undefined || entry.header === null ? '' : String(entry.header);
+        const profile = entry.profile || {};
+        const mappedField = Object.keys(mapping).find(function (field) { return mapping[field] === position; });
+        const definition = mappedField && FIELD_DEFINITIONS.find(function (item) { return item.key === mappedField; });
+        const base = {
+          sourceFileId: file.id || null,
+          sourceFileLabel: file.label || file.name || null,
+          sourceFileName: file.name || null,
+          sourceType: sourceType,
+          sourceColumnPosition: position,
+          sourceColumn: header,
+          field: mappedField || null,
+          examples: Array.isArray(profile.sampleValues) ? profile.sampleValues.slice(0, 3) : []
+        };
+        if (!header.trim()) {
+          findings.push(createQualityFinding(Object.assign({}, base, {
+            scope: 'column', code: 'empty_source_column_header', severity: 'error', blocking: true,
+            affectedCount: 1, message: message(locale, 'qualityEmptyColumnHeader')
+          })));
+        }
+        const totalRows = Number(profile.totalRows || 0);
+        const nonEmpty = Number(profile.nonEmptyCount || 0);
+        if (!definition || totalRows <= 0) return;
+        const missing = Math.max(0, totalRows - nonEmpty);
+        if (missing > 0) {
+          const required = fieldRequiredForSource(definition, sourceType);
+          findings.push(createQualityFinding(Object.assign({}, base, {
+            scope: 'column', code: 'column_incomplete', severity: required ? 'error' : 'warning', blocking: required,
+            affectedCount: missing, message: message(locale, 'qualityColumnIncomplete', { count: missing })
+          })));
+        }
+        let compatible = null;
+        if (definition.dataType === 'date') {
+          compatible = Number(profile.dateCompatibleCount || 0);
+        } else if (['decimal', 'scaled-quantity'].indexOf(definition.dataType) >= 0) {
+          compatible = Number(profile.numericCompatibleCount || 0);
+        }
+        if (compatible !== null) {
+          const mismatches = Math.max(0, nonEmpty - compatible);
+          if (mismatches > 0) {
+            findings.push(createQualityFinding(Object.assign({}, base, {
+              scope: 'column', code: 'column_type_mismatch', severity: 'warning', blocking: false,
+              affectedCount: mismatches, message: message(locale, 'qualityColumnTypeMismatch', { count: mismatches })
+            })));
+          }
+        }
+      });
+    });
+    return findings;
+  }
+
+  function buildUnifiedDataQualityFindings(files, registry, importIssues, locale) {
+    return adaptValidationIssues(importIssues)
+      .concat(buildColumnQualityFindings(files, locale))
+      .concat(buildDataQualityFindings(registry, importIssues, locale));
+  }
+
   function buildDataQualityFindings(registry, importIssues, locale) {
     const findings = [];
     (importIssues || []).forEach(function (issue) {
@@ -2398,7 +2558,18 @@
         });
       }
     });
-    return findings;
+    return findings.map(function (finding) {
+      const isCrossSource = finding.category === 'cross-source';
+      const isRow = finding.code === 'master_article_id_missing' || finding.code === 'invalid_master_value' || finding.code === 'invalid_custom_field_value';
+      return normalizeQualityFinding(finding, {
+        scope: isCrossSource ? 'cross-source' : (isRow ? 'row' : 'article'),
+        sourceType: isCrossSource ? null : 'article-master',
+        blocking: finding.severity === 'error',
+        affectedCount: finding.evidence && Number.isFinite(finding.evidence.rowCount) ? finding.evidence.rowCount : 1,
+        examples: finding.evidence && Array.isArray(finding.evidence.rows) ? finding.evidence.rows : [],
+        origin: 'quality'
+      });
+    });
   }
 
   function combineImportResults(files, options) {
@@ -2535,11 +2706,13 @@
 
     const articleRegistry = buildArticleRegistry(retainedRows);
     const capabilities = buildCapabilityReadiness(normalizedFiles, options && options.locale);
+    const qualityFindings = buildDataQualityFindings(articleRegistry, issues, options && options.locale);
     return {
       rows: rows,
       retainedRows: retainedRows,
       articleRegistry: articleRegistry,
-      qualityFindings: buildDataQualityFindings(articleRegistry, issues, options && options.locale),
+      qualityFindings: qualityFindings,
+      dataQualityFindings: buildUnifiedDataQualityFindings(normalizedFiles, articleRegistry, issues, options && options.locale),
       capabilities: capabilities,
       featureReadiness: {
         periodComparison: evaluateFeatureReadiness(capabilities, 'periodComparison', options && options.locale)
@@ -2955,7 +3128,10 @@
     buildArticleRegistry: buildArticleRegistry,
     buildCapabilityReadiness: buildCapabilityReadiness,
     applyFeatureReadinessToAnalysis: applyFeatureReadinessToAnalysis,
+    adaptValidationIssues: adaptValidationIssues,
+    buildColumnQualityFindings: buildColumnQualityFindings,
     buildDataQualityFindings: buildDataQualityFindings,
+    buildUnifiedDataQualityFindings: buildUnifiedDataQualityFindings,
     enrichAnalysisWithRegistry: enrichAnalysisWithRegistry,
     evaluateFeatureReadiness: evaluateFeatureReadiness,
     detectBatchWarnings: detectBatchWarnings,

@@ -182,6 +182,37 @@
 
       <div id="coverage-page" class="app-page hidden">
 
+      <section id="quality-overview-panel" class="panel quality-overview-panel hidden" aria-labelledby="quality-overview-title">
+        <div class="panel-heading">
+          <div>
+            <h3 id="quality-overview-title" data-i18n="quality_overview_title">Data-quality overview</h3>
+            <p class="table-note" data-i18n="quality_overview_note">Findings are grouped by scope and source. Counts remain traceable to structured evidence.</p>
+          </div>
+        </div>
+        <div id="quality-overview-summary" class="quality-overview-summary" role="status"></div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="quality_scope">Scope</th>
+                <th data-i18n="quality_severity">Severity</th>
+                <th data-i18n="quality_source">Source</th>
+                <th data-i18n="quality_column_article">Column / article</th>
+                <th class="number" data-i18n="quality_affected">Affected</th>
+                <th data-i18n="quality_message">Finding</th>
+                <th><span class="visually-hidden" data-i18n="quality_action">Action</span></th>
+              </tr>
+            </thead>
+            <tbody id="quality-overview-table-body"></tbody>
+          </table>
+        </div>
+        <div id="quality-overview-pagination" class="table-pagination hidden" aria-live="polite">
+          <button id="quality-overview-previous" class="secondary-button" type="button" disabled data-i18n="previous_page">Previous</button>
+          <span id="quality-overview-page-status" class="table-note"></span>
+          <button id="quality-overview-next" class="secondary-button" type="button" disabled data-i18n="next_page">Next</button>
+        </div>
+      </section>
+
       <section id="coverage-panel" class="panel hidden" aria-labelledby="coverage-title">
         <div class="panel-heading coverage-heading">
           <div>
