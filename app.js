@@ -253,6 +253,7 @@
       quality_open_article: 'Open article',
       quality_open_source: 'Open source',
       quality_no_findings: 'No data-quality findings.',
+      quality_page: 'Page {{page}} of {{pages}} · {{count}} findings',
       quality_summary_order_lines: 'Order-line quality',
       quality_summary_article_master: 'Article-master quality',
       quality_summary_cross_source: 'Cross-source quality',
@@ -696,6 +697,7 @@
       quality_open_article: 'Artikel öffnen',
       quality_open_source: 'Quelle öffnen',
       quality_no_findings: 'Keine Datenqualitätsbefunde.',
+      quality_page: 'Seite {{page}} von {{pages}} · {{count}} Befunde',
       quality_summary_order_lines: 'Auftragszeilenqualität',
       quality_summary_article_master: 'Artikelstammqualität',
       quality_summary_cross_source: 'Quellenübergreifende Qualität',
@@ -931,6 +933,8 @@
     selectedArticleId: null,
     detailPage: 1,
     issuePage: 1,
+    issueRows: [],
+    qualityPage: 1,
     articleViewCache: null,
     comparisonViewCache: null,
     activePageTarget: 'workspace-panel'
@@ -1124,6 +1128,10 @@
     qualityOverviewPanel: document.getElementById('quality-overview-panel'),
     qualityOverviewSummary: document.getElementById('quality-overview-summary'),
     qualityOverviewTableBody: document.getElementById('quality-overview-table-body'),
+    qualityOverviewPagination: document.getElementById('quality-overview-pagination'),
+    qualityOverviewPrevious: document.getElementById('quality-overview-previous'),
+    qualityOverviewNext: document.getElementById('quality-overview-next'),
+    qualityOverviewPageStatus: document.getElementById('quality-overview-page-status'),
     appVersion: document.getElementById('app-version'),
     resetButton: document.getElementById('reset-button')
   };
@@ -3254,6 +3262,7 @@
       state.selectedArticleId = null;
       state.detailPage = 1;
       state.issuePage = 1;
+      state.qualityPage = 1;
       state.coverageDatePage = 1;
       state.coverageDrilldown = null;
       state.selectedComparisonArticleId = null;
@@ -3302,7 +3311,8 @@
         blocking: finding.severity === 'error'
       };
     });
-    renderIssues(result.issues.concat(qualityIssues));
+    state.issueRows = result.issues.concat(qualityIssues);
+    renderIssues(state.issueRows);
     renderQualityOverview(result.dataQualityFindings || result.qualityFindings || []);
     renderCoverage();
     renderComparison();
@@ -3358,6 +3368,7 @@
     elements.qualityOverviewTableBody.replaceChildren();
     if (!state.result) {
       elements.qualityOverviewPanel.classList.add('hidden');
+      elements.qualityOverviewPagination.classList.add('hidden');
       return;
     }
     elements.qualityOverviewPanel.classList.remove('hidden');
@@ -3397,6 +3408,7 @@
       elements.qualityOverviewSummary.appendChild(card);
     });
     if (entries.length === 0) {
+      elements.qualityOverviewPagination.classList.add('hidden');
       const row = document.createElement('tr');
       const cell = document.createElement('td');
       cell.colSpan = 7;
@@ -3405,7 +3417,18 @@
       elements.qualityOverviewTableBody.appendChild(row);
       return;
     }
-    entries.slice(0, TABLE_PAGE_SIZE).forEach(function (finding) {
+    const pageCount = Math.max(1, Math.ceil(entries.length / TABLE_PAGE_SIZE));
+    state.qualityPage = Math.min(Math.max(state.qualityPage, 1), pageCount);
+    const pageStart = (state.qualityPage - 1) * TABLE_PAGE_SIZE;
+    elements.qualityOverviewPagination.classList.toggle('hidden', entries.length <= TABLE_PAGE_SIZE);
+    elements.qualityOverviewPrevious.disabled = state.qualityPage <= 1;
+    elements.qualityOverviewNext.disabled = state.qualityPage >= pageCount;
+    setText(elements.qualityOverviewPageStatus, translate('quality_page', {
+      page: state.qualityPage,
+      pages: pageCount,
+      count: entries.length
+    }));
+    entries.slice(pageStart, pageStart + TABLE_PAGE_SIZE).forEach(function (finding) {
       const row = document.createElement('tr');
       appendCell(row, translate(QUALITY_SCOPE_TRANSLATION_KEYS[finding.scope] || QUALITY_SCOPE_TRANSLATION_KEYS.source));
       const severityCell = document.createElement('td');
@@ -3421,8 +3444,8 @@
           ? finding.examples[0].sourceLine
           : null);
       appendCell(row, exampleLine === null ? sourceLabel : sourceLabel + ' · ' + translate('issue_source_line') + ' ' + exampleLine);
-      const target = finding.sourceColumn
-        ? String(Number(finding.sourceColumnPosition || 0) + 1) + ': ' + finding.sourceColumn
+      const target = finding.sourceColumnPosition !== null && finding.sourceColumnPosition !== undefined
+        ? String(Number(finding.sourceColumnPosition) + 1) + ': ' + (finding.sourceColumn || translate('empty_value'))
         : (finding.article_id || (finding.field ? core.getFieldLabel(finding.field, state.language) : translate('empty_value')));
       appendCell(row, target);
       appendCell(row, formatNumber(finding.affectedCount || 0, 0), 'number');
@@ -3521,6 +3544,8 @@
     state.selectedArticleId = null;
     state.detailPage = 1;
     state.issuePage = 1;
+    state.issueRows = [];
+    state.qualityPage = 1;
     state.files.forEach(function (file) {
       file.result = null;
       if (!preserveMappings) {
@@ -4620,7 +4645,8 @@
             blocking: finding.severity === 'error'
           };
         });
-        renderIssues((state.result.issues || []).concat(qualityIssues));
+        state.issueRows = (state.result.issues || []).concat(qualityIssues);
+        renderIssues(state.issueRows);
         renderQualityOverview(state.result.dataQualityFindings || state.result.qualityFindings || []);
       }
     } catch (error) { showWorkspaceError(error); }
@@ -5344,15 +5370,25 @@
       renderMapping();
     }
   });
+  elements.qualityOverviewPrevious.addEventListener('click', function () {
+    if (state.qualityPage > 1) {
+      state.qualityPage -= 1;
+      renderQualityOverview(state.result ? (state.result.dataQualityFindings || state.result.qualityFindings || []) : []);
+    }
+  });
+  elements.qualityOverviewNext.addEventListener('click', function () {
+    state.qualityPage += 1;
+    renderQualityOverview(state.result ? (state.result.dataQualityFindings || state.result.qualityFindings || []) : []);
+  });
   elements.issuePrevious.addEventListener('click', function () {
     if (state.issuePage > 1) {
       state.issuePage -= 1;
-      renderIssues(state.result ? state.result.issues : []);
+      renderIssues(state.issueRows);
     }
   });
   elements.issueNext.addEventListener('click', function () {
     state.issuePage += 1;
-    renderIssues(state.result ? state.result.issues : []);
+    renderIssues(state.issueRows);
   });
   elements.resetButton.addEventListener('click', reset);
 

@@ -88,7 +88,8 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(removeCustomFieldBody[1], /await persistActiveWorkspace\(\);/);
   assert.match(removeCustomFieldBody[1], /enrichAnalysisWithRegistry\(state\.analysis/);
   assert.match(removeCustomFieldBody[1], /state\.result\.qualityFindings = core\.buildDataQualityFindings/);
-  assert.match(removeCustomFieldBody[1], /renderIssues\(\(state\.result\.issues \|\| \[\]\)\.concat/);
+  assert.match(removeCustomFieldBody[1], /state\.issueRows = \(state\.result\.issues \|\| \[\]\)\.concat/);
+  assert.match(removeCustomFieldBody[1], /renderIssues\(state\.issueRows\)/);
   assert.match(appSource, /stored\.confirmedCustomFieldMapping === null \|\| stored\.confirmedCustomFieldMapping === undefined/);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /id="workspace-open"/);
@@ -313,8 +314,11 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /source_column_ambiguous/);
   assert.match(appSource, /crossFieldTie/);
   assert.match(indexSource, /id="quality-overview-panel"/);
+  assert.match(indexSource, /id="quality-overview-pagination"/);
   assert.match(appSource, /function renderQualityOverview\(findings\)/);
   assert.match(appSource, /dataQualityFindings/);
+  assert.match(appSource, /state\.issueRows = result\.issues\.concat\(qualityIssues\)/);
+  assert.match(appSource, /state\.qualityPage/);
 
   const referencedIds = [...appSource.matchAll(/document\.getElementById\('([^']+)'\)/g)].map((match) => match[1]);
   referencedIds.forEach((id) => {
@@ -948,6 +952,20 @@ test('validation findings aggregate affected rows while retaining bounded exampl
   assert.equal(findings[0].examples.length, 3);
   assert.equal(findings[0].scope, 'row');
   assert.equal(findings[0].blocking, true);
+});
+
+test('quality findings keep article identity and avoid duplicate master adapters', () => {
+  const rowFindings = csv.adaptValidationIssues([
+    { sourceFileId: 'orders', sourceType: 'order-lines', sourceLine: 2, field: 'quantity', articleId: 'A', code: 'quantity_must_be_positive', severity: 'error', message: 'invalid' },
+    { sourceFileId: 'orders', sourceType: 'order-lines', sourceLine: 3, field: 'quantity', articleId: 'B', code: 'quantity_must_be_positive', severity: 'error', message: 'invalid' }
+  ]);
+  assert.equal(rowFindings.length, 2);
+  assert.deepEqual(rowFindings.map((finding) => finding.article_id).sort(), ['A', 'B']);
+
+  const masterFindings = csv.buildUnifiedDataQualityFindings([], [], [
+    { sourceFileId: 'master', sourceFileLabel: 'master.csv', sourceType: 'article-master', sourceLine: 2, field: 'vat_rate', articleId: 'A', code: 'invalid_master_value', severity: 'warning', message: 'invalid' }
+  ], 'en');
+  assert.equal(masterFindings.filter((finding) => finding.code === 'invalid_master_value').length, 1);
 });
 
 test('article-master rows remain persisted but do not enter order-line analysis', () => {

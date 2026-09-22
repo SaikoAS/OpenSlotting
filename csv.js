@@ -2372,15 +2372,26 @@
     return createQualityFinding(Object.assign({}, defaults || {}, finding || {}));
   }
 
+  function isSpecializedMasterQualityIssue(issue) {
+    if (!issue || issue.sourceType !== 'article-master') return false;
+    return (issue.code === 'required_value_missing' && issue.field === 'article_id') ||
+      issue.code === 'invalid_custom_field_value' ||
+      issue.code === 'invalid_master_value' ||
+      issue.code === 'quantity_per_sales_unit_precision_exceeded' ||
+      issue.code === 'quantity_per_sales_unit_must_be_positive';
+  }
+
   function adaptValidationIssues(importIssues) {
     const groups = new Map();
     (importIssues || []).forEach(function (issue) {
+      if (isSpecializedMasterQualityIssue(issue)) return;
       const sourceId = issue && issue.sourceFileId ? String(issue.sourceFileId) : '';
       const sourceType = issue && issue.sourceType === 'article-master' ? 'article-master' : 'order-lines';
       const field = issue && issue.field ? String(issue.field) : '';
       const code = issue && issue.code ? String(issue.code) : 'unknown_validation_issue';
       const severity = issue && issue.severity === 'warning' ? 'warning' : (issue && issue.severity === 'info' ? 'info' : 'error');
-      const key = [sourceId, sourceType, field, code, severity].join('\u0000');
+      const articleId = issue && issue.articleId ? String(issue.articleId) : '';
+      const key = [sourceId, sourceType, field, code, severity, articleId].join('\u0000');
       if (!groups.has(key)) {
         groups.set(key, {
           scope: Number.isInteger(issue && issue.sourceLine) ? 'row' : (field ? 'column' : 'source'),
