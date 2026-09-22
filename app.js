@@ -241,6 +241,35 @@
       issue_status: 'Status',
       issue_status_included: 'Row included',
       issue_status_excluded: 'Row excluded',
+      quality_overview_title: 'Data-quality overview',
+      quality_overview_note: 'Findings are grouped by scope and source. Counts remain traceable to structured evidence.',
+      quality_scope: 'Scope',
+      quality_severity: 'Severity',
+      quality_source: 'Source',
+      quality_column_article: 'Column / article',
+      quality_affected: 'Affected',
+      quality_message: 'Finding',
+      quality_action: 'Action',
+      quality_open_article: 'Open article',
+      quality_open_source: 'Open source',
+      quality_no_findings: 'No data-quality findings.',
+      quality_summary_order_lines: 'Order-line quality',
+      quality_summary_article_master: 'Article-master quality',
+      quality_summary_cross_source: 'Cross-source quality',
+      quality_summary_findings: '{{count}} findings',
+      quality_summary_affected: '{{count}} affected',
+      quality_summary_valid_rows: '{{count}} valid rows',
+      quality_summary_invalid_rows: '{{count}} invalid rows',
+      quality_summary_blocking: '{{count}} blocking',
+      quality_summary_advisory: '{{count}} advisory',
+      quality_scope_source: 'Source',
+      quality_scope_column: 'Column',
+      quality_scope_row: 'Row',
+      quality_scope_article: 'Article',
+      quality_scope_cross_source: 'Cross-source',
+      quality_severity_error: 'Error',
+      quality_severity_warning: 'Warning',
+      quality_severity_info: 'Info',
       footer_local: 'OpenSlotting processes the selected files locally only.',
       reset_button: 'Clear workspace data',
       not_mapped: '— not mapped —',
@@ -655,6 +684,35 @@
       issue_status: 'Status',
       issue_status_included: 'Zeile einbezogen',
       issue_status_excluded: 'Zeile ausgeschlossen',
+      quality_overview_title: 'Übersicht Datenqualität',
+      quality_overview_note: 'Befunde werden nach Umfang und Quelle gruppiert. Zählungen bleiben auf strukturierte Nachweise zurückführbar.',
+      quality_scope: 'Umfang',
+      quality_severity: 'Schweregrad',
+      quality_source: 'Quelle',
+      quality_column_article: 'Spalte / Artikel',
+      quality_affected: 'Betroffen',
+      quality_message: 'Befund',
+      quality_action: 'Aktion',
+      quality_open_article: 'Artikel öffnen',
+      quality_open_source: 'Quelle öffnen',
+      quality_no_findings: 'Keine Datenqualitätsbefunde.',
+      quality_summary_order_lines: 'Auftragszeilenqualität',
+      quality_summary_article_master: 'Artikelstammqualität',
+      quality_summary_cross_source: 'Quellenübergreifende Qualität',
+      quality_summary_findings: '{{count}} Befunde',
+      quality_summary_affected: '{{count}} betroffen',
+      quality_summary_valid_rows: '{{count}} gültige Zeilen',
+      quality_summary_invalid_rows: '{{count}} ungültige Zeilen',
+      quality_summary_blocking: '{{count}} blockierend',
+      quality_summary_advisory: '{{count}} hinweisend',
+      quality_scope_source: 'Quelle',
+      quality_scope_column: 'Spalte',
+      quality_scope_row: 'Zeile',
+      quality_scope_article: 'Artikel',
+      quality_scope_cross_source: 'Quellenübergreifend',
+      quality_severity_error: 'Fehler',
+      quality_severity_warning: 'Warnung',
+      quality_severity_info: 'Info',
       footer_local: 'OpenSlotting verarbeitet die ausgewählten Dateien ausschließlich lokal.',
       reset_button: 'Arbeitsbereich leeren',
       not_mapped: '— nicht zugeordnet —',
@@ -899,6 +957,18 @@
     medium: 'source_column_confidence_medium',
     low: 'source_column_confidence_low'
   };
+  const QUALITY_SCOPE_TRANSLATION_KEYS = {
+    source: 'quality_scope_source',
+    column: 'quality_scope_column',
+    row: 'quality_scope_row',
+    article: 'quality_scope_article',
+    'cross-source': 'quality_scope_cross_source'
+  };
+  const QUALITY_SEVERITY_TRANSLATION_KEYS = {
+    error: 'quality_severity_error',
+    warning: 'quality_severity_warning',
+    info: 'quality_severity_info'
+  };
 
   const RUNTIME_CAPABILITY_TRANSLATION_KEYS = {
     indexedDb: 'runtime_capability_indexedDb',
@@ -1051,6 +1121,9 @@
     issuePrevious: document.getElementById('issue-previous'),
     issueNext: document.getElementById('issue-next'),
     issuePageStatus: document.getElementById('issue-page-status'),
+    qualityOverviewPanel: document.getElementById('quality-overview-panel'),
+    qualityOverviewSummary: document.getElementById('quality-overview-summary'),
+    qualityOverviewTableBody: document.getElementById('quality-overview-table-body'),
     appVersion: document.getElementById('app-version'),
     resetButton: document.getElementById('reset-button')
   };
@@ -1880,6 +1953,7 @@
     } else if (state.result) {
       renderCoverage();
       renderComparison();
+      renderQualityOverview(state.result.dataQualityFindings || state.result.qualityFindings || []);
     }
     renderSourceStatus();
     renderWorkflow();
@@ -1929,7 +2003,10 @@
       'workspace-panel': Boolean(state.activeWorkspace),
       'import-panel': Boolean(state.activeWorkspace),
       'mapping-panel': state.files.length > 0,
-      'coverage-panel': Boolean(state.result && analysisRowCount(state.result) > 0),
+      // The coverage page also hosts the unified data-quality overview. Keep it
+      // reachable for master-only or fully blocked batches where no movement
+      // rows exist to render in the coverage timeline.
+      'coverage-panel': Boolean(state.result),
       'comparison-panel': Boolean(state.comparison),
       'results-panel': Boolean(state.result && resultHasRetainedData(state.result))
     };
@@ -1943,10 +2020,8 @@
     };
     const fallbackTarget = state.comparison
       ? 'comparison-panel'
-      : state.result && analysisRowCount(state.result) > 0
+      : state.result
         ? 'coverage-panel'
-        : state.result && resultHasRetainedData(state.result)
-          ? 'results-panel'
         : state.files.length
           ? 'mapping-panel'
           : state.activeWorkspace
@@ -3228,6 +3303,7 @@
       };
     });
     renderIssues(result.issues.concat(qualityIssues));
+    renderQualityOverview(result.dataQualityFindings || result.qualityFindings || []);
     renderCoverage();
     renderComparison();
     elements.exportButton.disabled = !state.analysis || state.analysis.articles.length === 0;
@@ -3266,6 +3342,109 @@
       entry.sourceFileId = file.id;
       entry.sourceFileName = file.name;
       entry.sourceFileLabel = file.label;
+    });
+  }
+
+  function qualityFindingGroup(finding) {
+    if (finding && finding.scope === 'cross-source') {
+      return 'cross-source';
+    }
+    return finding && finding.sourceType === 'article-master' ? 'article-master' : 'order-lines';
+  }
+
+  function renderQualityOverview(findings) {
+    const entries = Array.isArray(findings) ? findings : [];
+    elements.qualityOverviewSummary.replaceChildren();
+    elements.qualityOverviewTableBody.replaceChildren();
+    if (!state.result) {
+      elements.qualityOverviewPanel.classList.add('hidden');
+      return;
+    }
+    elements.qualityOverviewPanel.classList.remove('hidden');
+    const groups = [
+      { key: 'order-lines', label: 'quality_summary_order_lines' },
+      { key: 'article-master', label: 'quality_summary_article_master' },
+      { key: 'cross-source', label: 'quality_summary_cross_source' }
+    ];
+    groups.forEach(function (group) {
+      const groupFindings = entries.filter(function (finding) { return qualityFindingGroup(finding) === group.key; });
+      const affected = groupFindings.reduce(function (sum, finding) { return sum + Number(finding.affectedCount || 0); }, 0);
+      const blocking = groupFindings.filter(function (finding) { return finding.blocking === true || finding.severity === 'error'; }).length;
+      const rowFiles = group.key === 'cross-source' ? [] : (state.result.files || []).filter(function (file) {
+        return group.key === 'article-master'
+          ? file.sourceType === 'article-master'
+          : file.sourceType !== 'article-master';
+      });
+      const validRows = rowFiles.reduce(function (sum, file) { return sum + Number(file.validRows || 0); }, 0);
+      const invalidRows = rowFiles.reduce(function (sum, file) { return sum + Number(file.invalidRows || 0); }, 0);
+      const card = document.createElement('div');
+      card.className = 'quality-summary-card';
+      const title = document.createElement('strong');
+      setText(title, translate(group.label));
+      card.appendChild(title);
+      const details = document.createElement('span');
+      const detailParts = [
+        translate('quality_summary_findings', { count: groupFindings.length }),
+        translate('quality_summary_affected', { count: affected }),
+        rowFiles.length > 0 ? translate('quality_summary_valid_rows', { count: validRows }) : null,
+        rowFiles.length > 0 ? translate('quality_summary_invalid_rows', { count: invalidRows }) : null,
+        blocking > 0
+          ? translate('quality_summary_blocking', { count: blocking })
+          : translate('quality_summary_advisory', { count: groupFindings.length })
+      ].filter(Boolean);
+      setText(details, detailParts.join(' · '));
+      card.appendChild(details);
+      elements.qualityOverviewSummary.appendChild(card);
+    });
+    if (entries.length === 0) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = 7;
+      setText(cell, translate('quality_no_findings'));
+      row.appendChild(cell);
+      elements.qualityOverviewTableBody.appendChild(row);
+      return;
+    }
+    entries.slice(0, TABLE_PAGE_SIZE).forEach(function (finding) {
+      const row = document.createElement('tr');
+      appendCell(row, translate(QUALITY_SCOPE_TRANSLATION_KEYS[finding.scope] || QUALITY_SCOPE_TRANSLATION_KEYS.source));
+      const severityCell = document.createElement('td');
+      const badge = document.createElement('span');
+      badge.className = 'status-badge ' + (finding.severity === 'error' ? 'excluded' : 'warning');
+      setText(badge, translate(QUALITY_SEVERITY_TRANSLATION_KEYS[finding.severity] || QUALITY_SEVERITY_TRANSLATION_KEYS.warning));
+      severityCell.appendChild(badge);
+      row.appendChild(severityCell);
+      const sourceLabel = optionalText(finding.sourceFileLabel || finding.sourceFileName || finding.sourceFileId);
+      const exampleLine = Number.isInteger(finding.sourceLine)
+        ? finding.sourceLine
+        : (Array.isArray(finding.examples) && finding.examples.length && Number.isInteger(finding.examples[0].sourceLine)
+          ? finding.examples[0].sourceLine
+          : null);
+      appendCell(row, exampleLine === null ? sourceLabel : sourceLabel + ' · ' + translate('issue_source_line') + ' ' + exampleLine);
+      const target = finding.sourceColumn
+        ? String(Number(finding.sourceColumnPosition || 0) + 1) + ': ' + finding.sourceColumn
+        : (finding.article_id || (finding.field ? core.getFieldLabel(finding.field, state.language) : translate('empty_value')));
+      appendCell(row, target);
+      appendCell(row, formatNumber(finding.affectedCount || 0, 0), 'number');
+      appendCell(row, finding.message || finding.code);
+      const actionCell = document.createElement('td');
+      if (finding.article_id && state.analysis && state.analysis.articles.some(function (article) { return article.article_id === finding.article_id; })) {
+        const action = document.createElement('button');
+        action.type = 'button';
+        action.className = 'text-button';
+        action.dataset.qualityArticleId = finding.article_id;
+        setText(action, translate('quality_open_article'));
+        actionCell.appendChild(action);
+      } else if (finding.sourceFileId) {
+        const action = document.createElement('button');
+        action.type = 'button';
+        action.className = 'text-button';
+        action.dataset.qualitySourceId = finding.sourceFileId;
+        setText(action, translate('quality_open_source'));
+        actionCell.appendChild(action);
+      }
+      row.appendChild(actionCell);
+      elements.qualityOverviewTableBody.appendChild(row);
     });
   }
 
@@ -4417,6 +4596,7 @@
           return !issue.customFieldId || activeFieldIds.has(String(issue.customFieldId));
         });
         state.result.qualityFindings = core.buildDataQualityFindings(state.articleRegistry, state.result.issues, state.language);
+        state.result.dataQualityFindings = core.buildUnifiedDataQualityFindings(state.files, state.articleRegistry, state.result.issues, state.language);
       }
       if (state.analysis) {
         state.analysis = core.enrichAnalysisWithRegistry(state.analysis, state.articleRegistry, { locale: state.language });
@@ -4441,6 +4621,7 @@
           };
         });
         renderIssues((state.result.issues || []).concat(qualityIssues));
+        renderQualityOverview(state.result.dataQualityFindings || state.result.qualityFindings || []);
       }
     } catch (error) { showWorkspaceError(error); }
   }
@@ -5143,6 +5324,25 @@
   elements.articleDetailNext.addEventListener('click', function () {
     state.detailPage += 1;
     renderArticleDetail();
+  });
+  elements.qualityOverviewTableBody.addEventListener('click', function (event) {
+    const articleButton = event.target.closest('button[data-quality-article-id]');
+    if (articleButton) {
+      openArticleDetail(articleButton.dataset.qualityArticleId);
+      return;
+    }
+    const sourceButton = event.target.closest('button[data-quality-source-id]');
+    if (!sourceButton || !state.result) return;
+    const source = state.result.files.find(function (file) { return file.id === sourceButton.dataset.qualitySourceId; });
+    if (source && source.sourceType !== 'article-master') {
+      state.coverageDrilldown = { type: 'source', value: source.id };
+      renderWorkflow('coverage-panel');
+      renderCoverage();
+      renderCoverageDrilldown();
+    } else {
+      renderWorkflow('mapping-panel');
+      renderMapping();
+    }
   });
   elements.issuePrevious.addEventListener('click', function () {
     if (state.issuePage > 1) {

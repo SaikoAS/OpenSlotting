@@ -200,9 +200,9 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
 test('responsive workflow handles empty results and shared-page navigation safely', () => {
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
-  assert.match(appSource, /: state\.result && analysisRowCount\(state\.result\) > 0\s*\n\s*\? 'coverage-panel'/);
+  assert.match(appSource, /'coverage-panel': Boolean\(state\.result\)/);
   assert.match(appSource, /'results-panel': Boolean\(state\.result && resultHasRetainedData\(state\.result\)\)/);
-  assert.match(appSource, /: state\.result && resultHasRetainedData\(state\.result\)\s*\n\s*\? 'results-panel'/);
+  assert.match(appSource, /: state\.result\s*\n\s*\? 'coverage-panel'/);
   assert.match(appSource, /target\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
   assert.match(appSource, /article\.period_a\.article_name_variants/);
   assert.match(appSource, /return article\.selling_unit_conflict;/);
@@ -312,6 +312,9 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /source-column-overview/);
   assert.match(appSource, /source_column_ambiguous/);
   assert.match(appSource, /crossFieldTie/);
+  assert.match(indexSource, /id="quality-overview-panel"/);
+  assert.match(appSource, /function renderQualityOverview\(findings\)/);
+  assert.match(appSource, /dataQualityFindings/);
 
   const referencedIds = [...appSource.matchAll(/document\.getElementById\('([^']+)'\)/g)].map((match) => match[1]);
   referencedIds.forEach((id) => {
@@ -902,6 +905,49 @@ test('quality findings preserve duplicate, conflict, missing-master, and master-
   assert.ok(combined.qualityFindings.some((finding) => finding.code === 'invalid_master_value' && finding.sourceLine === 4));
   assert.ok(combined.qualityFindings.some((finding) => finding.code === 'invalid_master_value' && finding.article_id === 'MASTER-ONLY' && finding.sourceLine === 4 && finding.evidence.field === 'quantity_per_sales_unit'));
   assert.equal(combined.rows.length, 2);
+});
+
+test('unified data-quality findings cover validation, columns, articles, and cross-source evidence', () => {
+  const orders = csv.importCsv(
+    'article_id;quantity;delivery_date\nSKU-1;1;not-a-date\n',
+    undefined,
+    { sourceFile: { id: 'quality-orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines' } }
+  );
+  const master = csv.importCsv(
+    'article_id;article_name\nSKU-1;Master name\nSKU-1;Other name\n',
+    undefined,
+    { sourceFile: { id: 'quality-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master' } }
+  );
+  const ordersCatalog = [
+    { position: 0, header: 'article_id', profile: { totalRows: 1, nonEmptyCount: 1, sampleValues: [] } },
+    { position: 1, header: 'quantity', profile: { totalRows: 1, nonEmptyCount: 1, numericCompatibleCount: 1, sampleValues: [] } },
+    { position: 2, header: 'delivery_date', profile: { totalRows: 1, nonEmptyCount: 1, dateCompatibleCount: 0, sampleValues: [] } }
+  ];
+  const combined = csv.combineImportResults([
+    { id: 'quality-orders', name: 'orders.csv', label: 'orders.csv', sourceType: 'order-lines', columnCatalog: ordersCatalog, result: orders },
+    { id: 'quality-master', name: 'master.csv', label: 'master.csv', sourceType: 'article-master', result: master }
+  ]);
+  const findings = combined.dataQualityFindings;
+  assert.ok(findings.some((finding) => finding.scope === 'row' && finding.code === 'invalid_date' && finding.affectedCount === 1));
+  assert.ok(findings.some((finding) => finding.scope === 'column' && finding.code === 'column_type_mismatch' && finding.sourceColumn === 'delivery_date'));
+  assert.ok(findings.some((finding) => finding.scope === 'article' && finding.code === 'duplicate_master_article_id'));
+  assert.ok(findings.some((finding) => finding.scope === 'cross-source' && finding.code === 'master_article_without_activity'));
+  assert.ok(findings.every((finding) => ['source', 'column', 'row', 'article', 'cross-source'].includes(finding.scope)));
+  assert.ok(findings.every((finding) => Number.isInteger(finding.affectedCount) && Array.isArray(finding.examples)));
+});
+
+test('validation findings aggregate affected rows while retaining bounded examples', () => {
+  const findings = csv.adaptValidationIssues([
+    { sourceFileId: 'source-1', sourceFileLabel: 'orders.csv', sourceType: 'order-lines', sourceLine: 2, field: 'quantity', code: 'quantity_must_be_positive', severity: 'error', blocking: true, message: 'invalid' },
+    { sourceFileId: 'source-1', sourceFileLabel: 'orders.csv', sourceType: 'order-lines', sourceLine: 3, field: 'quantity', code: 'quantity_must_be_positive', severity: 'error', blocking: true, message: 'invalid' },
+    { sourceFileId: 'source-1', sourceFileLabel: 'orders.csv', sourceType: 'order-lines', sourceLine: 4, field: 'quantity', code: 'quantity_must_be_positive', severity: 'error', blocking: true, message: 'invalid' },
+    { sourceFileId: 'source-1', sourceFileLabel: 'orders.csv', sourceType: 'order-lines', sourceLine: 5, field: 'quantity', code: 'quantity_must_be_positive', severity: 'error', blocking: true, message: 'invalid' }
+  ]);
+  assert.equal(findings.length, 1);
+  assert.equal(findings[0].affectedCount, 4);
+  assert.equal(findings[0].examples.length, 3);
+  assert.equal(findings[0].scope, 'row');
+  assert.equal(findings[0].blocking, true);
 });
 
 test('article-master rows remain persisted but do not enter order-line analysis', () => {

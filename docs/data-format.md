@@ -295,6 +295,24 @@ Share values are serialized adaptively without a fixed six-decimal rounding rule
 
 Before export, untrusted text that starts, after optional whitespace, with `=`, `+`, `-`, or `@` receives a leading apostrophe to reduce spreadsheet formula-injection risk. This protection applies to exported article IDs, the primary description, serialized description variants, and every source-file label before it is JSON encoded. CSV quoting is then applied to all fields when required by the delimiter, quotes, or line breaks.
 
+## Unified data-quality findings
+
+The runtime exposes `dataQualityFindings` as one structured collection for the
+quality overview. Each finding contains a stable `code`, `severity` (`error`,
+`warning`, or `info`), explicit `blocking` behavior, and a `scope` of
+`source`, `column`, `row`, `article`, or `cross-source`. Source IDs/labels,
+source type, physical source-column position and header, mapped field, article
+ID, `affectedCount`, and up to three bounded `examples` are retained when
+available. The optional `evidence` object carries compact provenance such as a
+source line, value, or row references.
+
+Legacy row/import validation remains available in `issues`. The quality model
+adapts those issues into bounded grouped findings, so large imports keep counts
+without retaining every affected row. Column-profile findings cover empty
+headers, incomplete mapped columns, and incompatible mapped date/numeric values.
+Article-master and cross-source findings use the same model; no global quality
+score is derived.
+
 ## Runtime and privacy boundary
 
 Import and analysis calculations run locally in the browser. In the current development implementation, the active workspace retains original source bytes, mappings, normalized rows, validation results, and provenance in IndexedDB; derived article analysis is rebuilt when an analyzed workspace is reopened. Normal use requires no upload, backend, local server, internet connection, Node.js, or Python. Opening `index.html` directly through `file:///` remains the runtime model. See [workspace-format.md](workspace-format.md) for the persistent storage and backup contract and [SECURITY.md](../SECURITY.md) for repository and operational-data rules.

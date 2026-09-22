@@ -187,6 +187,11 @@ td:first-child { color: var(--accent-dark); font-weight: 800; }
 .issues-panel .issue-row td:nth-child(2), .issues-panel .issue-row td:nth-child(4) { font-weight: 700; }
 .issues-panel .issue-row.blocking td:nth-child(2), .issues-panel .issue-row.blocking td:nth-child(4) { color: var(--danger); }
 .issues-panel .issue-row.advisory td:nth-child(2), .issues-panel .issue-row.advisory td:nth-child(4) { color: #6f4d16; }
+.quality-overview-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0 0 16px; }
+.quality-summary-card { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #f8fbfa; }
+.quality-summary-card span { color: var(--muted); font-size: .84rem; }
+.quality-overview-panel td, .quality-overview-panel th { vertical-align: top; }
+@media (max-width: 900px) { .quality-overview-summary { grid-template-columns: 1fr; } }
 .app-footer { display: flex; justify-content: space-between; gap: 16px; width: min(1180px, calc(100% - 48px)); margin: 0 auto 32px; color: var(--muted); font-size: .82rem; }
 .app-version { display: block; margin-top: 4px; font-weight: 800; }
 .text-button { padding: 0; border: 0; color: var(--accent); background: none; font-weight: 800; }
