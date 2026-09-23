@@ -78,6 +78,7 @@
       qualityEmptyColumnHeader: 'The source column has no header.',
       qualityColumnIncomplete: 'The mapped column is empty in {{count}} data rows.',
       qualityColumnTypeMismatch: 'The mapped column contains {{count}} values that do not match the expected type.',
+      qualityPreparationApplied: 'Explicit preparation rules changed {{count}} values before validation.',
       capabilityReady: 'All included order-line sources provide this capability.',
       capabilityPartial: 'Only some included order-line sources provide this capability.',
       capabilityBlocked: 'No included order-line source provides this capability.',
@@ -117,6 +118,7 @@
       qualityEmptyColumnHeader: 'Die Quellspalte hat keine Überschrift.',
       qualityColumnIncomplete: 'Die zugeordnete Spalte ist in {{count}} Datenzeilen leer.',
       qualityColumnTypeMismatch: 'Die zugeordnete Spalte enthält {{count}} Werte mit einem unerwarteten Typ.',
+      qualityPreparationApplied: 'Explizite Aufbereitungsregeln haben {{count}} Werte vor der Prüfung geändert.',
       capabilityReady: 'Alle einbezogenen Auftragszeilenquellen stellen diese Fähigkeit bereit.',
       capabilityPartial: 'Nur ein Teil der einbezogenen Auftragszeilenquellen stellt diese Fähigkeit bereit.',
       capabilityBlocked: 'Keine einbezogene Auftragszeilenquelle stellt diese Fähigkeit bereit.',
@@ -1066,8 +1068,57 @@
     return normalizeDate(String(values[sourceIndex]).trim());
   }
 
-  function normalizeRecord(record, headers, mapping, locale, sourceFile, customFields, customFieldMapping) {
-    const values = record.values;
+  function applyPreparationRules(value, rules) {
+    let prepared = value === undefined || value === null ? '' : String(value);
+    const applied = [];
+    (Array.isArray(rules) ? rules : []).forEach(function (rule, index) {
+      if (!rule || rule.enabled === false) return;
+      let next = prepared;
+      if (rule.type === 'trim') {
+        next = prepared.trim();
+      } else if (rule.type === 'empty-to-null' && Array.isArray(rule.values) && rule.values.indexOf(prepared) >= 0) {
+        next = '';
+      } else if (rule.type === 'replace-text' && typeof rule.from === 'string' && prepared === rule.from && typeof rule.to === 'string') {
+        next = rule.to;
+      } else if (rule.type === 'case-normalization') {
+        if (rule.mode === 'lower') next = prepared.toLowerCase();
+        else if (rule.mode === 'upper') next = prepared.toUpperCase();
+      }
+      if (next !== prepared) {
+        applied.push(index);
+        prepared = next;
+      }
+    });
+    return { value: prepared, applied: applied };
+  }
+
+  function normalizeRecord(record, headers, mapping, locale, sourceFile, customFields, customFieldMapping, preparationRules) {
+    const sourceValues = record.values;
+    let values = sourceValues;
+    const preparationEvidence = {};
+    function prepareTarget(targetId, sourceIndex) {
+      if (!Number.isInteger(sourceIndex)) return;
+      const configured = preparationRules && preparationRules[targetId];
+      if (!Array.isArray(configured) || !configured.some(function (rule) { return rule && rule.enabled !== false; })) return;
+      const originalValue = String(sourceValues[sourceIndex] === undefined ? '' : sourceValues[sourceIndex]);
+      const prepared = applyPreparationRules(originalValue, configured);
+      if (prepared.value === originalValue) return;
+      if (values === sourceValues) values = sourceValues.slice();
+      values[sourceIndex] = prepared.value;
+      preparationEvidence[targetId] = {
+        sourceColumnPosition: sourceIndex,
+        originalValue: originalValue,
+        preparedValue: prepared.value,
+        ruleIndexes: prepared.applied
+      };
+    }
+    Object.keys(mapping || {}).forEach(function (targetId) { prepareTarget(targetId, mapping[targetId]); });
+    const activeCustomFieldIds = new Set((Array.isArray(customFields) ? customFields : [])
+      .filter(function (field) { return field && field.active !== false; })
+      .map(function (field) { return field.id; }));
+    Object.keys(customFieldMapping || {}).forEach(function (targetId) {
+      if (activeCustomFieldIds.has(targetId)) prepareTarget(targetId, customFieldMapping[targetId]);
+    });
     const issues = [];
     const sourceType = sourceFile && sourceFile.sourceType === 'article-master' ? 'article-master' : 'order-lines';
 
@@ -1274,10 +1325,16 @@
     issues.forEach(function (issue) {
       issue.deliveryDate = deliveryDate;
       issue.articleId = articleId;
+      const targetId = issue.customFieldId || issue.field;
+      const evidence = preparationEvidence[targetId];
+      if (evidence) {
+        issue.originalRawValue = evidence.originalValue;
+        issue.preparedValue = evidence.preparedValue;
+        issue.preparationRuleIndexes = evidence.ruleIndexes.slice();
+      }
     });
 
-    return {
-      record: {
+    const normalizedRecord = {
         source_file_id: sourceFile.id,
         source_file_name: sourceFile.name,
         source_file_label: sourceFile.label,
@@ -1309,9 +1366,10 @@
         sales_unit_quantity_matches: salesUnitQuantityMatches,
         sales_unit_quantity_relation: salesUnitQuantityRelation,
         custom_fields: customValues
-      },
-      issues: issues
     };
+    const preparedFieldIds = Object.keys(preparationEvidence);
+    if (preparedFieldIds.length > 0) normalizedRecord.prepared_fields = preparedFieldIds;
+    return { record: normalizedRecord, issues: issues };
   }
 
   function parserErrorMessage(error, locale) {
@@ -1335,6 +1393,7 @@
     let selectedMapping = mapping || null;
     const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
     const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
+    const preparationRules = options && options.preparationRules ? options.preparationRules : {};
     let columnCatalog = [];
     let columnProfileStates = [];
     let mappingIssues = null;
@@ -1377,7 +1436,7 @@
           return;
         }
 
-        const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping);
+        const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping, preparationRules);
         if (normalized.record.delivery_date) {
           dateByLine.set(dataRow.sourceLine, normalized.record.delivery_date);
         }
@@ -1523,6 +1582,7 @@
     const selectedMapping = mapping || detectMapping(headers, sourceFile.sourceType);
     const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
     const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
+    const preparationRules = options && options.preparationRules ? options.preparationRules : {};
     const mappingIssues = validateMapping(selectedMapping, locale, sourceFile.sourceType).concat(validateCustomFieldMapping(customFieldMapping, customFields, locale, selectedMapping));
     if (mappingIssues.length > 0) {
       return {
@@ -1560,7 +1620,7 @@
         return;
       }
 
-      const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping);
+      const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping, preparationRules);
       if (normalized.record.delivery_date) {
         dateByLine.set(dataRow.sourceLine, normalized.record.delivery_date);
       }
@@ -2416,7 +2476,9 @@
         finding.examples.push({
           sourceLine: Number.isInteger(issue && issue.sourceLine) ? issue.sourceLine : null,
           rawValue: issue && issue.rawValue !== undefined ? issue.rawValue : null,
-          deliveryDate: issue && issue.deliveryDate || null
+          deliveryDate: issue && issue.deliveryDate || null,
+          originalRawValue: issue && issue.originalRawValue !== undefined ? issue.originalRawValue : null,
+          preparedValue: issue && issue.preparedValue !== undefined ? issue.preparedValue : null
         });
       }
     });
@@ -2487,9 +2549,38 @@
     return findings;
   }
 
+  function buildPreparationQualityFindings(files, locale) {
+    const findings = [];
+    (files || []).forEach(function (file) {
+      const result = file && file.result || {};
+      const rows = Array.isArray(result.rows) ? result.rows : [];
+      const mapping = Object.assign({}, result.mapping || file.mapping || {}, file.customFieldMapping || {});
+      const counts = new Map();
+      rows.forEach(function (row) {
+        (Array.isArray(row.prepared_fields) ? row.prepared_fields : []).forEach(function (targetId) {
+          counts.set(targetId, (counts.get(targetId) || 0) + 1);
+        });
+      });
+      counts.forEach(function (count, targetId) {
+        const position = Number.isInteger(mapping[targetId]) ? mapping[targetId] : null;
+        findings.push(createQualityFinding({
+          scope: 'column', code: 'preparation_rule_applied', severity: 'info', blocking: false,
+          sourceFileId: file.id || null, sourceFileLabel: file.label || file.name || null,
+          sourceFileName: file.name || null, sourceType: normalizeFieldSourceType(file.sourceType),
+          sourceColumnPosition: position,
+          sourceColumn: position !== null && Array.isArray(result.headers) ? (result.headers[position] || '') : '',
+          field: targetId, affectedCount: count, examples: [], origin: 'preparation',
+          message: message(locale, 'qualityPreparationApplied', { count: count })
+        }));
+      });
+    });
+    return findings;
+  }
+
   function buildUnifiedDataQualityFindings(files, registry, importIssues, locale) {
     return adaptValidationIssues(importIssues)
       .concat(buildColumnQualityFindings(files, locale))
+      .concat(buildPreparationQualityFindings(files, locale))
       .concat(buildDataQualityFindings(registry, importIssues, locale));
   }
 
@@ -3130,6 +3221,7 @@
     applyFeatureReadinessToAnalysis: applyFeatureReadinessToAnalysis,
     adaptValidationIssues: adaptValidationIssues,
     buildColumnQualityFindings: buildColumnQualityFindings,
+    buildPreparationQualityFindings: buildPreparationQualityFindings,
     buildDataQualityFindings: buildDataQualityFindings,
     buildUnifiedDataQualityFindings: buildUnifiedDataQualityFindings,
     enrichAnalysisWithRegistry: enrichAnalysisWithRegistry,
@@ -3164,6 +3256,7 @@
     parseCsvChunks: parseCsvChunks,
     reconstructRawSource: reconstructRawSource,
     validateMapping: validateMapping,
-    validateCustomFieldMapping: validateCustomFieldMapping
+    validateCustomFieldMapping: validateCustomFieldMapping,
+    applyPreparationRules: applyPreparationRules
   };
 }));

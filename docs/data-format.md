@@ -78,6 +78,14 @@ The CSV parser supports:
 
 An unexpected quote in an unquoted field, a character after a closing quote, or an unterminated quoted field is a parser error. A delimiter other than the default can be supplied by code, but it must be exactly one character; the browser interface uses semicolons.
 
+## Optional preparation rules
+
+Each source file can opt into an ordered list of rules for a mapped target field, including workspace custom fields. Rules are configured independently per source and target. The visible order is the execution order; users can move, disable, or remove each rule. The supported rules are trimming outer whitespace, converting listed exact sentinel values to empty, replacing one exact complete text value with another, and converting text to lower- or uppercase. Replacement does not use substring matching, regular expressions, formulas, or scripts.
+
+Rules run after CSV decoding and before the existing field normalization and validation. Type parsing and required-field checks remain authoritative. A rule that maps a sentinel to empty therefore triggers the normal required-field error for a required target. With no enabled rules, import behavior is unchanged. Prepared values never overwrite retained source bytes. A normalized row records the IDs of targets changed by rules; validation issues on those targets also retain the original and prepared values, and the complete source row remains reconstructable from its original bytes.
+
+Rule configuration is stored with its source in the workspace and portable backup. Reopening a workspace, restoring a backup, worker preparation, and the main-thread fallback use the same ordered rule definitions and CSV import implementation.
+
 ## Normalized fields
 
 | Field | Required | Meaning |
