@@ -276,6 +276,7 @@ test('release packaging includes both runtime profiles from one codebase', () =>
 test('browser UI declares multi-file selection and bilingual source traceability', () => {
   const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const csvSource = fs.readFileSync(path.join(__dirname, '..', 'csv.js'), 'utf8');
   const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
 
   assert.match(indexSource, /id="file-input"[^>]*\bmultiple\b/);
@@ -321,7 +322,13 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /state\.qualityPage/);
   assert.match(appSource, /function renderPreparationEditor\(file, targetId, wrapper, editsLocked\)/);
   assert.match(appSource, /data-prep-action/);
+  assert.match(appSource, /querySelectorAll\('select, button, input, textarea'\)/);
+  assert.match(appSource, /prepSemanticDisabled/);
+  assert.match(appSource, /accessiblePreparationRuleCount/);
+  assert.match(appSource, /setAttribute\('aria-label', translate\('prep_rule_mode'\)\)/);
   assert.match(appSource, /preparationRules: file\.preparationRules/);
+  assert.match(csvSource, /function compilePreparationRules\(preparationRules\)/);
+  assert.match(csvSource, /rawColumnCatalog/);
 
   const referencedIds = [...appSource.matchAll(/document\.getElementById\('([^']+)'\)/g)].map((match) => match[1]);
   referencedIds.forEach((id) => {
@@ -1731,6 +1738,20 @@ test('sentinel preparation preserves raw and prepared values on required-field f
   assert.equal(issue.preparedValue, '');
 });
 
+test('normalization reuses the single prepared row used for profiling', () => {
+  const result = csv.importCsvStreaming('order_id;article_id;quantity;delivery_date\nO-1;C;1;2026-09-01\n', {
+    order_id: 0, article_id: 1, quantity: 2, delivery_date: 3
+  }, {
+    preparationRules: {
+      article_id: [
+        { type: 'replace-text', from: 'A', to: 'B', enabled: true },
+        { type: 'replace-text', from: 'C', to: 'A', enabled: true }
+      ]
+    }
+  });
+  assert.equal(result.rows[0].article_id, 'A');
+});
+
 test('prepared column profiles and preparation findings include rejected rows', () => {
   const text = 'order_id;article_id;quantity;delivery_date\nO-1; sku-x ;bad;not-a-date\n';
   const mapping = { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 };
@@ -1745,12 +1766,13 @@ test('prepared column profiles and preparation findings include rejected rows', 
   assert.equal(result.validRows, 0);
   assert.deepEqual(result.preparationCounts, { article_id: 1, quantity: 1 });
   assert.equal(result.columnCatalog[2].profile.numericCompatibleCount, 1);
+  assert.equal(result.rawColumnCatalog[2].profile.numericCompatibleCount, 0);
   const combined = csv.combineImportResults([{
     id: options.sourceFile.id,
     name: options.sourceFile.name,
     label: options.sourceFile.label,
     mapping: mapping,
-    columnCatalog: result.columnCatalog,
+    columnCatalog: result.rawColumnCatalog,
     result: result
   }]);
   assert.equal(combined.dataQualityFindings.some((finding) => finding.code === 'column_type_mismatch' && finding.field === 'quantity'), false);
@@ -1760,6 +1782,7 @@ test('prepared column profiles and preparation findings include rejected rows', 
   const parsedResult = csv.importParsedCsv(csv.parseCsv(text), mapping, options);
   assert.deepEqual(parsedResult.preparationCounts, result.preparationCounts);
   assert.equal(parsedResult.columnCatalog[2].profile.numericCompatibleCount, 1);
+  assert.equal(parsedResult.rawColumnCatalog[2].profile.numericCompatibleCount, 0);
 });
 
 test('invalid typed custom values are omitted from normalized enrichment values', () => {

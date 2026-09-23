@@ -147,7 +147,7 @@
       prep_rules_help: 'Rules run in the listed order before the existing validation and type checks. Original source values stay available.',
       prep_rule_type: 'Rule type',
       prep_rule_add: 'Add rule',
-      prep_rule_limit: 'A source can contain at most 100 preparation rules.',
+      prep_rule_limit: 'A source can have at most 100 rules across currently mapped targets.',
       prep_rule_values_invalid: 'Use at most 100 sentinel values, with no value longer than 512 characters.',
       prep_rule_enabled: 'Enabled',
       prep_rule_trim: 'Trim outer whitespace',
@@ -612,7 +612,7 @@
       prep_rules_help: 'Regeln laufen in der angezeigten Reihenfolge vor der bestehenden Prüfung und Typvalidierung. Originalwerte bleiben verfügbar.',
       prep_rule_type: 'Regeltyp',
       prep_rule_add: 'Regel hinzufügen',
-      prep_rule_limit: 'Eine Quelle darf höchstens 100 Aufbereitungsregeln enthalten.',
+      prep_rule_limit: 'Eine Quelle darf höchstens 100 Regeln für aktuell zugeordnete Zielfelder haben.',
       prep_rule_values_invalid: 'Höchstens 100 Platzhalterwerte mit maximal 512 Zeichen je Wert eingeben.',
       prep_rule_enabled: 'Aktiv',
       prep_rule_trim: 'Leerzeichen außen entfernen',
@@ -1400,7 +1400,11 @@
     elements.languageSelect.disabled = editsLocked;
     elements.analyzeButton.disabled = editsLocked || !state.activeWorkspace || !state.files.some(function (file) { return Boolean(file.parsed); });
     elements.exportButton.disabled = editsLocked || !state.result || !state.analysis || state.analysis.articles.length === 0;
-    elements.mappingGrid.querySelectorAll('select, button').forEach(function (control) {
+    elements.mappingGrid.querySelectorAll('select, button, input, textarea').forEach(function (control) {
+      if (control.dataset.prepLockControl === 'true') {
+        control.disabled = editsLocked || control.dataset.prepSemanticDisabled === 'true';
+        return;
+      }
       const fileId = control.dataset.encodingFileId || control.dataset.removeFileId || control.dataset.fileId;
       const file = state.files.find(function (item) { return item.id === fileId; });
       if (control.dataset.encodingFileId) {
@@ -1779,6 +1783,18 @@
     return 'prep_rule_' + type.replace(/-/g, '_');
   }
 
+  function accessiblePreparationRuleCount(file) {
+    const rulesByTarget = file.preparationRules || {};
+    const activeCustomFields = new Set((state.customFields || [])
+      .filter(function (field) { return field && field.active !== false; })
+      .map(function (field) { return field.id; }));
+    return Object.keys(rulesByTarget).reduce(function (count, targetId) {
+      const mappedCore = Number.isInteger((file.mapping || {})[targetId]);
+      const mappedCustom = activeCustomFields.has(targetId) && Number.isInteger((file.customFieldMapping || {})[targetId]);
+      return count + (mappedCore || mappedCustom ? (Array.isArray(rulesByTarget[targetId]) ? rulesByTarget[targetId].length : 0) : 0);
+    }, 0);
+  }
+
   function renderPreparationEditor(file, targetId, wrapper, editsLocked) {
     if (!Number.isInteger((file.mapping || {})[targetId]) && !Number.isInteger((file.customFieldMapping || {})[targetId])) return;
     file.preparationRules = file.preparationRules || {};
@@ -1811,6 +1827,7 @@
       enabled.type = 'checkbox';
       enabled.checked = rule.enabled !== false;
       enabled.disabled = editsLocked;
+      enabled.dataset.prepLockControl = 'true';
       enabled.dataset.prepEnabled = 'true';
       enabledLabel.appendChild(enabled);
       const enabledText = document.createElement('span');
@@ -1821,6 +1838,7 @@
       const typeSelect = document.createElement('select');
       typeSelect.dataset.prepType = 'true';
       typeSelect.disabled = editsLocked;
+      typeSelect.dataset.prepLockControl = 'true';
       typeSelect.setAttribute('aria-label', translate('prep_rule_type'));
       workspaceModel.PREPARATION_RULE_TYPES.forEach(function (type) {
         addOption(typeSelect, type, translate(preparationRuleTypeKey(type)));
@@ -1834,6 +1852,7 @@
         values.maxLength = 51299;
         values.value = (rule.values || []).join('\n');
         values.disabled = editsLocked;
+        values.dataset.prepLockControl = 'true';
         values.dataset.prepValues = 'true';
         values.setAttribute('aria-label', translate('prep_rule_sentinels'));
         values.placeholder = translate('prep_rule_sentinels');
@@ -1844,6 +1863,7 @@
         from.maxLength = 512;
         from.value = rule.from || '';
         from.disabled = editsLocked;
+        from.dataset.prepLockControl = 'true';
         from.dataset.prepFrom = 'true';
         from.setAttribute('aria-label', translate('prep_rule_from'));
         from.placeholder = translate('prep_rule_from');
@@ -1853,6 +1873,7 @@
         to.maxLength = 512;
         to.value = rule.to || '';
         to.disabled = editsLocked;
+        to.dataset.prepLockControl = 'true';
         to.dataset.prepTo = 'true';
         to.setAttribute('aria-label', translate('prep_rule_to'));
         to.placeholder = translate('prep_rule_to');
@@ -1861,6 +1882,8 @@
         const mode = document.createElement('select');
         mode.dataset.prepMode = 'true';
         mode.disabled = editsLocked;
+        mode.dataset.prepLockControl = 'true';
+        mode.setAttribute('aria-label', translate('prep_rule_mode'));
         addOption(mode, 'lower', translate('prep_case_lower'));
         addOption(mode, 'upper', translate('prep_case_upper'));
         mode.value = rule.mode || 'lower';
@@ -1871,6 +1894,8 @@
       moveUp.className = 'text-button preparation-order-button';
       moveUp.dataset.prepAction = 'up';
       moveUp.disabled = editsLocked || index === 0;
+      moveUp.dataset.prepLockControl = 'true';
+      moveUp.dataset.prepSemanticDisabled = index === 0 ? 'true' : 'false';
       moveUp.setAttribute('aria-label', translate('prep_rule_move_up'));
       setText(moveUp, '↑');
       row.appendChild(moveUp);
@@ -1879,6 +1904,8 @@
       moveDown.className = 'text-button preparation-order-button';
       moveDown.dataset.prepAction = 'down';
       moveDown.disabled = editsLocked || index === rules.length - 1;
+      moveDown.dataset.prepLockControl = 'true';
+      moveDown.dataset.prepSemanticDisabled = index === rules.length - 1 ? 'true' : 'false';
       moveDown.setAttribute('aria-label', translate('prep_rule_move_down'));
       setText(moveDown, '↓');
       row.appendChild(moveDown);
@@ -1887,6 +1914,7 @@
       remove.className = 'text-button preparation-remove-button';
       remove.dataset.prepAction = 'remove';
       remove.disabled = editsLocked;
+      remove.dataset.prepLockControl = 'true';
       remove.setAttribute('aria-label', translate('prep_rule_remove'));
       setText(remove, '×');
       row.appendChild(remove);
@@ -1898,6 +1926,7 @@
     const addType = document.createElement('select');
     addType.dataset.prepAddType = 'true';
     addType.disabled = editsLocked;
+    addType.dataset.prepLockControl = 'true';
     addType.setAttribute('aria-label', translate('prep_rule_type'));
     workspaceModel.PREPARATION_RULE_TYPES.forEach(function (type) {
       addOption(addType, type, translate(preparationRuleTypeKey(type)));
@@ -1907,10 +1936,11 @@
     add.type = 'button';
     add.className = 'text-button';
     add.dataset.prepAction = 'add';
-    const ruleCount = Object.keys(file.preparationRules).reduce(function (count, key) {
-      return count + (Array.isArray(file.preparationRules[key]) ? file.preparationRules[key].length : 0);
-    }, 0);
-    add.disabled = editsLocked || ruleCount >= 100;
+    const ruleCount = accessiblePreparationRuleCount(file);
+    const limitReached = ruleCount >= 100 || rules.length >= 100;
+    add.disabled = editsLocked || limitReached;
+    add.dataset.prepLockControl = 'true';
+    add.dataset.prepSemanticDisabled = limitReached ? 'true' : 'false';
     if (ruleCount >= 100) add.title = translate('prep_rule_limit');
     setText(add, translate('prep_rule_add'));
     addRow.appendChild(add);
@@ -3711,8 +3741,8 @@
             customFieldMapping: customFieldMapping,
             preparationRules: file.preparationRules
           });
-        if (file.result && Array.isArray(file.result.columnCatalog)) {
-          file.columnCatalog = file.result.columnCatalog;
+        if (file.result && Array.isArray(file.result.rawColumnCatalog)) {
+          file.columnCatalog = file.result.rawColumnCatalog;
         }
       } else {
         file.result = null;
@@ -4135,8 +4165,8 @@
               customFieldMapping: customFieldMapping,
               preparationRules: file.preparationRules
             });
-          if (file.result && Array.isArray(file.result.columnCatalog)) {
-            file.columnCatalog = file.result.columnCatalog;
+          if (file.result && Array.isArray(file.result.rawColumnCatalog)) {
+            file.columnCatalog = file.result.rawColumnCatalog;
           }
         }
         return file;
@@ -5403,6 +5433,7 @@
       const rules = Array.isArray(file.preparationRules[targetId]) ? file.preparationRules[targetId] : [];
       if (preparationButton.dataset.prepAction === 'add') {
         const selector = editor.querySelector('[data-prep-add-type]');
+        if (accessiblePreparationRuleCount(file) >= 100 || rules.length >= 100) return;
         rules.push(newPreparationRule(selector ? selector.value : 'trim'));
       } else {
         const row = preparationButton.closest('.preparation-rule');

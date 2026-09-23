@@ -1076,7 +1076,9 @@
       let next = prepared;
       if (rule.type === 'trim') {
         next = prepared.trim();
-      } else if (rule.type === 'empty-to-null' && Array.isArray(rule.values) && rule.values.indexOf(prepared) >= 0) {
+      } else if (rule.type === 'empty-to-null' && (rule.sentinelSet instanceof Set
+        ? rule.sentinelSet.has(prepared)
+        : (Array.isArray(rule.values) && rule.values.indexOf(prepared) >= 0))) {
         next = '';
       } else if (rule.type === 'replace-text' && typeof rule.from === 'string' && prepared === rule.from && typeof rule.to === 'string') {
         next = rule.to;
@@ -1092,54 +1094,36 @@
     return { value: prepared, applied: applied };
   }
 
+  function compilePreparationRules(preparationRules) {
+    const compiled = {};
+    Object.keys(preparationRules || {}).forEach(function (targetId) {
+      compiled[targetId] = (Array.isArray(preparationRules[targetId]) ? preparationRules[targetId] : []).map(function (rule) {
+        if (!rule || rule.type !== 'empty-to-null' || !Array.isArray(rule.values)) return rule;
+        return Object.assign({}, rule, { sentinelSet: new Set(rule.values) });
+      });
+    });
+    return compiled;
+  }
+
   function prepareProfileValues(values, mapping, customFieldMapping, customFields, preparationRules) {
     let preparedValues = values;
     const preparedFieldIds = [];
+    const evidence = {};
     function prepareTarget(targetId, sourceIndex) {
       if (!Number.isInteger(sourceIndex) || sourceIndex < 0 || sourceIndex >= values.length) return;
       const rules = preparationRules && preparationRules[targetId];
       if (!Array.isArray(rules)) return;
       const original = String(values[sourceIndex] === undefined || values[sourceIndex] === null ? '' : values[sourceIndex]);
-      const prepared = applyPreparationRules(original, rules).value;
-      if (prepared === original) return;
+      const result = applyPreparationRules(original, rules);
+      if (result.value === original) return;
       if (preparedValues === values) preparedValues = values.slice();
-      preparedValues[sourceIndex] = prepared;
+      preparedValues[sourceIndex] = result.value;
       preparedFieldIds.push(targetId);
-    }
-    Object.keys(mapping || {}).forEach(function (targetId) { prepareTarget(targetId, mapping[targetId]); });
-    const activeCustomFieldIds = new Set((Array.isArray(customFields) ? customFields : [])
-      .filter(function (field) { return field && field.active !== false; })
-      .map(function (field) { return field.id; }));
-    Object.keys(customFieldMapping || {}).forEach(function (targetId) {
-      if (activeCustomFieldIds.has(targetId)) prepareTarget(targetId, customFieldMapping[targetId]);
-    });
-    return { values: preparedValues, preparedFieldIds: preparedFieldIds };
-  }
-
-  function countPreparedFields(counts, targetIds) {
-    targetIds.forEach(function (targetId) {
-      counts[targetId] = (counts[targetId] || 0) + 1;
-    });
-  }
-
-  function normalizeRecord(record, headers, mapping, locale, sourceFile, customFields, customFieldMapping, preparationRules) {
-    const sourceValues = record.values;
-    let values = sourceValues;
-    const preparationEvidence = {};
-    function prepareTarget(targetId, sourceIndex) {
-      if (!Number.isInteger(sourceIndex)) return;
-      const configured = preparationRules && preparationRules[targetId];
-      if (!Array.isArray(configured) || !configured.some(function (rule) { return rule && rule.enabled !== false; })) return;
-      const originalValue = String(sourceValues[sourceIndex] === undefined ? '' : sourceValues[sourceIndex]);
-      const prepared = applyPreparationRules(originalValue, configured);
-      if (prepared.value === originalValue) return;
-      if (values === sourceValues) values = sourceValues.slice();
-      values[sourceIndex] = prepared.value;
-      preparationEvidence[targetId] = {
+      evidence[targetId] = {
         sourceColumnPosition: sourceIndex,
-        originalValue: originalValue,
-        preparedValue: prepared.value,
-        ruleIndexes: prepared.applied
+        originalValue: original,
+        preparedValue: result.value,
+        ruleIndexes: result.applied
       };
     }
     Object.keys(mapping || {}).forEach(function (targetId) { prepareTarget(targetId, mapping[targetId]); });
@@ -1149,6 +1133,18 @@
     Object.keys(customFieldMapping || {}).forEach(function (targetId) {
       if (activeCustomFieldIds.has(targetId)) prepareTarget(targetId, customFieldMapping[targetId]);
     });
+    return { values: preparedValues, preparedFieldIds: preparedFieldIds, evidence: evidence };
+  }
+
+  function countPreparedFields(counts, targetIds) {
+    targetIds.forEach(function (targetId) {
+      counts[targetId] = (counts[targetId] || 0) + 1;
+    });
+  }
+
+  function normalizeRecord(record, headers, mapping, locale, sourceFile, customFields, customFieldMapping, preparedRow) {
+    const values = preparedRow.values;
+    const preparationEvidence = preparedRow.evidence;
     const issues = [];
     const sourceType = sourceFile && sourceFile.sourceType === 'article-master' ? 'article-master' : 'order-lines';
 
@@ -1423,9 +1419,11 @@
     let selectedMapping = mapping || null;
     const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
     const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
-    const preparationRules = options && options.preparationRules ? options.preparationRules : {};
+    const preparationRules = compilePreparationRules(options && options.preparationRules ? options.preparationRules : {});
     let columnCatalog = [];
     let columnProfileStates = [];
+    let rawColumnCatalog = [];
+    let rawColumnProfileStates = [];
     let mappingIssues = null;
     let headerHasParserError = false;
     const issues = [];
@@ -1442,6 +1440,8 @@
           headers = dataRow.values.map(function (header) { return String(header).trim(); });
           columnCatalog = buildColumnCatalog(headers, sourceFile);
           columnProfileStates = createColumnProfileStates(headers.length);
+          rawColumnCatalog = buildColumnCatalog(headers, sourceFile);
+          rawColumnProfileStates = createColumnProfileStates(headers.length);
           headerHasParserError = parserErrors.length > 0;
           selectedMapping = selectedMapping || detectMapping(headers, sourceFile.sourceType);
           mappingIssues = validateMapping(selectedMapping, locale, sourceFile.sourceType).concat(validateCustomFieldMapping(customFieldMapping, customFields, locale, selectedMapping));
@@ -1453,6 +1453,7 @@
           dataRow.values, selectedMapping, customFieldMapping, customFields, preparationRules
         );
         observeColumnProfiles(columnProfileStates, preparedProfile.values);
+        observeColumnProfiles(rawColumnProfileStates, dataRow.values);
         countPreparedFields(preparationCounts, preparedProfile.preparedFieldIds);
         const rowHasParserError = parserErrors.length > 0;
         if (dataRow.values.length !== headers.length) {
@@ -1471,7 +1472,7 @@
           return;
         }
 
-        const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping, preparationRules);
+        const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping, preparedProfile);
         if (normalized.record.delivery_date) {
           dateByLine.set(dataRow.sourceLine, normalized.record.delivery_date);
         }
@@ -1500,10 +1501,12 @@
     });
     const finalHeaders = headers || parsed.headers || [];
     columnCatalog = finalizeColumnProfiles(columnCatalog, columnProfileStates);
+    rawColumnCatalog = finalizeColumnProfiles(rawColumnCatalog, rawColumnProfileStates);
     if (finalHeaders.length === 0) {
       return {
         headers: [],
         columnCatalog: [],
+        rawColumnCatalog: [],
         rows: [],
         issues: addSourceToIssues(parserIssues.concat([{ sourceLine: null, field: null, code: 'header_missing', message: message(locale, 'headerMissing') }]), sourceFile),
         totalRows: 0,
@@ -1519,6 +1522,7 @@
       return {
         headers: finalHeaders,
         columnCatalog: columnCatalog,
+        rawColumnCatalog: rawColumnCatalog,
         rows: [],
         issues: addSourceToIssues(parserIssues, sourceFile),
         totalRows: totalRows,
@@ -1534,6 +1538,7 @@
       return {
         headers: finalHeaders,
         columnCatalog: columnCatalog,
+        rawColumnCatalog: rawColumnCatalog,
         rows: [],
         issues: addSourceToIssues(parserIssues.concat(mappingIssues), sourceFile),
         totalRows: totalRows,
@@ -1548,6 +1553,7 @@
     return {
       headers: finalHeaders,
       columnCatalog: columnCatalog,
+      rawColumnCatalog: rawColumnCatalog,
       rows: rows,
       issues: addSourceToIssues(parserIssues.concat(issues), sourceFile),
       totalRows: totalRows,
@@ -1594,17 +1600,22 @@
     const headers = parsed.rows[0].values.map(function (header) { return String(header).trim(); });
     const columnCatalog = buildColumnCatalog(headers, sourceFile);
     const columnProfileStates = createColumnProfileStates(headers.length);
+    const rawColumnCatalog = buildColumnCatalog(headers, sourceFile);
+    const rawColumnProfileStates = createColumnProfileStates(headers.length);
     const dataRows = parsed.rows.slice(1);
     const selectedMapping = mapping || detectMapping(headers, sourceFile.sourceType);
     const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
     const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
-    const preparationRules = options && options.preparationRules ? options.preparationRules : {};
+    const preparationRules = compilePreparationRules(options && options.preparationRules ? options.preparationRules : {});
     const preparationCounts = {};
-    dataRows.forEach(function (dataRow) {
+    const preparedRows = [];
+    dataRows.forEach(function (dataRow, rowIndex) {
       const preparedProfile = prepareProfileValues(
         dataRow.values, selectedMapping, customFieldMapping, customFields, preparationRules
       );
+      preparedRows.push(preparedProfile);
       observeColumnProfiles(columnProfileStates, preparedProfile.values);
+      observeColumnProfiles(rawColumnProfileStates, dataRow.values);
       countPreparedFields(preparationCounts, preparedProfile.preparedFieldIds);
     });
     const headerSourceLine = parsed.rows[0].sourceLine;
@@ -1615,6 +1626,7 @@
       return {
         headers: headers,
         columnCatalog: finalizeColumnProfiles(columnCatalog, columnProfileStates),
+        rawColumnCatalog: finalizeColumnProfiles(rawColumnCatalog, rawColumnProfileStates),
         rows: [],
         issues: addSourceToIssues(parserIssues, sourceFile),
         totalRows: dataRows.length,
@@ -1631,6 +1643,7 @@
       return {
         headers: headers,
         columnCatalog: finalizeColumnProfiles(columnCatalog, columnProfileStates),
+        rawColumnCatalog: finalizeColumnProfiles(rawColumnCatalog, rawColumnProfileStates),
         rows: [],
         issues: addSourceToIssues(parserIssues.concat(mappingIssues), sourceFile),
         totalRows: dataRows.length,
@@ -1649,7 +1662,7 @@
     const invalidLines = new Set();
     const structuralLines = new Set();
 
-    dataRows.forEach(function (dataRow) {
+    dataRows.forEach(function (dataRow, rowIndex) {
       if (dataRow.values.length !== headers.length) {
         structuralLines.add(dataRow.sourceLine);
         invalidLines.add(dataRow.sourceLine);
@@ -1663,7 +1676,7 @@
         return;
       }
 
-      const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping, preparationRules);
+      const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping, preparedRows[rowIndex]);
       if (normalized.record.delivery_date) {
         dateByLine.set(dataRow.sourceLine, normalized.record.delivery_date);
       }
@@ -1689,6 +1702,7 @@
     return {
       headers: headers,
       columnCatalog: finalizeColumnProfiles(columnCatalog, columnProfileStates),
+      rawColumnCatalog: finalizeColumnProfiles(rawColumnCatalog, rawColumnProfileStates),
       rows: rows,
       issues: addSourceToIssues(issues, sourceFile),
       totalRows: dataRows.length,
@@ -2535,7 +2549,9 @@
       const sourceType = normalizeFieldSourceType(file && file.sourceType);
       const result = file && file.result || {};
       const mapping = result.mapping || file.mapping || {};
-      const catalog = Array.isArray(file && file.columnCatalog) ? file.columnCatalog : [];
+      const catalog = Array.isArray(result.columnCatalog)
+        ? result.columnCatalog
+        : (Array.isArray(file && file.columnCatalog) ? file.columnCatalog : []);
       const headers = Array.isArray(result.headers) ? result.headers : [];
       const profiles = catalog.length > 0 ? catalog : headers.map(function (header, position) {
         return { position: position, header: header, profile: null };

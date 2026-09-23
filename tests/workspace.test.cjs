@@ -728,6 +728,11 @@ test('ordered preparation rules survive validation and backup restore', () => {
     mode: 'new', newId: 'workspace-preparation-restored', now: '2026-09-20T11:00:00.000Z'
   });
   assert.deepEqual(preparedRestore.files[0].preparationRules, validated.files[0].preparationRules);
+  const dormantRules = workspace.normalizePreparationRules({
+    unmapped_core: Array.from({ length: 60 }, () => ({ type: 'trim', enabled: true })),
+    removed_custom: Array.from({ length: 60 }, () => ({ type: 'trim', enabled: true }))
+  });
+  assert.equal(dormantRules.unmapped_core.length + dormantRules.removed_custom.length, 120);
   assert.throws(() => workspace.normalizePreparationRules({
     article_id: [{ type: 'replace-text', from: 1, to: 'x', enabled: true }]
   }), (error) => error.code === 'invalid_preparation_rules');

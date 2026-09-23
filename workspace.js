@@ -150,15 +150,10 @@
     if (targetIds.length > 100) {
       validationError('invalid_preparation_rules', 'Preparation rules contain too many target fields.');
     }
-    let totalRules = 0;
     const normalized = {};
     targetIds.forEach(function (targetId) {
       if (!/^[A-Za-z][A-Za-z0-9_-]{0,127}$/.test(targetId) || !Array.isArray(rulesByField[targetId]) || rulesByField[targetId].length > 100) {
         validationError('invalid_preparation_rules', 'Preparation rule target or ordered rule list is invalid.');
-      }
-      totalRules += rulesByField[targetId].length;
-      if (totalRules > 100) {
-        validationError('invalid_preparation_rules', 'Preparation rules contain too many rules in total.');
       }
       normalized[targetId] = rulesByField[targetId].map(function (rule) {
         if (!isPlainObject(rule) || PREPARATION_RULE_TYPES.indexOf(rule.type) < 0 || (rule.enabled !== undefined && typeof rule.enabled !== 'boolean')) {
@@ -616,7 +611,7 @@
     }
     const normalized = {};
     Object.keys(result).forEach(function (key) {
-      if (key !== 'rows' && key !== 'issues' && key !== 'mapping') {
+      if (key !== 'rows' && key !== 'issues' && key !== 'mapping' && key !== 'rawColumnCatalog') {
         normalized[key] = cloneValue(result[key], options);
       }
     });
