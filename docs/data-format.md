@@ -318,6 +318,10 @@ Legacy row/import validation remains available in `issues`. The quality model
 adapts those issues into bounded grouped findings, so large imports keep counts
 without retaining every affected row. Column-profile findings cover empty
 headers, incomplete mapped columns, and incompatible mapped date/numeric values.
+For mapped columns, type-compatibility counts use configured prepared values;
+retained source bytes and reconstructed source rows always remain original.
+Preparation findings count changed targets during import, including rows later
+rejected by field validation.
 Article-master and cross-source findings use the same model; no global quality
 score is derived.
 

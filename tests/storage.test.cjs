@@ -188,7 +188,8 @@ test('chunked storage round trip preserves ordered preparation rules', async () 
   const indexedDB = createFakeIndexedDB();
   const databaseName = 'preparation-rules-storage-test';
   const repository = storage.createRepository({ indexedDB, databaseName });
-  const original = workspaceWithSource('workspace-preparation', 'Preparation', 'SKU-PREP');
+  const original = workspaceWithRows('workspace-preparation', 1);
+  original.files[0].result.preparationCounts = { article_id: 1 };
   original.files[0].preparationRules = {
     article_id: [
       { type: 'trim', enabled: true },
@@ -201,6 +202,7 @@ test('chunked storage round trip preserves ordered preparation rules', async () 
   assert.deepEqual(stored.preparationRules, validated.files[0].preparationRules);
   const restored = await repository.loadWorkspace(validated.id);
   assert.deepEqual(restored.files[0].preparationRules, validated.files[0].preparationRules);
+  assert.deepEqual(restored.files[0].result.preparationCounts, { article_id: 1 });
 });
 
 test('renaming and replacing one workspace does not alter another workspace', async () => {

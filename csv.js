@@ -1092,6 +1092,36 @@
     return { value: prepared, applied: applied };
   }
 
+  function prepareProfileValues(values, mapping, customFieldMapping, customFields, preparationRules) {
+    let preparedValues = values;
+    const preparedFieldIds = [];
+    function prepareTarget(targetId, sourceIndex) {
+      if (!Number.isInteger(sourceIndex) || sourceIndex < 0 || sourceIndex >= values.length) return;
+      const rules = preparationRules && preparationRules[targetId];
+      if (!Array.isArray(rules)) return;
+      const original = String(values[sourceIndex] === undefined || values[sourceIndex] === null ? '' : values[sourceIndex]);
+      const prepared = applyPreparationRules(original, rules).value;
+      if (prepared === original) return;
+      if (preparedValues === values) preparedValues = values.slice();
+      preparedValues[sourceIndex] = prepared;
+      preparedFieldIds.push(targetId);
+    }
+    Object.keys(mapping || {}).forEach(function (targetId) { prepareTarget(targetId, mapping[targetId]); });
+    const activeCustomFieldIds = new Set((Array.isArray(customFields) ? customFields : [])
+      .filter(function (field) { return field && field.active !== false; })
+      .map(function (field) { return field.id; }));
+    Object.keys(customFieldMapping || {}).forEach(function (targetId) {
+      if (activeCustomFieldIds.has(targetId)) prepareTarget(targetId, customFieldMapping[targetId]);
+    });
+    return { values: preparedValues, preparedFieldIds: preparedFieldIds };
+  }
+
+  function countPreparedFields(counts, targetIds) {
+    targetIds.forEach(function (targetId) {
+      counts[targetId] = (counts[targetId] || 0) + 1;
+    });
+  }
+
   function normalizeRecord(record, headers, mapping, locale, sourceFile, customFields, customFieldMapping, preparationRules) {
     const sourceValues = record.values;
     let values = sourceValues;
@@ -1369,7 +1399,7 @@
     };
     const preparedFieldIds = Object.keys(preparationEvidence);
     if (preparedFieldIds.length > 0) normalizedRecord.prepared_fields = preparedFieldIds;
-    return { record: normalizedRecord, issues: issues };
+    return { record: normalizedRecord, issues: issues, preparedFieldIds: preparedFieldIds };
   }
 
   function parserErrorMessage(error, locale) {
@@ -1403,6 +1433,7 @@
     const invalidLines = new Set();
     const structuralLines = new Set();
     const dateByLine = new Map();
+    const preparationCounts = {};
 
     const parsed = parseCsvChunks(chunks, Object.assign({}, options, {
       retainRows: false,
@@ -1418,7 +1449,11 @@
         }
 
         totalRows += 1;
-        observeColumnProfiles(columnProfileStates, dataRow.values);
+        const preparedProfile = prepareProfileValues(
+          dataRow.values, selectedMapping, customFieldMapping, customFields, preparationRules
+        );
+        observeColumnProfiles(columnProfileStates, preparedProfile.values);
+        countPreparedFields(preparationCounts, preparedProfile.preparedFieldIds);
         const rowHasParserError = parserErrors.length > 0;
         if (dataRow.values.length !== headers.length) {
           structuralLines.add(dataRow.sourceLine);
@@ -1520,6 +1555,7 @@
       invalidRows: invalidLines.size,
       structuralRows: structuralLines.size,
       mapping: selectedMapping,
+      preparationCounts: preparationCounts,
       sourceFile: sourceFile,
       blocking: false
     };
@@ -1559,7 +1595,18 @@
     const columnCatalog = buildColumnCatalog(headers, sourceFile);
     const columnProfileStates = createColumnProfileStates(headers.length);
     const dataRows = parsed.rows.slice(1);
-    dataRows.forEach(function (dataRow) { observeColumnProfiles(columnProfileStates, dataRow.values); });
+    const selectedMapping = mapping || detectMapping(headers, sourceFile.sourceType);
+    const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
+    const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
+    const preparationRules = options && options.preparationRules ? options.preparationRules : {};
+    const preparationCounts = {};
+    dataRows.forEach(function (dataRow) {
+      const preparedProfile = prepareProfileValues(
+        dataRow.values, selectedMapping, customFieldMapping, customFields, preparationRules
+      );
+      observeColumnProfiles(columnProfileStates, preparedProfile.values);
+      countPreparedFields(preparationCounts, preparedProfile.preparedFieldIds);
+    });
     const headerSourceLine = parsed.rows[0].sourceLine;
     const headerHasParserError = parsed.errors.some(function (error) {
       return error.sourceLine === headerSourceLine;
@@ -1579,10 +1626,6 @@
         blocking: true
       };
     }
-    const selectedMapping = mapping || detectMapping(headers, sourceFile.sourceType);
-    const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
-    const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
-    const preparationRules = options && options.preparationRules ? options.preparationRules : {};
     const mappingIssues = validateMapping(selectedMapping, locale, sourceFile.sourceType).concat(validateCustomFieldMapping(customFieldMapping, customFields, locale, selectedMapping));
     if (mappingIssues.length > 0) {
       return {
@@ -1653,6 +1696,7 @@
       invalidRows: invalidLines.size,
       structuralRows: structuralLines.size,
       mapping: selectedMapping,
+      preparationCounts: preparationCounts,
       sourceFile: sourceFile,
       blocking: false
     };
@@ -2556,11 +2600,18 @@
       const rows = Array.isArray(result.rows) ? result.rows : [];
       const mapping = Object.assign({}, result.mapping || file.mapping || {}, file.customFieldMapping || {});
       const counts = new Map();
-      rows.forEach(function (row) {
-        (Array.isArray(row.prepared_fields) ? row.prepared_fields : []).forEach(function (targetId) {
-          counts.set(targetId, (counts.get(targetId) || 0) + 1);
+      if (result.preparationCounts && typeof result.preparationCounts === 'object') {
+        Object.keys(result.preparationCounts).forEach(function (targetId) {
+          const count = result.preparationCounts[targetId];
+          if (Number.isInteger(count) && count > 0) counts.set(targetId, count);
         });
-      });
+      } else {
+        rows.forEach(function (row) {
+          (Array.isArray(row.prepared_fields) ? row.prepared_fields : []).forEach(function (targetId) {
+            counts.set(targetId, (counts.get(targetId) || 0) + 1);
+          });
+        });
+      }
       counts.forEach(function (count, targetId) {
         const position = Number.isInteger(mapping[targetId]) ? mapping[targetId] : null;
         findings.push(createQualityFinding({

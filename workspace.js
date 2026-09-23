@@ -634,6 +634,20 @@
         validationError('invalid_import_result', 'Stored import result contains invalid row counts.');
       }
     });
+    if (normalized.preparationCounts !== undefined) {
+      if (!isPlainObject(normalized.preparationCounts) || Object.keys(normalized.preparationCounts).length > 100) {
+        validationError('invalid_import_result', 'Preparation counts must be a bounded object.');
+      }
+      const preparationCounts = {};
+      Object.keys(normalized.preparationCounts).forEach(function (targetId) {
+        const count = normalized.preparationCounts[targetId];
+        if (!/^[A-Za-z][A-Za-z0-9_-]{0,127}$/.test(targetId) || !Number.isInteger(count) || count < 0 || count > normalized.totalRows) {
+          validationError('invalid_import_result', 'Stored preparation counts are invalid.');
+        }
+        preparationCounts[targetId] = count;
+      });
+      normalized.preparationCounts = preparationCounts;
+    }
     return normalized;
   }
 

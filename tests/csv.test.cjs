@@ -1731,6 +1731,37 @@ test('sentinel preparation preserves raw and prepared values on required-field f
   assert.equal(issue.preparedValue, '');
 });
 
+test('prepared column profiles and preparation findings include rejected rows', () => {
+  const text = 'order_id;article_id;quantity;delivery_date\nO-1; sku-x ;bad;not-a-date\n';
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 };
+  const options = {
+    sourceFile: { id: 'source-prep-rejected', name: 'rejected.csv', label: 'rejected.csv' },
+    preparationRules: {
+      article_id: [{ type: 'trim', enabled: true }, { type: 'case-normalization', mode: 'upper', enabled: true }],
+      quantity: [{ type: 'replace-text', from: 'bad', to: '2', enabled: true }]
+    }
+  };
+  const result = csv.importCsvStreaming(text, mapping, options);
+  assert.equal(result.validRows, 0);
+  assert.deepEqual(result.preparationCounts, { article_id: 1, quantity: 1 });
+  assert.equal(result.columnCatalog[2].profile.numericCompatibleCount, 1);
+  const combined = csv.combineImportResults([{
+    id: options.sourceFile.id,
+    name: options.sourceFile.name,
+    label: options.sourceFile.label,
+    mapping: mapping,
+    columnCatalog: result.columnCatalog,
+    result: result
+  }]);
+  assert.equal(combined.dataQualityFindings.some((finding) => finding.code === 'column_type_mismatch' && finding.field === 'quantity'), false);
+  assert.equal(combined.dataQualityFindings.find((finding) => finding.code === 'preparation_rule_applied' && finding.field === 'article_id').affectedCount, 1);
+  assert.equal(combined.dataQualityFindings.find((finding) => finding.code === 'preparation_rule_applied' && finding.field === 'quantity').affectedCount, 1);
+
+  const parsedResult = csv.importParsedCsv(csv.parseCsv(text), mapping, options);
+  assert.deepEqual(parsedResult.preparationCounts, result.preparationCounts);
+  assert.equal(parsedResult.columnCatalog[2].profile.numericCompatibleCount, 1);
+});
+
 test('invalid typed custom values are omitted from normalized enrichment values', () => {
   const result = csv.importCsvStreaming(
     'article_id;article_name;Zone Number\nA1;Article;not-a-number\n',
