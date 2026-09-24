@@ -40,10 +40,33 @@
       workspace_eyebrow: 'Local storage',
       workspace_title: 'Workspaces',
       workspace_hint: 'Each workspace remains separate in this browser profile.',
-      workspace_select_label: 'Workspace selection',
+      workspace_catalog_title: 'Available workspaces',
+      workspace_catalog_count: '{{count}} workspaces',
+      workspace_selected_label: 'Selected workspace',
+      workspace_detail_sources: 'Sources',
+      workspace_detail_rows: 'Normalized rows',
+      workspace_detail_updated: 'Last changed',
+      workspace_detail_last_used: 'Last used',
+      workspace_none_selected: 'Create a workspace or restore a backup to get started.',
+      workspace_choose_status: 'Select a workspace to review its details.',
+      workspace_catalog_empty: 'No workspaces yet. Create one or restore a backup.',
+      workspace_selected_open: 'This workspace is open. Select another workspace and open it to switch.',
+      workspace_actions_scope: 'Open, rename, delete, export, and replace use the selected workspace. Delete and replace ask for confirmation.',
       workspace_none: 'No workspace selected',
       workspace_actions_label: 'Workspace actions',
       workspace_open_selected: 'Open selected',
+      workspace_currently_open: 'Go to workspace menu',
+      workspace_selection_back: 'Workspace selection',
+      main_menu_title: 'Main menu',
+      main_menu_eyebrow: 'Workspace menu',
+      main_menu_greeting: 'What would you like to do?',
+      main_menu_intro: 'Choose an area to continue working in this workspace.',
+      main_menu_import_description: 'Add or manage CSV files in this workspace.',
+      main_menu_mapping_description: 'Review source columns, mappings, and validation notes.',
+      main_menu_coverage_description: 'Check date coverage and prepare comparisons.',
+      main_menu_comparison_description: 'Compare selected periods and inspect changes.',
+      main_menu_analysis_description: 'Explore articles, demand, and source evidence.',
+      main_menu_workspace_selection_description: 'Switch or manage workspaces.',
       workspace_cancel_loading: 'Cancel loading',
       workspace_recover_save_failure: 'Discard unsaved changes and reload',
       workspace_create: 'Create',
@@ -60,8 +83,9 @@
       workspace_default_name: 'Workspace {{number}}',
       workspace_loading: 'Opening local workspace storage…',
       workspace_none_status: 'Select and open a workspace, create one, or restore a backup before selecting CSV files.',
-      workspace_select_status: 'Workspace overview is ready. Select a workspace to load its data.',
+      workspace_select_status: 'Review the selected workspace details. Its data is not loaded yet.',
       workspace_last_used: 'Last used',
+      workspace_not_last_used: 'Not used recently',
       workspace_active: 'Opened',
       workspace_overview_meta: '{{sources}} sources · {{rows}} normalized rows · updated {{updated}}',
       workspace_loading_payload: 'Loading “{{name}}” from local browser storage…',
@@ -175,6 +199,20 @@
       source_column_distinct: '{{count}} distinct{{suffix}}',
       source_column_suggestion: 'Suggestion: {{field}} ({{confidence}})',
       source_column_ambiguous: 'Ambiguous suggestion',
+      source_column_filter_all: 'All columns',
+      source_column_filter_unmapped: 'Unmapped',
+      source_column_filter_suggested: 'Suggestions',
+      source_column_filter_ambiguous: 'Ambiguous',
+      source_column_filter_mapped: 'Mapped',
+      source_column_status_mapped: 'Mapped',
+      source_column_status: 'Status',
+      source_column_status_suggested: 'Suggested',
+      source_column_status_ambiguous: 'Review',
+      source_column_status_unmapped: 'Unmapped',
+      source_column_page: 'Columns {{start}}–{{end}} of {{total}}',
+      source_column_mapping_conflict: 'That target is already assigned to another source column.',
+      mapping_preparation_title: 'Field preparation rules',
+      mapping_column_search: 'Search source columns or targets…',
       source_column_confidence_high: 'high',
       source_column_confidence_medium: 'medium',
       source_column_confidence_low: 'low',
@@ -262,8 +300,27 @@
       issue_status: 'Status',
       issue_status_included: 'Row included',
       issue_status_excluded: 'Row excluded',
+      source_table_title: 'Imported file as table',
+      source_table_note: 'All recognized rows are in one continuous scroll area. Original values, rule effects, and row findings remain visible together.',
+      source_table_jump_label: 'Source line',
+      source_table_jump: 'Go to line',
+      source_table_scroll_label: 'Imported rows',
+      source_table_indexing: 'Preparing the table for {{file}}…',
+      source_table_position: '{{file}} · rows {{first}}–{{last}} of {{total}}',
+      source_table_empty: 'No data rows are available in this file.',
+      source_table_unchecked: 'Not checked',
+      source_table_valid: 'Valid',
+      source_table_warning: 'Note',
+      source_table_error: 'Error',
+      source_table_excluded: 'Excluded',
+      source_table_rule_effect: 'After rule: {{value}}',
+      source_table_rule_names: 'Applied: {{rules}}',
+      source_table_expand_value: 'Show full value',
       quality_overview_title: 'Data-quality overview',
-      quality_overview_note: 'Findings are grouped by scope and source. Counts remain traceable to structured evidence.',
+      quality_overview_note: 'Findings for the selected import are shown separately from cross-source findings.',
+      quality_view_label: 'Show findings for',
+      quality_view_selected: 'Selected import: {{file}}',
+      quality_view_shared: 'Cross-source / unattributed',
       quality_scope: 'Scope',
       quality_severity: 'Severity',
       quality_source: 'Source',
@@ -348,6 +405,10 @@
       workflow_workspace: 'Workspace',
       workflow_import: 'Import sources',
       workflow_mapping: 'Mapping & quality',
+      mapping_source_list: 'Source files',
+      import_file_count: '{{count}} imported files',
+      mapping_select_source: 'Select a source to review its columns and mappings.',
+      mapping_show_columns: 'Show complete source-column overview',
       workflow_coverage: 'Coverage & periods',
       workflow_comparison: 'Comparison results',
       workflow_analysis: 'Analysis',
@@ -505,10 +566,33 @@
       workspace_eyebrow: 'Lokaler Speicher',
       workspace_title: 'Arbeitsbereiche',
       workspace_hint: 'Jeder Arbeitsbereich bleibt in diesem Browserprofil vollständig getrennt.',
-      workspace_select_label: 'Arbeitsbereichsauswahl',
+      workspace_catalog_title: 'Verfügbare Arbeitsbereiche',
+      workspace_catalog_count: '{{count}} Arbeitsbereiche',
+      workspace_selected_label: 'Ausgewählter Arbeitsbereich',
+      workspace_detail_sources: 'Quellen',
+      workspace_detail_rows: 'Normalisierte Zeilen',
+      workspace_detail_updated: 'Zuletzt geändert',
+      workspace_detail_last_used: 'Zuletzt verwendet',
+      workspace_none_selected: 'Erstelle einen Arbeitsbereich oder stelle ein Backup wieder her, um zu beginnen.',
+      workspace_choose_status: 'Wähle einen Arbeitsbereich aus, um seine Details zu sehen.',
+      workspace_catalog_empty: 'Noch keine Arbeitsbereiche. Erstelle einen oder stelle ein Backup wieder her.',
+      workspace_selected_open: 'Dieser Arbeitsbereich ist geöffnet. Zum Wechseln einen anderen auswählen und öffnen.',
+      workspace_actions_scope: 'Öffnen, Umbenennen, Löschen, Exportieren und Ersetzen beziehen sich auf den ausgewählten Arbeitsbereich. Löschen und Ersetzen erfordern eine Bestätigung.',
       workspace_none: 'Kein Arbeitsbereich ausgewählt',
       workspace_actions_label: 'Aktionen für Arbeitsbereiche',
       workspace_open_selected: 'Auswahl öffnen',
+      workspace_currently_open: 'Zum Workspace-Menü',
+      workspace_selection_back: 'Workspace-Auswahl',
+      main_menu_title: 'Hauptmenü',
+      main_menu_eyebrow: 'Workspace-Menü',
+      main_menu_greeting: 'Was möchtest du tun?',
+      main_menu_intro: 'Wähle einen Bereich, um in diesem Workspace weiterzuarbeiten.',
+      main_menu_import_description: 'CSV-Dateien in diesen Workspace importieren oder verwalten.',
+      main_menu_mapping_description: 'Quellspalten, Zuordnungen und Prüfhinweise ansehen.',
+      main_menu_coverage_description: 'Datenabdeckung prüfen und Vergleiche vorbereiten.',
+      main_menu_comparison_description: 'Ausgewählte Perioden vergleichen und Änderungen prüfen.',
+      main_menu_analysis_description: 'Artikel, Bedarf und Quelldaten erkunden.',
+      main_menu_workspace_selection_description: 'Arbeitsbereich wechseln oder verwalten.',
       workspace_cancel_loading: 'Laden abbrechen',
       workspace_recover_save_failure: 'Ungespeicherte Änderungen verwerfen und neu laden',
       workspace_create: 'Erstellen',
@@ -525,8 +609,9 @@
       workspace_default_name: 'Arbeitsbereich {{number}}',
       workspace_loading: 'Lokaler Arbeitsbereichsspeicher wird geöffnet …',
       workspace_none_status: 'Bitte einen Arbeitsbereich auswählen und öffnen, neu erstellen oder aus einem Backup wiederherstellen.',
-      workspace_select_status: 'Die Arbeitsbereichsübersicht ist bereit. Zum Laden bitte einen Arbeitsbereich auswählen.',
+      workspace_select_status: 'Details des ausgewählten Arbeitsbereichs. Seine Daten sind noch nicht geladen.',
       workspace_last_used: 'Zuletzt verwendet',
+      workspace_not_last_used: 'Nicht zuletzt verwendet',
       workspace_active: 'Geöffnet',
       workspace_overview_meta: '{{sources}} Quellen · {{rows}} normalisierte Zeilen · geändert {{updated}}',
       workspace_loading_payload: '„{{name}}“ wird aus dem lokalen Browserspeicher geladen …',
@@ -640,6 +725,20 @@
       source_column_distinct: '{{count}} verschiedene{{suffix}}',
       source_column_suggestion: 'Vorschlag: {{field}} ({{confidence}})',
       source_column_ambiguous: 'Mehrdeutiger Vorschlag',
+      source_column_filter_all: 'Alle Spalten',
+      source_column_filter_unmapped: 'Nicht zugeordnet',
+      source_column_filter_suggested: 'Mit Vorschlag',
+      source_column_filter_ambiguous: 'Mehrdeutig',
+      source_column_filter_mapped: 'Zugeordnet',
+      source_column_status_mapped: 'Zugeordnet',
+      source_column_status: 'Status',
+      source_column_status_suggested: 'Vorschlag',
+      source_column_status_ambiguous: 'Prüfen',
+      source_column_status_unmapped: 'Offen',
+      source_column_page: 'Spalten {{start}}–{{end}} von {{total}}',
+      source_column_mapping_conflict: 'Dieses Zielfeld ist bereits einer anderen Quellspalte zugeordnet.',
+      mapping_preparation_title: 'Aufbereitungsregeln für zugeordnete Felder',
+      mapping_column_search: 'Quellspalten oder Zielfelder suchen…',
       source_column_confidence_high: 'hoch',
       source_column_confidence_medium: 'mittel',
       source_column_confidence_low: 'niedrig',
@@ -727,8 +826,27 @@
       issue_status: 'Status',
       issue_status_included: 'Zeile einbezogen',
       issue_status_excluded: 'Zeile ausgeschlossen',
+      source_table_title: 'Importdatei als Tabelle',
+      source_table_note: 'Alle erkannten Zeilen stehen in einem durchgehend scrollbaren Tabellenbereich. Originalwerte, Regeleffekte und Zeilenfehler sind gemeinsam sichtbar.',
+      source_table_jump_label: 'Quellzeile',
+      source_table_jump: 'Zur Zeile',
+      source_table_scroll_label: 'Importierte Zeilen',
+      source_table_indexing: 'Tabelle für {{file}} wird vorbereitet…',
+      source_table_position: '{{file}} · Zeilen {{first}}–{{last}} von {{total}}',
+      source_table_empty: 'Diese Datei enthält keine Datenzeilen.',
+      source_table_unchecked: 'Noch nicht geprüft',
+      source_table_valid: 'Gültig',
+      source_table_warning: 'Hinweis',
+      source_table_error: 'Fehler',
+      source_table_excluded: 'Ausgeschlossen',
+      source_table_rule_effect: 'Nach Regel: {{value}}',
+      source_table_rule_names: 'Angewendet: {{rules}}',
+      source_table_expand_value: 'Ganzen Wert anzeigen',
       quality_overview_title: 'Übersicht Datenqualität',
-      quality_overview_note: 'Befunde werden nach Umfang und Quelle gruppiert. Zählungen bleiben auf strukturierte Nachweise zurückführbar.',
+      quality_overview_note: 'Befunde des ausgewählten Imports und quellenübergreifende Befunde sind getrennt einsehbar.',
+      quality_view_label: 'Befunde anzeigen für',
+      quality_view_selected: 'Ausgewählter Import: {{file}}',
+      quality_view_shared: 'Quellenübergreifend / ohne Importzuordnung',
       quality_scope: 'Umfang',
       quality_severity: 'Schweregrad',
       quality_source: 'Quelle',
@@ -813,6 +931,10 @@
       workflow_workspace: 'Arbeitsbereich',
       workflow_import: 'CSV importieren',
       workflow_mapping: 'Quellspalten & Hinweise',
+      mapping_source_list: 'Quelldateien',
+      import_file_count: '{{count}} importierte Dateien',
+      mapping_select_source: 'Wähle eine Quelle, um Spalten und Zuordnungen zu prüfen.',
+      mapping_show_columns: 'Vollständige Quellspaltenübersicht anzeigen',
       workflow_coverage: 'Datenabdeckung',
       workflow_comparison: 'Perioden & Vergleich',
       workflow_analysis: 'Analyse',
@@ -958,6 +1080,10 @@
     workspaceRecoveryAvailable: false,
     restoreMode: null,
     files: [],
+    selectedMappingFileId: null,
+    mappingColumnSearch: '',
+    mappingColumnFilter: 'all',
+    mappingColumnPage: 1,
     fileSelectionVersion: 0,
     result: null,
     articleRegistry: [],
@@ -977,12 +1103,19 @@
     issuePage: 1,
     issueRows: [],
     qualityPage: 1,
+    qualityView: 'source',
+    sourceTableFileId: null,
+    sourceTableRenderKey: null,
+    sourceTableHeaderKey: null,
     articleViewCache: null,
     comparisonViewCache: null,
-    activePageTarget: 'workspace-panel'
+    activePageTarget: 'main-menu-panel'
   };
 
   const TABLE_PAGE_SIZE = 100;
+  const SOURCE_TABLE_ROW_HEIGHT = 56;
+  const SOURCE_TABLE_OVERSCAN = 2;
+  const SOURCE_TABLE_WINDOW_STEP = 6;
 
   const RUNTIME_MODE_TRANSLATION_KEYS = {
     portable: {
@@ -1029,8 +1162,9 @@
 
   const PAGE_CONFIG = {
     'workspace-panel': { view: 'workspace-page', kicker: 'nav_kicker', title: 'workspace_title', status: 'page_status_workspace' },
+    'main-menu-panel': { view: 'main-menu-page', kicker: 'main_menu_eyebrow', title: 'main_menu_title', status: 'page_status_ready' },
     'import-panel': { view: 'import-page', kicker: 'workflow_import', title: 'select_file_title', status: 'page_status_import' },
-    'mapping-panel': { view: 'import-page', kicker: 'workflow_mapping', title: 'mapping_title', status: 'page_status_mapping' },
+    'mapping-panel': { view: 'mapping-page', kicker: 'workflow_mapping', title: 'mapping_title', status: 'page_status_mapping' },
     'coverage-panel': { view: 'coverage-page', kicker: 'workflow_coverage', title: 'coverage_title', status: 'page_status_coverage' },
     'comparison-panel': { view: 'comparison-page', kicker: 'workflow_comparison', title: 'comparison_title', status: 'page_status_comparison' },
     'results-panel': { view: 'analysis-page', kicker: 'workflow_analysis', title: 'analysis_title', status: 'page_status_analysis' }
@@ -1043,11 +1177,13 @@
     pageContextKicker: document.getElementById('page-context-kicker'),
     pageContextTitle: document.getElementById('page-context-title'),
     pageContextStatus: document.getElementById('page-context-status'),
+    returnMainMenu: document.getElementById('return-main-menu'),
+    returnWorkspaceSelection: document.getElementById('return-workspace-selection'),
+    mainMenuWorkspaceName: document.getElementById('main-menu-workspace-name'),
     runtimeBadge: document.getElementById('runtime-badge'),
     runtimeMode: document.getElementById('runtime-mode'),
     runtimeOrigin: document.getElementById('runtime-origin'),
     runtimeCapabilities: document.getElementById('runtime-capabilities'),
-    workspaceSelect: document.getElementById('workspace-select'),
     workspaceOpen: document.getElementById('workspace-open'),
     workspaceCancel: document.getElementById('workspace-cancel'),
     workspaceCreate: document.getElementById('workspace-create'),
@@ -1061,6 +1197,13 @@
     workspaceLoadLabel: document.getElementById('workspace-load-label'),
     workspaceProgress: document.getElementById('workspace-progress'),
     workspaceOverview: document.getElementById('workspace-overview'),
+    workspaceCatalogCount: document.getElementById('workspace-catalog-count'),
+    workspaceSelectedName: document.getElementById('workspace-selected-name'),
+    workspaceSelectedStatus: document.getElementById('workspace-selected-status'),
+    workspaceSelectedSources: document.getElementById('workspace-selected-sources'),
+    workspaceSelectedRows: document.getElementById('workspace-selected-rows'),
+    workspaceSelectedUpdated: document.getElementById('workspace-selected-updated'),
+    workspaceSelectedLastUsed: document.getElementById('workspace-selected-last-used'),
     customFieldsPanel: document.getElementById('custom-fields-panel'),
     customFieldsList: document.getElementById('custom-fields-list'),
     customFieldCreate: document.getElementById('custom-field-create'),
@@ -1069,12 +1212,22 @@
     workspaceRecovery: document.getElementById('workspace-recovery'),
     filePicker: document.querySelector('.file-picker'),
     fileInput: document.getElementById('file-input'),
+    importedFiles: document.getElementById('imported-files'),
     languageSelect: document.getElementById('language-select'),
     sourceStatus: document.getElementById('source-status'),
     mappingPanel: document.getElementById('mapping-panel'),
+    mappingSourceList: document.getElementById('mapping-source-list'),
     mappingGrid: document.getElementById('mapping-grid'),
     mappingMessage: document.getElementById('mapping-message'),
     analyzeButton: document.getElementById('analyze-button'),
+    sourceTablePanel: document.getElementById('source-table-panel'),
+    sourceTableStatus: document.getElementById('source-table-status'),
+    sourceTableScroll: document.getElementById('source-table-scroll'),
+    sourceTableHead: document.getElementById('source-table-head'),
+    sourceTableBody: document.getElementById('source-table-body'),
+    sourceDataTable: document.getElementById('source-data-table'),
+    sourceTableLine: document.getElementById('source-table-line'),
+    sourceTableJump: document.getElementById('source-table-jump'),
     coveragePanel: document.getElementById('coverage-panel'),
     coverageOverview: document.getElementById('coverage-overview'),
     coverageTimeline: document.getElementById('coverage-timeline'),
@@ -1162,12 +1315,14 @@
     articleDetailNext: document.getElementById('article-detail-next'),
     articleDetailPageStatus: document.getElementById('article-detail-page-status'),
     issuesPanel: document.getElementById('issues-panel'),
+    issuesTitle: document.getElementById('issues-title'),
     issuesTableBody: document.getElementById('issues-table-body'),
     issuePagination: document.getElementById('issue-pagination'),
     issuePrevious: document.getElementById('issue-previous'),
     issueNext: document.getElementById('issue-next'),
     issuePageStatus: document.getElementById('issue-page-status'),
     qualityOverviewPanel: document.getElementById('quality-overview-panel'),
+    qualityViewSelect: document.getElementById('quality-view-select'),
     qualityOverviewSummary: document.getElementById('quality-overview-summary'),
     qualityOverviewTableBody: document.getElementById('quality-overview-table-body'),
     qualityOverviewPagination: document.getElementById('quality-overview-pagination'),
@@ -1292,9 +1447,19 @@
 
   function renderWorkspaceOverview() {
     elements.workspaceOverview.replaceChildren();
+    if (state.workspaces.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'table-note';
+      setText(empty, translate('workspace_catalog_empty'));
+      elements.workspaceOverview.appendChild(empty);
+    }
     state.workspaces.forEach(function (workspace) {
-      const card = document.createElement('article');
+      const card = document.createElement('button');
+      card.type = 'button';
       card.className = 'workspace-card' + (workspace.id === state.selectedWorkspaceId ? ' selected' : '');
+      card.dataset.selectWorkspaceId = workspace.id;
+      card.setAttribute('aria-pressed', String(workspace.id === state.selectedWorkspaceId));
+      card.disabled = state.workspaceLoading || !state.storageReady;
       const heading = document.createElement('div');
       heading.className = 'workspace-card-heading';
       const name = document.createElement('h3');
@@ -1317,17 +1482,36 @@
         rows: Number.isInteger(workspace.normalizedRowCount) ? formatNumber(workspace.normalizedRowCount, 0) : '—',
         updated: updated
       }));
-      const openButton = document.createElement('button');
-      openButton.type = 'button';
-      openButton.className = 'secondary-button';
-      openButton.dataset.openWorkspaceId = workspace.id;
-      openButton.disabled = state.workspaceLoading;
-      setText(openButton, translate('workspace_open_selected'));
       card.appendChild(heading);
       card.appendChild(details);
-      card.appendChild(openButton);
       elements.workspaceOverview.appendChild(card);
     });
+    renderWorkspaceSelection();
+  }
+
+  function renderWorkspaceSelection() {
+    const selected = state.workspaces.find(function (workspace) {
+      return workspace.id === state.selectedWorkspaceId;
+    });
+    setText(elements.workspaceCatalogCount, translate('workspace_catalog_count', { count: state.workspaces.length }));
+    setText(elements.workspaceSelectedName, selected ? selected.name : translate('workspace_none'));
+    setText(elements.workspaceSelectedStatus, selected
+      ? translate(state.activeWorkspace && state.activeWorkspace.id === selected.id ? 'workspace_selected_open' : 'workspace_select_status')
+      : translate(state.workspaces.length ? 'workspace_choose_status' : 'workspace_none_selected'));
+    setText(elements.workspaceSelectedSources, selected && Number.isInteger(selected.sourceCount)
+      ? formatNumber(selected.sourceCount, 0)
+      : '—');
+    setText(elements.workspaceSelectedRows, selected && Number.isInteger(selected.normalizedRowCount)
+      ? formatNumber(selected.normalizedRowCount, 0)
+      : '—');
+    const updatedDate = selected ? new Date(selected.updatedAt) : null;
+    setText(elements.workspaceSelectedUpdated, updatedDate && Number.isFinite(updatedDate.getTime())
+      ? new Intl.DateTimeFormat(state.language === 'de' ? 'de-DE' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(updatedDate)
+      : '—');
+    const lastUsed = selected && selected.id === state.lastActiveWorkspaceId;
+    setText(elements.workspaceSelectedLastUsed, selected
+      ? translate(lastUsed ? 'workspace_last_used' : 'workspace_not_last_used')
+      : '—');
   }
 
   function renderCustomFields() {
@@ -1364,26 +1548,17 @@
 
   function renderWorkspaceControls() {
     setText(elements.headerWorkspaceName, state.activeWorkspace ? state.activeWorkspace.name : translate('workspace_none'));
+    setText(elements.mainMenuWorkspaceName, state.activeWorkspace ? '· ' + state.activeWorkspace.name : '');
+    document.body.classList.toggle('workspace-picker-mode', !state.activeWorkspace || state.activePageTarget === 'workspace-panel');
     const selectedId = state.selectedWorkspaceId || '';
-    elements.workspaceSelect.replaceChildren();
-    const emptyOption = document.createElement('option');
-    emptyOption.value = '';
-    setText(emptyOption, translate('workspace_none'));
-    elements.workspaceSelect.appendChild(emptyOption);
-    state.workspaces.forEach(function (workspace) {
-      const option = document.createElement('option');
-      option.value = workspace.id;
-      setText(option, workspace.name + (workspace.id === state.lastActiveWorkspaceId ? ' · ' + translate('workspace_last_used') : ''));
-      elements.workspaceSelect.appendChild(option);
-    });
-    elements.workspaceSelect.value = selectedId;
 
     const fileReadPending = state.files.some(function (file) { return Boolean(file.reading); });
     const editsLocked = state.workspaceLoading || fileReadPending;
     const ready = state.storageReady && !editsLocked;
     const hasWorkspace = ready && Boolean(state.activeWorkspace);
     const hasSelection = ready && Boolean(selectedId);
-    elements.workspaceSelect.disabled = !ready || state.workspaces.length === 0;
+    const selectionIsOpen = Boolean(state.activeWorkspace && state.activeWorkspace.id === selectedId);
+    setText(elements.workspaceOpen, translate(selectionIsOpen ? 'workspace_currently_open' : 'workspace_open_selected'));
     elements.workspaceOpen.disabled = !hasSelection;
     elements.workspaceCancel.classList.toggle('hidden', !state.workspaceLoading || !state.workspaceLoadCancellable);
     elements.workspaceRecovery.disabled = state.workspaceLoading && !state.workspaceRecoveryAvailable;
@@ -1682,18 +1857,30 @@
       sourceType: file.sourceType,
       mapping: file.mapping
     });
-    const mappedByPosition = {};
-    Object.keys(file.mapping || {}).forEach(function (field) {
-      if (Number.isInteger(file.mapping[field])) mappedByPosition[file.mapping[field]] = core.getFieldLabel(field, state.language);
-    });
-    const activeCustomFields = new Map((state.customFields || [])
-      .filter(function (field) { return field && field.active !== false; })
-      .map(function (field) { return [String(field.id), field]; }));
-    Object.keys(file.customFieldMapping || {}).forEach(function (fieldId) {
-      const field = activeCustomFields.get(String(fieldId));
-      const position = file.customFieldMapping[fieldId];
-      if (field && Number.isInteger(position)) {
-        mappedByPosition[position] = field.name;
+    const definitions = core.getFieldDefinitionsForSource(file.sourceType, { mapping: file.mapping });
+    const customFields = file.sourceType === 'article-master'
+      ? (state.customFields || []).filter(function (field) { return field && field.active !== false; })
+      : [];
+    const targetDefinitions = definitions.map(function (definition) {
+      return {
+        value: 'core:' + definition.key,
+        key: definition.key,
+        label: core.getFieldLabel(definition.key, state.language) +
+          (core.fieldRequiredForSource(definition, file.sourceType) ? ' · ' + translate('required_label') : ''),
+        type: 'core'
+      };
+    }).concat(customFields.map(function (field) {
+      return { value: 'custom:' + field.id, key: String(field.id), label: field.name + ' · ' + field.type, type: 'custom' };
+    }));
+    const mappedByPosition = new Map();
+    const mappedTargets = new Map();
+    targetDefinitions.forEach(function (target) {
+      const position = target.type === 'core'
+        ? file.mapping[target.key]
+        : (file.customFieldMapping || {})[target.key];
+      if (Number.isInteger(position)) {
+        mappedByPosition.set(position, target.value);
+        mappedTargets.set(target.value, position);
       }
     });
     const wrapper = document.createElement('div');
@@ -1705,13 +1892,94 @@
     setText(hint, translate('source_columns_hint'));
     wrapper.appendChild(title);
     wrapper.appendChild(hint);
+    const tools = document.createElement('div');
+    tools.className = 'source-column-tools';
+    const search = document.createElement('input');
+    search.type = 'search';
+    search.className = 'source-column-search';
+    search.dataset.mappingSearch = 'true';
+    search.value = state.mappingColumnSearch;
+    search.placeholder = translate('mapping_column_search');
+    search.setAttribute('aria-label', translate('mapping_column_search'));
+    tools.appendChild(search);
+    const filter = document.createElement('select');
+    filter.className = 'source-column-filter';
+    filter.dataset.mappingFilter = 'true';
+    [
+      ['all', 'source_column_filter_all'],
+      ['unmapped', 'source_column_filter_unmapped'],
+      ['suggested', 'source_column_filter_suggested'],
+      ['ambiguous', 'source_column_filter_ambiguous'],
+      ['mapped', 'source_column_filter_mapped']
+    ].forEach(function (entry) { addOption(filter, entry[0], translate(entry[1])); });
+    filter.value = state.mappingColumnFilter;
+    filter.setAttribute('aria-label', translate('source_column_mapping'));
+    tools.appendChild(filter);
+    if (file.sourceType === 'article-master') {
+      const createCustom = document.createElement('button');
+      createCustom.type = 'button';
+      createCustom.className = 'secondary-button source-column-create';
+      createCustom.dataset.createCustomFromFile = file.id;
+      createCustom.disabled = state.workspaceLoading || state.files.some(function (item) { return Boolean(item.reading); });
+      setText(createCustom, translate('custom_field_create_from_source'));
+      tools.appendChild(createCustom);
+    }
+    wrapper.appendChild(tools);
+
+    const rows = catalog.map(function (entry, position) {
+      const profile = entry.profile || {};
+      const candidates = Object.keys(suggestions).map(function (field) {
+        return (suggestions[field] || []).find(function (candidate) { return candidate.sourcePosition === position; });
+      }).filter(Boolean).sort(function (left, right) { return right.score - left.score; });
+      const best = candidates[0];
+      const crossFieldTie = Boolean(best && candidates.filter(function (candidate) { return candidate.score === best.score; }).length > 1);
+      const ambiguous = Boolean(best && (best.ambiguity || crossFieldTie));
+      const mappedTarget = mappedByPosition.get(position) || '';
+      const target = targetDefinitions.find(function (item) { return item.value === mappedTarget; });
+      const fieldLabel = target ? target.label : '';
+      const status = mappedTarget ? 'mapped' : ambiguous ? 'ambiguous' : best ? 'suggested' : 'unmapped';
+      const samples = Array.isArray(profile.sampleValues) ? profile.sampleValues.map(function (sample) { return sample.value; }) : [];
+      return {
+        entry: entry,
+        position: position,
+        profile: profile,
+        samples: samples,
+        mappedTarget: mappedTarget,
+        fieldLabel: fieldLabel,
+        best: best,
+        ambiguous: ambiguous,
+        status: status
+      };
+    });
+    const query = state.mappingColumnSearch.trim().toLocaleLowerCase(state.language === 'de' ? 'de-DE' : 'en-US');
+    const visibleRows = rows.filter(function (row) {
+      if (state.mappingColumnFilter === 'unmapped' && row.mappedTarget) return false;
+      if (state.mappingColumnFilter === 'suggested' && row.status !== 'suggested') return false;
+      if (state.mappingColumnFilter === 'ambiguous' && row.status !== 'ambiguous') return false;
+      if (state.mappingColumnFilter === 'mapped' && row.status !== 'mapped') return false;
+      if (!query) return true;
+      const bestLabel = row.best ? core.getFieldLabel(row.best.targetField, state.language) : '';
+      const searchable = [row.entry.header, row.fieldLabel, bestLabel].concat(row.samples).join(' ').toLocaleLowerCase(state.language === 'de' ? 'de-DE' : 'en-US');
+      return searchable.indexOf(query) >= 0;
+    });
+    const pageSize = 50;
+    const pageCount = Math.max(1, Math.ceil(visibleRows.length / pageSize));
+    state.mappingColumnPage = Math.min(Math.max(state.mappingColumnPage, 1), pageCount);
+    const pageStart = (state.mappingColumnPage - 1) * pageSize;
+    const pageRows = visibleRows.slice(pageStart, pageStart + pageSize);
+    const statusLabels = {
+      mapped: translate('source_column_status_mapped'),
+      suggested: translate('source_column_status_suggested'),
+      ambiguous: translate('source_column_status_ambiguous'),
+      unmapped: translate('source_column_status_unmapped')
+    };
     const scroll = document.createElement('div');
     scroll.className = 'table-scroll';
     const table = document.createElement('table');
     table.className = 'source-column-table';
     const thead = document.createElement('thead');
     const headRow = document.createElement('tr');
-    ['source_column_header', 'source_column_mapping', 'source_column_profile', 'source_column_samples'].forEach(function (key) {
+    ['source_column_header', 'source_column_mapping', 'source_column_profile', 'source_column_samples', 'source_column_status'].forEach(function (key) {
       const cell = document.createElement('th');
       cell.scope = 'col';
       setText(cell, translate(key));
@@ -1720,32 +1988,40 @@
     thead.appendChild(headRow);
     table.appendChild(thead);
     const body = document.createElement('tbody');
-    catalog.forEach(function (entry, position) {
-      const profile = entry.profile || {};
+    pageRows.forEach(function (sourceColumn) {
+      const entry = sourceColumn.entry;
+      const position = sourceColumn.position;
+      const profile = sourceColumn.profile;
       const row = document.createElement('tr');
       const sourceCell = document.createElement('th');
       sourceCell.scope = 'row';
       setText(sourceCell, (position + 1) + ': ' + (entry.header || translate('empty_header')));
       row.appendChild(sourceCell);
       const mappingCell = document.createElement('td');
-      const mappedField = mappedByPosition[position];
-      setText(mappingCell, mappedField || translate('source_column_unused'));
-      const candidates = Object.keys(suggestions).map(function (field) {
-        return (suggestions[field] || []).find(function (candidate) { return candidate.sourcePosition === position; });
-      }).filter(Boolean).sort(function (left, right) { return right.score - left.score; });
-      const best = candidates[0];
-      if (!mappedField && best) {
-        const topScore = best.score;
-        const crossFieldTie = candidates.filter(function (candidate) { return candidate.score === topScore; }).length > 1;
+      const mappingSelect = document.createElement('select');
+      mappingSelect.className = 'source-column-mapping-select';
+      mappingSelect.dataset.columnMappingFileId = file.id;
+      mappingSelect.dataset.sourcePosition = String(position);
+      mappingSelect.disabled = state.workspaceLoading || state.files.some(function (item) { return Boolean(item.reading); });
+      mappingSelect.setAttribute('aria-label', translate('source_column_header') + ' ' + (position + 1) + ': ' + (entry.header || translate('empty_header')) + ' · ' + translate('source_column_mapping'));
+      addOption(mappingSelect, '', translate('source_column_unused'));
+      targetDefinitions.forEach(function (target) {
+        addOption(mappingSelect, target.value, target.label);
+        const option = mappingSelect.lastElementChild;
+        const usedAt = mappedTargets.get(target.value);
+        option.disabled = Number.isInteger(usedAt) && usedAt !== position;
+      });
+      mappingSelect.value = sourceColumn.mappedTarget;
+      mappingCell.appendChild(mappingSelect);
+      if (!sourceColumn.mappedTarget && sourceColumn.best) {
         const note = document.createElement('small');
-        note.className = 'source-column-suggestion ' + best.confidence;
-        setText(note, best.ambiguity || crossFieldTie
+        note.className = 'source-column-suggestion ' + sourceColumn.best.confidence;
+        setText(note, sourceColumn.ambiguous
           ? translate('source_column_ambiguous')
           : translate('source_column_suggestion', {
-            field: core.getFieldLabel(best.targetField, state.language),
-            confidence: translate(SOURCE_COLUMN_CONFIDENCE_KEYS[best.confidence] || SOURCE_COLUMN_CONFIDENCE_KEYS.low)
+            field: core.getFieldLabel(sourceColumn.best.targetField, state.language),
+            confidence: translate(SOURCE_COLUMN_CONFIDENCE_KEYS[sourceColumn.best.confidence] || SOURCE_COLUMN_CONFIDENCE_KEYS.low)
           }));
-        mappingCell.appendChild(document.createElement('br'));
         mappingCell.appendChild(note);
       }
       row.appendChild(mappingCell);
@@ -1761,14 +2037,41 @@
       }
       row.appendChild(profileCell);
       const samplesCell = document.createElement('td');
-      const samples = Array.isArray(profile.sampleValues) ? profile.sampleValues : [];
-      setText(samplesCell, samples.length ? samples.map(function (sample) { return sample.value; }).join(', ') : '—');
+      setText(samplesCell, sourceColumn.samples.length ? sourceColumn.samples.join(', ') : '—');
       row.appendChild(samplesCell);
+      const statusCell = document.createElement('td');
+      statusCell.className = 'source-column-status ' + sourceColumn.status;
+      setText(statusCell, statusLabels[sourceColumn.status] || statusLabels.unmapped);
+      row.appendChild(statusCell);
       body.appendChild(row);
     });
     table.appendChild(body);
     scroll.appendChild(table);
     wrapper.appendChild(scroll);
+    const pagination = document.createElement('div');
+    pagination.className = 'source-column-pagination';
+    const pageStatus = document.createElement('span');
+    pageStatus.className = 'table-note';
+    pageStatus.setAttribute('aria-live', 'polite');
+    const shownStart = visibleRows.length ? pageStart + 1 : 0;
+    const shownEnd = Math.min(pageStart + pageSize, visibleRows.length);
+    setText(pageStatus, translate('source_column_page', { start: shownStart, end: shownEnd, total: visibleRows.length }));
+    const previous = document.createElement('button');
+    previous.type = 'button';
+    previous.className = 'secondary-button';
+    previous.dataset.columnPage = 'previous';
+    previous.disabled = state.mappingColumnPage <= 1;
+    setText(previous, translate('previous_page'));
+    const next = document.createElement('button');
+    next.type = 'button';
+    next.className = 'secondary-button';
+    next.dataset.columnPage = 'next';
+    next.disabled = state.mappingColumnPage >= pageCount;
+    setText(next, translate('next_page'));
+    pagination.appendChild(pageStatus);
+    pagination.appendChild(previous);
+    pagination.appendChild(next);
+    wrapper.appendChild(pagination);
     section.appendChild(wrapper);
   }
 
@@ -1945,10 +2248,107 @@
     wrapper.appendChild(details);
   }
 
+  function renderImportedFiles() {
+    elements.importedFiles.replaceChildren();
+    elements.importedFiles.classList.toggle('hidden', state.files.length === 0);
+    if (state.files.length === 0) return;
+    const heading = document.createElement('div');
+    heading.className = 'imported-files-heading';
+    const title = document.createElement('strong');
+    setText(title, translate('import_file_count', { count: state.files.length }));
+    heading.appendChild(title);
+    elements.importedFiles.appendChild(heading);
+    const list = document.createElement('ul');
+    list.className = 'imported-file-list';
+    state.files.forEach(function (file) {
+      const item = document.createElement('li');
+      item.className = 'imported-file-item' + (file.errorKey || (file.result && file.result.blocking) ? ' blocked' : '');
+      const copy = document.createElement('div');
+      copy.className = 'imported-file-copy';
+      const name = document.createElement('strong');
+      setText(name, file.label);
+      const meta = document.createElement('span');
+      setText(meta, file.parsed
+        ? translate('mapping_file_rows', { count: file.dataRowCount }) + ' · ' + translate(mappingStatusKey(file))
+        : translate(mappingStatusKey(file)));
+      copy.appendChild(name);
+      copy.appendChild(meta);
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'text-button';
+      remove.dataset.removeFileId = file.id;
+      remove.disabled = state.workspaceLoading || Boolean(file.reading);
+      setText(remove, translate('remove_file'));
+      remove.setAttribute('aria-label', translate('remove_file_label', { file: file.label }));
+      item.appendChild(copy);
+      item.appendChild(remove);
+      list.appendChild(item);
+    });
+    elements.importedFiles.appendChild(list);
+  }
+
+  function renderMappingSourceList() {
+    elements.mappingSourceList.replaceChildren();
+    state.files.forEach(function (file) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'mapping-source-button' + (file.errorKey || (file.result && file.result.blocking) ? ' blocked' : '');
+      button.dataset.mappingSourceId = file.id;
+      button.setAttribute('aria-current', file.id === state.selectedMappingFileId ? 'true' : 'false');
+      const name = document.createElement('strong');
+      setText(name, file.label);
+      const meta = document.createElement('span');
+      setText(meta, file.parsed
+        ? translate('mapping_file_rows', { count: file.dataRowCount }) + ' · ' + translate(mappingStatusKey(file))
+        : translate(mappingStatusKey(file)));
+      button.appendChild(name);
+      button.appendChild(meta);
+      elements.mappingSourceList.appendChild(button);
+    });
+  }
+
+  function removeImportedFile(fileId) {
+    clearAnalysis();
+    state.files = state.files.filter(function (file) { return file.id !== fileId; });
+    if (state.selectedMappingFileId === fileId) state.selectedMappingFileId = null;
+    const relabeled = core.assignSourceFileLabels(state.files);
+    relabeled.forEach(function (source, index) {
+      state.files[index].label = source.label;
+      refreshColumnCatalogOwnership(state.files[index]);
+    });
+    elements.fileInput.value = '';
+    if (state.files.length === 0) {
+      elements.importedFiles.replaceChildren();
+      elements.importedFiles.classList.add('hidden');
+      clearWorkspaceView();
+      persistActiveWorkspace().catch(function () {});
+      return;
+    }
+    renderMapping();
+    updateSourceStatus();
+    elements.analyzeButton.disabled = !state.files.some(function (file) { return Boolean(file.parsed); });
+    persistActiveWorkspace().catch(function () {});
+  }
+
   function renderMapping() {
     const editsLocked = state.workspaceLoading || state.files.some(function (file) { return Boolean(file.reading); });
+    if (!state.files.some(function (file) { return file.id === state.selectedMappingFileId; })) {
+      state.selectedMappingFileId = state.files.length ? state.files[0].id : null;
+    }
+    renderImportedFiles();
+    renderMappingSourceList();
     elements.mappingGrid.replaceChildren();
-    state.files.forEach(function (file) {
+    const selectedFile = state.files.find(function (file) { return file.id === state.selectedMappingFileId; });
+    if (!selectedFile) {
+      const empty = document.createElement('p');
+      empty.className = 'mapping-empty-state';
+      setText(empty, translate('mapping_select_source'));
+      elements.mappingGrid.appendChild(empty);
+      elements.analyzeButton.disabled = true;
+      renderSourceTable();
+      return;
+    }
+    [selectedFile].forEach(function (file) {
       const section = document.createElement('section');
       section.className = 'mapping-file' + (file.errorKey || (file.result && file.result.blocking) ? ' blocked' : '');
       section.dataset.fileId = file.id;
@@ -1967,15 +2367,7 @@
       headingCopy.appendChild(title);
       headingCopy.appendChild(meta);
 
-      const removeButton = document.createElement('button');
-      removeButton.type = 'button';
-      removeButton.className = 'text-button';
-      removeButton.dataset.removeFileId = file.id;
-      removeButton.disabled = editsLocked || file.reading;
-      setText(removeButton, translate('remove_file'));
-      removeButton.setAttribute('aria-label', translate('remove_file_label', { file: file.label }));
       heading.appendChild(headingCopy);
-      heading.appendChild(removeButton);
       section.appendChild(heading);
 
       const encodingField = document.createElement('label');
@@ -2025,40 +2417,20 @@
 
       if (file.parsed) {
         renderSourceColumnOverview(file, section);
+        const preparation = document.createElement('details');
+        preparation.className = 'mapping-preparation-details';
+        const preparationSummary = document.createElement('summary');
+        setText(preparationSummary, translate('mapping_preparation_title') + ' · ' + accessiblePreparationRuleCount(file));
+        preparation.appendChild(preparationSummary);
         const fields = document.createElement('div');
-        fields.className = 'mapping-fields';
+        fields.className = 'mapping-preparation-fields';
         core.getFieldDefinitionsForSource(file.sourceType, { mapping: file.mapping }).forEach(function (definition) {
-          const required = core.fieldRequiredForSource(definition, file.sourceType);
+          if (!Number.isInteger(file.mapping[definition.key])) return;
           const wrapper = document.createElement('div');
-          wrapper.className = 'mapping-field' + (required ? ' required' : '');
-          const label = document.createElement('label');
-          const selectId = 'mapping-' + file.id + '-' + definition.key;
-          label.htmlFor = selectId;
-          const labelLine = document.createElement('span');
-          labelLine.className = 'field-label-line';
-          const fieldName = document.createElement('span');
+          wrapper.className = 'mapping-preparation-field';
+          const fieldName = document.createElement('strong');
           setText(fieldName, core.getFieldLabel(definition.key, state.language));
-          const fieldBadge = document.createElement('span');
-          fieldBadge.className = 'field-badge ' + (required ? 'required' : 'optional');
-          const groupKey = 'mapping_group_' + String(definition.group || 'article').replace(/-/g, '_');
-          setText(fieldBadge, required ? translate('required_label') : translate(groupKey));
-          labelLine.appendChild(fieldName);
-          labelLine.appendChild(fieldBadge);
-          label.appendChild(labelLine);
-          const select = document.createElement('select');
-          select.id = selectId;
-          select.dataset.field = definition.key;
-          select.dataset.fileId = file.id;
-          select.disabled = editsLocked;
-          addOption(select, '', translate('not_mapped'));
-          file.headers.forEach(function (header, index) {
-            addOption(select, String(index), (index + 1) + ': ' + (header || translate('empty_header')));
-          });
-          if (Number.isInteger(file.mapping[definition.key])) {
-            select.value = String(file.mapping[definition.key]);
-          }
-          wrapper.appendChild(label);
-          wrapper.appendChild(select);
+          wrapper.appendChild(fieldName);
           if (definition.key === 'sales_unit_count' || definition.key === 'quantity_per_sales_unit') {
             const help = document.createElement('small');
             help.className = 'mapping-help';
@@ -2069,47 +2441,22 @@
           renderPreparationEditor(file, definition.key, wrapper, editsLocked);
           fields.appendChild(wrapper);
         });
-        const customFields = state.customFields.filter(function (field) { return field.active !== false; });
         if (file.sourceType === 'article-master') {
-          const customHeading = document.createElement('h4');
-          setText(customHeading, translate('custom_field_mapping_title'));
-          fields.appendChild(customHeading);
-          const createFromSource = document.createElement('button');
-          createFromSource.type = 'button';
-          createFromSource.className = 'text-button';
-          createFromSource.dataset.createCustomFromFile = file.id;
-          createFromSource.disabled = editsLocked;
-          setText(createFromSource, translate('custom_field_create_from_source'));
-          fields.appendChild(createFromSource);
-          customFields.forEach(function (field) {
+          state.customFields.filter(function (field) { return field.active !== false; }).forEach(function (field) {
+            if (!file.customFieldMapping || !Number.isInteger(file.customFieldMapping[field.id])) return;
             const wrapper = document.createElement('div');
-            wrapper.className = 'mapping-field';
-            const label = document.createElement('label');
-            const selectId = 'mapping-' + file.id + '-custom-' + field.id;
-            label.htmlFor = selectId;
-            const labelLine = document.createElement('span');
-            labelLine.className = 'field-label-line';
+            wrapper.className = 'mapping-preparation-field';
             const fieldName = document.createElement('span');
             setText(fieldName, field.name + ' (' + field.type + ')');
-            labelLine.appendChild(fieldName); label.appendChild(labelLine);
-            const select = document.createElement('select');
-            select.id = selectId;
-            select.dataset.customField = field.id;
-            select.dataset.fileId = file.id;
-            select.disabled = editsLocked;
-            addOption(select, '', translate('not_mapped'));
-            file.headers.forEach(function (header, index) {
-              addOption(select, String(index), (index + 1) + ': ' + (header || translate('empty_header')));
-            });
-            if (file.customFieldMapping && Number.isInteger(file.customFieldMapping[field.id])) {
-              select.value = String(file.customFieldMapping[field.id]);
-            }
-            wrapper.appendChild(label); wrapper.appendChild(select);
+            wrapper.appendChild(fieldName);
             renderPreparationEditor(file, field.id, wrapper, editsLocked);
             fields.appendChild(wrapper);
           });
         }
-        section.appendChild(fields);
+        if (fields.childElementCount > 0) {
+          preparation.appendChild(fields);
+          section.appendChild(preparation);
+        }
       }
 
       if (file.result && file.result.blocking && file.result.issues.length > 0) {
@@ -2126,6 +2473,278 @@
 
       elements.mappingGrid.appendChild(section);
     });
+    renderSourceTable();
+  }
+
+  function sourceTableIssuesByLine(file) {
+    if (file.sourceTableIssueResult !== file.result) {
+      const byLine = new Map();
+      function addIssue(issue) {
+        if (!Number.isInteger(issue.sourceLine)) return;
+        if (!byLine.has(issue.sourceLine)) byLine.set(issue.sourceLine, []);
+        byLine.get(issue.sourceLine).push(issue);
+      }
+      (file.result && Array.isArray(file.result.issues) ? file.result.issues : []).forEach(addIssue);
+      const qualityFindings = state.result && (state.result.dataQualityFindings || state.result.qualityFindings || []);
+      (qualityFindings || []).forEach(function (finding) {
+        if (finding.sourceFileId !== file.id || finding.origin === 'validation') return;
+        const lines = new Set();
+        if (Number.isInteger(finding.sourceLine)) lines.add(finding.sourceLine);
+        (Array.isArray(finding.examples) ? finding.examples : []).forEach(function (example) {
+          if (Number.isInteger(example.sourceLine)) lines.add(example.sourceLine);
+        });
+        (finding.evidence && Array.isArray(finding.evidence.rows) ? finding.evidence.rows : []).forEach(function (reference) {
+          if (reference.source_file_id === file.id && Number.isInteger(reference.source_line)) lines.add(reference.source_line);
+        });
+        lines.forEach(function (sourceLine) {
+          addIssue({
+            sourceLine: sourceLine,
+            field: finding.field || (finding.article_id ? 'article_id' : null),
+            sourceColumnPosition: finding.sourceColumnPosition,
+            message: finding.message || finding.code,
+            code: finding.code,
+            blocking: finding.blocking,
+            severity: finding.severity
+          });
+        });
+      });
+      file.sourceTableIssueResult = file.result;
+      file.sourceTableIssuesByLine = byLine;
+    }
+    return file.sourceTableIssuesByLine || new Map();
+  }
+
+  function sourceTableHeader(file) {
+    elements.sourceTableHead.replaceChildren();
+    const index = file.sourceRecordIndex;
+    const headerRecord = index.records[0];
+    const headerValues = headerRecord
+      ? core.readIndexedSourceRow(file.buffer, index.encoding, headerRecord, state.language).values
+      : [];
+    const columnCount = Math.max(index.maxColumns, headerValues.length);
+    [translate('issue_source_line'), translate('issue_status')].forEach(function (label) {
+      const cell = document.createElement('th');
+      setText(cell, label);
+      elements.sourceTableHead.appendChild(cell);
+    });
+    for (let position = 0; position < columnCount; position += 1) {
+      const cell = document.createElement('th');
+      setText(cell, String(position + 1) + ': ' + (headerValues[position] || translate('empty_header')));
+      elements.sourceTableHead.appendChild(cell);
+    }
+    return columnCount;
+  }
+
+  function sourceTableSpacer(height, columnCount) {
+    const row = document.createElement('tr');
+    row.className = 'source-table-spacer';
+    row.setAttribute('aria-hidden', 'true');
+    const cell = document.createElement('td');
+    cell.colSpan = columnCount + 2;
+    cell.style.height = String(Math.max(0, height)) + 'px';
+    row.appendChild(cell);
+    return row;
+  }
+
+  function appendSourceTableValue(container, value, className) {
+    const fullValue = String(value);
+    const span = document.createElement('span');
+    span.className = className;
+    const previewLimit = 600;
+    setText(span, fullValue.length > previewLimit ? fullValue.slice(0, previewLimit) + '…' : fullValue);
+    container.appendChild(span);
+    if (fullValue.length > previewLimit) {
+      const expand = document.createElement('button');
+      expand.type = 'button';
+      expand.className = 'text-button source-value-expand';
+      setText(expand, translate('source_table_expand_value'));
+      expand.addEventListener('click', function () {
+        setText(span, fullValue);
+        expand.remove();
+      });
+      container.appendChild(expand);
+    }
+  }
+
+  function renderSourceTableRows(file, force) {
+    const index = file.sourceRecordIndex;
+    if (!index) return;
+    const total = Math.max(0, index.records.length - 1);
+    elements.sourceDataTable.setAttribute('aria-rowcount', String(total + 1));
+    const viewHeight = elements.sourceTableScroll.clientHeight || 600;
+    const visibleRow = Math.floor(elements.sourceTableScroll.scrollTop / SOURCE_TABLE_ROW_HEIGHT);
+    const visibleStart = Math.max(0, Math.floor(visibleRow / SOURCE_TABLE_WINDOW_STEP) * SOURCE_TABLE_WINDOW_STEP - SOURCE_TABLE_OVERSCAN);
+    const visibleCount = Math.ceil(viewHeight / SOURCE_TABLE_ROW_HEIGHT) + SOURCE_TABLE_OVERSCAN * 2 + SOURCE_TABLE_WINDOW_STEP;
+    const start = Math.min(visibleStart, total);
+    const end = Math.min(total, start + visibleCount);
+    const renderKey = file.id + ':' + start + ':' + end + ':' + (file.sourceTableRenderVersion || 0) + ':' + state.language;
+    if (!force && state.sourceTableRenderKey === renderKey) return;
+    state.sourceTableRenderKey = renderKey;
+    const headerKey = file.id + ':' + file.sourceRecordIndexToken + ':' + state.language;
+    if (state.sourceTableHeaderKey !== headerKey) {
+      file.sourceTableColumnCount = sourceTableHeader(file);
+      state.sourceTableHeaderKey = headerKey;
+    }
+    const columnCount = file.sourceTableColumnCount;
+    const issueIndex = sourceTableIssuesByLine(file);
+    const body = document.createDocumentFragment();
+    if (start > 0) body.appendChild(sourceTableSpacer(start * SOURCE_TABLE_ROW_HEIGHT, columnCount));
+    for (let dataIndex = start; dataIndex < end; dataIndex += 1) {
+      const record = core.readIndexedSourceRow(file.buffer, index.encoding, index.records[dataIndex + 1], state.language);
+      const prepared = core.prepareProfileValues(
+        record.values, file.mapping, file.customFieldMapping, state.customFields, file.preparationRules
+      );
+      const effects = new Map();
+      Object.keys(prepared.evidence).forEach(function (targetId) {
+        const evidence = prepared.evidence[targetId];
+        if (!effects.has(evidence.sourceColumnPosition)) effects.set(evidence.sourceColumnPosition, []);
+        effects.get(evidence.sourceColumnPosition).push({ targetId: targetId, evidence: evidence });
+      });
+      const rowIssues = file.result
+        ? (issueIndex.get(record.sourceLine) || [])
+        : record.parserErrors;
+      const columnIssues = new Map();
+      rowIssues.forEach(function (issue) {
+        const targetId = issue.customFieldId || issue.field;
+        const position = Number.isInteger(issue.sourceColumnPosition)
+          ? issue.sourceColumnPosition
+          : Number.isInteger((file.mapping || {})[targetId]) ? file.mapping[targetId] : (file.customFieldMapping || {})[targetId];
+        if (!Number.isInteger(position)) return;
+        if (!columnIssues.has(position)) columnIssues.set(position, []);
+        columnIssues.get(position).push(issue);
+      });
+      const row = document.createElement('tr');
+      row.className = 'source-data-row';
+      row.setAttribute('aria-rowindex', String(dataIndex + 2));
+      const blocking = Boolean(file.result && file.result.blocking) ||
+        (file.result ? rowIssues.some(core.issueIsBlocking) : rowIssues.length > 0);
+      const rowStatus = blocking
+        ? 'source_table_excluded'
+        : rowIssues.length > 0 ? 'source_table_warning' : (file.result ? 'source_table_valid' : 'source_table_unchecked');
+      appendCell(row, String(record.sourceLine), 'source-line-cell');
+      const statusCell = document.createElement('td');
+      const statusContent = document.createElement('div');
+      statusContent.className = 'source-cell-content';
+      const badge = document.createElement('span');
+      badge.className = 'status-badge ' + (blocking ? 'excluded' : (rowIssues.length ? 'warning' : ''));
+      setText(badge, translate(rowStatus));
+      statusContent.appendChild(badge);
+      if (rowIssues.length > 0) {
+        const count = document.createElement('small');
+        setText(count, String(rowIssues.length));
+        statusContent.appendChild(count);
+        const messages = document.createElement('div');
+        messages.className = 'source-row-issues';
+        rowIssues.forEach(function (issue) {
+          const message = document.createElement('small');
+          setText(message, issue.message || issue.code);
+          messages.appendChild(message);
+        });
+        statusContent.appendChild(messages);
+      }
+      statusCell.appendChild(statusContent);
+      row.appendChild(statusCell);
+      for (let position = 0; position < columnCount; position += 1) {
+        const cell = document.createElement('td');
+        const content = document.createElement('div');
+        content.className = 'source-cell-content';
+        const raw = record.values[position] === undefined ? '' : record.values[position];
+        appendSourceTableValue(content, raw === '' ? translate('empty_value') : raw, 'source-raw-value');
+        const applied = effects.get(position) || [];
+        if (applied.length > 0) {
+          cell.classList.add('source-cell-changed');
+          applied.forEach(function (effect) {
+            appendSourceTableValue(content, translate('source_table_rule_effect', {
+              value: effect.evidence.preparedValue === '' ? translate('empty_value') : effect.evidence.preparedValue
+            }), 'source-prepared-value');
+            const ruleNames = effect.evidence.ruleIndexes.map(function (ruleIndex) {
+              const rule = ((file.preparationRules || {})[effect.targetId] || [])[ruleIndex];
+              return rule ? translate(preparationRuleTypeKey(rule.type)) : String(ruleIndex + 1);
+            });
+            const ruleLabel = document.createElement('small');
+            setText(ruleLabel, translate('source_table_rule_names', { rules: ruleNames.join(', ') }));
+            content.appendChild(ruleLabel);
+          });
+        }
+        const issues = columnIssues.get(position) || [];
+        if (issues.length > 0) {
+          cell.classList.add(issues.some(core.issueIsBlocking) ? 'source-cell-error' : 'source-cell-warning');
+          issues.forEach(function (issue) {
+            const message = document.createElement('small');
+            message.className = 'source-cell-issue';
+            setText(message, issue.message || issue.code);
+            content.appendChild(message);
+          });
+        }
+        cell.appendChild(content);
+        row.appendChild(cell);
+      }
+      body.appendChild(row);
+    }
+    if (end < total) body.appendChild(sourceTableSpacer((total - end) * SOURCE_TABLE_ROW_HEIGHT, columnCount));
+    elements.sourceTableBody.replaceChildren(body);
+    setText(elements.sourceTableStatus, total
+      ? translate('source_table_position', { file: file.label, first: start + 1, last: end, total: total })
+      : translate('source_table_empty'));
+  }
+
+  async function buildSourceTableIndex(file) {
+    const buffer = file.buffer;
+    const sourceEncoding = file.activeEncoding || file.encodingMode || 'utf-8';
+    const token = (file.sourceRecordIndexToken || 0) + 1;
+    file.sourceRecordIndexToken = token;
+    file.sourceRecordIndexBuilding = true;
+    setText(elements.sourceTableStatus, translate('source_table_indexing', { file: file.label }));
+    try {
+      const indexer = core.createSourceRecordIndexer(buffer, sourceEncoding);
+      while (indexer.scan(4 * 1024 * 1024)) {
+        await new Promise(function (resolve) { setTimeout(resolve, 0); });
+        if (file.sourceRecordIndexToken !== token) return;
+      }
+      const index = indexer.finish();
+      if (file.sourceRecordIndexToken !== token || file.buffer !== buffer) return;
+      file.sourceRecordIndex = Object.assign({ encoding: sourceEncoding }, index);
+      file.sourceTableRenderVersion = (file.sourceTableRenderVersion || 0) + 1;
+      if (state.selectedMappingFileId === file.id) renderSourceTable(true);
+    } catch (error) {
+      if (file.sourceRecordIndexToken === token) file.sourceRecordIndexError = error.message;
+      if (state.selectedMappingFileId === file.id) setText(elements.sourceTableStatus, error.message);
+    } finally {
+      if (file.sourceRecordIndexToken === token) file.sourceRecordIndexBuilding = false;
+    }
+  }
+
+  function renderSourceTable(force) {
+    const file = state.files.find(function (candidate) { return candidate.id === state.selectedMappingFileId; });
+    if (!file || !file.buffer || !file.activeEncoding) {
+      elements.sourceTablePanel.classList.add('hidden');
+      state.sourceTableFileId = null;
+      return;
+    }
+    elements.sourceTablePanel.classList.remove('hidden');
+    if (state.sourceTableFileId !== file.id) {
+      state.sourceTableFileId = file.id;
+      state.sourceTableRenderKey = null;
+      state.sourceTableHeaderKey = null;
+      elements.sourceTableScroll.scrollTop = 0;
+      elements.sourceTableScroll.scrollLeft = 0;
+    }
+    const effectSignature = JSON.stringify([
+      file.mapping, file.customFieldMapping, file.preparationRules,
+      state.customFields.filter(function (field) { return field.active !== false; }).map(function (field) { return field.id; })
+    ]);
+    if (file.sourceTableEffectSignature !== effectSignature) {
+      file.sourceTableEffectSignature = effectSignature;
+      file.sourceTableRenderVersion = (file.sourceTableRenderVersion || 0) + 1;
+    }
+    if (!file.sourceRecordIndex) {
+      elements.sourceTableHead.replaceChildren();
+      elements.sourceTableBody.replaceChildren();
+      if (file.sourceRecordIndexError) setText(elements.sourceTableStatus, file.sourceRecordIndexError);
+      else if (!file.sourceRecordIndexBuilding) buildSourceTableIndex(file);
+      return;
+    }
+    renderSourceTableRows(file, force);
   }
 
   function showMappingMessage(message) {
@@ -2231,12 +2850,10 @@
   function renderWorkflow(activeTarget) {
     const availability = {
       'workspace-panel': Boolean(state.activeWorkspace),
+      'main-menu-panel': Boolean(state.activeWorkspace),
       'import-panel': Boolean(state.activeWorkspace),
       'mapping-panel': state.files.length > 0,
-      // The coverage page also hosts the unified data-quality overview. Keep it
-      // reachable for master-only or fully blocked batches where no movement
-      // rows exist to render in the coverage timeline.
-      'coverage-panel': Boolean(state.result),
+      'coverage-panel': Boolean(state.result && analysisRowCount(state.result) > 0),
       'comparison-panel': Boolean(state.comparison),
       'results-panel': Boolean(state.result && resultHasRetainedData(state.result))
     };
@@ -2250,24 +2867,27 @@
     };
     const fallbackTarget = state.comparison
       ? 'comparison-panel'
-      : state.result
+      : state.result && analysisRowCount(state.result) > 0
         ? 'coverage-panel'
         : state.files.length
           ? 'mapping-panel'
           : state.activeWorkspace
-            ? 'import-panel'
+            ? 'main-menu-panel'
             : 'workspace-panel';
     const candidateTarget = activeTarget || state.activePageTarget;
     const candidateAvailable = candidateTarget === 'workspace-panel' || availability[candidateTarget];
     const requestedTarget = PAGE_CONFIG[candidateTarget] && candidateAvailable ? candidateTarget : fallbackTarget;
     const config = PAGE_CONFIG[requestedTarget] || PAGE_CONFIG[fallbackTarget];
     state.activePageTarget = requestedTarget;
+    document.body.classList.toggle('workspace-picker-mode', !state.activeWorkspace || requestedTarget === 'workspace-panel');
     elements.pageViews.forEach(function (view) {
       view.classList.toggle('hidden', view.id !== config.view);
     });
     setText(elements.pageContextKicker, translate(config.kicker));
     setText(elements.pageContextTitle, translate(config.title));
     setText(elements.pageContextStatus, translate(config.status));
+    elements.returnMainMenu.classList.toggle('hidden', requestedTarget === 'main-menu-panel');
+    elements.returnWorkspaceSelection.classList.toggle('hidden', requestedTarget === 'workspace-panel');
     elements.workflowSteps.forEach(function (button) {
       const target = button.dataset.workflowTarget;
       button.classList.toggle('available', availability[target]);
@@ -3373,7 +3993,11 @@
   }
 
   function renderIssues(issues) {
-    const rowIssues = issues.slice();
+    const rowIssues = issues.filter(function (issue) {
+      return Boolean(state.selectedMappingFileId) && issue.sourceFileId === state.selectedMappingFileId;
+    });
+    const selectedFile = state.files.find(function (file) { return file.id === state.selectedMappingFileId; });
+    setText(elements.issuesTitle, translate('issues_title') + (selectedFile ? ' · ' + selectedFile.label : '') + ' (' + rowIssues.length + ')');
     const pageCount = Math.max(1, Math.ceil(rowIssues.length / TABLE_PAGE_SIZE));
     state.issuePage = Math.min(Math.max(state.issuePage, 1), pageCount);
     const pageStart = (state.issuePage - 1) * TABLE_PAGE_SIZE;
@@ -3485,6 +4109,7 @@
       state.detailPage = 1;
       state.issuePage = 1;
       state.qualityPage = 1;
+      state.qualityView = 'source';
       state.coverageDatePage = 1;
       state.coverageDrilldown = null;
       state.selectedComparisonArticleId = null;
@@ -3536,11 +4161,14 @@
     state.issueRows = result.issues.concat(qualityIssues);
     renderIssues(state.issueRows);
     renderQualityOverview(result.dataQualityFindings || result.qualityFindings || []);
+    renderSourceTable(true);
     renderCoverage();
     renderComparison();
     elements.exportButton.disabled = !state.analysis || state.analysis.articles.length === 0;
     elements.resultsPanel.classList.remove('hidden');
-    renderWorkflow(state.comparison ? 'comparison-panel' : 'coverage-panel');
+    renderWorkflow(state.comparison
+      ? 'comparison-panel'
+      : analysisRowCount(result) > 0 ? 'coverage-panel' : 'mapping-panel');
   }
 
   function sourceContext(file) {
@@ -3577,15 +4205,8 @@
     });
   }
 
-  function qualityFindingGroup(finding) {
-    if (finding && finding.scope === 'cross-source') {
-      return 'cross-source';
-    }
-    return finding && finding.sourceType === 'article-master' ? 'article-master' : 'order-lines';
-  }
-
   function renderQualityOverview(findings) {
-    const entries = Array.isArray(findings) ? findings : [];
+    const allEntries = Array.isArray(findings) ? findings : [];
     elements.qualityOverviewSummary.replaceChildren();
     elements.qualityOverviewTableBody.replaceChildren();
     if (!state.result) {
@@ -3594,41 +4215,36 @@
       return;
     }
     elements.qualityOverviewPanel.classList.remove('hidden');
-    const groups = [
-      { key: 'order-lines', label: 'quality_summary_order_lines' },
-      { key: 'article-master', label: 'quality_summary_article_master' },
-      { key: 'cross-source', label: 'quality_summary_cross_source' }
-    ];
-    groups.forEach(function (group) {
-      const groupFindings = entries.filter(function (finding) { return qualityFindingGroup(finding) === group.key; });
-      const affected = groupFindings.reduce(function (sum, finding) { return sum + Number(finding.affectedCount || 0); }, 0);
-      const blocking = groupFindings.filter(function (finding) { return finding.blocking === true || finding.severity === 'error'; }).length;
-      const rowFiles = group.key === 'cross-source' ? [] : (state.result.files || []).filter(function (file) {
-        return group.key === 'article-master'
-          ? file.sourceType === 'article-master'
-          : file.sourceType !== 'article-master';
-      });
-      const validRows = rowFiles.reduce(function (sum, file) { return sum + Number(file.validRows || 0); }, 0);
-      const invalidRows = rowFiles.reduce(function (sum, file) { return sum + Number(file.invalidRows || 0); }, 0);
-      const card = document.createElement('div');
-      card.className = 'quality-summary-card';
-      const title = document.createElement('strong');
-      setText(title, translate(group.label));
-      card.appendChild(title);
-      const details = document.createElement('span');
-      const detailParts = [
-        translate('quality_summary_findings', { count: groupFindings.length }),
-        translate('quality_summary_affected', { count: affected }),
-        rowFiles.length > 0 ? translate('quality_summary_valid_rows', { count: validRows }) : null,
-        rowFiles.length > 0 ? translate('quality_summary_invalid_rows', { count: invalidRows }) : null,
-        blocking > 0
-          ? translate('quality_summary_blocking', { count: blocking })
-          : translate('quality_summary_advisory', { count: groupFindings.length })
-      ].filter(Boolean);
-      setText(details, detailParts.join(' · '));
-      card.appendChild(details);
-      elements.qualityOverviewSummary.appendChild(card);
-    });
+    const selectedFile = state.files.find(function (file) { return file.id === state.selectedMappingFileId; });
+    const crossSource = state.qualityView === 'cross-source';
+    const sourceOption = elements.qualityViewSelect.querySelector('option[value="source"]');
+    setText(sourceOption, translate('quality_view_selected', {
+      file: selectedFile ? selectedFile.label : translate('empty_value')
+    }));
+    elements.qualityViewSelect.value = state.qualityView;
+    const entries = core.selectQualityFindingsForImport(allEntries, state.selectedMappingFileId, state.qualityView);
+    const affected = entries.reduce(function (sum, finding) { return sum + Number(finding.affectedCount || 0); }, 0);
+    const blocking = entries.filter(function (finding) { return finding.blocking === true || finding.severity === 'error'; }).length;
+    const resultFile = selectedFile && (state.result.files || []).find(function (file) { return file.id === selectedFile.id; });
+    const card = document.createElement('div');
+    card.className = 'quality-summary-card';
+    const title = document.createElement('strong');
+    setText(title, crossSource
+      ? translate('quality_view_shared')
+      : (selectedFile ? selectedFile.label : translate('empty_value')));
+    card.appendChild(title);
+    const details = document.createElement('span');
+    setText(details, [
+      translate('quality_summary_findings', { count: entries.length }),
+      translate('quality_summary_affected', { count: affected }),
+      !crossSource && resultFile ? translate('quality_summary_valid_rows', { count: Number(resultFile.validRows || 0) }) : null,
+      !crossSource && resultFile ? translate('quality_summary_invalid_rows', { count: Number(resultFile.invalidRows || 0) }) : null,
+      blocking > 0
+        ? translate('quality_summary_blocking', { count: blocking })
+        : translate('quality_summary_advisory', { count: entries.length })
+    ].filter(Boolean).join(' · '));
+    card.appendChild(details);
+    elements.qualityOverviewSummary.appendChild(card);
     if (entries.length === 0) {
       elements.qualityOverviewPagination.classList.add('hidden');
       const row = document.createElement('tr');
@@ -3774,6 +4390,7 @@
     state.issuePage = 1;
     state.issueRows = [];
     state.qualityPage = 1;
+    state.qualityView = 'source';
     state.files.forEach(function (file) {
       file.result = null;
       if (!preserveMappings) {
@@ -3781,11 +4398,14 @@
       }
     });
     elements.resultsPanel.classList.add('hidden');
+    elements.issuesPanel.classList.add('hidden');
+    elements.qualityOverviewPanel.classList.add('hidden');
     elements.coveragePanel.classList.add('hidden');
     elements.comparisonPanel.classList.add('hidden');
     elements.coverageDrilldown.classList.add('hidden');
     elements.comparisonDetail.classList.add('hidden');
     elements.exportButton.disabled = true;
+    renderSourceTable(true);
     showPeriodMessage('');
     renderWorkflow();
   }
@@ -3825,6 +4445,12 @@
     file.hasParseErrors = false;
     file.result = null;
     file.activeEncoding = null;
+    file.sourceRecordIndex = null;
+    file.sourceRecordIndexToken = (file.sourceRecordIndexToken || 0) + 1;
+    file.sourceRecordIndexBuilding = false;
+    file.sourceRecordIndexError = null;
+    file.sourceTableIssueResult = null;
+    file.sourceTableIssuesByLine = null;
     try {
       const decoded = streaming
         ? encoding.decodeBufferChunksDetailed(file.buffer, file.encodingMode || 'auto', { chunkSize: 64 * 1024 })
@@ -4528,12 +5154,16 @@
 
   function clearWorkspaceView() {
     state.files = [];
+    state.selectedMappingFileId = null;
     state.periodSettings = periods.normalizeSettings();
     state.fileSelectionVersion += 1;
     clearAnalysis();
     elements.fileInput.value = '';
     elements.articleFilter.value = '';
     setSourceStatus('no_file_selected');
+    elements.importedFiles.replaceChildren();
+    elements.importedFiles.classList.add('hidden');
+    elements.mappingSourceList.replaceChildren();
     elements.mappingGrid.replaceChildren();
     showMappingMessage('');
     elements.mappingPanel.classList.add('hidden');
@@ -4687,8 +5317,10 @@
           renderResults(prepared.result, { preserveView: false, analysis: prepared.analysis });
         }
       }
+      state.activePageTarget = 'main-menu-panel';
       applyLanguage({ skipAnalysisRefresh: true });
       setWorkspaceMessage(successKey || 'workspace_opened', { name: prepared.workspace.name });
+      window.scrollTo(0, 0);
     } catch (error) {
       if (error && error.code === 'workspace_load_cancelled') {
         return;
@@ -5264,6 +5896,11 @@
   elements.workspaceBackup.addEventListener('click', exportWorkspaceBackup);
   elements.workspaceOpen.addEventListener('click', function () {
     if (state.selectedWorkspaceId) {
+      if (state.activeWorkspace && state.selectedWorkspaceId === state.activeWorkspace.id) {
+        renderWorkflow('main-menu-panel');
+        window.scrollTo(0, 0);
+        return;
+      }
       activateWorkspace(state.selectedWorkspaceId, 'workspace_opened').catch(function () {
         renderWorkspaceControls();
       });
@@ -5275,19 +5912,13 @@
       showWorkspaceError(error);
     });
   });
-  elements.workspaceSelect.addEventListener('change', function () {
-    state.selectedWorkspaceId = elements.workspaceSelect.value || null;
-    renderWorkspaceControls();
-  });
   elements.workspaceOverview.addEventListener('click', function (event) {
-    const button = event.target.closest('button[data-open-workspace-id]');
+    const button = event.target.closest('button[data-select-workspace-id]');
     if (!button || !elements.workspaceOverview.contains(button)) {
       return;
     }
-    state.selectedWorkspaceId = button.dataset.openWorkspaceId;
-    activateWorkspace(state.selectedWorkspaceId, 'workspace_opened').catch(function () {
-      renderWorkspaceControls();
-    });
+    state.selectedWorkspaceId = button.dataset.selectWorkspaceId;
+    renderWorkspaceControls();
   });
   elements.customFieldsList.addEventListener('click', function (event) {
     const rename = event.target.closest('button[data-rename-custom-field]');
@@ -5315,6 +5946,126 @@
     }
   });
   elements.fileInput.addEventListener('change', handleFileChange);
+  elements.importedFiles.addEventListener('click', function (event) {
+    const button = event.target.closest('button[data-remove-file-id]');
+    if (button && elements.importedFiles.contains(button)) removeImportedFile(button.dataset.removeFileId);
+  });
+  elements.mappingSourceList.addEventListener('click', function (event) {
+    const button = event.target.closest('button[data-mapping-source-id]');
+    if (!button || !elements.mappingSourceList.contains(button)) return;
+    state.selectedMappingFileId = button.dataset.mappingSourceId;
+    state.issuePage = 1;
+    state.qualityPage = 1;
+    state.qualityView = 'source';
+    renderMapping();
+    renderIssues(state.issueRows);
+    renderQualityOverview(state.result ? (state.result.dataQualityFindings || state.result.qualityFindings || []) : []);
+  });
+  let sourceTableScrollFrame = 0;
+  elements.sourceTableScroll.addEventListener('scroll', function () {
+    if (sourceTableScrollFrame) return;
+    sourceTableScrollFrame = window.requestAnimationFrame(function () {
+      sourceTableScrollFrame = 0;
+      const file = state.files.find(function (candidate) { return candidate.id === state.selectedMappingFileId; });
+      if (file && file.sourceRecordIndex) renderSourceTableRows(file, false);
+    });
+  });
+  elements.sourceTableJump.addEventListener('click', function () {
+    const file = state.files.find(function (candidate) { return candidate.id === state.selectedMappingFileId; });
+    const targetLine = Number(elements.sourceTableLine.value);
+    if (!file || !file.sourceRecordIndex || !Number.isInteger(targetLine) || targetLine < 1) return;
+    const records = file.sourceRecordIndex.records;
+    const index = core.findIndexedSourceRow(records, targetLine);
+    if (index < 0) return;
+    elements.sourceTableScroll.scrollTop = index * SOURCE_TABLE_ROW_HEIGHT;
+    renderSourceTableRows(file, true);
+    elements.sourceTableScroll.focus();
+  });
+  elements.sourceTableLine.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter') elements.sourceTableJump.click();
+  });
+  elements.mappingGrid.addEventListener('input', function (event) {
+    const search = event.target.closest('input[data-mapping-search]');
+    if (!search || !elements.mappingGrid.contains(search)) return;
+    const value = search.value;
+    state.mappingColumnSearch = value;
+    state.mappingColumnPage = 1;
+    renderMapping();
+    const replacement = elements.mappingGrid.querySelector('input[data-mapping-search]');
+    if (replacement) {
+      replacement.focus();
+      replacement.setSelectionRange(value.length, value.length);
+    }
+  });
+  elements.mappingGrid.addEventListener('change', function (event) {
+    const filter = event.target.closest('select[data-mapping-filter]');
+    if (!filter || !elements.mappingGrid.contains(filter)) return;
+    state.mappingColumnFilter = filter.value;
+    state.mappingColumnPage = 1;
+    renderMapping();
+    const replacement = elements.mappingGrid.querySelector('select[data-mapping-filter]');
+    if (replacement) replacement.focus();
+  });
+  elements.mappingGrid.addEventListener('change', function (event) {
+    const select = event.target.closest('select[data-column-mapping-file-id][data-source-position]');
+    if (!select || !elements.mappingGrid.contains(select)) return;
+    const file = state.files.find(function (item) { return item.id === select.dataset.columnMappingFileId; });
+    const sourcePosition = Number(select.dataset.sourcePosition);
+    if (!file || !Number.isInteger(sourcePosition)) return;
+    const previousMapping = Object.assign({}, file.mapping || {});
+    const previousCustomMapping = Object.assign({}, file.customFieldMapping || {});
+    Object.keys(file.mapping || {}).forEach(function (field) {
+      if (file.mapping[field] === sourcePosition) file.mapping[field] = null;
+    });
+    Object.keys(file.customFieldMapping || {}).forEach(function (fieldId) {
+      if (file.customFieldMapping[fieldId] === sourcePosition) file.customFieldMapping[fieldId] = null;
+    });
+    const value = select.value;
+    if (value.indexOf('core:') === 0) {
+      const field = value.slice(5);
+      const definition = core.getFieldDefinitionsForSource(file.sourceType, { mapping: file.mapping })
+        .find(function (item) { return item.key === field; });
+      const targetAlreadyUsed = Number.isInteger(previousMapping[field]) && previousMapping[field] !== sourcePosition;
+      const alreadyMapped = Object.keys(file.mapping).some(function (key) {
+        return key !== field && file.mapping[key] === sourcePosition;
+      });
+      if (!definition || targetAlreadyUsed || alreadyMapped) {
+        file.mapping = previousMapping;
+        file.customFieldMapping = previousCustomMapping;
+        showMappingMessage(translate('source_column_mapping_conflict'));
+        renderMapping();
+        return;
+      }
+      file.mapping[field] = sourcePosition;
+    } else if (value.indexOf('custom:') === 0) {
+      const fieldId = value.slice(7);
+      const field = state.customFields.find(function (item) {
+        return item && String(item.id) === fieldId && item.active !== false;
+      });
+      const targetAlreadyUsed = Number.isInteger(previousCustomMapping[fieldId]) && previousCustomMapping[fieldId] !== sourcePosition;
+      const alreadyMapped = Object.keys(file.customFieldMapping || {}).some(function (key) {
+        return key !== fieldId && file.customFieldMapping[key] === sourcePosition;
+      });
+      if (!field || file.sourceType !== 'article-master' || targetAlreadyUsed || alreadyMapped) {
+        file.mapping = previousMapping;
+        file.customFieldMapping = previousCustomMapping;
+        showMappingMessage(translate('source_column_mapping_conflict'));
+        renderMapping();
+        return;
+      }
+      file.customFieldMapping[fieldId] = sourcePosition;
+    }
+    if (accessiblePreparationRuleCount(file) > 100) {
+      file.mapping = previousMapping;
+      file.customFieldMapping = previousCustomMapping;
+      renderMapping();
+      showMappingMessage(translate('prep_rule_limit'));
+      return;
+    }
+    clearAnalysis();
+    renderMapping();
+    persistActiveWorkspace().catch(function () {});
+  });
   elements.mappingGrid.addEventListener('change', function (event) {
     const control = event.target;
     const row = control.closest('.preparation-rule');
@@ -5447,6 +6198,12 @@
     persistActiveWorkspace().catch(function () {});
   });
   elements.mappingGrid.addEventListener('click', function (event) {
+    const columnPageButton = event.target.closest('button[data-column-page]');
+    if (columnPageButton && elements.mappingGrid.contains(columnPageButton)) {
+      state.mappingColumnPage += columnPageButton.dataset.columnPage === 'next' ? 1 : -1;
+      renderMapping();
+      return;
+    }
     const preparationButton = event.target.closest('button[data-prep-action]');
     if (preparationButton && elements.mappingGrid.contains(preparationButton)) {
       const editor = preparationButton.closest('.preparation-editor');
@@ -5484,26 +6241,8 @@
       return;
     }
     const button = event.target.closest('button[data-remove-file-id]');
-    if (!button || !elements.mappingGrid.contains(button)) {
-      return;
-    }
-    clearAnalysis();
-    state.files = state.files.filter(function (file) { return file.id !== button.dataset.removeFileId; });
-    const relabeled = core.assignSourceFileLabels(state.files);
-    relabeled.forEach(function (source, index) {
-      state.files[index].label = source.label;
-      refreshColumnCatalogOwnership(state.files[index]);
-    });
-    elements.fileInput.value = '';
-    if (state.files.length === 0) {
-      clearWorkspaceView();
-      persistActiveWorkspace().catch(function () {});
-      return;
-    }
-    renderMapping();
-    updateSourceStatus();
-    elements.analyzeButton.disabled = !state.files.some(function (file) { return Boolean(file.parsed); });
-    persistActiveWorkspace().catch(function () {});
+    if (!button || !elements.mappingGrid.contains(button)) return;
+    removeImportedFile(button.dataset.removeFileId);
   });
   elements.languageSelect.addEventListener('change', function () {
     state.language = elements.languageSelect.value === 'de' ? 'de' : 'en';
@@ -5555,7 +6294,7 @@
         return;
       }
       renderWorkflow(button.dataset.workflowTarget);
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      window.scrollTo(0, 0);
     });
   });
   elements.comparisonSearch.addEventListener('input', function () {
@@ -5685,16 +6424,21 @@
     }
     const sourceButton = event.target.closest('button[data-quality-source-id]');
     if (!sourceButton || !state.result) return;
-    const source = state.result.files.find(function (file) { return file.id === sourceButton.dataset.qualitySourceId; });
-    if (source && source.sourceType !== 'article-master') {
-      state.coverageDrilldown = { type: 'source', value: source.id };
-      renderWorkflow('coverage-panel');
-      renderCoverage();
-      renderCoverageDrilldown();
-    } else {
-      renderWorkflow('mapping-panel');
-      renderMapping();
-    }
+    if (!state.files.some(function (file) { return file.id === sourceButton.dataset.qualitySourceId; })) return;
+    state.selectedMappingFileId = sourceButton.dataset.qualitySourceId;
+    state.issuePage = 1;
+    state.qualityPage = 1;
+    state.qualityView = 'source';
+    renderMapping();
+    renderIssues(state.issueRows);
+    renderQualityOverview(state.result.dataQualityFindings || state.result.qualityFindings || []);
+    renderWorkflow('mapping-panel');
+    window.scrollTo(0, 0);
+  });
+  elements.qualityViewSelect.addEventListener('change', function () {
+    state.qualityView = elements.qualityViewSelect.value === 'cross-source' ? 'cross-source' : 'source';
+    state.qualityPage = 1;
+    renderQualityOverview(state.result ? (state.result.dataQualityFindings || state.result.qualityFindings || []) : []);
   });
   elements.qualityOverviewPrevious.addEventListener('click', function () {
     if (state.qualityPage > 1) {

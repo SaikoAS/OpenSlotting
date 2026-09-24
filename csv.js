@@ -708,6 +708,111 @@
     return parser.finish();
   }
 
+  function createSourceRecordIndexer(buffer, sourceEncoding) {
+    const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    const utf16le = sourceEncoding === 'utf-16le';
+    const utf16be = sourceEncoding === 'utf-16be';
+    const step = utf16le || utf16be ? 2 : 1;
+    const bomLength = step === 2 && bytes.length >= 2 &&
+      ((utf16le && bytes[0] === 0xFF && bytes[1] === 0xFE) ||
+        (utf16be && bytes[0] === 0xFE && bytes[1] === 0xFF)) ? 2
+      : (step === 1 && bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF ? 3 : 0);
+    let offset = bomLength;
+    let recordStart = offset;
+    let line = 1;
+    let recordLine = 1;
+    let inQuotes = false;
+    let fieldStart = true;
+    let recordHasContent = false;
+    let fieldCount = 1;
+    let maxColumns = 0;
+    const records = [];
+    function unitAt(position) {
+      if (position + step > bytes.length) return -1;
+      if (utf16le) return bytes[position] | (bytes[position + 1] << 8);
+      if (utf16be) return (bytes[position] << 8) | bytes[position + 1];
+      return bytes[position];
+    }
+    function pushRecord(end) {
+      if (recordHasContent) {
+        records.push({ start: recordStart, end: end, sourceLine: recordLine });
+        maxColumns = Math.max(maxColumns, fieldCount);
+      }
+      recordHasContent = false;
+      fieldStart = true;
+      fieldCount = 1;
+    }
+    function scan(maxBytes) {
+      const limit = Math.min(bytes.length, offset + (Number.isInteger(maxBytes) && maxBytes > 0 ? maxBytes : bytes.length));
+      while (offset + step <= limit) {
+        const current = unitAt(offset);
+        const next = unitAt(offset + step);
+        if (current === 34 && inQuotes) {
+          if (next === 34) {
+            offset += step * 2;
+            recordHasContent = true;
+            continue;
+          }
+          inQuotes = false;
+        } else if (current === 34 && fieldStart) {
+          inQuotes = true;
+          fieldStart = false;
+        } else if (!inQuotes && current === 59) {
+          fieldStart = true;
+          fieldCount += 1;
+        } else if (current === 13 || current === 10) {
+          const lineEnd = offset;
+          const lineLength = current === 13 && next === 10 ? step * 2 : step;
+          if (!inQuotes) pushRecord(lineEnd);
+          line += 1;
+          offset += lineLength;
+          if (!inQuotes) {
+            recordStart = offset;
+            recordLine = line;
+          }
+          continue;
+        } else if (!inQuotes) {
+          fieldStart = false;
+        }
+        recordHasContent = true;
+        offset += step;
+      }
+      if (offset + step > bytes.length) offset = bytes.length;
+      return offset < bytes.length;
+    }
+    function finish() {
+      if (offset < bytes.length) scan(bytes.length);
+      pushRecord(bytes.length);
+      return { records: records, maxColumns: maxColumns };
+    }
+    return { scan: scan, finish: finish };
+  }
+
+  function readIndexedSourceRow(buffer, sourceEncoding, record, locale) {
+    const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    const text = new TextDecoder(sourceEncoding, { fatal: true }).decode(bytes.subarray(record.start, record.end));
+    const parsed = parseCsv(text, { locale: locale });
+    return {
+      sourceLine: record.sourceLine,
+      values: parsed.rows.length ? parsed.rows[0].values : [],
+      parserErrors: parsed.errors.map(function (error) {
+        return Object.assign({}, error, { sourceLine: record.sourceLine + error.sourceLine - 1 });
+      })
+    };
+  }
+
+  function findIndexedSourceRow(records, sourceLine) {
+    if (!Array.isArray(records) || records.length < 2 || !Number.isInteger(sourceLine) || sourceLine < 1) return -1;
+    let low = 1;
+    let high = records.length;
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      if (records[middle].sourceLine <= sourceLine) low = middle + 1;
+      else high = middle;
+    }
+    return Math.max(0, Math.min(records.length - 2, low - 2));
+  }
+
   function detectMapping(headers, sourceType) {
     const normalizedHeaders = headers.map(normalizeHeader);
     const usedIndexes = new Set();
@@ -2691,6 +2796,15 @@
       .concat(buildDataQualityFindings(registry, importIssues, locale));
   }
 
+  function selectQualityFindingsForImport(findings, sourceFileId, view) {
+    return (Array.isArray(findings) ? findings : []).filter(function (finding) {
+      if (view === 'cross-source') {
+        return finding.scope === 'cross-source' || !finding.sourceFileId;
+      }
+      return finding.scope !== 'cross-source' && Boolean(sourceFileId) && finding.sourceFileId === sourceFileId;
+    });
+  }
+
   function buildDataQualityFindings(registry, importIssues, locale) {
     const findings = [];
     (importIssues || []).forEach(function (issue) {
@@ -3331,6 +3445,7 @@
     buildPreparationQualityFindings: buildPreparationQualityFindings,
     buildDataQualityFindings: buildDataQualityFindings,
     buildUnifiedDataQualityFindings: buildUnifiedDataQualityFindings,
+    selectQualityFindingsForImport: selectQualityFindingsForImport,
     enrichAnalysisWithRegistry: enrichAnalysisWithRegistry,
     evaluateFeatureReadiness: evaluateFeatureReadiness,
     detectBatchWarnings: detectBatchWarnings,
@@ -3361,6 +3476,10 @@
     normalizeNumber: normalizeNumber,
     parseCsv: parseCsv,
     parseCsvChunks: parseCsvChunks,
+    createSourceRecordIndexer: createSourceRecordIndexer,
+    readIndexedSourceRow: readIndexedSourceRow,
+    findIndexedSourceRow: findIndexedSourceRow,
+    prepareProfileValues: prepareProfileValues,
     reconstructRawSource: reconstructRawSource,
     validateMapping: validateMapping,
     validateCustomFieldMapping: validateCustomFieldMapping,

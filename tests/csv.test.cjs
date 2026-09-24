@@ -43,6 +43,7 @@ test('persistent workspace runtime uses IndexedDB without localStorage payloads'
 test('workspace startup is metadata-first and heavy preparation is delegated to an offline blob worker', () => {
   const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const cssSource = fs.readFileSync(path.join(__dirname, '..', 'app.css'), 'utf8');
   const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
   const encodingSource = fs.readFileSync(path.join(__dirname, '..', 'encoding.js'), 'utf8');
   const csvSource = fs.readFileSync(path.join(__dirname, '..', 'csv.js'), 'utf8');
@@ -63,6 +64,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   const renameBody = appSource.match(/async function renameActiveWorkspace\(\) \{([\s\S]*?)\n  async function deleteActiveWorkspace/);
   const removeCustomFieldBody = appSource.match(/async function removeCustomField\(fieldId\) \{([\s\S]*?)\n  async function deleteActiveWorkspace/);
   const clearViewBody = appSource.match(/function clearWorkspaceView\(\) \{([\s\S]*?)\n  async function activateWorkspace/);
+  const overviewClickBody = appSource.match(/elements\.workspaceOverview\.addEventListener\('click', function \(event\) \{([\s\S]*?)\n  \}\);\n  elements\.customFieldsList/);
 
   assert.ok(initializeBody);
   assert.ok(activateBody);
@@ -80,6 +82,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.ok(renameBody);
   assert.ok(removeCustomFieldBody);
   assert.ok(clearViewBody);
+  assert.ok(overviewClickBody);
   assert.doesNotMatch(clearViewBody[1].split('  async function recoverWorkspaceCatalogAfterMissing')[0], /state\.customFields\s*=\s*\[\]/);
   assert.match(appSource, /rename\.disabled\s*=\s*state\.workspaceLoading/);
   assert.match(appSource, /remove\.disabled\s*=\s*state\.workspaceLoading/);
@@ -92,10 +95,18 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(removeCustomFieldBody[1], /renderIssues\(state\.issueRows\)/);
   assert.match(appSource, /stored\.confirmedCustomFieldMapping === null \|\| stored\.confirmedCustomFieldMapping === undefined/);
   assert.match(indexSource, /id="workspace-overview"/);
+  assert.match(indexSource, /class="workspace-selector-layout"/);
+  assert.match(indexSource, /id="workspace-selected-name"/);
+  assert.doesNotMatch(indexSource, /id="workspace-select"/);
   assert.match(indexSource, /id="workspace-open"/);
   assert.match(indexSource, /id="workspace-load-progress"/);
   assert.match(indexSource, /id="workspace-recovery"[^>]*data-i18n="workspace_recover_save_failure"/);
   assert.doesNotMatch(initializeBody[1], /activateWorkspace\(/);
+  assert.match(appSource, /document\.body\.classList\.toggle\('workspace-picker-mode', !state\.activeWorkspace \|\| state\.activePageTarget === 'workspace-panel'\)/);
+  assert.match(appSource, /card\.dataset\.selectWorkspaceId = workspace\.id/);
+  assert.match(overviewClickBody[1], /state\.selectedWorkspaceId = button\.dataset\.selectWorkspaceId/);
+  assert.doesNotMatch(overviewClickBody[1], /activateWorkspace\(/);
+  assert.match(cssSource, /\.workspace-picker-mode \.workflow-rail, \.workspace-picker-mode \.page-context \{ display: none !important; \}/);
   assert.match(appSource, /workspaceRepository\.loadWorkspaceRaw/);
   assert.match(activateBody[1], /loadWorkspaceRaw\(workspaceId, \{ includeResults: false \}\)/);
   assert.match(appSource, /new Worker\(url\)/);
@@ -107,6 +118,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.ok(activateBody[1].indexOf('omitStoredResultsForRebuild') < activateBody[1].indexOf('runWorkspaceWorker'));
   assert.ok(activateBody[1].indexOf('commitWorkspaceActivation') < activateBody[1].indexOf('state.activeWorkspace = workspaceMetadata'));
   assert.ok(activateBody[1].indexOf('commitWorkspaceActivation') < activateBody[1].indexOf('state.language = targetLanguage'));
+  assert.ok(activateBody[1].indexOf('renderResults(prepared.result') < activateBody[1].indexOf("state.activePageTarget = 'main-menu-panel'"));
   assert.doesNotMatch(activateBody[1], /state\.articleRegistry = workspaceModel\.normalizeArticleRegistry\(prepared\.workspace\.articleRegistry\);\s*state\.language = targetLanguage/);
   assert.doesNotMatch(activateBody[1], /refreshAnalyzedResults\(/);
   assert.doesNotMatch(activateBody[1], /refreshWorkspaceCatalog\(/);
@@ -201,10 +213,11 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
 test('responsive workflow handles empty results and shared-page navigation safely', () => {
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
-  assert.match(appSource, /'coverage-panel': Boolean\(state\.result\)/);
+  assert.match(appSource, /'coverage-panel': Boolean\(state\.result && analysisRowCount\(state\.result\) > 0\)/);
   assert.match(appSource, /'results-panel': Boolean\(state\.result && resultHasRetainedData\(state\.result\)\)/);
-  assert.match(appSource, /: state\.result\s*\n\s*\? 'coverage-panel'/);
-  assert.match(appSource, /target\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
+  assert.match(appSource, /: state\.result && analysisRowCount\(state\.result\) > 0\s*\n\s*\? 'coverage-panel'/);
+  assert.match(appSource, /renderWorkflow\(button\.dataset\.workflowTarget\);\s*window\.scrollTo\(0, 0\)/);
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'app.css'), 'utf8'), /\.app-page > \.panel \{ scroll-margin-top: 84px; \}/);
   assert.match(appSource, /article\.period_a\.article_name_variants/);
   assert.match(appSource, /return article\.selling_unit_conflict;/);
   assert.match(appSource, /state\.result\.files \|\| \[\]\)\.filter\(function \(file\) \{\s*return file\.sourceType !== 'article-master';/);
@@ -282,7 +295,7 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(indexSource, /id="file-input"[^>]*\bmultiple\b/);
   assert.match(indexSource, /data-i18n="detail_source_file"/);
   assert.match(indexSource, /data-i18n="issue_source_file"/);
-  ['workspace-page', 'import-page', 'coverage-page', 'comparison-page', 'analysis-page'].forEach((pageId) => {
+  ['workspace-page', 'main-menu-page', 'import-page', 'mapping-page', 'coverage-page', 'comparison-page', 'analysis-page'].forEach((pageId) => {
     assert.match(indexSource, new RegExp('id="' + pageId + '"'), pageId);
   });
   ['workspace-panel', 'import-panel', 'mapping-panel', 'coverage-panel', 'comparison-panel', 'results-panel'].forEach((target) => {
@@ -291,10 +304,11 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /encoding\.SUPPORTED_ENCODINGS/);
   assert.match(appSource, /dataset\.encodingFileId/);
   assert.match(appSource, /const PAGE_CONFIG =/);
-  assert.match(appSource, /activePageTarget: 'workspace-panel'/);
+  assert.match(appSource, /activePageTarget: 'main-menu-panel'/);
+  assert.doesNotMatch(indexSource, /class="workflow-rail"/);
   assert.match(appSource, /core\.reconstructRawSource/);
   assert.match(indexSource, /id="article-source-inspection"/);
-  assert.match(appSource, /target\.scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
+  assert.match(appSource, /renderWorkflow\(button\.dataset\.workflowTarget\);\s*window\.scrollTo\(0, 0\)/);
   assert.match(appSource, /detail_source_file: 'Source file'/);
   assert.match(appSource, /detail_source_file: 'Quelldatei'/);
   assert.match(appSource, /warning_overlap:/);
@@ -308,6 +322,18 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /profileParsedCsv/);
   assert.match(appSource, /function refreshColumnCatalogOwnership\(file\)/);
   assert.match(appSource, /refreshColumnCatalogOwnership\(file\)/);
+  assert.match(indexSource, /id="imported-files"/);
+  assert.match(indexSource, /id="mapping-source-list"/);
+  assert.match(indexSource, /<details id="issues-panel"/);
+  assert.match(appSource, /state\.files\.find\(function \(file\) \{ return file\.id === state\.selectedMappingFileId; \}\)/);
+  assert.match(appSource, /\[selectedFile\]\.forEach\(function \(file\)/);
+  assert.match(appSource, /function renderMappingSourceList\(\)/);
+  assert.match(appSource, /function renderImportedFiles\(\)/);
+  assert.match(appSource, /data-column-mapping-file-id/);
+  assert.match(appSource, /data-mapping-search/);
+  assert.match(appSource, /data-mapping-filter/);
+  assert.match(appSource, /const pageSize = 50/);
+  assert.match(appSource, /function renderSourceColumnOverview\(file, section\)/);
   assert.match(appSource, /refreshColumnCatalogOwnership\(state\.files\[index\]\)/);
   assert.match(appSource, /createAnalysisAccumulator/);
   assert.match(appSource, /buildMappingSuggestions/);
@@ -315,8 +341,19 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /source_column_ambiguous/);
   assert.match(appSource, /crossFieldTie/);
   assert.match(indexSource, /id="quality-overview-panel"/);
+  assert.match(indexSource, /id="source-table-panel"/);
+  assert.match(indexSource, /id="source-table-scroll"/);
+  assert.match(indexSource, /id="source-table-body"/);
+  assert.match(appSource, /core\.createSourceRecordIndexer\(buffer, sourceEncoding\)/);
+  assert.match(appSource, /core\.readIndexedSourceRow\(file\.buffer, index\.encoding/);
+  assert.match(appSource, /core\.prepareProfileValues\(/);
+  assert.match(appSource, /sourceTableIssuesByLine\(file\)/);
   assert.match(indexSource, /id="quality-overview-pagination"/);
+  assert.match(indexSource, /id="quality-view-select"/);
+  assert.ok(indexSource.indexOf('id="mapping-page"') < indexSource.indexOf('id="quality-overview-panel"'));
+  assert.ok(indexSource.indexOf('id="quality-overview-panel"') < indexSource.indexOf('id="coverage-page"'));
   assert.match(appSource, /function renderQualityOverview\(findings\)/);
+  assert.match(appSource, /core\.selectQualityFindingsForImport\(allEntries, state\.selectedMappingFileId, state\.qualityView\)/);
   assert.match(appSource, /dataQualityFindings/);
   assert.match(appSource, /state\.issueRows = result\.issues\.concat\(qualityIssues\)/);
   assert.match(appSource, /state\.qualityPage/);
@@ -957,6 +994,20 @@ test('unified data-quality findings cover validation, columns, articles, and cro
   assert.ok(findings.every((finding) => Number.isInteger(finding.affectedCount) && Array.isArray(finding.examples)));
 });
 
+test('quality findings stay with their import while cross-source findings remain accessible', () => {
+  const findings = [
+    { code: 'a-row', scope: 'row', sourceFileId: 'import-a' },
+    { code: 'b-column', scope: 'column', sourceFileId: 'import-b' },
+    { code: 'shared', scope: 'cross-source', sourceFileId: 'import-a' },
+    { code: 'unattributed', scope: 'source', sourceFileId: null }
+  ];
+
+  assert.deepEqual(csv.selectQualityFindingsForImport(findings, 'import-a', 'source').map((finding) => finding.code), ['a-row']);
+  assert.deepEqual(csv.selectQualityFindingsForImport(findings, 'import-b', 'source').map((finding) => finding.code), ['b-column']);
+  assert.deepEqual(csv.selectQualityFindingsForImport(findings, 'import-a', 'cross-source').map((finding) => finding.code), ['shared', 'unattributed']);
+  assert.deepEqual(csv.selectQualityFindingsForImport(findings, null, 'source'), []);
+});
+
 test('validation findings aggregate affected rows while retaining bounded examples', () => {
   const findings = csv.adaptValidationIssues([
     { sourceFileId: 'source-1', sourceFileLabel: 'orders.csv', sourceType: 'order-lines', sourceLine: 2, field: 'quantity', code: 'quantity_must_be_positive', severity: 'error', blocking: true, message: 'invalid' },
@@ -1229,6 +1280,46 @@ test('chunked parser preserves quoted fields and line provenance across boundari
   assert.equal(result.rows[0].article_name, 'Multi\r\nline "quoted"');
   assert.equal(result.rows[0].source_line, 2);
   assert.equal(result.rows[1].source_line, 4);
+});
+
+test('virtual source table indexes every record without retaining all decoded rows', () => {
+  const text = 'ID;Name;Name\r\n1;"Multi\r\nline";A\r\n\r\n2;Plain;B\n3;bad"quote;C';
+  const expected = csv.parseCsv(text).rows;
+  const utf16le = Buffer.from('\uFEFF' + text, 'utf16le');
+  const utf16be = Buffer.from(utf16le);
+  for (let index = 0; index < utf16be.length; index += 2) {
+    const first = utf16be[index];
+    utf16be[index] = utf16be[index + 1];
+    utf16be[index + 1] = first;
+  }
+  for (const [sourceEncoding, buffer] of [
+    ['utf-8', Buffer.from('\uFEFF' + text, 'utf8')],
+    ['windows-1252', Buffer.from(text, 'latin1')],
+    ['utf-16le', utf16le],
+    ['utf-16be', utf16be]
+  ]) {
+    const indexer = csv.createSourceRecordIndexer(buffer, sourceEncoding);
+    let steps = 0;
+    while (indexer.scan(5)) {
+      steps += 1;
+      assert.ok(steps < buffer.length + 1);
+    }
+    const index = indexer.finish();
+    assert.equal(index.records.length, expected.length);
+    assert.equal(index.maxColumns, 3);
+    assert.deepEqual(index.records.map((record) => record.sourceLine), expected.map((row) => row.sourceLine));
+    assert.deepEqual(index.records.map((record) => csv.readIndexedSourceRow(buffer, sourceEncoding, record).values),
+      expected.map((row) => row.values));
+    assert.equal(csv.findIndexedSourceRow(index.records, 3), 0);
+    assert.equal(csv.findIndexedSourceRow(index.records, 5), 1);
+    assert.equal(csv.findIndexedSourceRow(index.records, 999), 2);
+  }
+  const longFile = Buffer.from('ID;Value\n' + Array.from({ length: 5000 }, (_, index) => index + ';raw-' + index + '\n').join(''));
+  const indexer = csv.createSourceRecordIndexer(longFile, 'utf-8');
+  while (indexer.scan(1024)) {}
+  const index = indexer.finish();
+  assert.equal(index.records.length - 1, 5000);
+  assert.deepEqual(csv.readIndexedSourceRow(longFile, 'utf-8', index.records[5000]).values, ['4999', 'raw-4999']);
 });
 
 test('chunked parser removes only a BOM at the beginning of the stream', () => {
@@ -1722,6 +1813,14 @@ test('preparation rules run in order before validation and keep original source 
     { type: 'replace-text', from: 'Trocken', to: 'Sortiment' },
     { type: 'case-normalization', mode: 'upper', enabled: false }
   ]), { value: 'unTrocken', applied: [] });
+  const preview = csv.prepareProfileValues(['O-1', '  sku-a  ', 'bad', '2026-09-01'], mapping, {}, [], {
+    article_id: [{ type: 'trim', enabled: true }, { type: 'case-normalization', mode: 'upper', enabled: true }],
+    quantity: [{ type: 'replace-text', from: 'bad', to: '2', enabled: true }]
+  });
+  assert.equal(preview.evidence.article_id.originalValue, '  sku-a  ');
+  assert.equal(preview.evidence.article_id.preparedValue, 'SKU-A');
+  assert.deepEqual(preview.evidence.article_id.ruleIndexes, [0, 1]);
+  assert.equal(preview.evidence.quantity.preparedValue, '2');
 
   const combined = csv.combineImportResults([{
     id: 'source-prep', name: 'prep.csv', label: 'prep.csv', sourceType: 'order-lines',

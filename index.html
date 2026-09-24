@@ -6,7 +6,7 @@
     <title>OpenSlotting – CSV Analysis</title>
     <link rel="stylesheet" href="app.css">
   </head>
-  <body>
+<body class="workspace-picker-mode">
     <header class="app-header">
       <div class="brand-block">
         <span class="brand-mark" aria-hidden="true">OS</span>
@@ -29,28 +29,16 @@
 
     <main class="page-shell">
       <div class="app-layout">
-        <nav class="workflow-rail" aria-label="Workflow" data-i18n-aria-label="workflow_label">
-          <div class="rail-heading">
-            <span class="rail-kicker" data-i18n="nav_kicker">Workspace</span>
-            <strong data-i18n="nav_title">Analysis workspace</strong>
-          </div>
-          <div class="rail-nav-group">
-            <button class="workflow-step active" type="button" data-workflow-target="workspace-panel"><span aria-hidden="true">⌂</span><strong data-i18n="workflow_workspace">Workspace</strong></button>
-            <button class="workflow-step" type="button" data-workflow-target="import-panel"><span aria-hidden="true">⇧</span><strong data-i18n="workflow_import">CSV import</strong></button>
-            <button class="workflow-step" type="button" data-workflow-target="mapping-panel"><span aria-hidden="true">☷</span><strong data-i18n="workflow_mapping">Columns &amp; checks</strong></button>
-            <button class="workflow-step" type="button" data-workflow-target="coverage-panel"><span aria-hidden="true">▦</span><strong data-i18n="workflow_coverage">Data coverage</strong></button>
-            <button class="workflow-step" type="button" data-workflow-target="comparison-panel"><span aria-hidden="true">↔</span><strong data-i18n="workflow_comparison">Periods &amp; comparison</strong></button>
-            <button class="workflow-step" type="button" data-workflow-target="results-panel"><span aria-hidden="true">▥</span><strong data-i18n="workflow_analysis">Analysis</strong></button>
-          </div>
-          <div class="rail-footer-note" data-i18n="nav_local_note">Local-first · source traceable</div>
-        </nav>
         <div class="workflow-content">
       <div class="page-context" aria-live="polite">
         <div>
           <p id="page-context-kicker" class="step" data-i18n="workspace_eyebrow">Local workspace</p>
           <h2 id="page-context-title" data-i18n="workspace_title">Workspaces</h2>
         </div>
-        <span id="page-context-status" class="page-context-status" data-i18n="page_status_ready">Ready</span>
+        <div class="page-context-actions">
+          <button id="return-main-menu" class="secondary-button" type="button" data-workflow-target="main-menu-panel" data-i18n="main_menu_title">Main menu</button>
+          <span id="page-context-status" class="page-context-status" data-i18n="page_status_ready">Ready</span>
+        </div>
       </div>
       <div id="workspace-page" class="app-page">
       <section id="workspace-panel" class="panel workspace-panel" aria-labelledby="workspace-title">
@@ -61,30 +49,42 @@
           </div>
           <span class="hint" data-i18n="workspace_hint">Each workspace remains separate in this browser profile.</span>
         </div>
-        <div class="workspace-toolbar">
-          <label class="compact-field workspace-select-field">
-            <span data-i18n="workspace_select_label">Workspace selection</span>
-            <select id="workspace-select" disabled>
-              <option value="" data-i18n="workspace_none">No workspace selected</option>
-            </select>
-          </label>
-          <div class="workspace-actions" aria-label="Workspace actions" data-i18n-aria-label="workspace_actions_label">
-            <button id="workspace-open" class="primary-button" type="button" disabled data-i18n="workspace_open_selected">Open selected</button>
-            <button id="workspace-cancel" class="secondary-button hidden" type="button" data-i18n="workspace_cancel_loading">Cancel loading</button>
-            <button id="workspace-create" class="secondary-button" type="button" disabled data-i18n="workspace_create">Create</button>
-            <button id="workspace-rename" class="secondary-button" type="button" disabled data-i18n="workspace_rename">Rename</button>
-            <button id="workspace-delete" class="secondary-button danger-button" type="button" disabled data-i18n="workspace_delete">Delete</button>
-            <button id="workspace-backup" class="secondary-button" type="button" disabled data-i18n="workspace_backup">Export backup</button>
-            <button id="workspace-restore-new" class="secondary-button" type="button" disabled data-i18n="workspace_restore_new">Restore as new</button>
-            <button id="workspace-restore-replace" class="secondary-button danger-button" type="button" disabled data-i18n="workspace_restore_replace">Replace from backup</button>
-          </div>
+        <div class="workspace-selector-layout">
+          <section class="workspace-catalog" aria-labelledby="workspace-catalog-title">
+            <div class="workspace-catalog-heading">
+              <h3 id="workspace-catalog-title" data-i18n="workspace_catalog_title">Available workspaces</h3>
+              <span id="workspace-catalog-count" class="table-note"></span>
+            </div>
+            <div id="workspace-overview" class="workspace-overview" role="group" aria-label="Available workspaces" data-i18n-aria-label="workspace_catalog_title"></div>
+          </section>
+          <aside class="workspace-selected-panel" aria-labelledby="workspace-selected-name">
+            <p class="step" data-i18n="workspace_selected_label">Selected workspace</p>
+            <h3 id="workspace-selected-name" data-i18n="workspace_none">No workspace selected</h3>
+            <p id="workspace-selected-status" class="table-note" aria-live="polite" data-i18n="workspace_select_status">Select a workspace to review its details. Its data is not loaded yet.</p>
+            <dl class="workspace-detail-summary">
+              <div><dt data-i18n="workspace_detail_sources">Sources</dt><dd id="workspace-selected-sources">—</dd></div>
+              <div><dt data-i18n="workspace_detail_rows">Normalized rows</dt><dd id="workspace-selected-rows">—</dd></div>
+              <div><dt data-i18n="workspace_detail_updated">Last changed</dt><dd id="workspace-selected-updated">—</dd></div>
+              <div><dt data-i18n="workspace_detail_last_used">Last used</dt><dd id="workspace-selected-last-used">—</dd></div>
+            </dl>
+            <div id="workspace-load-progress" class="workspace-load-progress hidden" aria-live="polite">
+              <div id="workspace-load-label" class="status-text"></div>
+              <progress id="workspace-progress" max="1"></progress>
+            </div>
+            <div class="workspace-actions" aria-label="Workspace actions" data-i18n-aria-label="workspace_actions_label">
+              <button id="workspace-open" class="primary-button" type="button" disabled data-i18n="workspace_open_selected">Open selected</button>
+              <button id="workspace-cancel" class="secondary-button hidden" type="button" data-i18n="workspace_cancel_loading">Cancel loading</button>
+              <button id="workspace-create" class="secondary-button" type="button" disabled data-i18n="workspace_create">Create</button>
+              <button id="workspace-rename" class="secondary-button" type="button" disabled data-i18n="workspace_rename">Rename</button>
+              <button id="workspace-delete" class="secondary-button danger-button" type="button" disabled data-i18n="workspace_delete">Delete</button>
+              <button id="workspace-backup" class="secondary-button" type="button" disabled data-i18n="workspace_backup">Export backup</button>
+              <button id="workspace-restore-new" class="secondary-button" type="button" disabled data-i18n="workspace_restore_new">Restore as new</button>
+              <button id="workspace-restore-replace" class="secondary-button danger-button" type="button" disabled data-i18n="workspace_restore_replace">Replace from backup</button>
+            </div>
+            <p class="workspace-actions-note" data-i18n="workspace_actions_scope">Actions apply only to the selected workspace. Delete and replace ask for confirmation.</p>
+          </aside>
         </div>
         <input id="workspace-restore-file" class="hidden" type="file" accept=".json,.workspace.json,application/json">
-        <div id="workspace-load-progress" class="workspace-load-progress hidden" aria-live="polite">
-          <div id="workspace-load-label" class="status-text"></div>
-          <progress id="workspace-progress" max="1"></progress>
-        </div>
-        <div id="workspace-overview" class="workspace-overview" aria-live="polite"></div>
         <section id="custom-fields-panel" class="custom-fields-panel" aria-labelledby="custom-fields-title">
           <div class="panel-heading compact-heading">
             <div>
@@ -119,6 +119,48 @@
 
       </div>
 
+      <div id="main-menu-page" class="app-page hidden">
+        <section id="main-menu-panel" class="panel main-menu-panel" aria-labelledby="main-menu-heading">
+          <div class="main-menu-welcome">
+            <p class="step" data-i18n="main_menu_eyebrow">Workspace</p>
+            <h2 id="main-menu-heading"><span data-i18n="main_menu_greeting">What would you like to do?</span> <span id="main-menu-workspace-name"></span></h2>
+            <p class="table-note" data-i18n="main_menu_intro">Choose an area to continue working in this workspace.</p>
+          </div>
+          <div class="main-menu-grid">
+            <button class="main-menu-card" type="button" data-workflow-target="import-panel">
+              <span class="main-menu-icon" aria-hidden="true">⇧</span>
+              <span class="main-menu-card-copy"><strong data-i18n="workflow_import">Import sources</strong><small data-i18n="main_menu_import_description">Add or manage CSV files in this workspace.</small></span>
+              <span class="main-menu-arrow" aria-hidden="true">›</span>
+            </button>
+            <button class="main-menu-card" type="button" data-workflow-target="mapping-panel">
+              <span class="main-menu-icon" aria-hidden="true">☷</span>
+              <span class="main-menu-card-copy"><strong data-i18n="workflow_mapping">Mapping &amp; quality</strong><small data-i18n="main_menu_mapping_description">Review source columns, mappings, and validation notes.</small></span>
+              <span class="main-menu-arrow" aria-hidden="true">›</span>
+            </button>
+            <button class="main-menu-card" type="button" data-workflow-target="coverage-panel">
+              <span class="main-menu-icon" aria-hidden="true">▦</span>
+              <span class="main-menu-card-copy"><strong data-i18n="workflow_coverage">Coverage &amp; periods</strong><small data-i18n="main_menu_coverage_description">Check date coverage and prepare comparisons.</small></span>
+              <span class="main-menu-arrow" aria-hidden="true">›</span>
+            </button>
+            <button class="main-menu-card" type="button" data-workflow-target="comparison-panel">
+              <span class="main-menu-icon" aria-hidden="true">↔</span>
+              <span class="main-menu-card-copy"><strong data-i18n="workflow_comparison">Comparison results</strong><small data-i18n="main_menu_comparison_description">Compare selected periods and inspect changes.</small></span>
+              <span class="main-menu-arrow" aria-hidden="true">›</span>
+            </button>
+            <button class="main-menu-card" type="button" data-workflow-target="results-panel">
+              <span class="main-menu-icon" aria-hidden="true">▥</span>
+              <span class="main-menu-card-copy"><strong data-i18n="workflow_analysis">Analysis</strong><small data-i18n="main_menu_analysis_description">Explore articles, demand, and source evidence.</small></span>
+              <span class="main-menu-arrow" aria-hidden="true">›</span>
+            </button>
+            <button id="return-workspace-selection" class="main-menu-card" type="button" data-workflow-target="workspace-panel">
+              <span class="main-menu-icon" aria-hidden="true">⌂</span>
+              <span class="main-menu-card-copy"><strong data-i18n="workspace_selection_back">Workspace selection</strong><small data-i18n="main_menu_workspace_selection_description">Switch or manage workspaces.</small></span>
+              <span class="main-menu-arrow" aria-hidden="true">›</span>
+            </button>
+          </div>
+        </section>
+      </div>
+
       <div id="import-page" class="app-page hidden">
 
       <section id="import-panel" class="panel">
@@ -135,9 +177,13 @@
           <input id="file-input" type="file" accept=".csv,text/csv" multiple disabled>
         </label>
         <p id="source-status" class="status-text" role="status" data-i18n="no_file_selected">No file selected yet.</p>
+        <div id="imported-files" class="imported-files hidden" aria-live="polite"></div>
       </section>
 
-      <section id="mapping-panel" class="panel hidden" aria-labelledby="mapping-title">
+      </div>
+
+      <div id="mapping-page" class="app-page hidden">
+      <section id="mapping-panel" class="panel" aria-labelledby="mapping-title">
         <div class="panel-heading">
           <div>
             <p class="step" data-i18n="step_2">Step 2</p>
@@ -145,49 +191,48 @@
           </div>
           <span class="hint" data-i18n="mapping_hint">Review each file independently. Blocking files are excluded from the combined analysis.</span>
         </div>
-        <div id="mapping-grid" class="mapping-grid"></div>
+        <div class="mapping-workspace">
+          <nav id="mapping-source-list" class="mapping-source-list" aria-label="Source files" data-i18n-aria-label="mapping_source_list"></nav>
+          <div id="mapping-grid" class="mapping-grid"></div>
+        </div>
         <div id="mapping-message" class="message hidden" role="alert"></div>
         <button id="analyze-button" class="primary-button" type="button" data-i18n="analyze_button">Validate and analyze data</button>
       </section>
 
-      <section id="issues-panel" class="panel issues-panel hidden" aria-labelledby="issues-title">
-        <div class="table-toolbar">
+      <section id="source-table-panel" class="panel source-table-panel hidden" aria-labelledby="source-table-title">
+        <div class="panel-heading">
           <div>
-            <h3 id="issues-title" data-i18n="issues_title">Validation notes</h3>
-            <p class="table-note" data-i18n="issues_note">Excluded rows are not aggregated. Advisory notes on optional fields remain included and traceable by source file and line.</p>
+            <h3 id="source-table-title" data-i18n="source_table_title">Imported file as table</h3>
+            <p class="table-note" data-i18n="source_table_note">All recognized rows are in one continuous scroll area. Original values, rule effects, and row findings remain visible together.</p>
+          </div>
+          <div class="source-table-jump">
+            <label for="source-table-line" data-i18n="source_table_jump_label">Source line</label>
+            <input id="source-table-line" type="number" min="1" step="1">
+            <button id="source-table-jump" class="secondary-button" type="button" data-i18n="source_table_jump">Go to line</button>
           </div>
         </div>
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th data-i18n="issue_source_file">Source file</th>
-                <th data-i18n="issue_source_line">Source line</th>
-                <th data-i18n="issue_field">Field</th>
-                <th data-i18n="issue_code">Code</th>
-                <th data-i18n="issue_message">Message</th>
-                <th data-i18n="issue_status">Status</th>
-              </tr>
-            </thead>
-            <tbody id="issues-table-body"></tbody>
+        <p id="source-table-status" class="table-note" role="status"></p>
+        <div id="source-table-scroll" class="source-table-scroll" tabindex="0" aria-label="Imported rows" data-i18n-aria-label="source_table_scroll_label">
+          <table id="source-data-table" class="source-data-table">
+            <thead><tr id="source-table-head"></tr></thead>
+            <tbody id="source-table-body"></tbody>
           </table>
         </div>
-        <div id="issue-pagination" class="table-pagination hidden" aria-live="polite">
-          <button id="issue-previous" class="secondary-button" type="button" disabled data-i18n="previous_page">Previous</button>
-          <span id="issue-page-status" class="table-note"></span>
-          <button id="issue-next" class="secondary-button" type="button" disabled data-i18n="next_page">Next</button>
-        </div>
       </section>
-      </div>
-
-      <div id="coverage-page" class="app-page hidden">
 
       <section id="quality-overview-panel" class="panel quality-overview-panel hidden" aria-labelledby="quality-overview-title">
         <div class="panel-heading">
           <div>
             <h3 id="quality-overview-title" data-i18n="quality_overview_title">Data-quality overview</h3>
-            <p class="table-note" data-i18n="quality_overview_note">Findings are grouped by scope and source. Counts remain traceable to structured evidence.</p>
+            <p class="table-note" data-i18n="quality_overview_note">Findings for the selected import are shown separately from cross-source findings.</p>
           </div>
+          <label class="compact-field quality-view-field" for="quality-view-select">
+            <span data-i18n="quality_view_label">Show findings for</span>
+            <select id="quality-view-select">
+              <option value="source"></option>
+              <option value="cross-source" data-i18n="quality_view_shared">Cross-source / unattributed</option>
+            </select>
+          </label>
         </div>
         <div id="quality-overview-summary" class="quality-overview-summary" role="status"></div>
         <div class="table-scroll">
@@ -212,6 +257,38 @@
           <button id="quality-overview-next" class="secondary-button" type="button" disabled data-i18n="next_page">Next</button>
         </div>
       </section>
+
+      <details id="issues-panel" class="panel issues-panel hidden">
+        <summary id="issues-title" data-i18n="issues_title">Validation notes</summary>
+        <div class="table-toolbar">
+          <div>
+            <p class="table-note" data-i18n="issues_note">Excluded rows are not aggregated. Advisory notes on optional fields remain included and traceable by source file and line.</p>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="issue_source_file">Source file</th>
+                <th data-i18n="issue_source_line">Source line</th>
+                <th data-i18n="issue_field">Field</th>
+                <th data-i18n="issue_code">Code</th>
+                <th data-i18n="issue_message">Message</th>
+                <th data-i18n="issue_status">Status</th>
+              </tr>
+            </thead>
+            <tbody id="issues-table-body"></tbody>
+          </table>
+        </div>
+        <div id="issue-pagination" class="table-pagination hidden" aria-live="polite">
+          <button id="issue-previous" class="secondary-button" type="button" disabled data-i18n="previous_page">Previous</button>
+          <span id="issue-page-status" class="table-note"></span>
+          <button id="issue-next" class="secondary-button" type="button" disabled data-i18n="next_page">Next</button>
+        </div>
+      </details>
+      </div>
+
+      <div id="coverage-page" class="app-page hidden">
 
       <section id="coverage-panel" class="panel hidden" aria-labelledby="coverage-title">
         <div class="panel-heading coverage-heading">
