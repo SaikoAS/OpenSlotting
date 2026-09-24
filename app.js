@@ -3746,7 +3746,11 @@
       }
       return file;
     });
-    const result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator, locale: state.language });
+    const result = core.combineImportResults(batchFiles, {
+      analysisAccumulator: analysisAccumulator,
+      locale: state.language,
+      customFields: state.customFields
+    });
     renderMapping();
     renderResults(result, { preserveView: preserveView, analysis: analysisAccumulator.finish({ locale: state.language }) });
   }
@@ -4168,7 +4172,11 @@
         }
         return file;
       });
-      result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator, locale: language });
+      result = core.combineImportResults(batchFiles, {
+        analysisAccumulator: analysisAccumulator,
+        locale: language,
+        customFields: validated.customFields
+      });
       analysis = analysisAccumulator.finish({ locale: language });
     }
     files.forEach(function (file) {
@@ -4850,7 +4858,9 @@
           return !issue.customFieldId || activeFieldIds.has(String(issue.customFieldId));
         });
         state.result.qualityFindings = core.buildDataQualityFindings(state.articleRegistry, state.result.issues, state.language);
-        state.result.dataQualityFindings = core.buildUnifiedDataQualityFindings(state.files, state.articleRegistry, state.result.issues, state.language);
+        state.result.dataQualityFindings = core.buildUnifiedDataQualityFindings(
+          state.files, state.articleRegistry, state.result.issues, state.language, state.customFields
+        );
       }
       if (state.analysis) {
         state.analysis = core.enrichAnalysisWithRegistry(state.analysis, state.articleRegistry, { locale: state.language });
@@ -5398,7 +5408,8 @@
     const previous = file.customFieldMapping[fieldId];
     file.customFieldMapping[fieldId] = select.value === '' ? null : Number(select.value);
     if (accessiblePreparationRuleCount(file) > 100) {
-      file.customFieldMapping[fieldId] = previous;
+      if (previous === undefined) delete file.customFieldMapping[fieldId];
+      else file.customFieldMapping[fieldId] = previous;
       renderMapping();
       showMappingMessage(translate('prep_rule_limit'));
       return;
@@ -5419,7 +5430,8 @@
     const previous = file.mapping[select.dataset.field];
     file.mapping[select.dataset.field] = select.value === '' ? null : Number(select.value);
     if (accessiblePreparationRuleCount(file) > 100) {
-      file.mapping[select.dataset.field] = previous;
+      if (previous === undefined) delete file.mapping[select.dataset.field];
+      else file.mapping[select.dataset.field] = previous;
       renderMapping();
       showMappingMessage(translate('prep_rule_limit'));
       return;
