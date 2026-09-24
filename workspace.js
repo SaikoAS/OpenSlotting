@@ -183,6 +183,19 @@
     return normalized;
   }
 
+  function countAccessiblePreparationRules(rulesByField, mapping, customFieldMapping, customFields) {
+    const activeCustomFieldIds = new Set((Array.isArray(customFields) ? customFields : [])
+      .filter(function (field) { return field && field.active !== false; })
+      .map(function (field) { return field.id; }));
+    return Object.keys(rulesByField || {}).reduce(function (count, targetId) {
+      const mappedCore = Number.isInteger((mapping || {})[targetId]);
+      const mappedCustom = activeCustomFieldIds.has(targetId) && Number.isInteger((customFieldMapping || {})[targetId]);
+      return count + (mappedCore || mappedCustom
+        ? (Array.isArray(rulesByField[targetId]) ? rulesByField[targetId].length : 0)
+        : 0);
+    }, 0);
+  }
+
   function normalizeArticleRegistry(registry, options) {
     if (registry === undefined || registry === null) {
       return [];
@@ -796,6 +809,19 @@
     const usedSourceIds = new Set();
     const files = workspace.files.map(function (file) {
       const normalized = validateFile(file, options);
+      if (countAccessiblePreparationRules(
+        normalized.preparationRules,
+        normalized.mapping,
+        normalized.customFieldMapping,
+        customFields
+      ) > 100 || (normalized.confirmedMapping && countAccessiblePreparationRules(
+        normalized.preparationRules,
+        normalized.confirmedMapping,
+        normalized.confirmedCustomFieldMapping || {},
+        customFields
+      ) > 100)) {
+        validationError('too_many_accessible_preparation_rules', 'A source cannot expose more than 100 preparation rules across its mapped targets.');
+      }
       [normalized.customFieldMapping, normalized.confirmedCustomFieldMapping || {}].forEach(function (mapping) {
         Object.keys(mapping).forEach(function (fieldId) {
           if (!customFieldIds.has(fieldId)) {
@@ -975,6 +1001,20 @@
     }
     const settings = options || {};
     const files = state && Array.isArray(state.files) ? state.files.map(function (file) {
+      const preparationRules = normalizePreparationRules(file.preparationRules);
+      if (countAccessiblePreparationRules(
+        preparationRules,
+        file.mapping,
+        file.customFieldMapping,
+        state.customFields
+      ) > 100 || (file.confirmedMapping && countAccessiblePreparationRules(
+        preparationRules,
+        file.confirmedMapping,
+        file.confirmedCustomFieldMapping || {},
+        state.customFields
+      ) > 100)) {
+        validationError('too_many_accessible_preparation_rules', 'A source cannot expose more than 100 preparation rules across its mapped targets.');
+      }
       return {
         id: file.id,
         name: file.name,
@@ -987,7 +1027,7 @@
         detectedEncoding: file.detectedEncoding,
         errorKey: file.errorKey || null,
         mapping: file.mapping,
-        preparationRules: normalizePreparationRules(file.preparationRules),
+        preparationRules: preparationRules,
         customFieldMapping: file.customFieldMapping,
         confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
@@ -1222,6 +1262,7 @@
     normalizeCustomFieldMapping: normalizeCustomFieldMapping,
     PREPARATION_RULE_TYPES: PREPARATION_RULE_TYPES,
     normalizePreparationRules: normalizePreparationRules,
+    countAccessiblePreparationRules: countAccessiblePreparationRules,
     validateCustomFieldMappingRange: validateCustomFieldMappingRange,
     createId: createId,
     createWorkspace: createWorkspace,

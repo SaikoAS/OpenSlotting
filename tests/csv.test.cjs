@@ -325,6 +325,7 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /querySelectorAll\('select, button, input, textarea'\)/);
   assert.match(appSource, /prepSemanticDisabled/);
   assert.match(appSource, /accessiblePreparationRuleCount/);
+  assert.match(appSource, /if \(accessiblePreparationRuleCount\(file\) > 100\)/);
   assert.match(appSource, /setAttribute\('aria-label', translate\('prep_rule_mode'\)\)/);
   assert.match(appSource, /preparationRules: file\.preparationRules/);
   assert.match(csvSource, /function compilePreparationRules\(preparationRules\)/);

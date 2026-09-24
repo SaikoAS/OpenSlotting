@@ -1784,15 +1784,12 @@
   }
 
   function accessiblePreparationRuleCount(file) {
-    const rulesByTarget = file.preparationRules || {};
-    const activeCustomFields = new Set((state.customFields || [])
-      .filter(function (field) { return field && field.active !== false; })
-      .map(function (field) { return field.id; }));
-    return Object.keys(rulesByTarget).reduce(function (count, targetId) {
-      const mappedCore = Number.isInteger((file.mapping || {})[targetId]);
-      const mappedCustom = activeCustomFields.has(targetId) && Number.isInteger((file.customFieldMapping || {})[targetId]);
-      return count + (mappedCore || mappedCustom ? (Array.isArray(rulesByTarget[targetId]) ? rulesByTarget[targetId].length : 0) : 0);
-    }, 0);
+    return workspaceModel.countAccessiblePreparationRules(
+      file.preparationRules,
+      file.mapping,
+      file.customFieldMapping,
+      state.customFields
+    );
   }
 
   function renderPreparationEditor(file, targetId, wrapper, editsLocked) {
@@ -5397,7 +5394,15 @@
     const file = state.files.find(function (item) { return item.id === select.dataset.fileId; });
     if (!file) return;
     file.customFieldMapping = file.customFieldMapping || {};
-    file.customFieldMapping[select.dataset.customField] = select.value === '' ? null : Number(select.value);
+    const fieldId = select.dataset.customField;
+    const previous = file.customFieldMapping[fieldId];
+    file.customFieldMapping[fieldId] = select.value === '' ? null : Number(select.value);
+    if (accessiblePreparationRuleCount(file) > 100) {
+      file.customFieldMapping[fieldId] = previous;
+      renderMapping();
+      showMappingMessage(translate('prep_rule_limit'));
+      return;
+    }
     clearAnalysis();
     renderMapping();
     persistActiveWorkspace().catch(function () {});
@@ -5411,7 +5416,14 @@
     if (!file) {
       return;
     }
+    const previous = file.mapping[select.dataset.field];
     file.mapping[select.dataset.field] = select.value === '' ? null : Number(select.value);
+    if (accessiblePreparationRuleCount(file) > 100) {
+      file.mapping[select.dataset.field] = previous;
+      renderMapping();
+      showMappingMessage(translate('prep_rule_limit'));
+      return;
+    }
     const fileId = file.id;
     const field = select.dataset.field;
     clearAnalysis();

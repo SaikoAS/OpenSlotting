@@ -733,6 +733,15 @@ test('ordered preparation rules survive validation and backup restore', () => {
     removed_custom: Array.from({ length: 60 }, () => ({ type: 'trim', enabled: true }))
   });
   assert.equal(dormantRules.unmapped_core.length + dormantRules.removed_custom.length, 120);
+  assert.equal(workspace.countAccessiblePreparationRules(dormantRules, { unmapped_core: null }, {}, []), 0);
+  assert.equal(workspace.countAccessiblePreparationRules(dormantRules, { unmapped_core: 0 }, {}, []), 60);
+  assert.equal(workspace.countAccessiblePreparationRules(dormantRules, { unmapped_core: 0 }, { removed_custom: 1 }, [{ id: 'removed_custom', active: true }]), 120);
+  const remappedOverLimit = analyzedWorkspace('workspace-preparation-over-limit', 'Over limit', 'SKU-LIMIT');
+  remappedOverLimit.files[0].preparationRules = {
+    article_id: Array.from({ length: 60 }, () => ({ type: 'trim', enabled: true })),
+    quantity: Array.from({ length: 41 }, () => ({ type: 'trim', enabled: true }))
+  };
+  assert.throws(() => workspace.validateWorkspace(remappedOverLimit), (error) => error.code === 'too_many_accessible_preparation_rules');
   assert.throws(() => workspace.normalizePreparationRules({
     article_id: [{ type: 'replace-text', from: 1, to: 'x', enabled: true }]
   }), (error) => error.code === 'invalid_preparation_rules');
