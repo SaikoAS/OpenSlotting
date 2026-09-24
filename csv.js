@@ -57,6 +57,7 @@
       requiredMapping: 'The required field “{{label}}” is not mapped to a source column.',
       duplicateMapping: 'The source column mapped to “{{first}}” is also mapped to “{{second}}”. Each source column can be mapped only once.',
       customFieldUnknown: 'Custom field is not available for mapping.',
+      customFieldIdConflict: 'Custom field ID conflicts with a built-in field.',
       sourceColumnReused: 'A source column can be mapped only once.',
       requiredValue: 'A required value for “{{label}}” is missing.',
       positiveQuantity: 'Quantity must be a positive number.',
@@ -78,6 +79,7 @@
       qualityEmptyColumnHeader: 'The source column has no header.',
       qualityColumnIncomplete: 'The mapped column is empty in {{count}} data rows.',
       qualityColumnTypeMismatch: 'The mapped column contains {{count}} values that do not match the expected type.',
+      qualityPreparationApplied: 'Explicit preparation rules changed {{count}} values before validation.',
       capabilityReady: 'All included order-line sources provide this capability.',
       capabilityPartial: 'Only some included order-line sources provide this capability.',
       capabilityBlocked: 'No included order-line source provides this capability.',
@@ -96,6 +98,7 @@
       requiredMapping: 'Das erforderliche Feld „{{label}}“ ist keiner Quellspalte zugeordnet.',
       duplicateMapping: 'Die Quellspalte von „{{first}}“ ist auch „{{second}}“ zugeordnet. Jede Quellspalte darf nur einmal zugeordnet werden.',
       customFieldUnknown: 'Das benutzerdefinierte Feld ist für diese Zuordnung nicht verfügbar.',
+      customFieldIdConflict: 'Die ID des benutzerdefinierten Feldes kollidiert mit einem integrierten Feld.',
       sourceColumnReused: 'Eine Quellspalte darf nur einmal zugeordnet werden.',
       requiredValue: 'Erforderlicher Wert für „{{label}}“ fehlt.',
       positiveQuantity: 'Die Menge muss eine positive Zahl sein.',
@@ -117,6 +120,7 @@
       qualityEmptyColumnHeader: 'Die Quellspalte hat keine Überschrift.',
       qualityColumnIncomplete: 'Die zugeordnete Spalte ist in {{count}} Datenzeilen leer.',
       qualityColumnTypeMismatch: 'Die zugeordnete Spalte enthält {{count}} Werte mit einem unerwarteten Typ.',
+      qualityPreparationApplied: 'Explizite Aufbereitungsregeln haben {{count}} Werte vor der Prüfung geändert.',
       capabilityReady: 'Alle einbezogenen Auftragszeilenquellen stellen diese Fähigkeit bereit.',
       capabilityPartial: 'Nur ein Teil der einbezogenen Auftragszeilenquellen stellt diese Fähigkeit bereit.',
       capabilityBlocked: 'Keine einbezogene Auftragszeilenquelle stellt diese Fähigkeit bereit.',
@@ -873,6 +877,10 @@
         return;
       }
       if (field.active === false) return;
+      if (FIELD_DEFINITIONS.some(function (definition) { return definition.key === fieldId; })) {
+        issues.push({ sourceLine: null, field: fieldId, code: 'custom_field_id_conflict', message: message(locale, 'customFieldIdConflict') });
+        return;
+      }
       const position = mapping[fieldId];
       if (!Number.isInteger(position)) return;
       if (coreMapping && Object.keys(coreMapping).some(function (key) { return coreMapping[key] === position; })) {
@@ -1066,8 +1074,97 @@
     return normalizeDate(String(values[sourceIndex]).trim());
   }
 
-  function normalizeRecord(record, headers, mapping, locale, sourceFile, customFields, customFieldMapping) {
-    const values = record.values;
+  function applyPreparationRules(value, rules) {
+    let prepared = value === undefined || value === null ? '' : String(value);
+    const applied = [];
+    (Array.isArray(rules) ? rules : []).forEach(function (rule, index) {
+      if (!rule || rule.enabled === false) return;
+      let next = prepared;
+      if (rule.type === 'trim') {
+        next = prepared.trim();
+      } else if (rule.type === 'empty-to-null' && (rule.sentinelSet instanceof Set
+        ? rule.sentinelSet.has(prepared)
+        : (Array.isArray(rule.values) && rule.values.indexOf(prepared) >= 0))) {
+        next = '';
+      } else if (rule.type === 'replace-text' && typeof rule.from === 'string' && prepared === rule.from && typeof rule.to === 'string') {
+        next = rule.to;
+      } else if (rule.type === 'case-normalization') {
+        if (rule.mode === 'lower') next = prepared.toLowerCase();
+        else if (rule.mode === 'upper') next = prepared.toUpperCase();
+      }
+      if (next !== prepared) {
+        applied.push(index);
+        prepared = next;
+      }
+    });
+    return { value: prepared, applied: applied };
+  }
+
+  function compilePreparationRules(preparationRules) {
+    const compiled = {};
+    Object.keys(preparationRules || {}).forEach(function (targetId) {
+      compiled[targetId] = (Array.isArray(preparationRules[targetId]) ? preparationRules[targetId] : []).map(function (rule) {
+        if (!rule || rule.type !== 'empty-to-null' || !Array.isArray(rule.values)) return rule;
+        return Object.assign({}, rule, { sentinelSet: new Set(rule.values) });
+      });
+    });
+    return compiled;
+  }
+
+  function hasEnabledPreparationRules(mapping, customFieldMapping, customFields, preparationRules) {
+    function enabledFor(targetId, sourceIndex) {
+      return Number.isInteger(sourceIndex) && Array.isArray(preparationRules && preparationRules[targetId]) &&
+        preparationRules[targetId].some(function (rule) { return rule && rule.enabled !== false; });
+    }
+    if (Object.keys(mapping || {}).some(function (targetId) { return enabledFor(targetId, mapping[targetId]); })) return true;
+    const activeCustomFieldIds = new Set((Array.isArray(customFields) ? customFields : [])
+      .filter(function (field) { return field && field.active !== false; })
+      .map(function (field) { return field.id; }));
+    return Object.keys(customFieldMapping || {}).some(function (targetId) {
+      return activeCustomFieldIds.has(targetId) && enabledFor(targetId, customFieldMapping[targetId]);
+    });
+  }
+
+  function prepareProfileValues(values, mapping, customFieldMapping, customFields, preparationRules) {
+    let preparedValues = values;
+    const preparedFieldIds = [];
+    const evidence = {};
+    function prepareTarget(targetId, sourceIndex) {
+      if (!Number.isInteger(sourceIndex) || sourceIndex < 0 || sourceIndex >= values.length) return;
+      const rules = preparationRules && preparationRules[targetId];
+      if (!Array.isArray(rules)) return;
+      const original = String(values[sourceIndex] === undefined || values[sourceIndex] === null ? '' : values[sourceIndex]);
+      const result = applyPreparationRules(original, rules);
+      if (result.value === original) return;
+      if (preparedValues === values) preparedValues = values.slice();
+      preparedValues[sourceIndex] = result.value;
+      preparedFieldIds.push(targetId);
+      evidence[targetId] = {
+        sourceColumnPosition: sourceIndex,
+        originalValue: original,
+        preparedValue: result.value,
+        ruleIndexes: result.applied
+      };
+    }
+    Object.keys(mapping || {}).forEach(function (targetId) { prepareTarget(targetId, mapping[targetId]); });
+    const activeCustomFieldIds = new Set((Array.isArray(customFields) ? customFields : [])
+      .filter(function (field) { return field && field.active !== false; })
+      .map(function (field) { return field.id; }));
+    Object.keys(customFieldMapping || {}).forEach(function (targetId) {
+      if (activeCustomFieldIds.has(targetId)) prepareTarget(targetId, customFieldMapping[targetId]);
+    });
+    return { values: preparedValues, preparedFieldIds: preparedFieldIds, evidence: evidence };
+  }
+
+  function countPreparedFields(counts, targetIds) {
+    targetIds.forEach(function (targetId) {
+      counts[targetId] = (counts[targetId] || 0) + 1;
+    });
+  }
+
+  function normalizeRecord(record, headers, mapping, locale, sourceFile, customFields, customFieldMapping, preparedRow) {
+    const values = preparedRow.values;
+    const preparationEvidence = preparedRow.evidence;
     const issues = [];
     const sourceType = sourceFile && sourceFile.sourceType === 'article-master' ? 'article-master' : 'order-lines';
 
@@ -1274,10 +1371,16 @@
     issues.forEach(function (issue) {
       issue.deliveryDate = deliveryDate;
       issue.articleId = articleId;
+      const targetId = issue.customFieldId || issue.field;
+      const evidence = preparationEvidence[targetId];
+      if (evidence) {
+        issue.originalRawValue = evidence.originalValue;
+        issue.preparedValue = evidence.preparedValue;
+        issue.preparationRuleIndexes = evidence.ruleIndexes.slice();
+      }
     });
 
-    return {
-      record: {
+    const normalizedRecord = {
         source_file_id: sourceFile.id,
         source_file_name: sourceFile.name,
         source_file_label: sourceFile.label,
@@ -1309,9 +1412,10 @@
         sales_unit_quantity_matches: salesUnitQuantityMatches,
         sales_unit_quantity_relation: salesUnitQuantityRelation,
         custom_fields: customValues
-      },
-      issues: issues
     };
+    const preparedFieldIds = Object.keys(preparationEvidence);
+    if (preparedFieldIds.length > 0) normalizedRecord.prepared_fields = preparedFieldIds;
+    return { record: normalizedRecord, issues: issues, preparedFieldIds: preparedFieldIds };
   }
 
   function parserErrorMessage(error, locale) {
@@ -1335,8 +1439,12 @@
     let selectedMapping = mapping || null;
     const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
     const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
+    const preparationRules = compilePreparationRules(options && options.preparationRules ? options.preparationRules : {});
     let columnCatalog = [];
     let columnProfileStates = [];
+    let rawColumnCatalog = [];
+    let rawColumnProfileStates = [];
+    let profileRawSeparately = false;
     let mappingIssues = null;
     let headerHasParserError = false;
     const issues = [];
@@ -1344,6 +1452,7 @@
     const invalidLines = new Set();
     const structuralLines = new Set();
     const dateByLine = new Map();
+    const preparationCounts = {};
 
     const parsed = parseCsvChunks(chunks, Object.assign({}, options, {
       retainRows: false,
@@ -1352,14 +1461,28 @@
           headers = dataRow.values.map(function (header) { return String(header).trim(); });
           columnCatalog = buildColumnCatalog(headers, sourceFile);
           columnProfileStates = createColumnProfileStates(headers.length);
+          rawColumnCatalog = buildColumnCatalog(headers, sourceFile);
+          rawColumnProfileStates = createColumnProfileStates(headers.length);
           headerHasParserError = parserErrors.length > 0;
           selectedMapping = selectedMapping || detectMapping(headers, sourceFile.sourceType);
           mappingIssues = validateMapping(selectedMapping, locale, sourceFile.sourceType).concat(validateCustomFieldMapping(customFieldMapping, customFields, locale, selectedMapping));
+          profileRawSeparately = hasEnabledPreparationRules(selectedMapping, customFieldMapping, customFields, preparationRules);
+          if (profileRawSeparately) {
+            rawColumnCatalog = buildColumnCatalog(headers, sourceFile);
+            rawColumnProfileStates = createColumnProfileStates(headers.length);
+          } else {
+            rawColumnCatalog = columnCatalog;
+          }
           return;
         }
 
         totalRows += 1;
-        observeColumnProfiles(columnProfileStates, dataRow.values);
+        const preparedProfile = prepareProfileValues(
+          dataRow.values, selectedMapping, customFieldMapping, customFields, preparationRules
+        );
+        observeColumnProfiles(columnProfileStates, preparedProfile.values);
+        if (profileRawSeparately) observeColumnProfiles(rawColumnProfileStates, dataRow.values);
+        countPreparedFields(preparationCounts, preparedProfile.preparedFieldIds);
         const rowHasParserError = parserErrors.length > 0;
         if (dataRow.values.length !== headers.length) {
           structuralLines.add(dataRow.sourceLine);
@@ -1377,7 +1500,7 @@
           return;
         }
 
-        const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping);
+        const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping, preparedProfile);
         if (normalized.record.delivery_date) {
           dateByLine.set(dataRow.sourceLine, normalized.record.delivery_date);
         }
@@ -1406,10 +1529,14 @@
     });
     const finalHeaders = headers || parsed.headers || [];
     columnCatalog = finalizeColumnProfiles(columnCatalog, columnProfileStates);
+    rawColumnCatalog = profileRawSeparately
+      ? finalizeColumnProfiles(rawColumnCatalog, rawColumnProfileStates)
+      : columnCatalog;
     if (finalHeaders.length === 0) {
       return {
         headers: [],
         columnCatalog: [],
+        rawColumnCatalog: [],
         rows: [],
         issues: addSourceToIssues(parserIssues.concat([{ sourceLine: null, field: null, code: 'header_missing', message: message(locale, 'headerMissing') }]), sourceFile),
         totalRows: 0,
@@ -1425,6 +1552,7 @@
       return {
         headers: finalHeaders,
         columnCatalog: columnCatalog,
+        rawColumnCatalog: rawColumnCatalog,
         rows: [],
         issues: addSourceToIssues(parserIssues, sourceFile),
         totalRows: totalRows,
@@ -1440,6 +1568,7 @@
       return {
         headers: finalHeaders,
         columnCatalog: columnCatalog,
+        rawColumnCatalog: rawColumnCatalog,
         rows: [],
         issues: addSourceToIssues(parserIssues.concat(mappingIssues), sourceFile),
         totalRows: totalRows,
@@ -1454,6 +1583,7 @@
     return {
       headers: finalHeaders,
       columnCatalog: columnCatalog,
+      rawColumnCatalog: rawColumnCatalog,
       rows: rows,
       issues: addSourceToIssues(parserIssues.concat(issues), sourceFile),
       totalRows: totalRows,
@@ -1461,6 +1591,7 @@
       invalidRows: invalidLines.size,
       structuralRows: structuralLines.size,
       mapping: selectedMapping,
+      preparationCounts: preparationCounts,
       sourceFile: sourceFile,
       blocking: false
     };
@@ -1500,15 +1631,37 @@
     const columnCatalog = buildColumnCatalog(headers, sourceFile);
     const columnProfileStates = createColumnProfileStates(headers.length);
     const dataRows = parsed.rows.slice(1);
-    dataRows.forEach(function (dataRow) { observeColumnProfiles(columnProfileStates, dataRow.values); });
+    const selectedMapping = mapping || detectMapping(headers, sourceFile.sourceType);
+    const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
+    const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
+    const preparationRules = compilePreparationRules(options && options.preparationRules ? options.preparationRules : {});
+    const preparationCounts = {};
+    const profileRawSeparately = hasEnabledPreparationRules(selectedMapping, customFieldMapping, customFields, preparationRules);
+    const rawColumnCatalog = profileRawSeparately ? buildColumnCatalog(headers, sourceFile) : columnCatalog;
+    const rawColumnProfileStates = profileRawSeparately ? createColumnProfileStates(headers.length) : null;
+    const preparedRows = [];
+    dataRows.forEach(function (dataRow, rowIndex) {
+      const preparedProfile = prepareProfileValues(
+        dataRow.values, selectedMapping, customFieldMapping, customFields, preparationRules
+      );
+      preparedRows.push(preparedProfile);
+      observeColumnProfiles(columnProfileStates, preparedProfile.values);
+      if (profileRawSeparately) observeColumnProfiles(rawColumnProfileStates, dataRow.values);
+      countPreparedFields(preparationCounts, preparedProfile.preparedFieldIds);
+    });
     const headerSourceLine = parsed.rows[0].sourceLine;
     const headerHasParserError = parsed.errors.some(function (error) {
       return error.sourceLine === headerSourceLine;
     });
+    const finalizedColumnCatalog = finalizeColumnProfiles(columnCatalog, columnProfileStates);
+    const finalizedRawColumnCatalog = profileRawSeparately
+      ? finalizeColumnProfiles(rawColumnCatalog, rawColumnProfileStates)
+      : finalizedColumnCatalog;
     if (headerHasParserError) {
       return {
         headers: headers,
-        columnCatalog: finalizeColumnProfiles(columnCatalog, columnProfileStates),
+        columnCatalog: finalizedColumnCatalog,
+        rawColumnCatalog: finalizedRawColumnCatalog,
         rows: [],
         issues: addSourceToIssues(parserIssues, sourceFile),
         totalRows: dataRows.length,
@@ -1520,14 +1673,12 @@
         blocking: true
       };
     }
-    const selectedMapping = mapping || detectMapping(headers, sourceFile.sourceType);
-    const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
-    const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
     const mappingIssues = validateMapping(selectedMapping, locale, sourceFile.sourceType).concat(validateCustomFieldMapping(customFieldMapping, customFields, locale, selectedMapping));
     if (mappingIssues.length > 0) {
       return {
         headers: headers,
-        columnCatalog: finalizeColumnProfiles(columnCatalog, columnProfileStates),
+        columnCatalog: finalizedColumnCatalog,
+        rawColumnCatalog: finalizedRawColumnCatalog,
         rows: [],
         issues: addSourceToIssues(parserIssues.concat(mappingIssues), sourceFile),
         totalRows: dataRows.length,
@@ -1546,7 +1697,7 @@
     const invalidLines = new Set();
     const structuralLines = new Set();
 
-    dataRows.forEach(function (dataRow) {
+    dataRows.forEach(function (dataRow, rowIndex) {
       if (dataRow.values.length !== headers.length) {
         structuralLines.add(dataRow.sourceLine);
         invalidLines.add(dataRow.sourceLine);
@@ -1560,7 +1711,7 @@
         return;
       }
 
-      const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping);
+      const normalized = normalizeRecord(dataRow, headers, selectedMapping, locale, sourceFile, customFields, customFieldMapping, preparedRows[rowIndex]);
       if (normalized.record.delivery_date) {
         dateByLine.set(dataRow.sourceLine, normalized.record.delivery_date);
       }
@@ -1585,7 +1736,8 @@
 
     return {
       headers: headers,
-      columnCatalog: finalizeColumnProfiles(columnCatalog, columnProfileStates),
+      columnCatalog: finalizedColumnCatalog,
+      rawColumnCatalog: finalizedRawColumnCatalog,
       rows: rows,
       issues: addSourceToIssues(issues, sourceFile),
       totalRows: dataRows.length,
@@ -1593,6 +1745,7 @@
       invalidRows: invalidLines.size,
       structuralRows: structuralLines.size,
       mapping: selectedMapping,
+      preparationCounts: preparationCounts,
       sourceFile: sourceFile,
       blocking: false
     };
@@ -2416,7 +2569,9 @@
         finding.examples.push({
           sourceLine: Number.isInteger(issue && issue.sourceLine) ? issue.sourceLine : null,
           rawValue: issue && issue.rawValue !== undefined ? issue.rawValue : null,
-          deliveryDate: issue && issue.deliveryDate || null
+          deliveryDate: issue && issue.deliveryDate || null,
+          originalRawValue: issue && issue.originalRawValue !== undefined ? issue.originalRawValue : null,
+          preparedValue: issue && issue.preparedValue !== undefined ? issue.preparedValue : null
         });
       }
     });
@@ -2429,7 +2584,9 @@
       const sourceType = normalizeFieldSourceType(file && file.sourceType);
       const result = file && file.result || {};
       const mapping = result.mapping || file.mapping || {};
-      const catalog = Array.isArray(file && file.columnCatalog) ? file.columnCatalog : [];
+      const catalog = Array.isArray(result.columnCatalog)
+        ? result.columnCatalog
+        : (Array.isArray(file && file.columnCatalog) ? file.columnCatalog : []);
       const headers = Array.isArray(result.headers) ? result.headers : [];
       const profiles = catalog.length > 0 ? catalog : headers.map(function (header, position) {
         return { position: position, header: header, profile: null };
@@ -2487,9 +2644,50 @@
     return findings;
   }
 
-  function buildUnifiedDataQualityFindings(files, registry, importIssues, locale) {
+  function buildPreparationQualityFindings(files, locale, customFields) {
+    const findings = [];
+    const filterCustomFields = Array.isArray(customFields);
+    const activeCustomFieldIds = new Set((filterCustomFields ? customFields : [])
+      .filter(function (field) { return field && field.active !== false; })
+      .map(function (field) { return String(field.id); }));
+    (files || []).forEach(function (file) {
+      const result = file && file.result || {};
+      const rows = Array.isArray(result.rows) ? result.rows : [];
+      const mapping = Object.assign({}, result.mapping || file.mapping || {}, file.customFieldMapping || {});
+      const counts = new Map();
+      if (result.preparationCounts && typeof result.preparationCounts === 'object') {
+        Object.keys(result.preparationCounts).forEach(function (targetId) {
+          if (filterCustomFields && /^custom-/.test(targetId) && !activeCustomFieldIds.has(targetId)) return;
+          const count = result.preparationCounts[targetId];
+          if (Number.isInteger(count) && count > 0) counts.set(targetId, count);
+        });
+      } else {
+        rows.forEach(function (row) {
+          (Array.isArray(row.prepared_fields) ? row.prepared_fields : []).forEach(function (targetId) {
+            counts.set(targetId, (counts.get(targetId) || 0) + 1);
+          });
+        });
+      }
+      counts.forEach(function (count, targetId) {
+        const position = Number.isInteger(mapping[targetId]) ? mapping[targetId] : null;
+        findings.push(createQualityFinding({
+          scope: 'column', code: 'preparation_rule_applied', severity: 'info', blocking: false,
+          sourceFileId: file.id || null, sourceFileLabel: file.label || file.name || null,
+          sourceFileName: file.name || null, sourceType: normalizeFieldSourceType(file.sourceType),
+          sourceColumnPosition: position,
+          sourceColumn: position !== null && Array.isArray(result.headers) ? (result.headers[position] || '') : '',
+          field: targetId, affectedCount: count, examples: [], origin: 'preparation',
+          message: message(locale, 'qualityPreparationApplied', { count: count })
+        }));
+      });
+    });
+    return findings;
+  }
+
+  function buildUnifiedDataQualityFindings(files, registry, importIssues, locale, customFields) {
     return adaptValidationIssues(importIssues)
       .concat(buildColumnQualityFindings(files, locale))
+      .concat(buildPreparationQualityFindings(files, locale, customFields))
       .concat(buildDataQualityFindings(registry, importIssues, locale));
   }
 
@@ -2712,7 +2910,7 @@
       retainedRows: retainedRows,
       articleRegistry: articleRegistry,
       qualityFindings: qualityFindings,
-      dataQualityFindings: buildUnifiedDataQualityFindings(normalizedFiles, articleRegistry, issues, options && options.locale),
+      dataQualityFindings: buildUnifiedDataQualityFindings(normalizedFiles, articleRegistry, issues, options && options.locale, options && options.customFields),
       capabilities: capabilities,
       featureReadiness: {
         periodComparison: evaluateFeatureReadiness(capabilities, 'periodComparison', options && options.locale)
@@ -3130,6 +3328,7 @@
     applyFeatureReadinessToAnalysis: applyFeatureReadinessToAnalysis,
     adaptValidationIssues: adaptValidationIssues,
     buildColumnQualityFindings: buildColumnQualityFindings,
+    buildPreparationQualityFindings: buildPreparationQualityFindings,
     buildDataQualityFindings: buildDataQualityFindings,
     buildUnifiedDataQualityFindings: buildUnifiedDataQualityFindings,
     enrichAnalysisWithRegistry: enrichAnalysisWithRegistry,
@@ -3164,6 +3363,7 @@
     parseCsvChunks: parseCsvChunks,
     reconstructRawSource: reconstructRawSource,
     validateMapping: validateMapping,
-    validateCustomFieldMapping: validateCustomFieldMapping
+    validateCustomFieldMapping: validateCustomFieldMapping,
+    applyPreparationRules: applyPreparationRules
   };
 }));

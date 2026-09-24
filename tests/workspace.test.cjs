@@ -702,3 +702,50 @@ test('schema-eight migration removes hidden order-line mappings from article-mas
   assert.deepEqual(migrated.files[0].confirmedMapping, { article_id: 0 });
   assert.deepEqual(migrated.files[0].result.mapping, { article_id: 0 });
 });
+
+test('schema-nine migration adds empty preparation rules without changing existing imports', () => {
+  const legacy = analyzedWorkspace('workspace-v9', 'Version nine', 'SKU-V9');
+  legacy.schemaVersion = 9;
+  delete legacy.files[0].preparationRules;
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, 10);
+  assert.deepEqual(migrated.files[0].preparationRules, {});
+  assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V9');
+});
+
+test('ordered preparation rules survive validation and backup restore', () => {
+  const original = analyzedWorkspace('workspace-preparation', 'Prepared', 'SKU-PREP');
+  original.files[0].preparationRules = {
+    article_id: [
+      { type: 'trim', enabled: true },
+      { type: 'case-normalization', mode: 'upper', enabled: false }
+    ],
+    quantity: [{ type: 'replace-text', from: 'unknown', to: '1', enabled: true }]
+  };
+  const validated = workspace.validateWorkspace(original);
+  const restored = workspace.parseBackup(workspace.stringifyBackup(validated, { now: '2026-09-20T10:00:00.000Z' }));
+  const preparedRestore = workspace.prepareRestore(restored, {
+    mode: 'new', newId: 'workspace-preparation-restored', now: '2026-09-20T11:00:00.000Z'
+  });
+  assert.deepEqual(preparedRestore.files[0].preparationRules, validated.files[0].preparationRules);
+  const dormantRules = workspace.normalizePreparationRules({
+    unmapped_core: Array.from({ length: 60 }, () => ({ type: 'trim', enabled: true })),
+    removed_custom: Array.from({ length: 60 }, () => ({ type: 'trim', enabled: true }))
+  });
+  assert.equal(dormantRules.unmapped_core.length + dormantRules.removed_custom.length, 120);
+  assert.equal(workspace.countAccessiblePreparationRules(dormantRules, { unmapped_core: null }, {}, []), 0);
+  assert.equal(workspace.countAccessiblePreparationRules(dormantRules, { unmapped_core: 0 }, {}, []), 60);
+  assert.equal(workspace.countAccessiblePreparationRules(dormantRules, { unmapped_core: 0 }, { removed_custom: 1 }, [{ id: 'removed_custom', active: true }]), 120);
+  const remappedOverLimit = analyzedWorkspace('workspace-preparation-over-limit', 'Over limit', 'SKU-LIMIT');
+  remappedOverLimit.files[0].preparationRules = {
+    article_id: Array.from({ length: 60 }, () => ({ type: 'trim', enabled: true })),
+    quantity: Array.from({ length: 41 }, () => ({ type: 'trim', enabled: true }))
+  };
+  assert.throws(() => workspace.validateWorkspace(remappedOverLimit), (error) => error.code === 'too_many_accessible_preparation_rules');
+  assert.throws(() => workspace.normalizePreparationRules({
+    article_id: [{ type: 'replace-text', from: 1, to: 'x', enabled: true }]
+  }), (error) => error.code === 'invalid_preparation_rules');
+  assert.throws(() => workspace.normalizePreparationRules({
+    article_id: [{ type: 'arbitrary-code', enabled: true }]
+  }), (error) => error.code === 'invalid_preparation_rules');
+});

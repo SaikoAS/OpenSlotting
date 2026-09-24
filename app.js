@@ -142,6 +142,27 @@
       mapping_file_included: 'Included',
       mapping_file_excluded: 'Excluded',
       mapping_file_reading: 'Reading…',
+      prep_rules_title: 'Preparation rules',
+      prep_rules_count: '{{count}} enabled',
+      prep_rules_help: 'Rules run in the listed order before the existing validation and type checks. Original source values stay available.',
+      prep_rule_type: 'Rule type',
+      prep_rule_add: 'Add rule',
+      prep_rule_limit: 'A source can have at most 100 rules across currently mapped targets.',
+      prep_rule_values_invalid: 'Use at most 100 sentinel values, with no value longer than 512 characters.',
+      prep_rule_enabled: 'Enabled',
+      prep_rule_trim: 'Trim outer whitespace',
+      prep_rule_empty_to_null: 'Map exact sentinel to empty',
+      prep_rule_replace_text: 'Replace exact text',
+      prep_rule_case_normalization: 'Normalize letter case',
+      prep_rule_sentinels: 'Sentinel values, one per line',
+      prep_rule_from: 'Exact source value',
+      prep_rule_to: 'Replacement value',
+      prep_rule_mode: 'Case',
+      prep_case_lower: 'Lowercase',
+      prep_case_upper: 'Uppercase',
+      prep_rule_move_up: 'Move rule up',
+      prep_rule_move_down: 'Move rule down',
+      prep_rule_remove: 'Remove rule',
       source_columns_title: 'Source-column overview',
       source_columns_hint: 'Each decoded source column is shown by physical position. Suggestions never change mappings automatically.',
       source_column_header: 'Source column',
@@ -586,6 +607,27 @@
       mapping_file_included: 'Einbezogen',
       mapping_file_excluded: 'Ausgeschlossen',
       mapping_file_reading: 'Wird gelesen …',
+      prep_rules_title: 'Aufbereitungsregeln',
+      prep_rules_count: '{{count}} aktiv',
+      prep_rules_help: 'Regeln laufen in der angezeigten Reihenfolge vor der bestehenden Prüfung und Typvalidierung. Originalwerte bleiben verfügbar.',
+      prep_rule_type: 'Regeltyp',
+      prep_rule_add: 'Regel hinzufügen',
+      prep_rule_limit: 'Eine Quelle darf höchstens 100 Regeln für aktuell zugeordnete Zielfelder haben.',
+      prep_rule_values_invalid: 'Höchstens 100 Platzhalterwerte mit maximal 512 Zeichen je Wert eingeben.',
+      prep_rule_enabled: 'Aktiv',
+      prep_rule_trim: 'Leerzeichen außen entfernen',
+      prep_rule_empty_to_null: 'Exakten Platzhalter als leer behandeln',
+      prep_rule_replace_text: 'Exakten Text ersetzen',
+      prep_rule_case_normalization: 'Groß-/Kleinschreibung vereinheitlichen',
+      prep_rule_sentinels: 'Platzhalterwerte, je eine Zeile',
+      prep_rule_from: 'Exakter Ausgangswert',
+      prep_rule_to: 'Ersatzwert',
+      prep_rule_mode: 'Schreibweise',
+      prep_case_lower: 'Kleinbuchstaben',
+      prep_case_upper: 'Großbuchstaben',
+      prep_rule_move_up: 'Regel nach oben',
+      prep_rule_move_down: 'Regel nach unten',
+      prep_rule_remove: 'Regel entfernen',
       source_columns_title: 'Übersicht der Quellspalten',
       source_columns_hint: 'Jede dekodierte Quellspalte wird nach physischer Position gezeigt. Vorschläge ändern Zuordnungen nie automatisch.',
       source_column_header: 'Quellspalte',
@@ -1358,7 +1400,11 @@
     elements.languageSelect.disabled = editsLocked;
     elements.analyzeButton.disabled = editsLocked || !state.activeWorkspace || !state.files.some(function (file) { return Boolean(file.parsed); });
     elements.exportButton.disabled = editsLocked || !state.result || !state.analysis || state.analysis.articles.length === 0;
-    elements.mappingGrid.querySelectorAll('select, button').forEach(function (control) {
+    elements.mappingGrid.querySelectorAll('select, button, input, textarea').forEach(function (control) {
+      if (control.dataset.prepLockControl === 'true') {
+        control.disabled = editsLocked || control.dataset.prepSemanticDisabled === 'true';
+        return;
+      }
       const fileId = control.dataset.encodingFileId || control.dataset.removeFileId || control.dataset.fileId;
       const file = state.files.find(function (item) { return item.id === fileId; });
       if (control.dataset.encodingFileId) {
@@ -1726,6 +1772,179 @@
     section.appendChild(wrapper);
   }
 
+  function newPreparationRule(type) {
+    if (type === 'empty-to-null') return { type: type, enabled: true, values: [] };
+    if (type === 'replace-text') return { type: type, enabled: true, from: '', to: '' };
+    if (type === 'case-normalization') return { type: type, enabled: true, mode: 'lower' };
+    return { type: 'trim', enabled: true };
+  }
+
+  function preparationRuleTypeKey(type) {
+    return 'prep_rule_' + type.replace(/-/g, '_');
+  }
+
+  function accessiblePreparationRuleCount(file) {
+    return workspaceModel.countAccessiblePreparationRules(
+      file.preparationRules,
+      file.mapping,
+      file.customFieldMapping,
+      state.customFields
+    );
+  }
+
+  function renderPreparationEditor(file, targetId, wrapper, editsLocked) {
+    if (!Number.isInteger((file.mapping || {})[targetId]) && !Number.isInteger((file.customFieldMapping || {})[targetId])) return;
+    file.preparationRules = file.preparationRules || {};
+    const rules = Array.isArray(file.preparationRules[targetId]) ? file.preparationRules[targetId] : [];
+    const details = document.createElement('details');
+    details.className = 'preparation-editor';
+    details.dataset.prepFileId = file.id;
+    details.dataset.prepTarget = targetId;
+    details.open = rules.length > 0;
+    const summary = document.createElement('summary');
+    setText(summary, translate('prep_rules_title') + ' · ' + translate('prep_rules_count', {
+      count: rules.filter(function (rule) { return rule.enabled !== false; }).length
+    }));
+    details.appendChild(summary);
+    const help = document.createElement('small');
+    help.className = 'mapping-help';
+    setText(help, translate('prep_rules_help'));
+    details.appendChild(help);
+    const list = document.createElement('div');
+    list.className = 'preparation-rule-list';
+    rules.forEach(function (rule, index) {
+      const row = document.createElement('div');
+      row.className = 'preparation-rule';
+      row.dataset.prepFileId = file.id;
+      row.dataset.prepTarget = targetId;
+      row.dataset.prepIndex = String(index);
+      const enabledLabel = document.createElement('label');
+      enabledLabel.className = 'preparation-enabled';
+      const enabled = document.createElement('input');
+      enabled.type = 'checkbox';
+      enabled.checked = rule.enabled !== false;
+      enabled.disabled = editsLocked;
+      enabled.dataset.prepLockControl = 'true';
+      enabled.dataset.prepEnabled = 'true';
+      enabledLabel.appendChild(enabled);
+      const enabledText = document.createElement('span');
+      setText(enabledText, translate('prep_rule_enabled'));
+      enabledLabel.appendChild(enabledText);
+      row.appendChild(enabledLabel);
+
+      const typeSelect = document.createElement('select');
+      typeSelect.dataset.prepType = 'true';
+      typeSelect.disabled = editsLocked;
+      typeSelect.dataset.prepLockControl = 'true';
+      typeSelect.setAttribute('aria-label', translate('prep_rule_type'));
+      workspaceModel.PREPARATION_RULE_TYPES.forEach(function (type) {
+        addOption(typeSelect, type, translate(preparationRuleTypeKey(type)));
+      });
+      typeSelect.value = rule.type;
+      row.appendChild(typeSelect);
+
+      if (rule.type === 'empty-to-null') {
+        const values = document.createElement('textarea');
+        values.rows = 2;
+        values.maxLength = 51299;
+        values.value = (rule.values || []).join('\n');
+        values.disabled = editsLocked;
+        values.dataset.prepLockControl = 'true';
+        values.dataset.prepValues = 'true';
+        values.setAttribute('aria-label', translate('prep_rule_sentinels'));
+        values.placeholder = translate('prep_rule_sentinels');
+        row.appendChild(values);
+      } else if (rule.type === 'replace-text') {
+        const from = document.createElement('input');
+        from.type = 'text';
+        from.maxLength = 512;
+        from.value = rule.from || '';
+        from.disabled = editsLocked;
+        from.dataset.prepLockControl = 'true';
+        from.dataset.prepFrom = 'true';
+        from.setAttribute('aria-label', translate('prep_rule_from'));
+        from.placeholder = translate('prep_rule_from');
+        row.appendChild(from);
+        const to = document.createElement('input');
+        to.type = 'text';
+        to.maxLength = 512;
+        to.value = rule.to || '';
+        to.disabled = editsLocked;
+        to.dataset.prepLockControl = 'true';
+        to.dataset.prepTo = 'true';
+        to.setAttribute('aria-label', translate('prep_rule_to'));
+        to.placeholder = translate('prep_rule_to');
+        row.appendChild(to);
+      } else if (rule.type === 'case-normalization') {
+        const mode = document.createElement('select');
+        mode.dataset.prepMode = 'true';
+        mode.disabled = editsLocked;
+        mode.dataset.prepLockControl = 'true';
+        mode.setAttribute('aria-label', translate('prep_rule_mode'));
+        addOption(mode, 'lower', translate('prep_case_lower'));
+        addOption(mode, 'upper', translate('prep_case_upper'));
+        mode.value = rule.mode || 'lower';
+        row.appendChild(mode);
+      }
+      const moveUp = document.createElement('button');
+      moveUp.type = 'button';
+      moveUp.className = 'text-button preparation-order-button';
+      moveUp.dataset.prepAction = 'up';
+      moveUp.disabled = editsLocked || index === 0;
+      moveUp.dataset.prepLockControl = 'true';
+      moveUp.dataset.prepSemanticDisabled = index === 0 ? 'true' : 'false';
+      moveUp.setAttribute('aria-label', translate('prep_rule_move_up'));
+      setText(moveUp, '↑');
+      row.appendChild(moveUp);
+      const moveDown = document.createElement('button');
+      moveDown.type = 'button';
+      moveDown.className = 'text-button preparation-order-button';
+      moveDown.dataset.prepAction = 'down';
+      moveDown.disabled = editsLocked || index === rules.length - 1;
+      moveDown.dataset.prepLockControl = 'true';
+      moveDown.dataset.prepSemanticDisabled = index === rules.length - 1 ? 'true' : 'false';
+      moveDown.setAttribute('aria-label', translate('prep_rule_move_down'));
+      setText(moveDown, '↓');
+      row.appendChild(moveDown);
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'text-button preparation-remove-button';
+      remove.dataset.prepAction = 'remove';
+      remove.disabled = editsLocked;
+      remove.dataset.prepLockControl = 'true';
+      remove.setAttribute('aria-label', translate('prep_rule_remove'));
+      setText(remove, '×');
+      row.appendChild(remove);
+      list.appendChild(row);
+    });
+    details.appendChild(list);
+    const addRow = document.createElement('div');
+    addRow.className = 'preparation-add-row';
+    const addType = document.createElement('select');
+    addType.dataset.prepAddType = 'true';
+    addType.disabled = editsLocked;
+    addType.dataset.prepLockControl = 'true';
+    addType.setAttribute('aria-label', translate('prep_rule_type'));
+    workspaceModel.PREPARATION_RULE_TYPES.forEach(function (type) {
+      addOption(addType, type, translate(preparationRuleTypeKey(type)));
+    });
+    addRow.appendChild(addType);
+    const add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'text-button';
+    add.dataset.prepAction = 'add';
+    const ruleCount = accessiblePreparationRuleCount(file);
+    const limitReached = ruleCount >= 100 || rules.length >= 100;
+    add.disabled = editsLocked || limitReached;
+    add.dataset.prepLockControl = 'true';
+    add.dataset.prepSemanticDisabled = limitReached ? 'true' : 'false';
+    if (ruleCount >= 100) add.title = translate('prep_rule_limit');
+    setText(add, translate('prep_rule_add'));
+    addRow.appendChild(add);
+    details.appendChild(addRow);
+    wrapper.appendChild(details);
+  }
+
   function renderMapping() {
     const editsLocked = state.workspaceLoading || state.files.some(function (file) { return Boolean(file.reading); });
     elements.mappingGrid.replaceChildren();
@@ -1847,6 +2066,7 @@
             setText(help, translate(helpKey));
             wrapper.appendChild(help);
           }
+          renderPreparationEditor(file, definition.key, wrapper, editsLocked);
           fields.appendChild(wrapper);
         });
         const customFields = state.customFields.filter(function (field) { return field.active !== false; });
@@ -1884,7 +2104,9 @@
             if (file.customFieldMapping && Number.isInteger(file.customFieldMapping[field.id])) {
               select.value = String(file.customFieldMapping[field.id]);
             }
-            wrapper.appendChild(label); wrapper.appendChild(select); fields.appendChild(wrapper);
+            wrapper.appendChild(label); wrapper.appendChild(select);
+            renderPreparationEditor(file, field.id, wrapper, editsLocked);
+            fields.appendChild(wrapper);
           });
         }
         section.appendChild(fields);
@@ -3506,23 +3728,29 @@
             locale: state.language,
             sourceFile: sourceContext(file),
             customFields: state.customFields,
-            customFieldMapping: customFieldMapping
+            customFieldMapping: customFieldMapping,
+            preparationRules: file.preparationRules
           })
           : core.importCsvStreaming(file.content, mapping, {
             locale: state.language,
             sourceFile: sourceContext(file),
             customFields: state.customFields,
-            customFieldMapping: customFieldMapping
+            customFieldMapping: customFieldMapping,
+            preparationRules: file.preparationRules
           });
-        if (file.result && Array.isArray(file.result.columnCatalog)) {
-          file.columnCatalog = file.result.columnCatalog;
+        if (file.result && Array.isArray(file.result.rawColumnCatalog)) {
+          file.columnCatalog = file.result.rawColumnCatalog;
         }
       } else {
         file.result = null;
       }
       return file;
     });
-    const result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator, locale: state.language });
+    const result = core.combineImportResults(batchFiles, {
+      analysisAccumulator: analysisAccumulator,
+      locale: state.language,
+      customFields: state.customFields
+    });
     renderMapping();
     renderResults(result, { preserveView: preserveView, analysis: analysisAccumulator.finish({ locale: state.language }) });
   }
@@ -3729,6 +3957,7 @@
         parsed: null,
         headers: [],
         mapping: {},
+        preparationRules: {},
         customFieldMapping: {},
         confirmedMapping: null,
         columnCatalog: [],
@@ -3834,6 +4063,7 @@
       parsed: null,
       headers: [],
       mapping: {},
+      preparationRules: workspaceModel.normalizePreparationRules(stored.preparationRules),
       customFieldMapping: {},
       confirmedCustomFieldMapping: null,
       confirmedMapping: null,
@@ -3878,6 +4108,7 @@
         detectedEncoding: file.detectedEncoding,
         errorKey: file.errorKey,
         mapping: file.mapping,
+        preparationRules: file.preparationRules,
         customFieldMapping: file.customFieldMapping,
         confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
@@ -3925,21 +4156,27 @@
               locale: language,
               sourceFile: sourceContext(file),
               customFields: validated.customFields,
-              customFieldMapping: customFieldMapping
+              customFieldMapping: customFieldMapping,
+              preparationRules: file.preparationRules
             })
             : importBufferStreaming(file, mapping, {
               locale: language,
               sourceFile: sourceContext(file),
               customFields: validated.customFields,
-              customFieldMapping: customFieldMapping
+              customFieldMapping: customFieldMapping,
+              preparationRules: file.preparationRules
             });
-          if (file.result && Array.isArray(file.result.columnCatalog)) {
-            file.columnCatalog = file.result.columnCatalog;
+          if (file.result && Array.isArray(file.result.rawColumnCatalog)) {
+            file.columnCatalog = file.result.rawColumnCatalog;
           }
         }
         return file;
       });
-      result = core.combineImportResults(batchFiles, { analysisAccumulator: analysisAccumulator, locale: language });
+      result = core.combineImportResults(batchFiles, {
+        analysisAccumulator: analysisAccumulator,
+        locale: language,
+        customFields: validated.customFields
+      });
       analysis = analysisAccumulator.finish({ locale: language });
     }
     files.forEach(function (file) {
@@ -4621,7 +4858,9 @@
           return !issue.customFieldId || activeFieldIds.has(String(issue.customFieldId));
         });
         state.result.qualityFindings = core.buildDataQualityFindings(state.articleRegistry, state.result.issues, state.language);
-        state.result.dataQualityFindings = core.buildUnifiedDataQualityFindings(state.files, state.articleRegistry, state.result.issues, state.language);
+        state.result.dataQualityFindings = core.buildUnifiedDataQualityFindings(
+          state.files, state.articleRegistry, state.result.issues, state.language, state.customFields
+        );
       }
       if (state.analysis) {
         state.analysis = core.enrichAnalysisWithRegistry(state.analysis, state.articleRegistry, { locale: state.language });
@@ -5077,6 +5316,44 @@
   });
   elements.fileInput.addEventListener('change', handleFileChange);
   elements.mappingGrid.addEventListener('change', function (event) {
+    const control = event.target;
+    const row = control.closest('.preparation-rule');
+    if (!row || !elements.mappingGrid.contains(row)) return;
+    const file = state.files.find(function (item) { return item.id === row.dataset.prepFileId; });
+    if (!file) return;
+    const targetId = row.dataset.prepTarget;
+    const index = Number(row.dataset.prepIndex);
+    const rules = file.preparationRules && file.preparationRules[targetId];
+    if (!Array.isArray(rules) || !rules[index]) return;
+    const rule = rules[index];
+    if (control.matches('[data-prep-enabled]')) {
+      rule.enabled = control.checked;
+    } else if (control.matches('[data-prep-type]')) {
+      const enabled = rule.enabled !== false;
+      file.preparationRules[targetId][index] = Object.assign(newPreparationRule(control.value), { enabled: enabled });
+    } else if (control.matches('[data-prep-values]')) {
+      const values = control.value.split(/\r?\n/).filter(function (value) { return value.length > 0; });
+      if (values.length > 100 || values.some(function (value) { return value.length > 512; })) {
+        control.setCustomValidity(translate('prep_rule_values_invalid'));
+        control.reportValidity();
+        return;
+      }
+      control.setCustomValidity('');
+      rule.values = values;
+    } else if (control.matches('[data-prep-from]')) {
+      rule.from = control.value;
+    } else if (control.matches('[data-prep-to]')) {
+      rule.to = control.value;
+    } else if (control.matches('[data-prep-mode]')) {
+      rule.mode = control.value;
+    } else {
+      return;
+    }
+    clearAnalysis();
+    renderMapping();
+    persistActiveWorkspace().catch(function () {});
+  });
+  elements.mappingGrid.addEventListener('change', function (event) {
     const select = event.target.closest('select[data-source-type-file-id]');
     if (!select || !elements.mappingGrid.contains(select)) {
       return;
@@ -5089,6 +5366,7 @@
     file.mapping = core.detectMapping(file.headers || [], file.sourceType);
     file.confirmedMapping = null;
     file.customFieldMapping = {};
+    file.preparationRules = {};
     file.confirmedCustomFieldMapping = null;
     file.result = null;
     clearAnalysis();
@@ -5126,7 +5404,16 @@
     const file = state.files.find(function (item) { return item.id === select.dataset.fileId; });
     if (!file) return;
     file.customFieldMapping = file.customFieldMapping || {};
-    file.customFieldMapping[select.dataset.customField] = select.value === '' ? null : Number(select.value);
+    const fieldId = select.dataset.customField;
+    const previous = file.customFieldMapping[fieldId];
+    file.customFieldMapping[fieldId] = select.value === '' ? null : Number(select.value);
+    if (accessiblePreparationRuleCount(file) > 100) {
+      if (previous === undefined) delete file.customFieldMapping[fieldId];
+      else file.customFieldMapping[fieldId] = previous;
+      renderMapping();
+      showMappingMessage(translate('prep_rule_limit'));
+      return;
+    }
     clearAnalysis();
     renderMapping();
     persistActiveWorkspace().catch(function () {});
@@ -5140,7 +5427,15 @@
     if (!file) {
       return;
     }
+    const previous = file.mapping[select.dataset.field];
     file.mapping[select.dataset.field] = select.value === '' ? null : Number(select.value);
+    if (accessiblePreparationRuleCount(file) > 100) {
+      if (previous === undefined) delete file.mapping[select.dataset.field];
+      else file.mapping[select.dataset.field] = previous;
+      renderMapping();
+      showMappingMessage(translate('prep_rule_limit'));
+      return;
+    }
     const fileId = file.id;
     const field = select.dataset.field;
     clearAnalysis();
@@ -5152,6 +5447,37 @@
     persistActiveWorkspace().catch(function () {});
   });
   elements.mappingGrid.addEventListener('click', function (event) {
+    const preparationButton = event.target.closest('button[data-prep-action]');
+    if (preparationButton && elements.mappingGrid.contains(preparationButton)) {
+      const editor = preparationButton.closest('.preparation-editor');
+      const file = editor && state.files.find(function (item) { return item.id === editor.dataset.prepFileId; });
+      if (!editor || !file) return;
+      const targetId = editor.dataset.prepTarget;
+      file.preparationRules = file.preparationRules || {};
+      const rules = Array.isArray(file.preparationRules[targetId]) ? file.preparationRules[targetId] : [];
+      if (preparationButton.dataset.prepAction === 'add') {
+        const selector = editor.querySelector('[data-prep-add-type]');
+        if (accessiblePreparationRuleCount(file) >= 100 || rules.length >= 100) return;
+        rules.push(newPreparationRule(selector ? selector.value : 'trim'));
+      } else {
+        const row = preparationButton.closest('.preparation-rule');
+        if (!row) return;
+        const index = Number(row.dataset.prepIndex);
+        if (preparationButton.dataset.prepAction === 'remove') {
+          rules.splice(index, 1);
+        } else {
+          const next = preparationButton.dataset.prepAction === 'up' ? index - 1 : index + 1;
+          if (next < 0 || next >= rules.length) return;
+          const moved = rules.splice(index, 1)[0];
+          rules.splice(next, 0, moved);
+        }
+      }
+      file.preparationRules[targetId] = rules;
+      clearAnalysis();
+      renderMapping();
+      persistActiveWorkspace().catch(function () {});
+      return;
+    }
     const create = event.target.closest('button[data-create-custom-from-file]');
     if (create && elements.mappingGrid.contains(create)) {
       createCustomFieldFromFile(create.dataset.createCustomFromFile);

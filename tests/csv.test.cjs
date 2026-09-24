@@ -276,6 +276,7 @@ test('release packaging includes both runtime profiles from one codebase', () =>
 test('browser UI declares multi-file selection and bilingual source traceability', () => {
   const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const csvSource = fs.readFileSync(path.join(__dirname, '..', 'csv.js'), 'utf8');
   const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
 
   assert.match(indexSource, /id="file-input"[^>]*\bmultiple\b/);
@@ -319,6 +320,17 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /dataQualityFindings/);
   assert.match(appSource, /state\.issueRows = result\.issues\.concat\(qualityIssues\)/);
   assert.match(appSource, /state\.qualityPage/);
+  assert.match(appSource, /function renderPreparationEditor\(file, targetId, wrapper, editsLocked\)/);
+  assert.match(appSource, /data-prep-action/);
+  assert.match(appSource, /querySelectorAll\('select, button, input, textarea'\)/);
+  assert.match(appSource, /prepSemanticDisabled/);
+  assert.match(appSource, /accessiblePreparationRuleCount/);
+  assert.match(appSource, /if \(accessiblePreparationRuleCount\(file\) > 100\)/);
+  assert.match(appSource, /if \(previous === undefined\) delete file\.(?:mapping|customFieldMapping)\[.*?\];/);
+  assert.match(appSource, /setAttribute\('aria-label', translate\('prep_rule_mode'\)\)/);
+  assert.match(appSource, /preparationRules: file\.preparationRules/);
+  assert.match(csvSource, /function compilePreparationRules\(preparationRules\)/);
+  assert.match(csvSource, /rawColumnCatalog/);
 
   const referencedIds = [...appSource.matchAll(/document\.getElementById\('([^']+)'\)/g)].map((match) => match[1]);
   referencedIds.forEach((id) => {
@@ -460,13 +472,18 @@ test('multi-source imports keep independent ordered column catalogs', () => {
 });
 
 test('streaming imports profile every source column with bounded evidence', () => {
-  const result = csv.importCsvStreaming([
+  const text = [
     'article_id;order_id;quantity;delivery_date;note',
     'A-1;O-1;1;2026-01-02;alpha',
     ';O-2;2;not-a-date;beta',
     'A-1;O-3;3;2026-01-03;alpha'
-  ].join('\n'), null, { sourceFile: { id: 'source-profile', name: 'profile.csv' } });
+  ].join('\n');
+  const options = { sourceFile: { id: 'source-profile', name: 'profile.csv' } };
+  const result = csv.importCsvStreaming(text, null, options);
+  const parsedResult = csv.importParsedCsv(csv.parseCsv(text), null, options);
 
+  assert.strictEqual(result.rawColumnCatalog, result.columnCatalog);
+  assert.strictEqual(parsedResult.rawColumnCatalog, parsedResult.columnCatalog);
   const article = result.columnCatalog[0].profile;
   assert.equal(article.totalRows, 3);
   assert.equal(article.nonEmptyCount, 2);
@@ -1662,12 +1679,149 @@ test('custom field mappings preserve source values without changing core analysi
     {
       sourceFile: { id: 'source-custom', name: 'custom.csv', label: 'custom.csv' },
       customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }],
-      customFieldMapping: { 'custom-zone': 4 }
+      customFieldMapping: { 'custom-zone': 4 },
+      preparationRules: { 'custom-zone': [{ type: 'trim', enabled: true }, { type: 'case-normalization', mode: 'upper', enabled: true }] }
     }
   );
   assert.equal(result.blocking, false);
-  assert.deepEqual(result.rows[0].custom_fields, { 'custom-zone': 'Cold' });
+  assert.deepEqual(result.rows[0].custom_fields, { 'custom-zone': 'COLD' });
+  assert.deepEqual(result.rows[0].prepared_fields, ['custom-zone']);
   assert.equal(csv.analyzeRows(result.rows).articles[0].article_id, 'A1');
+});
+
+test('preparation rules run in order before validation and keep original source values available', () => {
+  const text = 'order_id;article_id;quantity;delivery_date\nO-1;  sku-a  ;bad;2026-09-01\n';
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 };
+  const baseline = csv.importCsvStreaming(text, mapping, {
+    sourceFile: { id: 'source-prep-base', name: 'prep.csv', label: 'prep.csv' }
+  });
+  assert.equal(baseline.rows.length, 0);
+  assert.equal(baseline.issues.some((issue) => issue.field === 'quantity'), true);
+
+  const result = csv.importCsvStreaming(text, mapping, {
+    sourceFile: { id: 'source-prep', name: 'prep.csv', label: 'prep.csv' },
+    preparationRules: {
+      article_id: [
+        { type: 'trim', enabled: true },
+        { type: 'case-normalization', mode: 'upper', enabled: true }
+      ],
+      quantity: [{ type: 'replace-text', from: 'bad', to: '2', enabled: true }]
+    }
+  });
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0].article_id, 'SKU-A');
+  assert.equal(result.rows[0].quantity, 20000000n);
+  assert.deepEqual(result.rows[0].prepared_fields.sort(), ['article_id', 'quantity']);
+  assert.deepEqual(csv.reconstructRawSource(text, 2).raw_values, ['O-1', '  sku-a  ', 'bad', '2026-09-01']);
+  assert.deepEqual(csv.applyPreparationRules('  Trocken  ', [
+    { type: 'trim' },
+    { type: 'replace-text', from: 'Trocken', to: 'Sortiment' },
+    { type: 'case-normalization', mode: 'upper' }
+  ]), { value: 'SORTIMENT', applied: [0, 1, 2] });
+  assert.deepEqual(csv.applyPreparationRules('unTrocken', [
+    { type: 'replace-text', from: 'Trocken', to: 'Sortiment' },
+    { type: 'case-normalization', mode: 'upper', enabled: false }
+  ]), { value: 'unTrocken', applied: [] });
+
+  const combined = csv.combineImportResults([{
+    id: 'source-prep', name: 'prep.csv', label: 'prep.csv', sourceType: 'order-lines',
+    mapping: mapping, result: result
+  }]);
+  const finding = combined.dataQualityFindings.find((item) => item.code === 'preparation_rule_applied' && item.field === 'article_id');
+  assert.equal(finding.severity, 'info');
+  assert.equal(finding.affectedCount, 1);
+});
+
+test('sentinel preparation preserves raw and prepared values on required-field findings', () => {
+  const result = csv.importCsvStreaming('order_id;article_id;quantity;delivery_date\nO-1;N/A;1;2026-09-01\n', {
+    order_id: 0, article_id: 1, quantity: 2, delivery_date: 3
+  }, {
+    sourceFile: { id: 'source-prep-sentinel', name: 'sentinel.csv', label: 'sentinel.csv' },
+    preparationRules: { article_id: [{ type: 'empty-to-null', values: ['N/A'], enabled: true }] }
+  });
+  assert.equal(result.rows.length, 0);
+  const issue = result.issues.find((item) => item.field === 'article_id' && item.code === 'required_value_missing');
+  assert.equal(issue.originalRawValue, 'N/A');
+  assert.equal(issue.preparedValue, '');
+});
+
+test('normalization reuses the single prepared row used for profiling', () => {
+  const result = csv.importCsvStreaming('order_id;article_id;quantity;delivery_date\nO-1;C;1;2026-09-01\n', {
+    order_id: 0, article_id: 1, quantity: 2, delivery_date: 3
+  }, {
+    preparationRules: {
+      article_id: [
+        { type: 'replace-text', from: 'A', to: 'B', enabled: true },
+        { type: 'replace-text', from: 'C', to: 'A', enabled: true }
+      ]
+    }
+  });
+  assert.equal(result.rows[0].article_id, 'A');
+});
+
+test('custom preparation targets cannot collide with core field identities', () => {
+  const result = csv.importCsvStreaming(
+    'order_id;article_id;quantity;delivery_date;alternate_id\nO-1;SKU-1;1;2026-09-01;OTHER\n',
+    { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },
+    {
+      customFields: [{ id: 'article_id', name: 'Alternate ID', type: 'text', active: true }],
+      customFieldMapping: { article_id: 4 },
+      preparationRules: { article_id: [{ type: 'trim', enabled: true }] }
+    }
+  );
+  assert.equal(result.blocking, true);
+  assert.ok(result.issues.some((issue) => issue.code === 'custom_field_id_conflict'));
+});
+
+test('preparation findings omit rules belonging to deactivated custom fields', () => {
+  const result = csv.importCsvStreaming(
+    'article_id;article_name;Zone\nA1;Article; north \n',
+    { article_id: 0, article_name: 1 },
+    {
+      sourceFile: { id: 'source-custom-preparation', name: 'master.csv', sourceType: 'article-master' },
+      customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }],
+      customFieldMapping: { 'custom-zone': 2 },
+      preparationRules: { 'custom-zone': [{ type: 'trim', enabled: true }] }
+    }
+  );
+  const file = { id: 'source-custom-preparation', name: 'master.csv', sourceType: 'article-master', mapping: result.mapping, result };
+  const inactive = csv.combineImportResults([file], { customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: false }] });
+  const active = csv.combineImportResults([file], { customFields: [{ id: 'custom-zone', name: 'Zone', type: 'text', active: true }] });
+  assert.equal(inactive.dataQualityFindings.some((finding) => finding.code === 'preparation_rule_applied' && finding.field === 'custom-zone'), false);
+  assert.equal(active.dataQualityFindings.some((finding) => finding.code === 'preparation_rule_applied' && finding.field === 'custom-zone'), true);
+});
+
+test('prepared column profiles and preparation findings include rejected rows', () => {
+  const text = 'order_id;article_id;quantity;delivery_date\nO-1; sku-x ;bad;not-a-date\n';
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 };
+  const options = {
+    sourceFile: { id: 'source-prep-rejected', name: 'rejected.csv', label: 'rejected.csv' },
+    preparationRules: {
+      article_id: [{ type: 'trim', enabled: true }, { type: 'case-normalization', mode: 'upper', enabled: true }],
+      quantity: [{ type: 'replace-text', from: 'bad', to: '2', enabled: true }]
+    }
+  };
+  const result = csv.importCsvStreaming(text, mapping, options);
+  assert.equal(result.validRows, 0);
+  assert.deepEqual(result.preparationCounts, { article_id: 1, quantity: 1 });
+  assert.equal(result.columnCatalog[2].profile.numericCompatibleCount, 1);
+  assert.equal(result.rawColumnCatalog[2].profile.numericCompatibleCount, 0);
+  const combined = csv.combineImportResults([{
+    id: options.sourceFile.id,
+    name: options.sourceFile.name,
+    label: options.sourceFile.label,
+    mapping: mapping,
+    columnCatalog: result.rawColumnCatalog,
+    result: result
+  }]);
+  assert.equal(combined.dataQualityFindings.some((finding) => finding.code === 'column_type_mismatch' && finding.field === 'quantity'), false);
+  assert.equal(combined.dataQualityFindings.find((finding) => finding.code === 'preparation_rule_applied' && finding.field === 'article_id').affectedCount, 1);
+  assert.equal(combined.dataQualityFindings.find((finding) => finding.code === 'preparation_rule_applied' && finding.field === 'quantity').affectedCount, 1);
+
+  const parsedResult = csv.importParsedCsv(csv.parseCsv(text), mapping, options);
+  assert.deepEqual(parsedResult.preparationCounts, result.preparationCounts);
+  assert.equal(parsedResult.columnCatalog[2].profile.numericCompatibleCount, 1);
+  assert.equal(parsedResult.rawColumnCatalog[2].profile.numericCompatibleCount, 0);
 });
 
 test('invalid typed custom values are omitted from normalized enrichment values', () => {

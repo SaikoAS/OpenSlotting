@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 9;
+  const WORKSPACE_SCHEMA_VERSION = 10;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -137,6 +137,63 @@
       normalized[key] = value;
     });
     return normalized;
+  }
+
+  const PREPARATION_RULE_TYPES = Object.freeze(['trim', 'empty-to-null', 'replace-text', 'case-normalization']);
+
+  function normalizePreparationRules(rulesByField) {
+    if (rulesByField === undefined || rulesByField === null) return {};
+    if (!isPlainObject(rulesByField)) {
+      validationError('invalid_preparation_rules', 'Preparation rules must be grouped by target field.');
+    }
+    const targetIds = Object.keys(rulesByField);
+    if (targetIds.length > 100) {
+      validationError('invalid_preparation_rules', 'Preparation rules contain too many target fields.');
+    }
+    const normalized = {};
+    targetIds.forEach(function (targetId) {
+      if (!/^[A-Za-z][A-Za-z0-9_-]{0,127}$/.test(targetId) || !Array.isArray(rulesByField[targetId]) || rulesByField[targetId].length > 100) {
+        validationError('invalid_preparation_rules', 'Preparation rule target or ordered rule list is invalid.');
+      }
+      normalized[targetId] = rulesByField[targetId].map(function (rule) {
+        if (!isPlainObject(rule) || PREPARATION_RULE_TYPES.indexOf(rule.type) < 0 || (rule.enabled !== undefined && typeof rule.enabled !== 'boolean')) {
+          validationError('invalid_preparation_rules', 'Preparation rule type or enabled state is invalid.');
+        }
+        const output = { type: rule.type, enabled: rule.enabled !== false };
+        if (rule.type === 'empty-to-null') {
+          if (!Array.isArray(rule.values) || rule.values.length > 100 || rule.values.some(function (value) { return typeof value !== 'string' || value.length > 512; })) {
+            validationError('invalid_preparation_rules', 'Sentinel values must be a bounded list of text values.');
+          }
+          output.values = rule.values.slice();
+        } else if (rule.type === 'replace-text') {
+          if (typeof rule.from !== 'string' || rule.from.length > 512 || typeof rule.to !== 'string' || rule.to.length > 512) {
+            validationError('invalid_preparation_rules', 'Exact replacement must contain bounded source and replacement text.');
+          }
+          output.from = rule.from;
+          output.to = rule.to;
+        } else if (rule.type === 'case-normalization') {
+          if (rule.mode !== 'lower' && rule.mode !== 'upper') {
+            validationError('invalid_preparation_rules', 'Case normalization mode must be lower or upper.');
+          }
+          output.mode = rule.mode;
+        }
+        return output;
+      });
+    });
+    return normalized;
+  }
+
+  function countAccessiblePreparationRules(rulesByField, mapping, customFieldMapping, customFields) {
+    const activeCustomFieldIds = new Set((Array.isArray(customFields) ? customFields : [])
+      .filter(function (field) { return field && field.active !== false; })
+      .map(function (field) { return field.id; }));
+    return Object.keys(rulesByField || {}).reduce(function (count, targetId) {
+      const mappedCore = Number.isInteger((mapping || {})[targetId]);
+      const mappedCustom = activeCustomFieldIds.has(targetId) && Number.isInteger((customFieldMapping || {})[targetId]);
+      return count + (mappedCore || mappedCustom
+        ? (Array.isArray(rulesByField[targetId]) ? rulesByField[targetId].length : 0)
+        : 0);
+    }, 0);
   }
 
   function normalizeArticleRegistry(registry, options) {
@@ -547,6 +604,9 @@
         }
       });
     }
+    if (row.prepared_fields !== undefined && (!Array.isArray(row.prepared_fields) || row.prepared_fields.length > 100 || row.prepared_fields.some(function (field) { return typeof field !== 'string' || !/^[A-Za-z][A-Za-z0-9_-]{0,127}$/.test(field); }))) {
+      validationError('invalid_normalized_row', 'Prepared field evidence is invalid.');
+    }
     const normalized = cloneValue(row, options);
     if (normalized && typeof normalized === 'object') {
       delete normalized.raw_values;
@@ -564,7 +624,7 @@
     }
     const normalized = {};
     Object.keys(result).forEach(function (key) {
-      if (key !== 'rows' && key !== 'issues' && key !== 'mapping') {
+      if (key !== 'rows' && key !== 'issues' && key !== 'mapping' && key !== 'rawColumnCatalog') {
         normalized[key] = cloneValue(result[key], options);
       }
     });
@@ -582,6 +642,20 @@
         validationError('invalid_import_result', 'Stored import result contains invalid row counts.');
       }
     });
+    if (normalized.preparationCounts !== undefined) {
+      if (!isPlainObject(normalized.preparationCounts) || Object.keys(normalized.preparationCounts).length > 100) {
+        validationError('invalid_import_result', 'Preparation counts must be a bounded object.');
+      }
+      const preparationCounts = {};
+      Object.keys(normalized.preparationCounts).forEach(function (targetId) {
+        const count = normalized.preparationCounts[targetId];
+        if (!/^[A-Za-z][A-Za-z0-9_-]{0,127}$/.test(targetId) || !Number.isInteger(count) || count < 0 || count > normalized.totalRows) {
+          validationError('invalid_import_result', 'Stored preparation counts are invalid.');
+        }
+        preparationCounts[targetId] = count;
+      });
+      normalized.preparationCounts = preparationCounts;
+    }
     return normalized;
   }
 
@@ -617,6 +691,7 @@
     const result = normalizeImportResult(file.result, id, options);
     let columnCatalog = normalizeColumnCatalog(file.columnCatalog, id, options);
     let mapping = normalizeMapping(file.mapping);
+    const preparationRules = normalizePreparationRules(file.preparationRules);
     let customFieldMapping = normalizeCustomFieldMapping(file.customFieldMapping);
     let confirmedCustomFieldMapping = file.confirmedCustomFieldMapping === null || file.confirmedCustomFieldMapping === undefined
       ? null
@@ -659,6 +734,7 @@
       detectedEncoding: detectedEncoding,
       errorKey: file.errorKey ? String(file.errorKey) : null,
       mapping: mapping,
+      preparationRules: preparationRules,
       customFieldMapping: customFieldMapping,
       confirmedCustomFieldMapping: confirmedCustomFieldMapping,
       confirmedMapping: confirmedMapping,
@@ -733,6 +809,19 @@
     const usedSourceIds = new Set();
     const files = workspace.files.map(function (file) {
       const normalized = validateFile(file, options);
+      if (countAccessiblePreparationRules(
+        normalized.preparationRules,
+        normalized.mapping,
+        normalized.customFieldMapping,
+        customFields
+      ) > 100 || (normalized.confirmedMapping && countAccessiblePreparationRules(
+        normalized.preparationRules,
+        normalized.confirmedMapping,
+        normalized.confirmedCustomFieldMapping || {},
+        customFields
+      ) > 100)) {
+        validationError('too_many_accessible_preparation_rules', 'A source cannot expose more than 100 preparation rules across its mapped targets.');
+      }
       [normalized.customFieldMapping, normalized.confirmedCustomFieldMapping || {}].forEach(function (mapping) {
         Object.keys(mapping).forEach(function (fieldId) {
           if (!customFieldIds.has(fieldId)) {
@@ -766,7 +855,7 @@
       validationError('invalid_workspace', 'Workspace must be an object.');
     }
     const schemaVersion = Number(workspace.schemaVersion);
-    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5 || schemaVersion === 6 || schemaVersion === 7 || schemaVersion === 8) {
+    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5 || schemaVersion === 6 || schemaVersion === 7 || schemaVersion === 8 || schemaVersion === 9) {
       const migrated = cloneValue(workspace, options);
       const migrationTarget = options && options.clonePayload === false ? Object.assign({}, migrated) : migrated;
       if (schemaVersion === 0) {
@@ -867,6 +956,13 @@
           return entry;
         }) : [];
       }
+      if (schemaVersion <= 9) {
+        migrationTarget.files = Array.isArray(migrationTarget.files) ? migrationTarget.files.map(function (file) {
+          const migratedFile = isPlainObject(file) ? file : {};
+          if (!isPlainObject(migratedFile.preparationRules)) migratedFile.preparationRules = {};
+          return migratedFile;
+        }) : [];
+      }
       migrationTarget.schemaVersion = WORKSPACE_SCHEMA_VERSION;
       migrationTarget.periodSettings = normalizePeriodSettings(migrationTarget.periodSettings);
       return validateWorkspace(migrationTarget, options);
@@ -905,6 +1001,20 @@
     }
     const settings = options || {};
     const files = state && Array.isArray(state.files) ? state.files.map(function (file) {
+      const preparationRules = normalizePreparationRules(file.preparationRules);
+      if (countAccessiblePreparationRules(
+        preparationRules,
+        file.mapping,
+        file.customFieldMapping,
+        state.customFields
+      ) > 100 || (file.confirmedMapping && countAccessiblePreparationRules(
+        preparationRules,
+        file.confirmedMapping,
+        file.confirmedCustomFieldMapping || {},
+        state.customFields
+      ) > 100)) {
+        validationError('too_many_accessible_preparation_rules', 'A source cannot expose more than 100 preparation rules across its mapped targets.');
+      }
       return {
         id: file.id,
         name: file.name,
@@ -917,6 +1027,7 @@
         detectedEncoding: file.detectedEncoding,
         errorKey: file.errorKey || null,
         mapping: file.mapping,
+        preparationRules: preparationRules,
         customFieldMapping: file.customFieldMapping,
         confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
@@ -1149,6 +1260,9 @@
     normalizeCustomFields: normalizeCustomFields,
     normalizeArticleRegistry: normalizeArticleRegistry,
     normalizeCustomFieldMapping: normalizeCustomFieldMapping,
+    PREPARATION_RULE_TYPES: PREPARATION_RULE_TYPES,
+    normalizePreparationRules: normalizePreparationRules,
+    countAccessiblePreparationRules: countAccessiblePreparationRules,
     validateCustomFieldMappingRange: validateCustomFieldMappingRange,
     createId: createId,
     createWorkspace: createWorkspace,

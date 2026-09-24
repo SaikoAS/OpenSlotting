@@ -64,7 +64,7 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.doesNotThrow(() => new vm.Script(generatedWorkerSource));
   vm.runInContext(generatedWorkerSource, context);
 
-  const text = 'order_id;article_id;quantity;delivery_date\nO-1;SKU-WORKER;0.3;2026-09-12\n';
+  const text = 'order_id;article_id;quantity;delivery_date\nO-1; sku-worker ;0.3;2026-09-12\n';
   vm.runInContext([
     'const workerText = ' + JSON.stringify(text) + ';',
     "const workerBytes = new TextEncoder().encode(workerText);",
@@ -76,6 +76,7 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
     "  encodingMode: 'auto', activeEncoding: 'utf-8', detectedEncoding: 'utf-8', errorKey: null,",
     '  mapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },',
     '  confirmedMapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },',
+    "  preparationRules: { article_id: [{ type: 'trim', enabled: true }, { type: 'case-normalization', mode: 'upper', enabled: true }] },",
     "  sourceType: 'article-master',",
     '  result: null',
     '});',
@@ -95,6 +96,8 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.equal(completed.prepared.result.analysisRows, 0);
   assert.equal(completed.prepared.files[0].result.validRows, 1);
   assert.equal(completed.prepared.files[0].result.rows[0].quantity, 3000000n);
+  assert.equal(completed.prepared.files[0].result.rows[0].article_id, 'SKU-WORKER');
+  assert.deepEqual(Array.from(completed.prepared.files[0].result.rows[0].prepared_fields), ['article_id']);
   assert.equal(completed.prepared.analysis.total_lines, 0);
   assert.equal(completed.prepared.files[0].sourceType, 'article-master');
   assert.equal(completed.prepared.workspace.articleRegistry[0].movement_status, 'master-only');
@@ -106,6 +109,13 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.equal(completed.prepared.files[0].parsed.dataRowCount, 1);
   assert.deepEqual(Array.from(completed.prepared.files[0].parsed.headers), ['order_id', 'article_id', 'quantity', 'delivery_date']);
 
+  const fallbackPrepared = vm.runInContext(
+    "prepareWorkspaceRecord(workerRecord, 'en', function () {})",
+    context
+  );
+  assert.equal(fallbackPrepared.files[0].result.rows[0].article_id, 'SKU-WORKER');
+  assert.deepEqual(Array.from(fallbackPrepared.files[0].result.rows[0].prepared_fields), ['article_id']);
+
   messages.length = 0;
   vm.runInContext([
     'const backupText = workspaceModel.stringifyBackup(workerRecord, { now: \'2026-09-12T10:00:00.000Z\' });',
@@ -116,6 +126,7 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.equal(backupCompleted.prepared.workspace.id, 'workspace-backup-worker');
   assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].result.validRows, 1);
   assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].sourceType, 'article-master');
+  assert.deepEqual(Array.from(backupCompleted.prepared.persistedWorkspace.files[0].preparationRules.article_id, (rule) => rule.type), ['trim', 'case-normalization']);
   assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].buffer.byteLength, new TextEncoder().encode(text).byteLength);
   assert.ok(backupCompleted.prepared.runtime);
   assert.equal(backupCompleted.prepared.runtime.files[0].parsed.rows.length, 0);
@@ -128,6 +139,7 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.equal(exportCompleted.filename, 'OpenSlotting-Worker.workspace.json');
   const exportedBackup = JSON.parse(exportCompleted.text);
   assert.equal(exportedBackup.workspace.id, 'workspace-worker');
+  assert.deepEqual(exportedBackup.workspace.files[0].preparationRules.article_id.map((rule) => rule.type), ['trim', 'case-normalization']);
   assert.equal(exportedBackup.workspace.files[0].size, new TextEncoder().encode(text).byteLength);
 
   messages.length = 0;

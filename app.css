@@ -281,6 +281,17 @@ h2, h3 { color: var(--navy); }
 .mapping-field:nth-child(odd) { border-right: 1px solid var(--cool-line); }
 .mapping-field select { min-width: 0; }
 .mapping-help { grid-column: 1 / -1; color: var(--muted); font-size: .72rem; font-weight: 500; }
+.preparation-editor { grid-column: 1 / -1; width: 100%; padding: 8px 0 2px; border-top: 1px solid var(--cool-line); color: var(--ink); font-size: .76rem; font-weight: 500; }
+.preparation-editor > summary { cursor: pointer; font-weight: 700; }
+.preparation-editor > .mapping-help { display: block; margin: 6px 0; }
+.preparation-rule-list { display: grid; gap: 6px; }
+.preparation-rule, .preparation-add-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.preparation-rule select, .preparation-rule input, .preparation-rule textarea, .preparation-add-row select { min-width: 130px; max-width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--ink); font: inherit; }
+.preparation-rule textarea { flex: 1 1 220px; resize: vertical; }
+.preparation-rule input { flex: 1 1 150px; }
+.preparation-enabled { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.preparation-order-button, .preparation-remove-button { min-width: 30px; padding: 4px 7px; }
+.preparation-add-row { margin-top: 8px; }
 .field-label-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--navy); }
 .field-badge { padding: 3px 7px; border-radius: 4px; color: #4e6178; background: #edf2f6; font-size: .66rem; font-weight: 800; }
 .field-badge.required { color: #8a2f37; background: #ffeaec; }
