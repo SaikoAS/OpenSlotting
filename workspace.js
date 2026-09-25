@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 10;
+  const WORKSPACE_SCHEMA_VERSION = 11;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -19,6 +19,8 @@
   const CUSTOM_FIELD_ID_PATTERN = /^custom-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
   const CUSTOM_FIELD_TYPES = Object.freeze(['text', 'number', 'date']);
   const MAX_CUSTOM_FIELD_NAME_LENGTH = 120;
+  const MAX_IMPORT_PROFILES = 50;
+  const IMPORT_PROFILE_ID_PATTERN = /^profile-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
   const MAX_SOURCE_ID_LENGTH = 128;
   const COLUMN_PROFILE_SAMPLE_LIMIT = 5;
   const COLUMN_PROFILE_DISTINCT_LIMIT = 256;
@@ -518,6 +520,149 @@
     return normalized;
   }
 
+  function normalizeImportProfiles(profiles) {
+    if (profiles === undefined || profiles === null) return [];
+    if (!Array.isArray(profiles) || profiles.length > MAX_IMPORT_PROFILES) {
+      validationError('invalid_import_profiles', 'Import profiles must be a bounded list.');
+    }
+    const ids = new Set();
+    const names = new Set();
+    return profiles.map(function (profile) {
+      if (!isPlainObject(profile) || !IMPORT_PROFILE_ID_PATTERN.test(String(profile.id || '')) ||
+          !Array.isArray(profile.headers) || profile.headers.length > 4096 ||
+          profile.headers.some(function (header) { return typeof header !== 'string' || header.length > 1024; }) ||
+          !validIsoDate(profile.createdAt) || !validIsoDate(profile.updatedAt)) {
+        validationError('invalid_import_profile', 'Import profile metadata is invalid.');
+      }
+      const name = String(profile.name || '').trim();
+      const nameKey = name.toLocaleLowerCase('de-DE');
+      if (!name || name.length > 120 || ids.has(profile.id) || names.has(nameKey)) {
+        validationError('invalid_import_profile', 'Import profile name or ID is invalid or duplicated.');
+      }
+      ids.add(profile.id);
+      names.add(nameKey);
+      const mapping = validateMappingRange(profile.mapping || {}, profile.headers.length);
+      const customFieldMapping = validateCustomFieldMappingRange(profile.customFieldMapping || {}, profile.headers.length);
+      if (Object.keys(mapping).some(function (key) { return !/^[A-Za-z][A-Za-z0-9_-]{0,127}$/.test(key); })) {
+        validationError('invalid_import_profile', 'Import profile contains an invalid target field.');
+      }
+      const preparationRules = normalizePreparationRules(profile.preparationRules);
+      const mappedTargets = new Set(Object.keys(mapping).filter(function (key) { return Number.isInteger(mapping[key]); })
+        .concat(Object.keys(customFieldMapping).filter(function (key) { return Number.isInteger(customFieldMapping[key]); })));
+      if (mappedTargets.size === 0 || Object.keys(preparationRules).some(function (targetId) { return !mappedTargets.has(targetId); }) ||
+          countAccessiblePreparationRules(preparationRules, mapping, customFieldMapping,
+            Object.keys(customFieldMapping).map(function (id) { return { id: id, active: true }; })) > 100) {
+        validationError('invalid_import_profile', 'Import profile rules do not match its mapped fields.');
+      }
+      return {
+        id: profile.id,
+        name: name,
+        sourceType: normalizeSourceType(profile.sourceType),
+        headers: profile.headers.slice(),
+        mapping: mapping,
+        customFieldMapping: customFieldMapping,
+        preparationRules: preparationRules,
+        createdAt: profile.createdAt,
+        updatedAt: profile.updatedAt
+      };
+    });
+  }
+
+  function createImportProfile(file, name, customFields, options) {
+    if (!file || !Array.isArray(file.headers) || file.headers.length === 0) {
+      validationError('invalid_import_profile', 'A decoded source is required to save an import profile.');
+    }
+    const settings = options || {};
+    const now = settings.now || new Date().toISOString();
+    const mapping = {};
+    const customFieldMapping = {};
+    Object.keys(file.mapping || {}).forEach(function (targetId) {
+      if (Number.isInteger(file.mapping[targetId])) mapping[targetId] = file.mapping[targetId];
+    });
+    const activeCustomIds = new Set((Array.isArray(customFields) ? customFields : [])
+      .filter(function (field) { return field && field.active !== false; }).map(function (field) { return field.id; }));
+    Object.keys(file.customFieldMapping || {}).forEach(function (targetId) {
+      if (activeCustomIds.has(targetId) && Number.isInteger(file.customFieldMapping[targetId])) {
+        customFieldMapping[targetId] = file.customFieldMapping[targetId];
+      }
+    });
+    const preparationRules = {};
+    Object.keys(file.preparationRules || {}).forEach(function (targetId) {
+      if (Number.isInteger(mapping[targetId]) || Number.isInteger(customFieldMapping[targetId])) {
+        preparationRules[targetId] = file.preparationRules[targetId];
+      }
+    });
+    return normalizeImportProfiles([{
+      id: settings.id || createId('profile', settings.randomUuid),
+      name: name,
+      sourceType: file.sourceType,
+      headers: file.headers,
+      mapping: mapping,
+      customFieldMapping: customFieldMapping,
+      preparationRules: preparationRules,
+      createdAt: now,
+      updatedAt: now
+    }])[0];
+  }
+
+  function planImportProfile(profile, file, customFields) {
+    const source = normalizeImportProfiles([profile])[0];
+    const targetHeaders = file && Array.isArray(file.headers) ? file.headers : [];
+    const normalizeHeader = function (header) { return String(header || '').trim().toLocaleLowerCase('de-DE'); };
+    const schemaExact = source.headers.length === targetHeaders.length && source.headers.every(function (header, index) {
+      return normalizeHeader(header) === normalizeHeader(targetHeaders[index]);
+    });
+    const sourceCounts = new Map();
+    const targetPositions = new Map();
+    source.headers.forEach(function (header) {
+      const key = normalizeHeader(header);
+      sourceCounts.set(key, (sourceCounts.get(key) || 0) + 1);
+    });
+    targetHeaders.forEach(function (header, index) {
+      const key = normalizeHeader(header);
+      if (!targetPositions.has(key)) targetPositions.set(key, []);
+      targetPositions.get(key).push(index);
+    });
+    const activeCustomIds = new Set((Array.isArray(customFields) ? customFields : [])
+      .filter(function (field) { return field && field.active !== false; }).map(function (field) { return field.id; }));
+    const mapping = {};
+    const customFieldMapping = {};
+    const unresolved = [];
+    const occupied = new Set();
+    function resolve(targetId, sourcePosition, custom) {
+      if (!Number.isInteger(sourcePosition)) return;
+      const header = source.headers[sourcePosition];
+      const key = normalizeHeader(header);
+      if (custom && !activeCustomIds.has(targetId)) {
+        unresolved.push({ targetId: targetId, header: header, reason: 'custom-field-missing' });
+        return;
+      }
+      const matches = targetPositions.get(key) || [];
+      const position = schemaExact ? sourcePosition
+        : (key && sourceCounts.get(key) === 1 && matches.length === 1 ? matches[0] : null);
+      if (!Number.isInteger(position) || position >= targetHeaders.length) {
+        unresolved.push({ targetId: targetId, header: header, reason: matches.length ? 'ambiguous' : 'missing' });
+      } else if (occupied.has(position)) {
+        unresolved.push({ targetId: targetId, header: header, reason: 'collision' });
+      } else {
+        occupied.add(position);
+        (custom ? customFieldMapping : mapping)[targetId] = position;
+      }
+    }
+    Object.keys(source.mapping).forEach(function (targetId) { resolve(targetId, source.mapping[targetId], false); });
+    Object.keys(source.customFieldMapping).forEach(function (targetId) { resolve(targetId, source.customFieldMapping[targetId], true); });
+    return {
+      compatible: unresolved.length === 0,
+      schemaExact: schemaExact,
+      matchedCount: Object.keys(mapping).length + Object.keys(customFieldMapping).length,
+      unresolved: unresolved,
+      sourceType: source.sourceType,
+      mapping: mapping,
+      customFieldMapping: customFieldMapping,
+      preparationRules: source.preparationRules
+    };
+  }
+
   function normalizeIssue(issue, sourceId, options) {
     if (!isPlainObject(issue)) {
       validationError('invalid_validation_issue', 'Validation issue must be an object.');
@@ -768,6 +913,7 @@
       analyzed: false,
       periodSettings: normalizePeriodSettings(settings.periodSettings),
       customFields: normalizeCustomFields(settings.customFields),
+      importProfiles: normalizeImportProfiles(settings.importProfiles),
       articleRegistry: normalizeArticleRegistry(settings.articleRegistry),
       files: []
     };
@@ -804,8 +950,14 @@
       validationError('invalid_workspace', 'Workspace sources must be an array.');
     }
     const customFields = normalizeCustomFields(workspace.customFields);
+    const importProfiles = normalizeImportProfiles(workspace.importProfiles);
     const articleRegistry = normalizeArticleRegistry(workspace.articleRegistry);
     const customFieldIds = new Set(customFields.map(function (field) { return field.id; }));
+    importProfiles.forEach(function (profile) {
+      if (Object.keys(profile.customFieldMapping).some(function (fieldId) { return !customFieldIds.has(fieldId); })) {
+        validationError('unknown_custom_field', 'Import profile references an unknown custom field.');
+      }
+    });
     const usedSourceIds = new Set();
     const files = workspace.files.map(function (file) {
       const normalized = validateFile(file, options);
@@ -845,6 +997,7 @@
       analyzed: workspace.analyzed,
       periodSettings: normalizePeriodSettings(workspace.periodSettings),
       customFields: customFields,
+      importProfiles: importProfiles,
       articleRegistry: articleRegistry,
       files: files
     };
@@ -855,7 +1008,7 @@
       validationError('invalid_workspace', 'Workspace must be an object.');
     }
     const schemaVersion = Number(workspace.schemaVersion);
-    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5 || schemaVersion === 6 || schemaVersion === 7 || schemaVersion === 8 || schemaVersion === 9) {
+    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5 || schemaVersion === 6 || schemaVersion === 7 || schemaVersion === 8 || schemaVersion === 9 || schemaVersion === 10) {
       const migrated = cloneValue(workspace, options);
       const migrationTarget = options && options.clonePayload === false ? Object.assign({}, migrated) : migrated;
       if (schemaVersion === 0) {
@@ -963,6 +1116,7 @@
           return migratedFile;
         }) : [];
       }
+      if (schemaVersion <= 10) migrationTarget.importProfiles = [];
       migrationTarget.schemaVersion = WORKSPACE_SCHEMA_VERSION;
       migrationTarget.periodSettings = normalizePeriodSettings(migrationTarget.periodSettings);
       return validateWorkspace(migrationTarget, options);
@@ -986,6 +1140,7 @@
       analyzed: Boolean(state && state.analysis),
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
       customFields: normalizeCustomFields(state && state.customFields),
+      importProfiles: normalizeImportProfiles(state && state.importProfiles),
       articleRegistry: normalizeArticleRegistry(state && state.articleRegistry),
       files: state && Array.isArray(state.files) ? state.files : []
     }, settings);
@@ -1046,6 +1201,7 @@
       analyzed: Boolean(state && state.analysis),
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
       customFields: normalizeCustomFields(state && state.customFields),
+      importProfiles: normalizeImportProfiles(state && state.importProfiles),
       articleRegistry: state && Array.isArray(state.articleRegistry) ? state.articleRegistry : [],
       files: files
     };
@@ -1260,6 +1416,9 @@
     normalizeCustomFields: normalizeCustomFields,
     normalizeArticleRegistry: normalizeArticleRegistry,
     normalizeCustomFieldMapping: normalizeCustomFieldMapping,
+    normalizeImportProfiles: normalizeImportProfiles,
+    createImportProfile: createImportProfile,
+    planImportProfile: planImportProfile,
     PREPARATION_RULE_TYPES: PREPARATION_RULE_TYPES,
     normalizePreparationRules: normalizePreparationRules,
     countAccessiblePreparationRules: countAccessiblePreparationRules,

@@ -183,43 +183,43 @@
       </div>
 
       <div id="mapping-page" class="app-page hidden">
-      <section id="mapping-panel" class="panel" aria-labelledby="mapping-title">
-        <div class="panel-heading">
-          <div>
-            <p class="step" data-i18n="step_2">Step 2</p>
-            <h2 id="mapping-title" data-i18n="mapping_title">Map source columns per file</h2>
-          </div>
-          <span class="hint" data-i18n="mapping_hint">Review each file independently. Blocking files are excluded from the combined analysis.</span>
+      <section class="panel mapping-source-toolbar" aria-label="Selected import" data-i18n-aria-label="mapping_source_toolbar">
+        <div class="mapping-source-picker">
+          <label class="compact-field" for="mapping-source-search">
+            <span data-i18n="mapping_source_search">Import suchen</span>
+            <input id="mapping-source-search" type="search" autocomplete="off" data-i18n-placeholder="mapping_source_search_placeholder" placeholder="Dateiname suchen…">
+          </label>
+          <label class="compact-field" for="mapping-source-list">
+            <span data-i18n="mapping_source_select">Import auswählen</span>
+            <select id="mapping-source-list"></select>
+          </label>
         </div>
-        <div class="mapping-workspace">
-          <nav id="mapping-source-list" class="mapping-source-list" aria-label="Source files" data-i18n-aria-label="mapping_source_list"></nav>
-          <div id="mapping-grid" class="mapping-grid"></div>
+        <p id="mapping-source-meta" class="table-note" role="status"></p>
+        <div class="mapping-toolbar-actions">
+          <button id="mapping-editor-open" class="secondary-button" type="button" data-i18n="mapping_editor_open">Spalten &amp; Regeln</button>
+          <button id="analyze-button" class="primary-button" type="button" data-i18n="analyze_button">Validate and analyze data</button>
         </div>
         <div id="mapping-message" class="message hidden" role="alert"></div>
-        <button id="analyze-button" class="primary-button" type="button" data-i18n="analyze_button">Validate and analyze data</button>
-      </section>
-
-      <section id="source-table-panel" class="panel source-table-panel hidden" aria-labelledby="source-table-title">
-        <div class="panel-heading">
-          <div>
-            <h3 id="source-table-title" data-i18n="source_table_title">Imported file as table</h3>
-            <p class="table-note" data-i18n="source_table_note">All recognized rows are in one continuous scroll area. Original values, rule effects, and row findings remain visible together.</p>
+        <div class="import-profile-controls">
+          <div class="import-profile-heading">
+            <strong data-i18n="import_profile_title">Importprofile</strong>
+            <span class="table-note" data-i18n="import_profile_scope">Nur in diesem Workspace · Quelltyp, Zuordnungen und Regeln</span>
           </div>
-          <div class="source-table-jump">
-            <label for="source-table-line" data-i18n="source_table_jump_label">Source line</label>
-            <input id="source-table-line" type="number" min="1" step="1">
-            <button id="source-table-jump" class="secondary-button" type="button" data-i18n="source_table_jump">Go to line</button>
-          </div>
-        </div>
-        <p id="source-table-status" class="table-note" role="status"></p>
-        <div id="source-table-scroll" class="source-table-scroll" tabindex="0" aria-label="Imported rows" data-i18n-aria-label="source_table_scroll_label">
-          <table id="source-data-table" class="source-data-table">
-            <thead><tr id="source-table-head"></tr></thead>
-            <tbody id="source-table-body"></tbody>
-          </table>
+          <label class="compact-field" for="import-profile-name">
+            <span data-i18n="import_profile_name">Profilname</span>
+            <input id="import-profile-name" type="text" maxlength="120" data-i18n-placeholder="import_profile_name_placeholder" placeholder="z. B. Auftragszeilen EGV">
+          </label>
+          <button id="import-profile-save" class="secondary-button" type="button" data-i18n="import_profile_save">Aktuelle Zuordnung speichern</button>
+          <label class="compact-field" for="import-profile-select">
+            <span data-i18n="import_profile_choose">Gespeichertes Profil</span>
+            <select id="import-profile-select"></select>
+          </label>
+          <button id="import-profile-apply" class="primary-button" type="button" data-i18n="import_profile_apply">Auf Import anwenden</button>
+          <button id="import-profile-update" class="secondary-button" type="button" data-i18n="import_profile_update">Profil aktualisieren</button>
+          <button id="import-profile-delete" class="secondary-button" type="button" data-i18n="import_profile_delete">Profil löschen</button>
+          <p id="import-profile-preview" class="table-note" role="status"></p>
         </div>
       </section>
-
       <section id="quality-overview-panel" class="panel quality-overview-panel hidden" aria-labelledby="quality-overview-title">
         <div class="panel-heading">
           <div>
@@ -235,6 +235,9 @@
           </label>
         </div>
         <div id="quality-overview-summary" class="quality-overview-summary" role="status"></div>
+        <div id="batch-warnings" class="batch-warnings hidden" role="status"></div>
+        <details class="quality-findings-details">
+          <summary data-i18n="quality_details_toggle">Alle Befunde anzeigen</summary>
         <div class="table-scroll">
           <table>
             <thead>
@@ -256,8 +259,10 @@
           <span id="quality-overview-page-status" class="table-note"></span>
           <button id="quality-overview-next" class="secondary-button" type="button" disabled data-i18n="next_page">Next</button>
         </div>
+        </details>
       </section>
 
+      <div id="issues-preview" class="issues-preview hidden" aria-live="polite"></div>
       <details id="issues-panel" class="panel issues-panel hidden">
         <summary id="issues-title" data-i18n="issues_title">Validation notes</summary>
         <div class="table-toolbar">
@@ -286,6 +291,47 @@
           <button id="issue-next" class="secondary-button" type="button" disabled data-i18n="next_page">Next</button>
         </div>
       </details>
+
+      <div id="mapping-drawer-backdrop" class="mapping-drawer-backdrop hidden"></div>
+      <section id="mapping-panel" class="panel mapping-editor-panel" aria-labelledby="mapping-title" aria-hidden="true" inert>
+        <div class="panel-heading">
+          <div>
+            <p class="step" data-i18n="step_2">Step 2</p>
+            <h2 id="mapping-title" data-i18n="mapping_title">Map source columns per file</h2>
+          </div>
+          <button id="mapping-editor-close" class="secondary-button" type="button" data-i18n="mapping_editor_close">Schließen</button>
+        </div>
+        <div class="mapping-workspace">
+          <div id="mapping-grid" class="mapping-grid"></div>
+        </div>
+      </section>
+
+      <section id="source-table-panel" class="panel source-table-panel hidden" aria-labelledby="source-table-title">
+        <div class="panel-heading">
+          <div>
+            <h3 id="source-table-title" data-i18n="source_table_title">Imported file as table</h3>
+            <p class="table-note" data-i18n="source_table_note">All recognized rows are in one continuous scroll area. Original values, rule effects, and row findings remain visible together.</p>
+          </div>
+          <div class="source-table-jump">
+            <label for="source-table-line" data-i18n="source_table_jump_label">Source line</label>
+            <input id="source-table-line" type="number" min="1" step="1">
+            <button id="source-table-jump" class="secondary-button" type="button" data-i18n="source_table_jump">Go to line</button>
+          </div>
+        </div>
+        <div class="source-table-filters" role="group" aria-label="Zeilenfilter" data-i18n-aria-label="source_table_filter_label">
+          <button type="button" data-source-filter="all" aria-pressed="true" data-i18n="source_table_filter_all">Alle Zeilen</button>
+          <button type="button" data-source-filter="errors" aria-pressed="false" data-i18n="source_table_filter_errors">Nur Fehler</button>
+          <button type="button" data-source-filter="changed" aria-pressed="false" data-i18n="source_table_filter_changed">Durch Regeln geändert</button>
+        </div>
+        <p id="source-table-status" class="table-note" role="status"></p>
+        <div id="source-table-scroll" class="source-table-scroll" tabindex="0" aria-label="Imported rows" data-i18n-aria-label="source_table_scroll_label">
+          <table id="source-data-table" class="source-data-table">
+            <thead><tr id="source-table-head"></tr></thead>
+            <tbody id="source-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
       </div>
 
       <div id="coverage-page" class="app-page hidden">
@@ -421,105 +467,72 @@
       <section id="results-panel" class="hidden" aria-labelledby="results-title">
         <div class="results-heading">
           <div>
-            <p class="step" data-i18n="all_data_label">Reference view</p>
-            <h2 id="results-title" data-i18n="analysis_title">Full workspace analysis</h2>
+            <h2 id="results-title" data-i18n="article_analysis_title">Article analysis</h2>
           </div>
           <button id="export-button" class="secondary-button" type="button" disabled data-i18n="export_button">Export analysis</button>
         </div>
 
-        <div id="import-summary" class="import-summary" role="status"></div>
-        <section class="panel source-files-panel" aria-labelledby="source-files-title">
-          <div class="table-toolbar">
-            <div>
-              <h3 id="source-files-title" data-i18n="source_files_title">Source files</h3>
-              <p class="table-note" data-i18n="source_files_note">Rows are combined without automatic cross-file deduplication.</p>
-            </div>
+        <section id="article-overview-panel" class="panel article-search-panel" aria-labelledby="article-search-title">
+          <div class="article-search-intro">
+            <h3 id="article-search-title" data-i18n="article_search_title">Which article would you like to explore?</h3>
+            <p class="table-note" data-i18n="article_search_description">Search by article ID or description across this workspace.</p>
           </div>
-          <div id="batch-warnings" class="batch-warnings hidden" role="status"></div>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th data-i18n="source_file_column">Source file</th>
-                  <th data-i18n="status_column">Status</th>
-                  <th class="number" data-i18n="total_rows_column">Rows</th>
-                  <th class="number" data-i18n="valid_rows_column">Valid</th>
-                  <th class="number" data-i18n="invalid_rows_column">Invalid</th>
-                </tr>
-              </thead>
-              <tbody id="source-files-table-body"></tbody>
-            </table>
-          </div>
-        </section>
-        <div id="metric-grid" class="metric-grid"></div>
-
-        <section id="article-overview-panel" class="panel table-panel" aria-labelledby="article-title">
-          <div class="table-toolbar">
-            <div>
-              <h3 id="article-title" data-i18n="article_overview">Article overview</h3>
-              <p id="article-count" class="table-note"></p>
-            </div>
-            <label class="compact-field">
-              <span data-i18n="search_label">Search</span>
-              <input id="article-filter" type="search" placeholder="Article ID / SKU or description" data-i18n-placeholder="search_placeholder">
-            </label>
-            <label class="compact-field">
-              <span data-i18n="sort_label">Sort by</span>
-              <select id="article-sort">
-                <option value="lines" data-i18n="sort_lines">Order lines</option>
-                <option value="quantity" data-i18n="sort_quantity">Total quantity</option>
-                <option value="sales" data-i18n="sort_sales">Legacy sales value</option>
-                <option value="article" data-i18n="sort_article">Article ID / SKU</option>
-              </select>
-            </label>
-          </div>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th data-i18n="column_article_id">Article ID / SKU</th>
-                  <th data-i18n="column_article_name">Article description</th>
-                  <th data-i18n="column_master_status">Master-data status</th>
-                  <th class="number" data-i18n="column_lines">Lines</th>
-                  <th class="number" data-i18n="column_quantity">Quantity</th>
-                  <th class="number" data-i18n="column_sales">Legacy sales value / coverage</th>
-                  <th class="number" data-i18n="column_orders">Orders</th>
-                  <th class="number" data-i18n="column_customers">Customers</th>
-                  <th class="number" data-i18n="column_days">Days</th>
-                  <th data-i18n="column_locations">Locations</th>
-                  <th class="number" data-i18n="column_share">Line share</th>
-                </tr>
-              </thead>
-              <tbody id="article-table-body"></tbody>
-            </table>
-          </div>
-          <div id="article-pagination" class="table-pagination hidden" aria-live="polite">
-            <button id="article-previous" class="secondary-button" type="button" disabled data-i18n="previous_page">Previous</button>
-            <span id="article-page-status" class="table-note"></span>
-            <button id="article-next" class="secondary-button" type="button" disabled data-i18n="next_page">Next</button>
-          </div>
+          <label class="article-search-field" for="article-filter">
+            <span class="visually-hidden" data-i18n="search_label">Search</span>
+            <span class="article-search-icon" aria-hidden="true">⌕</span>
+            <input id="article-filter" type="search" autocomplete="off" aria-controls="article-search-results" aria-expanded="false" placeholder="Article ID / SKU or description" data-i18n-placeholder="search_placeholder">
+          </label>
+          <p id="article-count" class="table-note article-search-count" aria-live="polite"></p>
+          <ul id="article-search-results" class="article-search-results hidden" aria-label="Article search results" data-i18n-aria-label="article_search_results"></ul>
         </section>
 
-        <section id="article-detail-panel" class="panel table-panel hidden" aria-labelledby="article-detail-title">
-          <div class="detail-heading">
+        <div id="article-empty-state" class="panel article-empty-state" role="status" data-i18n="article_search_empty">Search for an article and select a result to see its details.</div>
+
+        <section id="article-detail-panel" class="hidden" aria-labelledby="article-detail-title">
+          <div class="panel article-detail-header">
             <div>
-              <button id="article-detail-back" class="text-button detail-back" type="button" data-i18n="detail_back">Back to article overview</button>
-              <h3 id="article-detail-title" tabindex="-1" data-i18n="article_detail">Article details</h3>
+              <p class="step" data-i18n="article_selected_label">Selected article</p>
+              <h3 id="article-detail-title" tabindex="-1"></h3>
               <p id="article-detail-heading" class="table-note"></p>
             </div>
+            <button id="article-detail-back" class="secondary-button" type="button" data-i18n="article_change">Change article</button>
           </div>
           <div id="article-detail-warning" class="message warning-message hidden" role="status"></div>
-          <details id="article-source-inspection" class="source-inspection hidden">
-            <summary data-i18n="detail_source_values_title">Original source values</summary>
-            <p id="article-source-inspection-summary" class="table-note"></p>
-            <div class="table-scroll"><table><thead><tr><th data-i18n="detail_source_values_header">Source column</th><th data-i18n="detail_source_values_value">Original value</th></tr></thead><tbody id="article-source-inspection-body"></tbody></table></div>
-          </details>
-          <div id="article-detail-metrics" class="metric-grid detail-metric-grid"></div>
-          <div class="table-scroll">
+          <div id="article-detail-summary" class="metric-grid article-summary-grid"></div>
+          <div id="article-detail-tabs" class="article-detail-tabs" role="tablist" aria-label="Article detail sections" data-i18n-aria-label="article_detail_sections">
+            <button id="article-tab-overview" class="article-detail-tab active" type="button" role="tab" aria-controls="article-section-overview" aria-selected="true" data-article-tab="overview" data-i18n="article_tab_overview">Overview</button>
+            <button id="article-tab-demand" class="article-detail-tab" type="button" role="tab" aria-controls="article-section-demand" aria-selected="false" data-article-tab="demand" data-i18n="article_tab_demand">Demand &amp; orders</button>
+            <button id="article-tab-master" class="article-detail-tab" type="button" role="tab" aria-controls="article-section-master" aria-selected="false" data-article-tab="master" data-i18n="article_tab_master">Master data</button>
+            <button id="article-tab-quality" class="article-detail-tab" type="button" role="tab" aria-controls="article-section-quality" aria-selected="false" data-article-tab="quality" data-i18n="article_tab_quality">Data quality</button>
+            <button id="article-tab-evidence" class="article-detail-tab" type="button" role="tab" aria-controls="article-section-evidence" aria-selected="false" data-article-tab="evidence" data-i18n="article_tab_evidence">Evidence &amp; raw data</button>
+          </div>
+          <section id="article-section-overview" class="panel article-detail-section" role="tabpanel" aria-labelledby="article-tab-overview">
+            <h3 data-i18n="article_overview_heading">At a glance</h3>
+            <div id="article-detail-metrics" class="metric-grid article-secondary-grid"></div>
+          </section>
+          <section id="article-section-demand" class="panel article-detail-section hidden" role="tabpanel" aria-labelledby="article-tab-demand">
+            <h3 data-i18n="article_demand_heading">Demand &amp; orders</h3>
+            <div id="article-demand-metrics" class="metric-grid article-secondary-grid"></div>
+          </section>
+          <section id="article-section-master" class="panel article-detail-section hidden" role="tabpanel" aria-labelledby="article-tab-master">
+            <h3 data-i18n="article_master_heading">Article master data</h3>
+            <div id="article-master-metrics" class="metric-grid article-secondary-grid"></div>
+          </section>
+          <section id="article-section-quality" class="panel article-detail-section hidden" role="tabpanel" aria-labelledby="article-tab-quality">
+            <h3 data-i18n="article_quality_heading">Findings for this article</h3>
+            <div class="table-scroll"><table><thead><tr><th data-i18n="quality_severity">Severity</th><th data-i18n="quality_message">Finding</th><th class="number" data-i18n="quality_affected">Affected</th><th data-i18n="detail_source_line">Source line</th><th><span class="visually-hidden" data-i18n="quality_action">Action</span></th></tr></thead><tbody id="article-quality-table-body"></tbody></table></div>
+          </section>
+          <section id="article-section-evidence" class="panel article-detail-section hidden" role="tabpanel" aria-labelledby="article-tab-evidence">
+            <h3 data-i18n="article_evidence_heading">Order lines &amp; source evidence</h3>
+            <details id="article-source-inspection" class="source-inspection hidden">
+              <summary data-i18n="detail_source_values_title">Original source values</summary>
+              <p id="article-source-inspection-summary" class="table-note"></p>
+              <div class="table-scroll"><table><thead><tr><th data-i18n="detail_source_values_header">Source column</th><th data-i18n="detail_source_values_value">Original value</th></tr></thead><tbody id="article-source-inspection-body"></tbody></table></div>
+            </details>
+            <div class="table-scroll">
             <table>
               <thead>
                 <tr>
-                  <th data-i18n="detail_source_file">Source file</th>
                   <th class="number" data-i18n="detail_source_line">Source line</th>
                   <th data-i18n="detail_order_id">Order ID</th>
                   <th data-i18n="detail_order_date">Delivery date</th>
@@ -541,11 +554,12 @@
               <tbody id="article-detail-table-body"></tbody>
             </table>
           </div>
-          <div id="article-detail-pagination" class="table-pagination hidden" aria-live="polite">
+            <div id="article-detail-pagination" class="table-pagination hidden" aria-live="polite">
             <button id="article-detail-previous" class="secondary-button" type="button" disabled data-i18n="previous_page">Previous</button>
             <span id="article-detail-page-status" class="table-note"></span>
             <button id="article-detail-next" class="secondary-button" type="button" disabled data-i18n="next_page">Next</button>
-          </div>
+            </div>
+          </section>
         </section>
 
       </section>

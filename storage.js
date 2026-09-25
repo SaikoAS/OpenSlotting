@@ -81,6 +81,7 @@
       analyzed: workspace.analyzed,
       periodSettings: workspace.periodSettings,
       customFields: workspace.customFields,
+      importProfiles: workspace.importProfiles,
       storageRevision: storageRevision,
       sourceCount: workspace.files.length,
       sourceBytes: sourceBytes,
@@ -358,6 +359,9 @@
       customFields: values.customFields
         ? workspaceModel.normalizeCustomFields(values.customFields)
         : (Array.isArray(metadata.customFields) ? workspaceModel.normalizeCustomFields(metadata.customFields) : []),
+      importProfiles: values.importProfiles
+        ? workspaceModel.normalizeImportProfiles(values.importProfiles)
+        : workspaceModel.normalizeImportProfiles(metadata.importProfiles),
       sourceCount: Number.isInteger(values.sourceCount) && values.sourceCount >= 0 ? values.sourceCount : metadata.sourceCount,
       sourceBytes: Number.isFinite(values.sourceBytes) && values.sourceBytes >= 0 ? values.sourceBytes : metadata.sourceBytes,
       normalizedRowCount: Number.isInteger(values.normalizedRowCount) && values.normalizedRowCount >= 0
@@ -466,6 +470,7 @@
         analyzed: metadata.analyzed,
         periodSettings: metadata.periodSettings,
         customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
+        importProfiles: Array.isArray(metadata.importProfiles) ? metadata.importProfiles : [],
         articleRegistry: includeResults ? registry : [],
         storageRevision: storageRevisionOf(metadata),
         files: files
@@ -493,6 +498,7 @@
       analyzed: metadata.analyzed,
       periodSettings: metadata.periodSettings,
       customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
+      importProfiles: Array.isArray(metadata.importProfiles) ? metadata.importProfiles : [],
       articleRegistry: Array.isArray(payload.articleRegistry) ? payload.articleRegistry : [],
       storageRevision: storageRevisionOf(metadata),
       files: files
@@ -787,6 +793,7 @@
           }
           updated.schemaVersion = persisted.schemaVersion;
           updated.language = persisted.language;
+          updated.importProfiles = persisted.importProfiles;
           await clearChunkedWorkspace(stores, workspaceId);
           stores.workspacePayloads.delete(workspaceId);
           putChunkedWorkspace(stores, persisted);

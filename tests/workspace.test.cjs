@@ -708,9 +708,79 @@ test('schema-nine migration adds empty preparation rules without changing existi
   legacy.schemaVersion = 9;
   delete legacy.files[0].preparationRules;
   const migrated = workspace.migrateWorkspace(legacy);
-  assert.equal(migrated.schemaVersion, 10);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
   assert.deepEqual(migrated.files[0].preparationRules, {});
   assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V9');
+});
+
+test('schema-ten migration adds an empty import-profile collection', () => {
+  const legacy = analyzedWorkspace('workspace-v10', 'Version ten', 'SKU-V10');
+  legacy.schemaVersion = 10;
+  delete legacy.importProfiles;
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.deepEqual(migrated.importProfiles, []);
+  assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V10');
+});
+
+test('import profiles keep mappings and ordered rules and match reordered unique headers', () => {
+  const source = {
+    headers: ['AUFTRNR', 'ARTNR', 'MENGE', 'DATUM'],
+    sourceType: 'order-lines',
+    mapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3, article_name: null },
+    customFieldMapping: {},
+    preparationRules: { article_id: [{ type: 'trim', enabled: true }], quantity: [{ type: 'replace-text', from: '-', to: '0', enabled: false }] }
+  };
+  const profile = workspace.createImportProfile(source, 'Daily orders', [], {
+    id: 'profile-daily', now: '2026-09-25T08:00:00.000Z'
+  });
+  assert.deepEqual(profile.mapping, { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 });
+  assert.equal(profile.preparationRules.article_id[0].type, 'trim');
+  assert.equal(profile.preparationRules.quantity[0].enabled, false);
+  const exact = workspace.planImportProfile(profile, { headers: source.headers }, []);
+  assert.equal(exact.compatible, true);
+  assert.equal(exact.schemaExact, true);
+  const reordered = workspace.planImportProfile(profile, { headers: ['DATUM', 'MENGE', 'AUFTRNR', 'ARTNR', 'EXTRA'] }, []);
+  assert.equal(reordered.compatible, true);
+  assert.deepEqual(reordered.mapping, { order_id: 2, article_id: 3, quantity: 1, delivery_date: 0 });
+  assert.deepEqual(profile.mapping, { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 });
+});
+
+test('import-profile application stops on missing or ambiguous columns and unavailable custom fields', () => {
+  const profile = workspace.createImportProfile({
+    headers: ['SKU', 'NAME', 'SKU'], sourceType: 'article-master',
+    mapping: { article_id: 0, article_name: 1 },
+    customFieldMapping: { 'custom-tag': 2 },
+    preparationRules: { article_id: [{ type: 'trim', enabled: true }] }
+  }, 'Master', [{ id: 'custom-tag', active: true }], {
+    id: 'profile-master', now: '2026-09-25T08:00:00.000Z'
+  });
+  assert.equal(workspace.planImportProfile(profile, { headers: ['SKU', 'NAME', 'SKU'] }, [{ id: 'custom-tag', active: true }]).compatible, true);
+  const changed = workspace.planImportProfile(profile, { headers: ['NAME', 'SKU', 'SKU'] }, [{ id: 'custom-tag', active: true }]);
+  assert.equal(changed.compatible, false);
+  assert.ok(changed.unresolved.some((item) => item.reason === 'ambiguous'));
+  const missing = workspace.planImportProfile(profile, { headers: ['NAME'] }, [{ id: 'custom-tag', active: false }]);
+  assert.equal(missing.compatible, false);
+  assert.ok(missing.unresolved.some((item) => item.reason === 'missing'));
+  assert.ok(missing.unresolved.some((item) => item.reason === 'custom-field-missing'));
+});
+
+test('import profiles survive workspace capture and backup without leaking into another workspace', () => {
+  const first = analyzedWorkspace('workspace-profiles', 'Profiles', 'SKU-P');
+  first.importProfiles = [workspace.createImportProfile({
+    headers: ['order_id', 'article_id', 'quantity', 'delivery_date'], sourceType: 'order-lines',
+    mapping: first.files[0].mapping, customFieldMapping: {},
+    preparationRules: { article_id: [{ type: 'trim', enabled: true }] }
+  }, 'Orders', [], { id: 'profile-orders', now: '2026-09-25T08:00:00.000Z' })];
+  const validated = workspace.validateWorkspace(first);
+  const restored = workspace.parseBackup(workspace.stringifyBackup(validated));
+  assert.deepEqual(restored.importProfiles, validated.importProfiles);
+  const captured = workspace.captureWorkspaceTrusted(validated, {
+    language: 'en', files: validated.files, customFields: [], importProfiles: validated.importProfiles,
+    articleRegistry: validated.articleRegistry
+  });
+  assert.deepEqual(captured.importProfiles, validated.importProfiles);
+  assert.deepEqual(workspace.createWorkspace('Other').importProfiles, []);
 });
 
 test('ordered preparation rules survive validation and backup restore', () => {

@@ -118,3 +118,17 @@ test('browser integration uses the centralized runtime contract', () => {
   assert.match(appSource, /runtime\.supports\(capabilityName\)/);
   assert.doesNotMatch(appSource, /location\.(?:protocol|hostname|origin)/);
 });
+
+test('analysis starts with article search instead of a source-file or article table', () => {
+  const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const analysisPage = indexSource.match(/<div id="analysis-page"[\s\S]*?<\/main>/)?.[0] || '';
+
+  assert.match(analysisPage, /id="article-filter"[^>]*type="search"|type="search"[^>]*id="article-filter"/);
+  assert.match(analysisPage, /id="article-search-results"/);
+  assert.match(analysisPage, /id="article-detail-panel"/);
+  assert.match(analysisPage, /id="article-section-evidence"/);
+  assert.doesNotMatch(analysisPage, /id="source-files-table-body"|id="article-table-body"|id="import-summary"/);
+  assert.match(appSource, /function renderArticleSearch\(\)/);
+  assert.match(appSource, /function selectArticleDetailTab\(tab\)/);
+});

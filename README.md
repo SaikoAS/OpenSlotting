@@ -2,7 +2,7 @@
 
 OpenSlotting is an open-source, local-first web tool for analyzing warehouse order lines and building a data-driven foundation for warehouse slotting.
 
-The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The latest published application release is `0.2.1`; current `main` development continues the local-workspace, article-master, and period-comparison foundation. Future versions are planned to expand this foundation through ABC/XYZ classification, reusable mapping templates, slotting scores, and warehouse slotting recommendations.
+The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The latest published application release is `0.2.1`; current development continues the local-workspace, article-master, and period-comparison foundation. Future versions are planned to expand this foundation through ABC/XYZ classification, slotting scores, and warehouse slotting recommendations.
 
 > **Project status:** The latest published release is `0.2.1`. `main` contains unreleased development after that release, including persistent workspaces, article-master imports and registry preparation, period comparison, runtime profiles, and large-import performance work. No next release version has been assigned yet.
 
@@ -45,6 +45,7 @@ The current implementation includes:
 - ordered source-column catalogs with duplicate-header and physical-position metadata
 - bounded streaming source-column profiles with representative and frequent values
 - explainable mapping suggestions and a source-column overview with profile evidence
+- workspace-local import profiles that reuse a source type, field mapping, and ordered preparation rules across CSV imports
 - independent encoding selection, mapping, parsing, and validation per source file
 - visible exclusion of files with blocking import errors
 - source-file and source-line traceability for validation notes and article details
@@ -242,7 +243,7 @@ For example:
 | Menge | Quantity |
 | Qty | Quantity |
 
-Users can review and change the mapping independently for every file in the current batch. Workspace-specific mappings are persisted with each workspace; reusable mapping templates remain planned for V0.6.
+Users can review and change the mapping independently for every file in the current batch. They can save the selected import's mapping and preparation rules as a named, workspace-local import profile, then apply it to another import. The profile matches an identical column layout by position or uniquely named columns after reordering. Missing or ambiguous columns prevent application and leave the target import unchanged. Applying a profile replaces that import's source type, mappings, and rules; validation must then run again. Profiles are included in workspace backups, but are not shared between workspaces.
 
 Article descriptions are optional display metadata. Articles are always grouped by
 `article_id`. If one article ID has multiple distinct non-empty descriptions,
@@ -379,7 +380,7 @@ acceptance before a future release claim.
 - Enrich article analysis with current master attributes without rewriting historical movement facts
 - Detect duplicate/conflicting master rows, missing master data, and master-only articles with source evidence
 - Configurable article master data
-- Reusable mapping templates (planned)
+- Further import-profile sharing and editing options (planned)
 
 ### V0.7 — Existing Storage Locations
 
