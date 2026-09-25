@@ -21,8 +21,10 @@ RUNTIME_FILES = frozenset(
     {
         "index.html",
         "app.css",
+        "terminal-theme.css",
         "runtime.js",
         "app.js",
+        "terminal.js",
         "encoding.js",
         "csv.js",
         "periods.js",

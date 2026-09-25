@@ -136,6 +136,15 @@ test('experimental Python server is loopback-only and serves only runtime files'
   assert.match(runtimeResponse.headers.get('content-type'), /^text\/javascript/);
   await runtimeResponse.arrayBuffer();
 
+  const terminalScript = await fetch(origin + '/terminal.js');
+  assert.equal(terminalScript.status, 200);
+  assert.match(terminalScript.headers.get('content-type'), /^text\/javascript/);
+  await terminalScript.arrayBuffer();
+  const terminalTheme = await fetch(origin + '/terminal-theme.css');
+  assert.equal(terminalTheme.status, 200);
+  assert.match(terminalTheme.headers.get('content-type'), /^text\/css/);
+  await terminalTheme.arrayBuffer();
+
   const faviconResponse = await fetch(origin + '/favicon.ico');
   assert.equal(faviconResponse.status, 200);
   assert.match(faviconResponse.headers.get('content-type'), /^image\/vnd\.microsoft\.icon/);

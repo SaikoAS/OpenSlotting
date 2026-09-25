@@ -44,8 +44,10 @@ $archivePath = Join-Path $outputRoot "$packageName.zip"
 $releaseFiles = @(
     'index.html',
     'app.css',
+    'terminal-theme.css',
     'runtime.js',
     'app.js',
+    'terminal.js',
     'encoding.js',
     'csv.js',
     'periods.js',

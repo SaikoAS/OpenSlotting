@@ -7,6 +7,7 @@
   const workspaceModel = window.OpenSlottingWorkspace;
   const storageApi = window.OpenSlottingStorage;
   const runtime = window.OpenSlottingRuntime;
+  const terminalModel = window.OpenSlottingTerminal;
   const workspaceRepository = storageApi.createRepository();
   const TRANSLATIONS = {
     en: {
@@ -57,7 +58,40 @@
       workspace_open_selected: 'Open selected',
       workspace_currently_open: 'Go to workspace menu',
       workspace_selection_back: 'Workspace selection',
-      main_menu_title: 'Main menu',
+      main_menu_title: 'Analysis desk',
+      terminal_nav_label: 'Workspace',
+      terminal_overview: 'Overview',
+      terminal_articles: 'Articles',
+      terminal_customers: 'Customers',
+      terminal_orders: 'Orders',
+      terminal_scope_label: 'Analysis level',
+      terminal_metric: 'Metric',
+      terminal_range: 'Range',
+      terminal_quantity: 'Quantity',
+      terminal_lines: 'Order lines',
+      terminal_30_days: '30 days',
+      terminal_90_days: '90 days',
+      terminal_all_days: 'All dates',
+      terminal_trend: 'Trend by delivery date',
+      terminal_recent_lines: 'Latest order lines',
+      terminal_watchlist: 'Watchlist',
+      terminal_search: 'Search ID or name',
+      terminal_source_note: 'Valid normalized order lines · local data',
+      terminal_id_coverage: '{{identified}} / {{total}} order lines with ID · local data',
+      terminal_empty_title: 'Your order analysis starts here',
+      terminal_empty_copy: 'Import CSV files and validate them to explore articles, customers and orders over time.',
+      terminal_no_entities: 'No IDs available at this level. Check the source mapping.',
+      terminal_no_period_rows: 'No dated order lines in this range.',
+      terminal_scope_article: 'Article',
+      terminal_scope_customer: 'Customer',
+      terminal_scope_order: 'Order',
+      terminal_distinct_articles: 'Articles',
+      terminal_distinct_customers: 'Customers',
+      terminal_distinct_orders: 'Orders',
+      terminal_lines_shown: '{{count}} of {{total}} lines',
+      terminal_entities_count: '{{count}} entries',
+      terminal_valid_rows: 'Dated, valid rows in selected range',
+      terminal_observed_only: 'Observed dates only · gaps are unknown',
       main_menu_eyebrow: 'Workspace menu',
       main_menu_greeting: 'What would you like to do?',
       main_menu_intro: 'Choose an area to continue working in this workspace.',
@@ -651,7 +685,40 @@
       workspace_open_selected: 'Auswahl öffnen',
       workspace_currently_open: 'Zum Workspace-Menü',
       workspace_selection_back: 'Workspace-Auswahl',
-      main_menu_title: 'Hauptmenü',
+      main_menu_title: 'Analyse-Desk',
+      terminal_nav_label: 'Arbeitsbereich',
+      terminal_overview: 'Übersicht',
+      terminal_articles: 'Artikel',
+      terminal_customers: 'Kunden',
+      terminal_orders: 'Aufträge',
+      terminal_scope_label: 'Auswertungsebene',
+      terminal_metric: 'Kennzahl',
+      terminal_range: 'Zeitraum',
+      terminal_quantity: 'Menge',
+      terminal_lines: 'Auftragszeilen',
+      terminal_30_days: '30 Tage',
+      terminal_90_days: '90 Tage',
+      terminal_all_days: 'Alle Daten',
+      terminal_trend: 'Verlauf nach Lieferdatum',
+      terminal_recent_lines: 'Letzte Auftragszeilen',
+      terminal_watchlist: 'Beobachtungsliste',
+      terminal_search: 'ID oder Name suchen',
+      terminal_source_note: 'Gültige normalisierte Auftragszeilen · lokale Daten',
+      terminal_id_coverage: '{{identified}} / {{total}} Auftragszeilen mit ID · lokale Daten',
+      terminal_empty_title: 'Hier beginnt die Auftragsanalyse',
+      terminal_empty_copy: 'CSV-Dateien importieren und prüfen, um Artikel, Kunden und Aufträge im Zeitverlauf auszuwerten.',
+      terminal_no_entities: 'Keine IDs für diese Ebene vorhanden. Bitte die Quellzuordnung prüfen.',
+      terminal_no_period_rows: 'Keine datierten Auftragszeilen in diesem Zeitraum.',
+      terminal_scope_article: 'Artikel',
+      terminal_scope_customer: 'Kunde',
+      terminal_scope_order: 'Auftrag',
+      terminal_distinct_articles: 'Artikel',
+      terminal_distinct_customers: 'Kunden',
+      terminal_distinct_orders: 'Aufträge',
+      terminal_lines_shown: '{{count}} von {{total}} Zeilen',
+      terminal_entities_count: '{{count}} Einträge',
+      terminal_valid_rows: 'Datierte, gültige Zeilen im gewählten Zeitraum',
+      terminal_observed_only: 'Nur erfasste Tage · Lücken sind unbekannt',
       main_menu_eyebrow: 'Workspace-Menü',
       main_menu_greeting: 'Was möchtest du tun?',
       main_menu_intro: 'Wähle einen Bereich, um in diesem Workspace weiterzuarbeiten.',
@@ -1322,6 +1389,26 @@
     pageContextStatus: document.getElementById('page-context-status'),
     returnMainMenu: document.getElementById('return-main-menu'),
     returnWorkspaceSelection: document.getElementById('return-workspace-selection'),
+    terminalPanel: document.getElementById('terminal-panel'),
+    terminalEmpty: document.getElementById('terminal-empty'),
+    terminalData: document.getElementById('terminal-data'),
+    terminalScopeButtons: Array.from(document.querySelectorAll('[data-terminal-scope]')),
+    terminalMetric: document.getElementById('terminal-metric'),
+    terminalRange: document.getElementById('terminal-range'),
+    terminalSearch: document.getElementById('terminal-search'),
+    terminalEntityType: document.getElementById('terminal-entity-type'),
+    terminalEntityTitle: document.getElementById('terminal-entity-title'),
+    terminalEntitySubtitle: document.getElementById('terminal-entity-subtitle'),
+    terminalDataPeriod: document.getElementById('terminal-data-period'),
+    terminalKpis: document.getElementById('terminal-kpis'),
+    terminalChart: document.getElementById('terminal-chart'),
+    terminalChartTotal: document.getElementById('terminal-chart-total'),
+    terminalChartNote: document.getElementById('terminal-chart-note'),
+    terminalLinesCount: document.getElementById('terminal-lines-count'),
+    terminalLinesBody: document.getElementById('terminal-lines-body'),
+    terminalWatchlistCount: document.getElementById('terminal-watchlist-count'),
+    terminalWatchlistRows: document.getElementById('terminal-watchlist-rows'),
+    terminalSourceNote: document.getElementById('terminal-source-note'),
     mainMenuWorkspaceName: document.getElementById('main-menu-workspace-name'),
     runtimeBadge: document.getElementById('runtime-badge'),
     runtimeMode: document.getElementById('runtime-mode'),
@@ -1489,6 +1576,7 @@
   };
 
   let workspaceSaveChain = Promise.resolve();
+  const terminalView = { rows: null, indexes: {}, scope: 'article', selected: { article: null, customer: null, order: null } };
   let workspaceSavePending = 0;
   let workspaceSaveRevision = 0;
   let workspaceSaveGeneration = 0;
@@ -3402,6 +3490,7 @@
       button.classList.toggle('active', target === requestedTarget);
       button.disabled = !availability[target] && target !== 'workspace-panel';
     });
+    if (requestedTarget === 'main-menu-panel') renderTerminal();
   }
 
   function coverageText(coverage) {
@@ -4186,6 +4275,175 @@
       else if (other.length < 10) other.push(article);
     });
     return { count: count, articles: exact.concat(prefix, other).slice(0, 10) };
+  }
+
+  function terminalSvg(tag, attributes, label) {
+    const node = document.createElementNS('http:' + '//www.w3.org/2000/svg', tag);
+    Object.keys(attributes || {}).forEach(function (name) { node.setAttribute(name, String(attributes[name])); });
+    if (label !== undefined) node.textContent = String(label);
+    return node;
+  }
+
+  function renderTerminalChart(summary) {
+    elements.terminalChart.replaceChildren();
+    const metric = elements.terminalMetric.value;
+    if (summary.points.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'terminal-chart-empty';
+      setText(empty, translate('terminal_no_period_rows'));
+      elements.terminalChart.appendChild(empty);
+      return;
+    }
+    const svg = terminalSvg('svg', { viewBox: '0 0 900 360', role: 'img', 'aria-label': translate('terminal_trend'), preserveAspectRatio: 'none' });
+    const plotLeft = 64;
+    const plotRight = 836;
+    const plotTop = 25;
+    const plotBottom = 265;
+    const values = summary.points.map(function (point) {
+      return metric === 'quantity' ? Number(point.quantity) / Number(core.QUANTITY_SCALE) : point.lines;
+    });
+    const maxValue = values.reduce(function (max, value) { return Math.max(max, value); }, 1);
+    const minTime = Date.parse(summary.points[0].date + 'T00:00:00Z');
+    const maxTime = Date.parse(summary.points[summary.points.length - 1].date + 'T00:00:00Z');
+    const span = Math.max(1, maxTime - minTime);
+    const x = function (point) { return plotLeft + (Date.parse(point.date + 'T00:00:00Z') - minTime) / span * (plotRight - plotLeft); };
+    const y = function (value) { return plotBottom - Math.max(0, value) / maxValue * (plotBottom - plotTop); };
+    for (let tick = 0; tick <= 4; tick += 1) {
+      const tickY = plotBottom - tick * (plotBottom - plotTop) / 4;
+      svg.appendChild(terminalSvg('line', { x1: plotLeft, y1: tickY, x2: plotRight, y2: tickY, class: 'terminal-grid-line' }));
+      const scaleValue = metric === 'quantity' ? BigInt(Math.round(maxValue * tick / 4 * Number(core.QUANTITY_SCALE))) : maxValue * tick / 4;
+      svg.appendChild(terminalSvg('text', { x: plotLeft - 12, y: tickY + 4, 'text-anchor': 'end', class: 'terminal-axis-label' }, metric === 'quantity' ? formatQuantity(scaleValue) : formatNumber(scaleValue, 0)));
+    }
+    const points = summary.points.map(function (point, index) { return [x(point), y(values[index])]; });
+    const segments = [];
+    summary.points.forEach(function (point, index) {
+      const previous = summary.points[index - 1];
+      if (!previous || Date.parse(point.date + 'T00:00:00Z') - Date.parse(previous.date + 'T00:00:00Z') > 86400000) segments.push([]);
+      segments[segments.length - 1].push(points[index]);
+    });
+    segments.forEach(function (segment) {
+      if (segment.length < 2) return;
+      const linePath = segment.map(function (point, index) { return (index ? 'L' : 'M') + point[0].toFixed(2) + ',' + point[1].toFixed(2); }).join(' ');
+      const areaPath = linePath + ' L' + segment[segment.length - 1][0].toFixed(2) + ',' + plotBottom + ' L' + segment[0][0].toFixed(2) + ',' + plotBottom + ' Z';
+      svg.appendChild(terminalSvg('path', { d: areaPath, class: 'terminal-chart-area' }));
+      svg.appendChild(terminalSvg('path', { d: linePath, class: 'terminal-chart-line' }));
+    });
+    if (summary.points.length <= 150) {
+      summary.points.forEach(function (point, index) {
+        const circle = terminalSvg('circle', { cx: points[index][0], cy: points[index][1], r: 4, class: 'terminal-chart-point' });
+        circle.appendChild(terminalSvg('title', {}, point.date + ' · ' + (metric === 'quantity' ? formatQuantity(point.quantity) : formatNumber(point.lines, 0))));
+        svg.appendChild(circle);
+      });
+    }
+    const maxLines = summary.points.reduce(function (max, point) { return Math.max(max, point.lines); }, 1);
+    const barWidth = Math.max(2, Math.min(12, 600 / summary.points.length));
+    summary.points.forEach(function (point) {
+      const barHeight = point.lines / maxLines * 48;
+      svg.appendChild(terminalSvg('rect', { x: x(point) - barWidth / 2, y: 330 - barHeight, width: barWidth, height: barHeight, class: 'terminal-volume-bar' }));
+    });
+    [0, Math.floor((summary.points.length - 1) / 2), summary.points.length - 1].filter(function (index, position, array) { return array.indexOf(index) === position; }).forEach(function (index) {
+      const point = summary.points[index];
+      svg.appendChild(terminalSvg('text', { x: x(point), y: 354, 'text-anchor': index === 0 ? 'start' : index === summary.points.length - 1 ? 'end' : 'middle', class: 'terminal-axis-label' }, formatCalendarDate(point.date)));
+    });
+    elements.terminalChart.appendChild(svg);
+  }
+
+  function renderTerminalWatchlist(list, selected) {
+    const query = elements.terminalSearch.value.trim().toLocaleLowerCase(state.language === 'de' ? 'de-DE' : 'en-US');
+    const matches = query ? list.filter(function (entity) { return (entity.label + ' ' + entity.secondary).toLocaleLowerCase(state.language === 'de' ? 'de-DE' : 'en-US').includes(query); }) : list;
+    setText(elements.terminalWatchlistCount, translate('terminal_entities_count', { count: matches.length }) + ' · ' + translate('terminal_all_days'));
+    elements.terminalWatchlistRows.replaceChildren();
+    if (matches.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'terminal-watchlist-empty';
+      setText(empty, list.length === 0 ? translate('terminal_no_entities') : translate('no_matches'));
+      elements.terminalWatchlistRows.appendChild(empty);
+    }
+    matches.slice(0, 100).forEach(function (entity) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'terminal-watchlist-item' + (selected && entity.key === selected.key ? ' selected' : '');
+      button.dataset.terminalEntityKey = entity.key;
+      const name = document.createElement('span');
+      name.className = 'terminal-watchlist-name';
+      const label = document.createElement('strong');
+      setText(label, entity.label);
+      const secondary = document.createElement('small');
+      setText(secondary, entity.secondary);
+      name.appendChild(label);
+      name.appendChild(secondary);
+      const value = document.createElement('span');
+      value.className = 'terminal-watchlist-value';
+      setText(value, elements.terminalMetric.value === 'quantity' ? formatQuantity(entity.quantity) : formatNumber(entity.lines, 0));
+      button.appendChild(name);
+      button.appendChild(value);
+      elements.terminalWatchlistRows.appendChild(button);
+    });
+  }
+
+  function renderTerminal() {
+    const rows = state.result && Array.isArray(state.result.rows) ? state.result.rows : null;
+    const ready = Boolean(rows && rows.length > 0);
+    elements.terminalEmpty.classList.toggle('hidden', ready);
+    elements.terminalData.classList.toggle('hidden', !ready);
+    document.getElementById('main-menu-panel').classList.toggle('hidden', ready);
+    if (!ready) return;
+    if (terminalView.rows !== rows) {
+      terminalView.rows = rows;
+      terminalView.indexes = {};
+      terminalView.selected = { article: null, customer: null, order: null };
+    }
+    const scope = terminalView.scope;
+    if (!terminalView.indexes[scope]) {
+      terminalView.indexes[scope] = terminalModel.buildIndex(rows, [scope]);
+      if (scope === 'article' && state.analysis && Array.isArray(state.analysis.articles)) {
+        const names = new Map(state.analysis.articles.map(function (article) { return [article.article_id, article.article_name]; }));
+        (terminalView.indexes[scope].entities.article || []).forEach(function (entity) { if (!entity.secondary) entity.secondary = names.get(entity.key) || ''; });
+      }
+    }
+    const index = terminalView.indexes[scope];
+    const list = index.entities[scope];
+    const selected = list.find(function (entity) { return entity.key === terminalView.selected[scope]; }) || list[0] || null;
+    terminalView.selected[scope] = selected ? selected.key : null;
+    elements.terminalScopeButtons.forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.terminalScope === scope)); });
+    setText(elements.terminalEntityType, translate({ article: 'terminal_scope_article', customer: 'terminal_scope_customer', order: 'terminal_scope_order' }[scope]));
+    setText(elements.terminalEntityTitle, selected ? selected.label : translate('terminal_no_entities'));
+    setText(elements.terminalEntitySubtitle, selected ? selected.secondary : '');
+    setText(elements.terminalSourceNote, translate('terminal_id_coverage', { identified: formatNumber(index.coverage[scope], 0), total: formatNumber(index.coverage.total, 0) }));
+    const summary = selected
+      ? terminalModel.selectedSummary(rows, scope, selected.key, index.latestDate, elements.terminalRange.value)
+      : terminalModel.selectedSummary([], scope, '', index.latestDate, elements.terminalRange.value);
+    setText(elements.terminalDataPeriod, summary.firstDate ? formatCalendarDate(summary.firstDate) + ' – ' + formatCalendarDate(summary.lastDate) : '—');
+    renderMetricCards(elements.terminalKpis, [
+      [translate('terminal_quantity'), formatQuantity(summary.quantity), translate('terminal_valid_rows')],
+      [translate('terminal_lines'), formatNumber(summary.lines, 0), translate('terminal_valid_rows')],
+      [translate('terminal_distinct_orders'), formatNumber(summary.orders, 0), ''],
+      [translate(scope === 'article' ? 'terminal_distinct_customers' : 'terminal_distinct_articles'), formatNumber(scope === 'article' ? summary.customers : summary.articles, 0), '']
+    ]);
+    setText(elements.terminalChartTotal, elements.terminalMetric.value === 'quantity' ? formatQuantity(summary.quantity) : formatNumber(summary.lines, 0));
+    setText(elements.terminalChartNote, translate(elements.terminalMetric.value === 'quantity' ? 'terminal_quantity' : 'terminal_lines') + ' · ' + translate('terminal_observed_only'));
+    renderTerminalChart(summary);
+    elements.terminalLinesBody.replaceChildren();
+    summary.latest.forEach(function (line) {
+      const row = document.createElement('tr');
+      appendCell(row, formatCalendarDate(line.delivery_date));
+      const articleCell = document.createElement('td');
+      const articleButton = document.createElement('button');
+      articleButton.type = 'button';
+      articleButton.className = 'terminal-article-link';
+      articleButton.dataset.terminalArticleId = line.article_id;
+      setText(articleButton, line.article_id);
+      articleCell.appendChild(articleButton);
+      row.appendChild(articleCell);
+      appendCell(row, optionalText(line.order_id));
+      appendCell(row, optionalText(line.customer_name || line.customer_id));
+      appendCell(row, formatQuantity(line.quantity), 'number');
+      appendCell(row, line.source_file_label || line.source_file_name || '', 'terminal-source-cell');
+      appendCell(row, line.source_line === null ? '' : String(line.source_line), 'number');
+      elements.terminalLinesBody.appendChild(row);
+    });
+    setText(elements.terminalLinesCount, translate('terminal_lines_shown', { count: summary.latest.length, total: summary.lines }));
+    renderTerminalWatchlist(list, selected);
   }
 
   function appendCell(row, value, className) {
@@ -6869,6 +7127,31 @@
       renderWorkflow(button.dataset.workflowTarget);
       window.scrollTo(0, 0);
     });
+  });
+  elements.terminalScopeButtons.forEach(function (button) {
+    button.addEventListener('click', function () {
+      terminalView.scope = button.dataset.terminalScope;
+      elements.terminalSearch.value = '';
+      renderTerminal();
+    });
+  });
+  elements.terminalMetric.addEventListener('change', renderTerminal);
+  elements.terminalRange.addEventListener('change', renderTerminal);
+  elements.terminalSearch.addEventListener('input', function () {
+    const index = terminalView.indexes[terminalView.scope];
+    if (!index) return;
+    const list = index.entities[terminalView.scope];
+    renderTerminalWatchlist(list, list.find(function (entity) { return entity.key === terminalView.selected[terminalView.scope]; }) || null);
+  });
+  elements.terminalWatchlistRows.addEventListener('click', function (event) {
+    const button = event.target.closest('button[data-terminal-entity-key]');
+    if (!button) return;
+    terminalView.selected[terminalView.scope] = button.dataset.terminalEntityKey;
+    renderTerminal();
+  });
+  elements.terminalLinesBody.addEventListener('click', function (event) {
+    const button = event.target.closest('button[data-terminal-article-id]');
+    if (button && button.dataset.terminalArticleId) openArticleDetail(button.dataset.terminalArticleId);
   });
   elements.comparisonSearch.addEventListener('input', function () {
     state.comparisonPage = 1;

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>OpenSlotting – CSV Analysis</title>
     <link rel="stylesheet" href="app.css">
+    <link rel="stylesheet" href="terminal-theme.css?v=3">
   </head>
 <body class="workspace-picker-mode">
     <header class="app-header">
@@ -29,6 +30,18 @@
 
     <main class="page-shell">
       <div class="app-layout">
+        <nav class="terminal-rail" aria-label="Workspace navigation" data-i18n-aria-label="terminal_nav_label">
+          <div class="terminal-rail-caption" data-i18n="terminal_nav_label">Workspace</div>
+          <button class="terminal-nav-item" type="button" data-workflow-target="main-menu-panel" title="Overview"><span aria-hidden="true">▦</span><strong data-i18n="terminal_overview">Overview</strong></button>
+          <button class="terminal-nav-item" type="button" data-workflow-target="results-panel" title="Articles"><span aria-hidden="true">⌕</span><strong data-i18n="terminal_articles">Articles</strong></button>
+          <div class="terminal-rail-divider"></div>
+          <button class="terminal-nav-item" type="button" data-workflow-target="import-panel" title="Import"><span aria-hidden="true">⇧</span><strong data-i18n="workflow_import">Import sources</strong></button>
+          <button class="terminal-nav-item" type="button" data-workflow-target="mapping-panel" title="Mapping"><span aria-hidden="true">☷</span><strong data-i18n="workflow_mapping">Mapping &amp; quality</strong></button>
+          <button class="terminal-nav-item" type="button" data-workflow-target="coverage-panel" title="Coverage"><span aria-hidden="true">▤</span><strong data-i18n="workflow_coverage">Coverage &amp; periods</strong></button>
+          <button class="terminal-nav-item" type="button" data-workflow-target="comparison-panel" title="Comparison"><span aria-hidden="true">↔</span><strong data-i18n="workflow_comparison">Comparison results</strong></button>
+          <div class="terminal-rail-spacer"></div>
+          <button class="terminal-nav-item" type="button" data-workflow-target="workspace-panel" title="Workspaces"><span aria-hidden="true">⌂</span><strong data-i18n="workspace_selection_back">Workspace selection</strong></button>
+        </nav>
         <div class="workflow-content">
       <div class="page-context" aria-live="polite">
         <div>
@@ -120,6 +133,37 @@
       </div>
 
       <div id="main-menu-page" class="app-page hidden">
+        <section id="terminal-panel" class="terminal-panel" aria-label="Analysis desk" data-i18n-aria-label="main_menu_title">
+          <div id="terminal-empty" class="terminal-empty">
+            <div class="terminal-empty-icon" aria-hidden="true">▥</div>
+            <p class="step" data-i18n="terminal_overview">Overview</p>
+            <h3 id="terminal-title" data-i18n="terminal_empty_title">Your order analysis starts here</h3>
+            <p data-i18n="terminal_empty_copy">Import CSV files and validate them to explore articles, customers and orders over time.</p>
+            <button class="primary-button" type="button" data-workflow-target="import-panel" data-i18n="workflow_import">Import sources</button>
+          </div>
+          <div id="terminal-data" class="terminal-data hidden">
+            <div class="terminal-toolbar">
+              <div class="terminal-entity-tabs" role="group" aria-label="Analysis level" data-i18n-aria-label="terminal_scope_label">
+                <button type="button" data-terminal-scope="article" aria-pressed="true" data-i18n="terminal_articles">Articles</button>
+                <button type="button" data-terminal-scope="customer" aria-pressed="false" data-i18n="terminal_customers">Customers</button>
+                <button type="button" data-terminal-scope="order" aria-pressed="false" data-i18n="terminal_orders">Orders</button>
+              </div>
+              <div class="terminal-toolbar-end">
+                <label class="terminal-select-label"><span data-i18n="terminal_metric">Metric</span><select id="terminal-metric"><option value="quantity" data-i18n="terminal_quantity">Quantity</option><option value="lines" data-i18n="terminal_lines">Order lines</option></select></label>
+                <label class="terminal-select-label"><span data-i18n="terminal_range">Range</span><select id="terminal-range"><option value="30" data-i18n="terminal_30_days">30 days</option><option value="90" data-i18n="terminal_90_days">90 days</option><option value="all" data-i18n="terminal_all_days">All dates</option></select></label>
+              </div>
+            </div>
+            <div class="terminal-grid">
+              <div class="terminal-main">
+                <div class="terminal-titlebar"><div><p class="terminal-kicker" id="terminal-entity-type"></p><h3 id="terminal-entity-title"></h3><p id="terminal-entity-subtitle"></p></div><span id="terminal-data-period" class="terminal-period"></span></div>
+                <div id="terminal-kpis" class="terminal-kpis"></div>
+                <div class="terminal-chart-panel"><div class="terminal-chart-heading"><div><span data-i18n="terminal_trend">Trend by delivery date</span><strong id="terminal-chart-total"></strong></div><span id="terminal-chart-note" data-i18n="terminal_observed_only">Observed dates only · gaps are unknown</span></div><div id="terminal-chart" class="terminal-chart" role="img" aria-label="Trend by delivery date" data-i18n-aria-label="terminal_trend"></div></div>
+                <section class="terminal-lines-panel" aria-labelledby="terminal-lines-title"><div class="terminal-section-heading"><h4 id="terminal-lines-title" data-i18n="terminal_recent_lines">Latest order lines</h4><span id="terminal-lines-count"></span></div><div class="table-scroll"><table><thead><tr><th data-i18n="detail_order_date">Delivery date</th><th data-i18n="column_article_id">Article ID / SKU</th><th data-i18n="detail_order_id">Order ID</th><th data-i18n="detail_customer_id">Customer ID</th><th class="number" data-i18n="column_quantity">Quantity</th><th data-i18n="detail_source_file">Source file</th><th class="number" data-i18n="detail_source_line">Source line</th></tr></thead><tbody id="terminal-lines-body"></tbody></table></div></section>
+              </div>
+              <aside class="terminal-watchlist" aria-label="Entity list" data-i18n-aria-label="terminal_watchlist"><div class="terminal-watchlist-heading"><div><strong data-i18n="terminal_watchlist">Watchlist</strong><small id="terminal-watchlist-count"></small></div><span aria-hidden="true">☷</span></div><label class="terminal-watchlist-search"><span aria-hidden="true">⌕</span><input id="terminal-search" type="search" autocomplete="off" data-i18n-placeholder="terminal_search" placeholder="Search ID or name" aria-label="Search entities" data-i18n-aria-label="terminal_search"></label><div id="terminal-watchlist-rows" class="terminal-watchlist-rows"></div><div class="terminal-watchlist-footer"><span id="terminal-source-note" data-i18n="terminal_source_note">Valid normalized order lines · local data</span></div></aside>
+            </div>
+          </div>
+        </section>
         <section id="main-menu-panel" class="panel main-menu-panel" aria-labelledby="main-menu-heading">
           <div class="main-menu-welcome">
             <p class="step" data-i18n="main_menu_eyebrow">Workspace</p>
@@ -582,6 +626,7 @@
     <script src="periods.js"></script>
     <script src="workspace.js"></script>
     <script src="storage.js"></script>
+    <script src="terminal.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
