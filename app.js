@@ -7378,11 +7378,19 @@
     root: document.getElementById('warehouse-editor-root'),
     model: warehouseModel,
     getLayout: function () { return state.warehouseLayout; },
+    getWorkspaceId: function () { return state.activeWorkspace ? state.activeWorkspace.id : null; },
     getRegistry: function () { return state.articleRegistry; },
     getLanguage: function () { return state.language; },
     save: async function (layout) {
-      state.warehouseLayout = warehouseModel.normalizeLayout(layout);
-      await persistActiveWorkspace(undefined, { metadataOnly: true });
+      const previous = state.warehouseLayout;
+      const normalized = warehouseModel.normalizeLayout(layout);
+      state.warehouseLayout = normalized;
+      try {
+        await persistActiveWorkspace(undefined, { metadataOnly: true });
+      } catch (error) {
+        if (state.warehouseLayout === normalized) state.warehouseLayout = previous;
+        throw error;
+      }
     }
   });
   applyLanguage();

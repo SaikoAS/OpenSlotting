@@ -65,6 +65,37 @@ test('floor footprints respect rack dimensions and rotation while grid moves pre
   assert.throws(() => warehouse.snapCoordinate(100, 0), /Grid/);
 });
 
+test('duplicating a rack retains measurements but creates independent empty-coded positions', () => {
+  const original = warehouse.createRack('pallet-rack', { bayCount: 2, levelCount: 2 });
+  original.bays[0].width = 3200;
+  original.uprights[1].height = 6800;
+  original.bays[0].levels[0].positions[0].code = 'R01-01-01-01';
+  const copy = warehouse.duplicateObject(original, { name: 'Kopie von Palettenregal' });
+  const secondCopy = warehouse.duplicateObject(original, { objects: [original, copy] });
+  const rotated = warehouse.rotateObject(copy, 90);
+  const layout = warehouse.normalizeLayout({ version: 1, objects: [original, rotated] });
+  const originalIds = new Set([
+    original.id,
+    ...original.uprights.map((part) => part.id),
+    ...original.bays.flatMap((bay) => [bay.id, ...bay.levels.flatMap((level) =>
+      [level.id, ...level.positions.map((position) => position.id)])])
+  ]);
+  const copyIds = [rotated.id,
+    ...rotated.uprights.map((part) => part.id),
+    ...rotated.bays.flatMap((bay) => [bay.id, ...bay.levels.flatMap((level) =>
+      [level.id, ...level.positions.map((position) => position.id)])])];
+  assert.equal(copyIds.some((partId) => originalIds.has(partId)), false);
+  assert.equal(new Set(copyIds).size, copyIds.length);
+  assert.equal(layout.objects[1].bays[0].width, 3200);
+  assert.equal(layout.objects[1].uprights[1].height, 6800);
+  assert.equal(layout.objects[1].rotation, 90);
+  assert.equal(layout.objects[1].x, 6700);
+  assert.equal(secondCopy.x, 13400);
+  assert.equal(layout.objects[0].bays[0].levels[0].positions[0].code, 'R01-01-01-01');
+  assert.equal(warehouse.listSlots(layout).filter((slot) => slot.code).length, 1);
+  assert.equal(warehouse.rotateObject({ rotation: 360 }, 90).rotation, 90);
+});
+
 test('article-master locations match exactly while unmatched codes remain visible', () => {
   const rack = warehouse.createRack('shelf-rack', { bayCount: 1, levelCount: 1 });
   const slot = rack.bays[0].levels[0].positions[0];

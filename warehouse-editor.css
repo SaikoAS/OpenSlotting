@@ -27,7 +27,9 @@
 .wh-view-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 9px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: #1a2029; font-size: .75rem; }
 .wh-view-toolbar > div { display: flex; flex-wrap: wrap; gap: 5px; }
 .wh-view-toolbar button { padding: 5px 8px; font-size: .68rem; }
+.wh-view-toolbar button:disabled { opacity: .45; cursor: default; }
 .wh-view-toolbar button[aria-pressed="true"] { border-color: #55cfbd; color: #d5fff7; background: #2a6258; }
+.warehouse-panel [aria-busy="true"] { pointer-events: none; opacity: .75; }
 .wh-canvas { display: block; width: 100%; height: 540px; border: 1px solid #2a3d48; border-radius: 7px; background: #0d151c; cursor: grab; touch-action: none; }
 .wh-canvas.is-top { cursor: move; }
 .wh-canvas:active { cursor: grabbing; }
@@ -39,6 +41,9 @@
 .wh-legend i.coded { background: #62b3cb; }
 .wh-properties .wh-card { max-height: min(780px, calc(100vh - 175px)); overflow-y: auto; }
 .wh-properties-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wh-object-actions { display: flex; flex-wrap: wrap; gap: 5px; margin: 3px 0 13px; }
+.wh-object-actions button { padding: 5px 7px; border: 1px solid #42635f; border-radius: 5px; color: #bff2e8; background: #203c3a; cursor: pointer; font-size: .66rem; }
+.wh-object-actions button:hover { background: #2e4c4a; }
 .wh-delete { padding: 5px 7px; border: 1px solid #71434c; border-radius: 5px; color: #ffb4b4; background: #38262e; cursor: pointer; font-size: .65rem; }
 .wh-delete:hover { background: #56313a; }
 .wh-field { display: grid; gap: 4px; min-width: 0; color: #9aabb7; font-size: .67rem; }

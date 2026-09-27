@@ -261,6 +261,49 @@
     });
   }
 
+  function duplicateObject(object, options) {
+    const copy = JSON.parse(JSON.stringify(object));
+    const settings = options || {};
+    const suffix = ' copy';
+    copy.name = String(settings.name || (object.name.slice(0, 120 - suffix.length) + suffix));
+    copy.id = id(RACK_TYPES.includes(copy.type) ? 'rack' : 'area');
+    const offset = Math.ceil((objectFootprint(object).width + 500) / 100) * 100;
+    const occupied = Array.isArray(settings.objects) ? settings.objects : [];
+    let available = false;
+    for (const axis of ['x', 'z']) {
+      for (const direction of [1, -1]) {
+        for (let step = 1; step <= occupied.length + 1; step += 1) {
+          const coordinate = object[axis] + direction * step * offset;
+          if (coordinate < -500000 || coordinate > 500000) break;
+          const x = axis === 'x' ? coordinate : object.x;
+          const z = axis === 'z' ? coordinate : object.z;
+          if (occupied.some(function (other) { return other.x === x && other.z === z; })) continue;
+          copy.x = x; copy.z = z; available = true; break;
+        }
+        if (available) break;
+      }
+      if (available) break;
+    }
+    if (RACK_TYPES.includes(copy.type)) {
+      copy.uprights.forEach(function (upright) { upright.id = id('upright'); });
+      copy.bays.forEach(function (bay) {
+        bay.id = id('bay');
+        bay.levels.forEach(function (level) {
+          level.id = id('level');
+          level.positions.forEach(function (position) { position.id = id('slot'); position.code = ''; });
+        });
+      });
+    }
+    return copy;
+  }
+
+  function rotateObject(object, degrees) {
+    const angle = Number(degrees);
+    if (!Number.isFinite(angle)) fail('Rotation step is invalid.');
+    const rotation = (object.rotation + angle) % 360;
+    return Object.assign({}, object, { rotation: rotation === 0 ? 0 : rotation });
+  }
+
   function snapCoordinate(value, step) {
     const number = Number(value);
     const grid = Number(step);
@@ -295,6 +338,7 @@
     createLayout: createLayout, createRack: createRack, createArea: createArea,
     resizeRack: resizeRack, normalizeLayout: normalizeLayout,
     listSlots: listSlots, matchArticles: matchArticles,
-    objectFootprint: objectFootprint, footprintCorners: footprintCorners, snapCoordinate: snapCoordinate
+    objectFootprint: objectFootprint, footprintCorners: footprintCorners, snapCoordinate: snapCoordinate,
+    duplicateObject: duplicateObject, rotateObject: rotateObject
   };
 }));

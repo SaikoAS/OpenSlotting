@@ -14,7 +14,9 @@
       positions: 'Positions per level', applyCounts: 'Apply counts', bay: 'Bay', level: 'Level', upright: 'Upright',
       clearHeight: 'Level clear height (mm)', thickness: 'Beam / shelf thickness (mm)', deck: 'Add shelf deck',
       deckThickness: 'Shelf deck thickness (mm)', code: 'Location code', codes: 'Codes for selected level',
-      codePrefix: 'Code prefix', generate: 'Fill empty codes', delete: 'Delete object',
+      codePrefix: 'Code prefix', generate: 'Fill empty codes', delete: 'Delete object', duplicate: 'Duplicate',
+      copyName: 'Copy of', rotateLeft: 'Rotate left 90°', rotateRight: 'Rotate right 90°',
+      undo: 'Undo', redo: 'Redo',
       view: '3D layout', planView: 'Floor plan', fit: 'Fit view', top: 'Top view', orbit: '3D view',
       hint: 'Drag to rotate · mouse wheel to zoom · click to select',
       hintTop: 'Drag an object to move it · drag empty space to pan · wheel to zoom · 100 mm snap',
@@ -38,7 +40,9 @@
       positions: 'Stellplätze je Ebene', applyCounts: 'Anzahl übernehmen', bay: 'Fach', level: 'Ebene', upright: 'Ständer',
       clearHeight: 'Lichte Fachhöhe (mm)', thickness: 'Traverse / Regalboden (mm)', deck: 'Fachboden hinzufügen',
       deckThickness: 'Fachbodenstärke (mm)', code: 'Stellplatzcode', codes: 'Codes der gewählten Ebene',
-      codePrefix: 'Code-Präfix', generate: 'Leere Codes füllen', delete: 'Objekt löschen',
+      codePrefix: 'Code-Präfix', generate: 'Leere Codes füllen', delete: 'Objekt löschen', duplicate: 'Duplizieren',
+      copyName: 'Kopie von', rotateLeft: '90° links drehen', rotateRight: '90° rechts drehen',
+      undo: 'Rückgängig', redo: 'Wiederholen',
       view: '3D-Lagerplan', planView: 'Grundriss', fit: 'Einpassen', top: 'Draufsicht', orbit: '3D-Ansicht',
       hint: 'Ziehen: drehen · Mausrad: zoomen · Klicken: auswählen',
       hintTop: 'Objekt ziehen: verschieben · freie Fläche ziehen: Ansicht bewegen · Mausrad: zoomen · 100-mm-Raster',
@@ -108,9 +112,25 @@
     let message = '';
     let pickFaces = [];
     let canvas = null;
+    let historyWorkspaceId = null;
+    let undoStack = [];
+    let redoStack = [];
+    let saving = false;
 
     function labels() { return LABELS[options.getLanguage() === 'de' ? 'de' : 'en']; }
     function layout() { return options.getLayout(); }
+    function syncHistoryScope() {
+      const workspaceId = options.getWorkspaceId();
+      if (workspaceId !== historyWorkspaceId) {
+        historyWorkspaceId = workspaceId;
+        undoStack = [];
+        redoStack = [];
+      }
+    }
+    function keepRecent(stack, value) {
+      stack.push(value);
+      if (stack.length > 20) stack.shift();
+    }
     function selected() { return layout().objects.find(function (object) { return object.id === choice.objectId; }) || null; }
     function objectName(object, t) { return object.name || t[TYPE_LABELS[object.type]]; }
     function selectSlot(slot) {
@@ -130,13 +150,38 @@
       else { message = labels().codeNotFound; render(); }
     }
 
-    async function commit(next) {
+    async function commit(next, historyAction, selectionAfter) {
+      if (saving) return;
+      syncHistoryScope();
+      const scope = historyWorkspaceId;
+      const before = clone(layout());
+      const beforeSelection = choice.objectId;
+      let normalized;
       try {
-        const normalized = model.normalizeLayout(next);
+        normalized = model.normalizeLayout(next);
+        if (JSON.stringify(normalized) === JSON.stringify(before)) { render(); return; }
+        saving = true;
+        root.setAttribute('aria-busy', 'true');
+        root.classList.add('is-saving');
         await options.save(normalized);
+        syncHistoryScope();
+        if (scope === historyWorkspaceId) {
+          if (historyAction === 'undo') {
+            undoStack.pop(); keepRecent(redoStack, { layout: before, selectionId: beforeSelection });
+          } else if (historyAction === 'redo') {
+            redoStack.pop(); keepRecent(undoStack, { layout: before, selectionId: beforeSelection });
+          } else {
+            keepRecent(undoStack, { layout: before, selectionId: beforeSelection }); redoStack = [];
+          }
+        }
+        if (selectionAfter !== undefined) choice.objectId = selectionAfter;
         message = labels().saved;
       } catch (error) {
         message = error && error.message ? error.message : String(error);
+      } finally {
+        saving = false;
+        root.removeAttribute('aria-busy');
+        root.classList.remove('is-saving');
       }
       render();
     }
@@ -192,6 +237,7 @@
     }
 
     function render() {
+      syncHistoryScope();
       const t = labels();
       const warehouse = layout();
       if (!warehouse.objects.some(function (object) { return object.id === choice.objectId; })) {
@@ -220,7 +266,10 @@
             COLORS[item.type] + '"></span><span><strong>' + esc(objectName(item, t)) + '</strong><small>' + esc(t[TYPE_LABELS[item.type]]) + '</small></span></button>';
         }).join('') : '<p class="wh-empty">' + esc(t.empty) + '</p>') + '</div></aside>' +
         '<div class="wh-main"><div class="wh-view-toolbar"><strong>' + esc(camera.mode === 'top' ? t.planView : t.view) +
-        '</strong><div><button type="button" data-action="fit">' + esc(t.fit) +
+        '</strong><div><button type="button" data-action="undo"' + (undoStack.length ? '' : ' disabled') +
+        ' title="Ctrl+Z">' + esc(t.undo) + '</button><button type="button" data-action="redo"' +
+        (redoStack.length ? '' : ' disabled') + ' title="Ctrl+Y / Ctrl+Shift+Z">' + esc(t.redo) +
+        '</button><button type="button" data-action="fit">' + esc(t.fit) +
         '</button><button type="button" data-action="top" aria-pressed="' + (camera.mode === 'top') + '">' + esc(t.top) +
         '</button><button type="button" data-action="orbit" aria-pressed="' + (camera.mode === 'orbit') + '">' +
         esc(t.orbit) + '</button></div></div><canvas class="wh-canvas' + (camera.mode === 'top' ? ' is-top' : '') +
@@ -247,7 +296,11 @@
           }).join('') + (matches.unmatched.length === 0 ? '<p class="wh-empty">' + esc(t.noUnmatched) + '</p>' : '') + '</div>') +
         '</div></div><aside class="wh-properties"><div class="wh-card"><div class="wh-properties-head"><h4>' + esc(t.properties) + '</h4>' +
         (object ? '<button type="button" class="wh-delete" data-action="delete">' + esc(t.delete) + '</button>' : '') +
-        '</div>' + properties(object, t, matches) + '</div></aside></div><p class="wh-message" role="status" aria-live="polite">' + esc(message) + '</p>';
+        '</div>' + (object ? '<div class="wh-object-actions"><button type="button" data-action="duplicate">' +
+          esc(t.duplicate) + '</button><button type="button" data-action="rotate-left" title="' + esc(t.rotateLeft) +
+          '">↶ 90°</button><button type="button" data-action="rotate-right" title="' + esc(t.rotateRight) +
+          '">↷ 90°</button></div>' : '') + properties(object, t, matches) +
+        '</div></aside></div><p class="wh-message" role="status" aria-live="polite">' + esc(message) + '</p>';
       canvas = root.querySelector('canvas');
       paint(warehouse, matches);
       wireCanvas();
@@ -501,6 +554,7 @@
     function wireCanvas() {
       let drag = null;
       canvas.addEventListener('pointerdown', function (event) {
+        if (saving) return;
         if (camera.mode === 'top') {
           const rect = canvas.getBoundingClientRect();
           const x = event.clientX - rect.left, y = event.clientY - rect.top;
@@ -574,6 +628,7 @@
     }
 
     root.addEventListener('click', function (event) {
+      if (saving) return;
       const objectButton = event.target.closest('[data-object]');
       if (objectButton) {
         choice.objectId = objectButton.dataset.object;
@@ -584,6 +639,14 @@
       const action = button.dataset.action;
       if (action === 'find-code') {
         findCode(); return;
+      }
+      if (action === 'undo' || action === 'redo') {
+        const stack = action === 'undo' ? undoStack : redoStack;
+        if (stack.length) {
+          const target = stack[stack.length - 1];
+          commit(clone(target.layout), action, target.selectionId);
+        }
+        return;
       }
       if (action === 'fit' || action === 'top' || action === 'orbit') {
         camera.zoom = 1;
@@ -600,16 +663,38 @@
         const last = next.objects[next.objects.length - 1];
         newObject.x = last ? last.x + 1800 : 0;
         newObject.z = last ? last.z + 1200 : 0;
-        next.objects.push(newObject); choice.objectId = newObject.id; choice.slotId = null;
+        next.objects.push(newObject); choice.slotId = null;
         if (camera.mode === 'top') topView.ready = false;
-        commit(next); return;
+        commit(next, null, newObject.id); return;
       }
       const object = selected();
       if (!object) return;
+      if (action === 'duplicate') {
+        const next = clone(layout());
+        const baseName = labels().copyName + ' ' + object.name;
+        let name = baseName.slice(0, 120);
+        let number = 2;
+        while (next.objects.some(function (item) { return item.name === name; })) {
+          const suffix = ' (' + number + ')';
+          name = baseName.slice(0, 120 - suffix.length) + suffix;
+          number += 1;
+        }
+        const duplicate = model.duplicateObject(object, { name: name, objects: next.objects });
+        next.objects.push(duplicate); choice.slotId = null;
+        if (camera.mode === 'top') topView.ready = false;
+        commit(next, null, duplicate.id); return;
+      }
+      if (action === 'rotate-left' || action === 'rotate-right') {
+        const next = clone(layout());
+        const index = next.objects.findIndex(function (item) { return item.id === object.id; });
+        next.objects[index] = model.rotateObject(next.objects[index], action === 'rotate-left' ? -90 : 90);
+        if (camera.mode === 'top') topView.ready = false;
+        commit(next); return;
+      }
       if (action === 'delete') {
         if (!window.confirm(labels().deleteWarning)) return;
         const next = clone(layout()); next.objects = next.objects.filter(function (item) { return item.id !== object.id; });
-        choice.objectId = null; choice.slotId = null; commit(next); return;
+        choice.slotId = null; commit(next, null, null); return;
       }
       if (action === 'resize' && model.RACK_TYPES.includes(object.type)) {
         const next = clone(layout()); const target = next.objects.find(function (item) { return item.id === object.id; });
@@ -641,12 +726,24 @@
     });
 
     root.addEventListener('keydown', function (event) {
+      if (saving) return;
+      const editable = event.target.closest('input, textarea, select, [contenteditable="true"]');
+      if (event.ctrlKey && !event.altKey && !editable) {
+        const key = event.key.toLowerCase();
+        const action = key === 'z' ? (event.shiftKey ? 'redo' : 'undo') : key === 'y' ? 'redo' : null;
+        const stack = action === 'undo' ? undoStack : action === 'redo' ? redoStack : [];
+        if (action && stack.length) {
+          const target = stack[stack.length - 1];
+          event.preventDefault(); commit(clone(target.layout), action, target.selectionId); return;
+        }
+      }
       if (event.key === 'Enter' && event.target.dataset.field === 'search') {
         event.preventDefault(); findCode();
       }
     });
 
     root.addEventListener('change', function (event) {
+      if (saving) return;
       const selector = event.target.dataset.select;
       if (selector) {
         choice[selector] = Number(event.target.value); choice.slotId = null; render(); return;
