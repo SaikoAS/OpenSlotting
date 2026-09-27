@@ -44,6 +44,7 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   context.globalThis = context;
   vm.runInContext(read('encoding.js'), context);
   vm.runInContext(read('csv.js'), context);
+  vm.runInContext(read('warehouse.js'), context);
   vm.runInContext(read('workspace.js'), context);
 
   const appSource = read('app.js');
@@ -57,7 +58,8 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
     "'use strict';",
     'const encoding = (' + context.OpenSlottingEncodingFactory.toString() + ')();',
     'const core = (' + context.OpenSlottingCsvFactory.toString() + ')();',
-    'const workspaceModel = (' + context.OpenSlottingWorkspaceFactory.toString() + ')();',
+    'const warehouseModel = (' + context.OpenSlottingWarehouseFactory.toString() + ')();',
+    'const workspaceModel = (' + context.OpenSlottingWorkspaceFactory.toString() + ')(warehouseModel);',
     workerFunctions,
     '(' + extractFunction(appSource, 'workspaceWorkerMain', 'workspaceLoadError') + ')();'
   ].join('\n');

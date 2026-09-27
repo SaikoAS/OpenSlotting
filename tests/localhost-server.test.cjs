@@ -144,6 +144,11 @@ test('experimental Python server is loopback-only and serves only runtime files'
   assert.equal(terminalTheme.status, 200);
   assert.match(terminalTheme.headers.get('content-type'), /^text\/css/);
   await terminalTheme.arrayBuffer();
+  for (const asset of ['warehouse.js', 'warehouse-editor.js', 'warehouse-editor.css']) {
+    const response = await fetch(origin + '/' + asset);
+    assert.equal(response.status, 200, asset);
+    await response.arrayBuffer();
+  }
 
   const faviconResponse = await fetch(origin + '/favicon.ico');
   assert.equal(faviconResponse.status, 200);

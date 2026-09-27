@@ -723,6 +723,16 @@ test('schema-ten migration adds an empty import-profile collection', () => {
   assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V10');
 });
 
+test('schema-eleven migration adds an empty warehouse layout and preserves imports', () => {
+  const legacy = analyzedWorkspace('workspace-v11', 'Version eleven', 'SKU-V11');
+  legacy.schemaVersion = 11;
+  delete legacy.warehouseLayout;
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.deepEqual(migrated.warehouseLayout, { version: 1, objects: [] });
+  assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V11');
+});
+
 test('import profiles keep mappings and ordered rules and match reordered unique headers', () => {
   const source = {
     headers: ['AUFTRNR', 'ARTNR', 'MENGE', 'DATUM'],

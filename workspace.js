@@ -1,14 +1,14 @@
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
+    module.exports = factory(require('./warehouse.js'));
   } else {
     root.OpenSlottingWorkspaceFactory = factory;
-    root.OpenSlottingWorkspace = factory();
+    root.OpenSlottingWorkspace = factory(root.OpenSlottingWarehouse);
   }
-}(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+}(typeof globalThis !== 'undefined' ? globalThis : this, function (warehouseModel) {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 11;
+  const WORKSPACE_SCHEMA_VERSION = 12;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -914,6 +914,7 @@
       periodSettings: normalizePeriodSettings(settings.periodSettings),
       customFields: normalizeCustomFields(settings.customFields),
       importProfiles: normalizeImportProfiles(settings.importProfiles),
+      warehouseLayout: warehouseModel.normalizeLayout(settings.warehouseLayout || warehouseModel.createLayout()),
       articleRegistry: normalizeArticleRegistry(settings.articleRegistry),
       files: []
     };
@@ -951,6 +952,7 @@
     }
     const customFields = normalizeCustomFields(workspace.customFields);
     const importProfiles = normalizeImportProfiles(workspace.importProfiles);
+    const warehouseLayout = warehouseModel.normalizeLayout(workspace.warehouseLayout);
     const articleRegistry = normalizeArticleRegistry(workspace.articleRegistry);
     const customFieldIds = new Set(customFields.map(function (field) { return field.id; }));
     importProfiles.forEach(function (profile) {
@@ -998,6 +1000,7 @@
       periodSettings: normalizePeriodSettings(workspace.periodSettings),
       customFields: customFields,
       importProfiles: importProfiles,
+      warehouseLayout: warehouseLayout,
       articleRegistry: articleRegistry,
       files: files
     };
@@ -1008,7 +1011,7 @@
       validationError('invalid_workspace', 'Workspace must be an object.');
     }
     const schemaVersion = Number(workspace.schemaVersion);
-    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5 || schemaVersion === 6 || schemaVersion === 7 || schemaVersion === 8 || schemaVersion === 9 || schemaVersion === 10) {
+    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5 || schemaVersion === 6 || schemaVersion === 7 || schemaVersion === 8 || schemaVersion === 9 || schemaVersion === 10 || schemaVersion === 11) {
       const migrated = cloneValue(workspace, options);
       const migrationTarget = options && options.clonePayload === false ? Object.assign({}, migrated) : migrated;
       if (schemaVersion === 0) {
@@ -1117,6 +1120,7 @@
         }) : [];
       }
       if (schemaVersion <= 10) migrationTarget.importProfiles = [];
+      if (schemaVersion <= 11) migrationTarget.warehouseLayout = warehouseModel.createLayout();
       migrationTarget.schemaVersion = WORKSPACE_SCHEMA_VERSION;
       migrationTarget.periodSettings = normalizePeriodSettings(migrationTarget.periodSettings);
       return validateWorkspace(migrationTarget, options);
@@ -1141,6 +1145,7 @@
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
       customFields: normalizeCustomFields(state && state.customFields),
       importProfiles: normalizeImportProfiles(state && state.importProfiles),
+      warehouseLayout: warehouseModel.normalizeLayout(state && state.warehouseLayout || warehouseModel.createLayout()),
       articleRegistry: normalizeArticleRegistry(state && state.articleRegistry),
       files: state && Array.isArray(state.files) ? state.files : []
     }, settings);
@@ -1202,6 +1207,7 @@
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
       customFields: normalizeCustomFields(state && state.customFields),
       importProfiles: normalizeImportProfiles(state && state.importProfiles),
+      warehouseLayout: warehouseModel.normalizeLayout(state && state.warehouseLayout || warehouseModel.createLayout()),
       articleRegistry: state && Array.isArray(state.articleRegistry) ? state.articleRegistry : [],
       files: files
     };

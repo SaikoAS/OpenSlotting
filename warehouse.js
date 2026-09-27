@@ -1,0 +1,268 @@
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) {
+    module.exports = factory();
+  } else {
+    root.OpenSlottingWarehouseFactory = factory;
+    root.OpenSlottingWarehouse = factory();
+  }
+}(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  const LAYOUT_VERSION = 1;
+  const RACK_TYPES = ['pallet-rack', 'shelf-rack'];
+  const AREA_TYPES = ['wall', 'gate', 'emergency-exit', 'aisle', 'goods-in', 'goods-out'];
+  const ALL_TYPES = RACK_TYPES.concat(AREA_TYPES);
+  let nextId = 0;
+
+  class WarehouseValidationError extends Error {
+    constructor(message) {
+      super(message);
+      this.name = 'WarehouseValidationError';
+    }
+  }
+
+  function fail(message) { throw new WarehouseValidationError(message); }
+  function id(prefix) {
+    nextId += 1;
+    const random = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID() : Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+    return prefix + '-' + random + '-' + nextId;
+  }
+  function text(value, label, max) {
+    const result = String(value === undefined || value === null ? '' : value).trim();
+    if (!result || result.length > max) fail(label + ' must contain 1–' + max + ' characters.');
+    return result;
+  }
+  function measure(value, label, min, max) {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number < min || number > max) {
+      fail(label + ' must be between ' + min + ' and ' + max + '.');
+    }
+    return Math.round(number);
+  }
+  function position(value, label) {
+    const number = Number(value);
+    if (!Number.isFinite(number) || number < -500000 || number > 500000) {
+      fail(label + ' must be between -500000 and 500000 mm.');
+    }
+    return Math.round(number);
+  }
+  function objectId(value, used) {
+    const result = text(value, 'ID', 128);
+    if (used.has(result)) fail('Object and part IDs must be unique.');
+    used.add(result);
+    return result;
+  }
+  function createLayout() { return { version: LAYOUT_VERSION, objects: [] }; }
+
+  function createRack(type, options) {
+    if (!RACK_TYPES.includes(type)) fail('Unsupported rack type.');
+    const settings = options || {};
+    const pallet = type === 'pallet-rack';
+    const bayCount = Number.isInteger(settings.bayCount) ? settings.bayCount : 3;
+    const levelCount = Number.isInteger(settings.levelCount) ? settings.levelCount : pallet ? 3 : 4;
+    if (bayCount < 1 || bayCount > 30 || levelCount < 1 || levelCount > 12) fail('Rack size is outside the supported range.');
+    const bays = Array.from({ length: bayCount }, function () {
+      return {
+        id: id('bay'), width: pallet ? 2700 : 1000, depth: pallet ? 1100 : 450,
+        levels: Array.from({ length: levelCount }, function () {
+          return {
+            id: id('level'), clearHeight: pallet ? 1500 : 450,
+            thickness: pallet ? 100 : 35, deck: !pallet, deckThickness: pallet ? 35 : 25,
+            positions: Array.from({ length: pallet ? 2 : 1 }, function () { return { id: id('slot'), code: '' }; })
+          };
+        })
+      };
+    });
+    return {
+      id: settings.id || id('rack'), type: type,
+      name: settings.name || (pallet ? 'Palettenregal' : 'Fachbodenregal'),
+      x: settings.x || 0, z: settings.z || 0, rotation: settings.rotation || 0,
+      bays: bays,
+      uprights: Array.from({ length: bayCount + 1 }, function () {
+        return { id: id('upright'), width: pallet ? 100 : 45, depth: pallet ? 1100 : 450, height: pallet ? 6000 : 2400 };
+      })
+    };
+  }
+
+  function createArea(type, options) {
+    if (!AREA_TYPES.includes(type)) fail('Unsupported area type.');
+    const settings = options || {};
+    const defaults = {
+      wall: [4000, 120, 3000], gate: [3000, 160, 3000],
+      'emergency-exit': [1200, 160, 2200], aisle: [6000, 3000, 15],
+      'goods-in': [4000, 3000, 15], 'goods-out': [4000, 3000, 15]
+    }[type];
+    return {
+      id: settings.id || id('area'), type: type, name: settings.name || type,
+      x: settings.x || 0, z: settings.z || 0, rotation: settings.rotation || 0,
+      width: defaults[0], depth: defaults[1], height: defaults[2]
+    };
+  }
+
+  function resizeRack(rack, bayCount, levelCount, positionsPerLevel) {
+    const count = Number(bayCount);
+    const levels = Number(levelCount);
+    const positions = Number(positionsPerLevel);
+    if (!Number.isInteger(count) || count < 1 || count > 30 ||
+      !Number.isInteger(levels) || levels < 1 || levels > 12 ||
+      !Number.isInteger(positions) || positions < 1 || positions > 4) {
+      fail('Use 1–30 bays, 1–12 levels, and 1–4 positions per level.');
+    }
+    const fresh = createRack(rack.type, { bayCount: count, levelCount: levels });
+    const updated = Object.assign({}, rack, {
+      bays: Array.from({ length: count }, function (_, bayIndex) {
+        const oldBay = rack.bays[bayIndex];
+        const newBay = fresh.bays[bayIndex];
+        if (!oldBay) return Object.assign({}, newBay, {
+          levels: newBay.levels.map(function (level) {
+            return Object.assign({}, level, {
+              positions: Array.from({ length: positions }, function (_, index) {
+                return level.positions[index] || { id: id('slot'), code: '' };
+              })
+            });
+          })
+        });
+        return Object.assign({}, oldBay, {
+          levels: Array.from({ length: levels }, function (_, levelIndex) {
+            const oldLevel = oldBay.levels[levelIndex];
+            const newLevel = newBay.levels[levelIndex];
+            const chosen = oldLevel || newLevel;
+            return Object.assign({}, chosen, {
+              positions: Array.from({ length: positions }, function (_, index) {
+                return chosen.positions[index] || { id: id('slot'), code: '' };
+              })
+            });
+          })
+        });
+      }),
+      uprights: Array.from({ length: count + 1 }, function (_, index) {
+        return rack.uprights[index] || fresh.uprights[index];
+      })
+    });
+    return updated;
+  }
+
+  function normalizeLayout(layout) {
+    if (!layout || typeof layout !== 'object' || Array.isArray(layout) || layout.version !== LAYOUT_VERSION || !Array.isArray(layout.objects)) {
+      fail('Warehouse layout format is invalid.');
+    }
+    if (layout.objects.length > 150) fail('A layout can contain at most 150 objects.');
+    const usedIds = new Set();
+    const usedCodes = new Set();
+    let slotCount = 0;
+    const objects = layout.objects.map(function (source) {
+      if (!source || typeof source !== 'object' || !ALL_TYPES.includes(source.type)) fail('Warehouse object type is invalid.');
+      const base = {
+        id: objectId(source.id, usedIds), type: source.type,
+        name: text(source.name, 'Name', 120),
+        x: position(source.x, 'X'), z: position(source.z, 'Z'),
+        rotation: measure(source.rotation, 'Rotation', -360, 360)
+      };
+      if (!RACK_TYPES.includes(source.type)) {
+        return Object.assign(base, {
+          width: measure(source.width, 'Width', 100, 50000),
+          depth: measure(source.depth, 'Depth', 10, 50000),
+          height: measure(source.height, 'Height', 1, 15000)
+        });
+      }
+      if (!Array.isArray(source.bays) || source.bays.length < 1 || source.bays.length > 30 ||
+        !Array.isArray(source.uprights) || source.uprights.length !== source.bays.length + 1) {
+        fail('Rack bays and uprights do not match.');
+      }
+      const uprights = source.uprights.map(function (stand) {
+        if (!stand || typeof stand !== 'object' || Array.isArray(stand)) fail('Rack upright is invalid.');
+        return {
+          id: objectId(stand.id, usedIds),
+          width: measure(stand.width, 'Upright width', 20, 500),
+          depth: measure(stand.depth, 'Upright depth', 100, 3000),
+          height: measure(stand.height, 'Upright height', 200, 20000)
+        };
+      });
+      const bays = source.bays.map(function (bay, bayIndex) {
+        if (!bay || typeof bay !== 'object' || Array.isArray(bay)) fail('Rack bay is invalid.');
+        if (!Array.isArray(bay.levels) || bay.levels.length < 1 || bay.levels.length > 12) fail('A bay needs 1–12 levels.');
+        const levels = bay.levels.map(function (level) {
+          if (!level || typeof level !== 'object' || Array.isArray(level)) fail('Rack level is invalid.');
+          if (!Array.isArray(level.positions) || level.positions.length < 1 || level.positions.length > 4) fail('A level needs 1–4 positions.');
+          const positions = level.positions.map(function (slot) {
+            if (!slot || typeof slot !== 'object' || Array.isArray(slot)) fail('Rack position is invalid.');
+            slotCount += 1;
+            if (slotCount > 5000) fail('A layout can contain at most 5000 positions.');
+            const code = String(slot.code === undefined || slot.code === null ? '' : slot.code).trim();
+            if (code.length > 80) fail('Location code is too long.');
+            if (code && usedCodes.has(code)) fail('Location codes must be unique: ' + code);
+            if (code) usedCodes.add(code);
+            return { id: objectId(slot.id, usedIds), code: code };
+          });
+          return {
+            id: objectId(level.id, usedIds),
+            clearHeight: measure(level.clearHeight, 'Level height', 100, 8000),
+            thickness: measure(level.thickness, 'Beam or shelf thickness', 10, 300),
+            deck: Boolean(level.deck),
+            deckThickness: measure(level.deckThickness, 'Deck thickness', 10, 200),
+            positions: positions
+          };
+        });
+        const totalHeight = levels.reduce(function (sum, level) { return sum + level.clearHeight + level.thickness; }, 0);
+        if (totalHeight > Math.min(uprights[bayIndex].height, uprights[bayIndex + 1].height)) {
+          fail('The levels exceed the height of an adjacent upright in bay ' + (bayIndex + 1) + '.');
+        }
+        return {
+          id: objectId(bay.id, usedIds),
+          width: measure(bay.width, 'Bay width', 300, 6000),
+          depth: measure(bay.depth, 'Bay depth', 200, 3000),
+          levels: levels
+        };
+      });
+      return Object.assign(base, { bays: bays, uprights: uprights });
+    });
+    return { version: LAYOUT_VERSION, objects: objects };
+  }
+
+  function listSlots(layout) {
+    const slots = [];
+    (layout.objects || []).forEach(function (object) {
+      if (!RACK_TYPES.includes(object.type)) return;
+      object.bays.forEach(function (bay, bayIndex) {
+        bay.levels.forEach(function (level, levelIndex) {
+          level.positions.forEach(function (slot, positionIndex) {
+            slots.push({
+              objectId: object.id, objectName: object.name, bayId: bay.id, levelId: level.id,
+              slotId: slot.id, code: slot.code, bayIndex: bayIndex, levelIndex: levelIndex,
+              positionIndex: positionIndex
+            });
+          });
+        });
+      });
+    });
+    return slots;
+  }
+
+  function matchArticles(layout, registry) {
+    const byCode = new Map();
+    listSlots(layout).forEach(function (slot) { if (slot.code) byCode.set(slot.code, slot); });
+    const bySlot = new Map();
+    const unmatched = [];
+    let withLocation = 0;
+    (registry || []).forEach(function (article) {
+      const code = String(article && article.master_data && article.master_data.location || '').trim();
+      if (!code) return;
+      withLocation += 1;
+      const slot = byCode.get(code);
+      const item = { articleId: String(article.article_id || ''), name: article.master_data.article_name || article.article_name || '', code: code };
+      if (!slot) { unmatched.push(item); return; }
+      if (!bySlot.has(slot.slotId)) bySlot.set(slot.slotId, []);
+      bySlot.get(slot.slotId).push(item);
+    });
+    return { bySlot: bySlot, unmatched: unmatched, withLocation: withLocation, matched: withLocation - unmatched.length };
+  }
+
+  return {
+    LAYOUT_VERSION: LAYOUT_VERSION, RACK_TYPES: RACK_TYPES, AREA_TYPES: AREA_TYPES,
+    WarehouseValidationError: WarehouseValidationError,
+    createLayout: createLayout, createRack: createRack, createArea: createArea,
+    resizeRack: resizeRack, normalizeLayout: normalizeLayout,
+    listSlots: listSlots, matchArticles: matchArticles
+  };
+}));

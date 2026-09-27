@@ -6,6 +6,7 @@
     <title>OpenSlotting – CSV Analysis</title>
     <link rel="stylesheet" href="app.css">
     <link rel="stylesheet" href="terminal-theme.css?v=3">
+    <link rel="stylesheet" href="warehouse-editor.css">
   </head>
 <body class="workspace-picker-mode">
     <header class="app-header">
@@ -34,6 +35,7 @@
           <div class="terminal-rail-caption" data-i18n="terminal_nav_label">Workspace</div>
           <button class="terminal-nav-item" type="button" data-workflow-target="main-menu-panel" title="Overview"><span aria-hidden="true">▦</span><strong data-i18n="terminal_overview">Overview</strong></button>
           <button class="terminal-nav-item" type="button" data-workflow-target="results-panel" title="Articles"><span aria-hidden="true">⌕</span><strong data-i18n="terminal_articles">Articles</strong></button>
+          <button class="terminal-nav-item" type="button" data-workflow-target="warehouse-panel" title="Warehouse 3D"><span aria-hidden="true">▧</span><strong data-i18n="warehouse_nav">Warehouse 3D</strong></button>
           <div class="terminal-rail-divider"></div>
           <button class="terminal-nav-item" type="button" data-workflow-target="import-panel" title="Import"><span aria-hidden="true">⇧</span><strong data-i18n="workflow_import">Import sources</strong></button>
           <button class="terminal-nav-item" type="button" data-workflow-target="mapping-panel" title="Mapping"><span aria-hidden="true">☷</span><strong data-i18n="workflow_mapping">Mapping &amp; quality</strong></button>
@@ -196,12 +198,23 @@
               <span class="main-menu-card-copy"><strong data-i18n="workflow_analysis">Analysis</strong><small data-i18n="main_menu_analysis_description">Explore articles, demand, and source evidence.</small></span>
               <span class="main-menu-arrow" aria-hidden="true">›</span>
             </button>
+            <button class="main-menu-card" type="button" data-workflow-target="warehouse-panel">
+              <span class="main-menu-icon" aria-hidden="true">▧</span>
+              <span class="main-menu-card-copy"><strong data-i18n="warehouse_nav">Warehouse 3D</strong><small data-i18n="main_menu_warehouse_description">Build a warehouse layout and link imported locations.</small></span>
+              <span class="main-menu-arrow" aria-hidden="true">›</span>
+            </button>
             <button id="return-workspace-selection" class="main-menu-card" type="button" data-workflow-target="workspace-panel">
               <span class="main-menu-icon" aria-hidden="true">⌂</span>
               <span class="main-menu-card-copy"><strong data-i18n="workspace_selection_back">Workspace selection</strong><small data-i18n="main_menu_workspace_selection_description">Switch or manage workspaces.</small></span>
               <span class="main-menu-arrow" aria-hidden="true">›</span>
             </button>
           </div>
+        </section>
+      </div>
+
+      <div id="warehouse-page" class="app-page hidden">
+        <section id="warehouse-panel" class="warehouse-panel" aria-label="Warehouse editor">
+          <div id="warehouse-editor-root"></div>
         </section>
       </div>
 
@@ -624,9 +637,11 @@
     <script src="encoding.js"></script>
     <script src="csv.js"></script>
     <script src="periods.js"></script>
+    <script src="warehouse.js"></script>
     <script src="workspace.js"></script>
     <script src="storage.js"></script>
     <script src="terminal.js"></script>
+    <script src="warehouse-editor.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
