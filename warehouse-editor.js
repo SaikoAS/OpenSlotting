@@ -19,6 +19,10 @@
       importTitle: 'Article-master locations', matched: 'Matched articles', unmatched: 'Unmatched codes',
       noMaster: 'No current locations in the imported article master.', noUnmatched: 'All imported location codes are assigned.',
       noSelection: 'Choose a rack level to edit its positions.', slotArticles: 'Articles at this position', saved: 'Layout saved locally.',
+      slotSelection: 'Selected position', noSlotSelection: 'Click a position marker or find a code.',
+      searchCode: 'Find location code', findCode: 'Find', codeNotFound: 'No position has this exact code.',
+      noArticles: 'No current article-master match.', position: 'Position',
+      legendMatched: 'article matched', legendCoded: 'code assigned', legendEmpty: 'no code',
       removeWarning: 'Reducing counts removes positions with codes. Continue?', deleteWarning: 'Delete this object and its location codes?',
       slotSummary: 'positions ·', coded: 'coded', missing: 'without code', exact: 'Codes are matched exactly after trimming outer spaces. Leading zeros remain significant.',
       choose: 'Choose a recipe'
@@ -37,6 +41,10 @@
       importTitle: 'Stellplätze aus Artikelstamm', matched: 'Zugeordnete Artikel', unmatched: 'Nicht zugeordnete Codes',
       noMaster: 'Keine aktuellen Stellplätze im importierten Artikelstamm.', noUnmatched: 'Alle importierten Stellplatzcodes sind zugeordnet.',
       noSelection: 'Wähle eine Regalebene, um die Stellplätze zu bearbeiten.', slotArticles: 'Artikel an diesem Stellplatz', saved: 'Lagerplan lokal gespeichert.',
+      slotSelection: 'Ausgewählter Stellplatz', noSlotSelection: 'Stellplatzmarkierung anklicken oder Code suchen.',
+      searchCode: 'Stellplatzcode suchen', findCode: 'Finden', codeNotFound: 'Kein Stellplatz mit genau diesem Code gefunden.',
+      noArticles: 'Keine aktuelle Zuordnung im Artikelstamm.', position: 'Position',
+      legendMatched: 'Artikel zugeordnet', legendCoded: 'Code vergeben', legendEmpty: 'ohne Code',
       removeWarning: 'Beim Verkleinern werden Stellplätze mit Codes entfernt. Fortfahren?', deleteWarning: 'Objekt und seine Stellplatzcodes löschen?',
       slotSummary: 'Stellplätze ·', coded: 'codiert', missing: 'ohne Code', exact: 'Codes werden nach Entfernen äußerer Leerzeichen exakt abgeglichen. Führende Nullen bleiben erhalten.',
       choose: 'Rezept wählen'
@@ -83,8 +91,9 @@
     const model = options.model;
     const root = options.root;
     const camera = { yaw: -0.62, pitch: 0.62, zoom: 1 };
-    const choice = { objectId: null, bay: 0, level: 0, upright: 0 };
+    const choice = { objectId: null, bay: 0, level: 0, upright: 0, slotId: null };
     let codePrefix = 'R01';
+    let codeSearch = '';
     let message = '';
     let pickFaces = [];
     let canvas = null;
@@ -93,6 +102,22 @@
     function layout() { return options.getLayout(); }
     function selected() { return layout().objects.find(function (object) { return object.id === choice.objectId; }) || null; }
     function objectName(object, t) { return object.name || t[TYPE_LABELS[object.type]]; }
+    function selectSlot(slot) {
+      choice.objectId = slot.objectId;
+      choice.bay = slot.bayIndex;
+      choice.level = slot.levelIndex;
+      choice.slotId = slot.slotId;
+      const current = model.listSlots(layout()).find(function (item) { return item.slotId === slot.slotId; });
+      codeSearch = current ? current.code : '';
+      message = '';
+      render();
+    }
+    function findCode() {
+      codeSearch = root.querySelector('[data-field="search"]').value.trim();
+      const found = model.listSlots(layout()).find(function (slot) { return slot.code === codeSearch && Boolean(codeSearch); });
+      if (found) selectSlot(found);
+      else { message = labels().codeNotFound; render(); }
+    }
 
     async function commit(next) {
       try {
@@ -145,7 +170,7 @@
       html += '<div class="wh-section"><strong>' + esc(t.codes) + '</strong>' +
         level.positions.map(function (slot, index) {
           const articles = matches.bySlot.get(slot.id) || [];
-          return '<label class="wh-code-row"><span>' + (index + 1) + '</span><input type="text" data-field="slot.code" data-slot-index="' +
+          return '<label class="wh-code-row' + (slot.id === choice.slotId ? ' selected' : '') + '"><span>' + (index + 1) + '</span><input type="text" data-field="slot.code" data-slot-index="' +
             index + '" value="' + esc(slot.code) + '" maxlength="80" placeholder="' + esc(t.code) + '"></label>' +
             (articles.length ? '<div class="wh-slot-articles"><strong>' + esc(t.slotArticles) + ':</strong> ' +
               articles.map(function (article) { return esc(article.articleId) + (article.name ? ' · ' + esc(article.name) : ''); }).join(', ') + '</div>' : '');
@@ -164,8 +189,11 @@
       }
       const object = selected();
       const slots = model.listSlots(warehouse);
+      if (!slots.some(function (slot) { return slot.slotId === choice.slotId; })) choice.slotId = null;
       const coded = slots.filter(function (slot) { return Boolean(slot.code); }).length;
       const matches = model.matchArticles(warehouse, options.getRegistry());
+      const selectedSlot = slots.find(function (slot) { return slot.slotId === choice.slotId; });
+      const selectedArticles = selectedSlot ? matches.bySlot.get(selectedSlot.slotId) || [] : [];
       root.innerHTML = '<div class="wh-header"><div><p class="wh-eyebrow">OpenSlotting · 3D</p><h3>' + esc(t.view) + '</h3><p>' +
         esc(t.exact) + '</p></div><div class="wh-summary"><strong>' + warehouse.objects.length + '</strong> ' + esc(t.objects) +
         '<br><strong>' + slots.length + '</strong> ' + esc(t.slotSummary) + ' ' + coded + ' ' + esc(t.coded) + '</div></div>' +
@@ -183,7 +211,20 @@
         '<div class="wh-main"><div class="wh-view-toolbar"><strong>' + esc(t.view) + '</strong><div><button type="button" data-action="fit">' +
         esc(t.fit) + '</button><button type="button" data-action="top">' + esc(t.top) + '</button><button type="button" data-action="orbit">' +
         esc(t.orbit) + '</button></div></div><canvas class="wh-canvas" role="img" aria-label="' + esc(t.view) + '"></canvas>' +
-        '<div class="wh-view-hint">' + esc(t.hint) + '</div><div class="wh-card wh-import"><div class="wh-import-head"><h4>' + esc(t.importTitle) +
+        '<div class="wh-view-hint">' + esc(t.hint) + '</div><div class="wh-legend">' +
+        '<span><i class="matched"></i>' + esc(t.legendMatched) + '</span><span><i class="coded"></i>' + esc(t.legendCoded) +
+        '</span><span><i class="empty"></i>' + esc(t.legendEmpty) + '</span></div>' +
+        '<div class="wh-card wh-slot-inspector"><div class="wh-slot-search"><label class="wh-field"><span>' + esc(t.searchCode) +
+        '</span><input type="search" data-field="search" value="' + esc(codeSearch) + '" maxlength="80"></label>' +
+        '<button type="button" class="wh-small-button" data-action="find-code">' + esc(t.findCode) + '</button></div>' +
+        '<h4>' + esc(t.slotSelection) + '</h4>' + (selectedSlot ?
+          '<div class="wh-selected-code">' + esc(selectedSlot.code || t.missing) + '</div><p class="wh-slot-path">' +
+          esc(selectedSlot.objectName) + ' · ' + esc(t.bay) + ' ' + (selectedSlot.bayIndex + 1) + ' · ' + esc(t.level) + ' ' +
+          (selectedSlot.levelIndex + 1) + ' · ' + esc(t.position) + ' ' + (selectedSlot.positionIndex + 1) + '</p>' +
+          (selectedArticles.length ? '<div class="wh-selected-articles"><strong>' + esc(t.slotArticles) + '</strong>' +
+            selectedArticles.map(function (article) { return '<div>' + esc(article.articleId) + (article.name ? ' · ' + esc(article.name) : '') + '</div>'; }).join('') + '</div>' :
+            '<p class="wh-empty">' + esc(t.noArticles) + '</p>') : '<p class="wh-empty">' + esc(t.noSlotSelection) + '</p>') +
+        '</div><div class="wh-card wh-import"><div class="wh-import-head"><h4>' + esc(t.importTitle) +
         '</h4><span><strong>' + matches.matched + '</strong> ' + esc(t.matched) + ' · <strong>' + matches.unmatched.length + '</strong> ' + esc(t.unmatched) +
         '</span></div>' + (matches.withLocation === 0 ? '<p class="wh-empty">' + esc(t.noMaster) + '</p>' :
           '<div class="wh-match-list">' + matches.unmatched.slice(0, 16).map(function (item) {
@@ -197,8 +238,8 @@
       wireCanvas();
     }
 
-    function box(object, x, y, z, width, height, depth, color, list) {
-      list.push({ object: object, x: x, y: y, z: z, width: width, height: height, depth: depth, color: color });
+    function box(object, x, y, z, width, height, depth, color, list, slotRef) {
+      list.push({ object: object, x: x, y: y, z: z, width: width, height: height, depth: depth, color: color, slotRef: slotRef || null });
     }
     function boxesFor(warehouse, matches) {
       const boxes = [];
@@ -224,7 +265,7 @@
           box(object, offset, 0, 0, upright.width, 75, upright.depth, '#7790a6', boxes);
           offset += upright.width;
           let y = 0;
-          bay.levels.forEach(function (level) {
+          bay.levels.forEach(function (level, levelIndex) {
             y += level.clearHeight;
             box(object, offset, y, 0, bay.width, level.thickness, 75, '#d2a75e', boxes);
             box(object, offset, y, bay.depth - 75, bay.width, level.thickness, 75, '#d2a75e', boxes);
@@ -234,7 +275,8 @@
               const markerX = offset + (index + 0.5) * bay.width / level.positions.length - markerWidth / 2;
               const color = matches.bySlot.has(slot.id) ? '#45d3b1' : slot.code ? '#62b3cb' : '#465b69';
               box(object, markerX, y + level.thickness + (level.deck ? level.deckThickness : 0) + 8,
-                Math.max(5, bay.depth / 2 - 50), markerWidth, 18, 100, color, boxes);
+                Math.max(5, bay.depth / 2 - 50), markerWidth, 18, 100, color, boxes,
+                { objectId: object.id, bayIndex: bayIndex, levelIndex: levelIndex, positionIndex: index, slotId: slot.id });
             });
             y += level.thickness;
           });
@@ -318,9 +360,10 @@
         ctx.fillStyle = face.item.color;
         ctx.globalAlpha = face.shade === 0 ? 0.98 : face.shade === 2 ? 0.65 : 0.82;
         ctx.fill(); ctx.globalAlpha = 1;
-        ctx.strokeStyle = face.item.object.id === choice.objectId ? '#79f2de' : '#17252e';
-        ctx.lineWidth = face.item.object.id === choice.objectId ? 1.7 : 0.8; ctx.stroke();
-        pickFaces.push({ objectId: face.item.object.id, polygon: poly });
+        const selectedPosition = face.item.slotRef && face.item.slotRef.slotId === choice.slotId;
+        ctx.strokeStyle = selectedPosition ? '#fff2a3' : face.item.object.id === choice.objectId ? '#79f2de' : '#17252e';
+        ctx.lineWidth = selectedPosition ? 3 : face.item.object.id === choice.objectId ? 1.7 : 0.8; ctx.stroke();
+        pickFaces.push({ objectId: face.item.object.id, slotRef: face.item.slotRef, polygon: poly });
       });
       if (!warehouse.objects.length) {
         ctx.fillStyle = '#7995a1'; ctx.font = '15px Segoe UI, sans-serif'; ctx.textAlign = 'center';
@@ -350,7 +393,8 @@
           const rect = canvas.getBoundingClientRect();
           const x = event.clientX - rect.left, y = event.clientY - rect.top;
           const found = pickFaces.slice().reverse().find(function (face) { return pointInPolygon(x, y, face.polygon); });
-          if (found) { choice.objectId = found.objectId; choice.bay = 0; choice.level = 0; choice.upright = 0; render(); }
+          if (found && found.slotRef) selectSlot(found.slotRef);
+          else if (found) { choice.objectId = found.objectId; choice.bay = 0; choice.level = 0; choice.upright = 0; choice.slotId = null; render(); }
         }
         drag = null;
       });
@@ -365,11 +409,14 @@
       const objectButton = event.target.closest('[data-object]');
       if (objectButton) {
         choice.objectId = objectButton.dataset.object;
-        choice.bay = 0; choice.level = 0; choice.upright = 0; message = ''; render(); return;
+        choice.bay = 0; choice.level = 0; choice.upright = 0; choice.slotId = null; message = ''; render(); return;
       }
       const button = event.target.closest('[data-action]');
       if (!button) return;
       const action = button.dataset.action;
+      if (action === 'find-code') {
+        findCode(); return;
+      }
       if (action === 'fit' || action === 'top' || action === 'orbit') {
         camera.zoom = 1;
         if (action === 'top') { camera.yaw = 0; camera.pitch = 1.45; }
@@ -383,7 +430,7 @@
         const last = next.objects[next.objects.length - 1];
         newObject.x = last ? last.x + 1800 : 0;
         newObject.z = last ? last.z + 1200 : 0;
-        next.objects.push(newObject); choice.objectId = newObject.id;
+        next.objects.push(newObject); choice.objectId = newObject.id; choice.slotId = null;
         commit(next); return;
       }
       const object = selected();
@@ -391,7 +438,7 @@
       if (action === 'delete') {
         if (!window.confirm(labels().deleteWarning)) return;
         const next = clone(layout()); next.objects = next.objects.filter(function (item) { return item.id !== object.id; });
-        choice.objectId = null; commit(next); return;
+        choice.objectId = null; choice.slotId = null; commit(next); return;
       }
       if (action === 'resize' && model.RACK_TYPES.includes(object.type)) {
         const next = clone(layout()); const target = next.objects.find(function (item) { return item.id === object.id; });
@@ -422,14 +469,21 @@
       }
     });
 
+    root.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter' && event.target.dataset.field === 'search') {
+        event.preventDefault(); findCode();
+      }
+    });
+
     root.addEventListener('change', function (event) {
       const selector = event.target.dataset.select;
       if (selector) {
-        choice[selector] = Number(event.target.value); render(); return;
+        choice[selector] = Number(event.target.value); choice.slotId = null; render(); return;
       }
       const field = event.target.dataset.field;
       if (!field) return;
       if (field === 'prefix') { codePrefix = event.target.value.trim(); return; }
+      if (field === 'search') { codeSearch = event.target.value; return; }
       if (field.startsWith('count.')) return;
       const object = selected(); if (!object) return;
       const next = clone(layout()); const target = next.objects.find(function (item) { return item.id === object.id; });

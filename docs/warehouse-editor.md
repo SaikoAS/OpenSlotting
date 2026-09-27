@@ -13,7 +13,7 @@ The editor is available from the **Warehouse 3D / Lager 3D** item in an opened w
 
 Each position can hold one location code. Codes can be entered individually or generated into empty positions from a prefix in `PREFIX-BAY-LEVEL-POSITION` form, with two-digit numbers. Codes are trimmed at their ends, case-sensitive, and must be unique in a workspace; leading zeros remain significant.
 
-The overlay uses only the current `location` from imported **article-master** data. It matches that code exactly to a modeled position, shows matched article counts, and lists the first unmatched article locations for review. Multiple articles may refer to the same modeled position. Historical `location` values from order lines are not treated as current occupancy. The current import does not contain reliable quantity-by-position inventory data, so the prototype does not show stock quantities.
+The overlay uses only the current `location` from imported **article-master** data. It matches that code exactly to a modeled position, shows matched article counts, and lists the first unmatched article locations for review. Clicking a position marker in 3D or searching its exact code selects it and shows its rack, bay, level, position number, and matched articles. Multiple articles may refer to the same modeled position. Historical `location` values from order lines are not treated as current occupancy. The current import does not contain reliable quantity-by-position inventory data, so the prototype does not show stock quantities.
 
 ## Storage and current limits
 

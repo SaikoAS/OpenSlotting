@@ -2,6 +2,9 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const csv = require('../csv.js');
 const warehouse = require('../warehouse.js');
 const workspace = require('../workspace.js');
 const storage = require('../storage.js');
@@ -59,6 +62,20 @@ test('article-master locations match exactly while unmatched codes remain visibl
   assert.equal(result.matched, 1);
   assert.equal(result.bySlot.get(slot.id)[0].articleId, 'SKU-1');
   assert.deepEqual(result.unmatched.map((item) => item.code), ['A-01']);
+});
+
+test('imported article-master CSV links modeled location and reports unmatched location', () => {
+  const source = { id: 'warehouse-master', name: 'warehouse-master.csv', label: 'warehouse-master.csv', sourceType: 'article-master' };
+  const content = fs.readFileSync(path.join(__dirname, 'fixtures', 'warehouse-master.csv'), 'utf8');
+  const imported = csv.importCsv(content, { article_id: 0, article_name: 1, location: 2 }, { sourceFile: source });
+  const combined = csv.combineImportResults([{ ...source, result: imported }]);
+  const rack = warehouse.createRack('pallet-rack', { bayCount: 1, levelCount: 1 });
+  rack.bays[0].levels[0].positions[0].code = 'R01-03-02-01';
+  const layout = warehouse.normalizeLayout({ version: 1, objects: [rack] });
+  const matches = warehouse.matchArticles(layout, combined.articleRegistry);
+  assert.equal(matches.matched, 1);
+  assert.deepEqual(matches.bySlot.get(rack.bays[0].levels[0].positions[0].id).map((item) => item.articleId), ['SKU-300']);
+  assert.deepEqual(matches.unmatched.map((item) => item.code), ['OUTSIDE-01']);
 });
 
 test('layout survives metadata-only save and workspace backup without rewriting sources', async () => {

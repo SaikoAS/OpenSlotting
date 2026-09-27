@@ -30,6 +30,11 @@
 .wh-canvas { display: block; width: 100%; height: 540px; border: 1px solid #2a3d48; border-radius: 7px; background: #0d151c; cursor: grab; touch-action: none; }
 .wh-canvas:active { cursor: grabbing; }
 .wh-view-hint { margin-top: -8px; color: #8c9daa; font-size: .67rem; }
+.wh-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: -8px; color: #a9bac3; font-size: .67rem; }
+.wh-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.wh-legend i { width: 8px; height: 8px; border-radius: 2px; background: #465b69; }
+.wh-legend i.matched { background: #45d3b1; }
+.wh-legend i.coded { background: #62b3cb; }
 .wh-properties .wh-card { max-height: min(780px, calc(100vh - 175px)); overflow-y: auto; }
 .wh-properties-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .wh-delete { padding: 5px 7px; border: 1px solid #71434c; border-radius: 5px; color: #ffb4b4; background: #38262e; cursor: pointer; font-size: .65rem; }
@@ -44,8 +49,17 @@
 .wh-check { display: flex; align-items: center; gap: 7px; color: #b8c7cf; font-size: .72rem; }
 .wh-check input { width: auto; }
 .wh-code-row { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: center; gap: 6px; color: #8ea5af; font-size: .7rem; }
+.wh-code-row.selected { padding: 4px; border: 1px solid #a18b4d; border-radius: 5px; background: #342f24; }
 .wh-slot-articles { margin: -3px 0 5px 24px; color: #91dccc; font-size: .65rem; overflow-wrap: anywhere; }
 .wh-code-generator { grid-template-columns: minmax(0, 1fr); }
+.wh-slot-inspector { display: grid; gap: 7px; }
+.wh-slot-inspector h4 { margin: 3px 0 0; }
+.wh-slot-search { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; }
+.wh-slot-search .wh-small-button { height: 32px; }
+.wh-selected-code { color: #f4e1a3; font-size: 1rem; font-weight: 800; overflow-wrap: anywhere; }
+.wh-slot-path { margin: 0; color: #a8bbc4; font-size: .7rem; }
+.wh-selected-articles { display: grid; gap: 3px; color: #a8e5d7; font-size: .7rem; }
+.wh-selected-articles strong { color: #d2f6ed; }
 .wh-import { padding: 12px; }
 .wh-import-head { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
 .wh-import-head h4 { margin-bottom: 5px; }
