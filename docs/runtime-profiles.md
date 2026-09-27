@@ -18,6 +18,7 @@ analysis, workspace, or backup behavior.
 - entry point: `http://127.0.0.1:8765/index.html`
 - requirements: the same extracted folder plus Python 3.8 or newer
 - loopback-only server with an explicit runtime-file allowlist
+- standard Windows launcher; Edge opens maximized in app mode
 - optional foundation for capabilities that require a stable HTTP origin
 
 Enhanced Local Mode is progressive enhancement. It must not become a
@@ -95,7 +96,7 @@ runtime created them. No automatic cross-origin database access is attempted.
 ## Distribution and validation
 
 One release package contains the shared browser runtime, the independent
-Portable launcher, and the optional Enhanced Local launcher. Python is not
+Portable profile, and the standard Enhanced Local launcher. Python is not
 bundled. Both profiles use the same OpenSlotting version.
 
 Automated coverage includes the shared application suite, deterministic runtime

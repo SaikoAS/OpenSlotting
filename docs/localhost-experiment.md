@@ -1,9 +1,10 @@
-# Experimental localhost start
+# Localhost start
 
-This branch adds an optional loopback-only start mode while keeping the existing
-`file:///` workflow unchanged. OpenSlotting itself is not installed and no
-application executable is built. The server uses only the Python 3 standard
-library and serves the files from the extracted OpenSlotting folder.
+The standard Windows launchers use this loopback-only runtime. Direct
+`file:///` startup remains independently available. OpenSlotting itself is not
+installed and no application executable is built. The server uses only the
+Python 3 standard library and serves files from the extracted OpenSlotting
+folder.
 
 Both startup profiles use the same application code and workspace contract.
 Their central detection and capability rules are documented in
@@ -16,11 +17,12 @@ Their central detection and capability rules are documented in
 - no administrator rights
 - no internet connection
 
-On Windows, double-click `Start-OpenSlotting-Localhost.cmd`. It checks whether
-the matching server is already running, starts it hidden when needed, waits for
-the health endpoint, and opens Microsoft Edge in app mode. Alternatively run
-the server visibly for diagnostics. Use the executable name available on the
-target platform:
+On Windows, double-click `Start-OpenSlotting.cmd` or
+`Start-OpenSlotting-Localhost.cmd`. Both check whether the matching server is
+already running, start it hidden when needed, wait for the health endpoint, and
+open Microsoft Edge in a maximized app window. The installed `OpenSlotting`
+shortcut uses this same start path. For diagnostics, run the server visibly
+with the executable name available on the target platform:
 
 ```text
 # Windows
@@ -43,11 +45,13 @@ the browser from opening with `--no-browser`.
 
 ## Combined Windows shortcut
 
-Run `Install-OpenSlotting-Localhost.cmd` and choose the Start menu, Desktop, or
-both. The generated `OpenSlotting Localhost` shortcut points to the launcher in
-this extracted folder, starts the server when necessary, and then opens the
-stable localhost URL in Edge app mode. It does not modify the Edge-installed
-web-app shortcut shown by Edge's "Install this site as an app" feature.
+Run `Install-OpenSlotting.cmd` to create the standard `OpenSlotting` shortcut,
+or `Install-OpenSlotting-Localhost.cmd` to create a separately named
+`OpenSlotting Localhost` shortcut. Choose the Start menu, Desktop, or both. Both
+shortcuts point to the launcher in this extracted folder, start the server when
+necessary, and open the stable localhost URL in maximized Edge app mode. They do
+not modify the Edge-installed web-app shortcut shown by Edge's "Install this
+site as an app" feature.
 
 Run `Remove-OpenSlotting-Localhost.cmd` to remove only shortcuts carrying the
 OpenSlotting localhost ownership marker. This does not stop the server or erase

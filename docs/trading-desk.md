@@ -31,9 +31,9 @@ The controls and labels are available in English and German.
 - The source table shows up to 25 latest rows, including file and physical
   source line. Clicking an article opens the existing full detail view.
 
-The desk uses local CSS and SVG. Direct Edge `file:///` remains the primary
-runtime. The optional Python loopback server allows the same assets and is not
-required for import or analysis.
+The desk uses local CSS and SVG. The standard Windows launcher uses the Python
+loopback server and opens Edge maximized. Direct Edge `file:///` remains an
+independent runtime that does not require Python for import or analysis.
 
 ## Verification boundary
 

@@ -81,33 +81,29 @@ offline worker where supported. OpenSlotting does not upload files or
 require a server, backend, Node.js, Python, account, telemetry, or internet
 connection.
 
-## Optional Windows launcher
+## Windows start
 
-Directly opening `index.html` remains the core and fully independent way to run
-OpenSlotting. The V0.2.1 release files also provide an optional convenience path
-for Windows users:
+On Windows, the standard launchers start OpenSlotting through its loopback-only
+localhost runtime and open Edge in a maximized app window:
 
 1. Extract the complete release ZIP into a user-writable folder.
-2. Double-click `Start-OpenSlotting.cmd` to open that copy directly in Microsoft
-   Edge app mode without installing a shortcut.
+2. Double-click `Start-OpenSlotting.cmd` to start the local server when needed
+   and open the app without installing a shortcut.
 3. Double-click `Install-OpenSlotting.cmd` to create a current-user Start menu
    shortcut, Desktop shortcut, or both. The Start menu is the default choice.
 4. Double-click `Remove-OpenSlotting.cmd` to remove only shortcuts previously
    created and marked as managed by OpenSlotting.
 
-The scripts locate `index.html` relative to their own extracted folder and look
-for Microsoft Edge in common per-machine and per-user installation locations.
-They require neither administrator rights nor a system `PATH` entry, backend,
-localhost server, account, telemetry, package manager, or network connection.
-The installed shortcut targets Edge directly, so it does not leave a console
-window open while OpenSlotting is running.
+This startup path requires Python 3.8 or newer already available on the computer.
+It installs no Python packages, requires no administrator rights, and makes no
+internet connection. The server binds only to `127.0.0.1`. Edge opens in app
+mode with the window maximized.
 
 If an `OpenSlotting.ico` file is present beside the scripts, setup uses it for
-the shortcut. Otherwise the local Edge icon is used. Moving or deleting the
-extracted OpenSlotting folder invalidates shortcuts pointing to that copy; run
-setup again from the new location. Setup refuses to overwrite, and removal
-refuses to delete, a same-named shortcut that is not marked as managed by
-OpenSlotting.
+the shortcut. Moving or deleting the extracted OpenSlotting folder invalidates
+shortcuts pointing to that copy; run setup again from the new location. Setup
+refuses to overwrite, and removal refuses to delete, a same-named shortcut that
+is not marked as managed by OpenSlotting.
 
 Taskbar pinning remains a Windows user action. After creating the Start menu
 shortcut, open Start, search for `OpenSlotting`, right-click it, and choose
@@ -115,24 +111,20 @@ shortcut, open Start, search for `OpenSlotting`, right-click it, and choose
 this reminder but does not modify taskbar policy or attempt unsupported shell
 automation.
 
-## Experimental localhost start
+## Direct offline start and storage
 
-The repository also contains an optional Python 3 localhost launcher for evaluating
-OpenSlotting under a stable HTTP origin. It installs neither OpenSlotting nor
-Python packages and builds no application executable. On Windows,
-`Start-OpenSlotting-Localhost.cmd` starts the server in the background when
-needed and opens Edge in app mode. `Install-OpenSlotting-Localhost.cmd` creates
-an OpenSlotting-managed Start menu and/or Desktop shortcut that performs the
-same combined start. Run `Stop-OpenSlotting-Localhost.cmd` to stop the background
-server. The default address is `http://127.0.0.1:8765/index.html`.
+Opening `index.html` directly through `file:///` remains independently
+supported and requires no server or Python. It uses a separate browser storage
+origin from the standard localhost start, so existing workspaces are not
+automatically shared between them. Use workspace backup and restore to move
+data between the two modes.
 
-The server binds only to loopback and serves an explicit runtime-file allowlist.
-Because browser storage is origin-specific, existing `file:///` workspaces do
-not automatically appear on localhost. Move them with workspace backup and
-restore. Requirements, options, and security boundaries are documented in
-[`docs/localhost-experiment.md`](docs/localhost-experiment.md). The shared
-runtime contract, capability registry, and Portable/Enhanced guarantees are
-documented in [`docs/runtime-profiles.md`](docs/runtime-profiles.md).
+`Start-OpenSlotting-Localhost.cmd` remains available as an explicitly named
+localhost launcher. Run `Stop-OpenSlotting-Localhost.cmd` to stop its background
+server. Requirements and security boundaries are documented in
+[`docs/localhost-experiment.md`](docs/localhost-experiment.md); the two runtime
+profiles and their storage boundary are described in
+[`docs/runtime-profiles.md`](docs/runtime-profiles.md).
 
 The application interface is English by default. Users can switch the visible
 interface, validation messages, labels, and number formatting to German at any

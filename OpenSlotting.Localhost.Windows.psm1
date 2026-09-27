@@ -397,7 +397,7 @@ function Start-OpenSlottingLocalhostApp {
     try {
         $serverResult = Start-OpenSlottingLocalhostServer -ApplicationRoot $resolvedRoot
         $serverStarted = [bool]$serverResult.Started
-        Start-Process -FilePath $edgePath -ArgumentList ('--app="{0}"' -f $url) -WorkingDirectory $resolvedRoot
+        Start-Process -FilePath $edgePath -ArgumentList ('--app="{0}" --start-maximized' -f $url) -WorkingDirectory $resolvedRoot -WindowStyle Maximized
     } catch {
         if ($serverStarted) {
             try {
@@ -439,7 +439,11 @@ function Get-OpenSlottingLocalhostShortcutPlan {
         [Parameter(Mandatory = $true)]
         [string[]]$ShortcutDirectories,
 
-        [string]$PowerShellPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+        [string]$PowerShellPath = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe",
+
+        [string]$ShortcutName = $script:ShortcutName,
+
+        [string]$ShortcutDescription = $script:ShortcutDescription
     )
 
     $resolvedRoot = [System.IO.Path]::GetFullPath($ApplicationRoot)
@@ -462,12 +466,12 @@ function Get-OpenSlottingLocalhostShortcutPlan {
 
     return @($ShortcutDirectories | ForEach-Object {
         [pscustomobject]@{
-            ShortcutPath = Join-Path ([System.IO.Path]::GetFullPath($_)) "$script:ShortcutName.lnk"
+            ShortcutPath = Join-Path ([System.IO.Path]::GetFullPath($_)) "$ShortcutName.lnk"
             TargetPath = $resolvedPowerShell
             Arguments = $arguments
             WorkingDirectory = $resolvedRoot
             IconLocation = $iconLocation
-            Description = $script:ShortcutDescription
+            Description = $ShortcutDescription
         }
     })
 }

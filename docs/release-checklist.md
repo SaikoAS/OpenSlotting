@@ -129,9 +129,9 @@ The V0.2 and V0.2.1 acceptance checklists are historical records. A future relea
 23. [ ] Exported text remains protected against spreadsheet formula injection.
 24. [ ] The core workflow remains usable with the network unavailable.
 25. [ ] Portable Mode requires no localhost, backend, Node.js, or Python runtime.
-26. [ ] `Start-OpenSlotting.cmd` opens this extracted copy in Edge app mode.
+26. [ ] `Start-OpenSlotting.cmd` starts localhost and opens Edge app mode maximized.
 27. [ ] Start menu and Desktop shortcut setup work without administrator rights.
-28. [ ] Generated shortcuts target Edge directly and leave no console window open.
+28. [ ] Generated shortcuts launch the localhost starter without a console window and open Edge maximized.
 29. [ ] A path containing spaces is encoded correctly in the local file URL.
 30. [ ] Missing optional `OpenSlotting.ico` does not block setup.
 31. [ ] Removal deletes only OpenSlotting-managed shortcuts.
