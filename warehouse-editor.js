@@ -15,7 +15,9 @@
       clearHeight: 'Level clear height (mm)', thickness: 'Beam / shelf thickness (mm)', deck: 'Add shelf deck',
       deckThickness: 'Shelf deck thickness (mm)', code: 'Location code', codes: 'Codes for selected level',
       codePrefix: 'Code prefix', generate: 'Fill empty codes', delete: 'Delete object',
-      view: '3D layout', fit: 'Fit view', top: 'Top view', orbit: '3D view', hint: 'Drag to rotate · mouse wheel to zoom · click to select',
+      view: '3D layout', planView: 'Floor plan', fit: 'Fit view', top: 'Top view', orbit: '3D view',
+      hint: 'Drag to rotate · mouse wheel to zoom · click to select',
+      hintTop: 'Drag an object to move it · drag empty space to pan · wheel to zoom · 100 mm snap',
       importTitle: 'Article-master locations', matched: 'Matched articles', unmatched: 'Unmatched codes',
       noMaster: 'No current locations in the imported article master.', noUnmatched: 'All imported location codes are assigned.',
       noSelection: 'Choose a rack level to edit its positions.', slotArticles: 'Articles at this position', saved: 'Layout saved locally.',
@@ -37,7 +39,9 @@
       clearHeight: 'Lichte Fachhöhe (mm)', thickness: 'Traverse / Regalboden (mm)', deck: 'Fachboden hinzufügen',
       deckThickness: 'Fachbodenstärke (mm)', code: 'Stellplatzcode', codes: 'Codes der gewählten Ebene',
       codePrefix: 'Code-Präfix', generate: 'Leere Codes füllen', delete: 'Objekt löschen',
-      view: '3D-Lagerplan', fit: 'Einpassen', top: 'Draufsicht', orbit: '3D-Ansicht', hint: 'Ziehen: drehen · Mausrad: zoomen · Klicken: auswählen',
+      view: '3D-Lagerplan', planView: 'Grundriss', fit: 'Einpassen', top: 'Draufsicht', orbit: '3D-Ansicht',
+      hint: 'Ziehen: drehen · Mausrad: zoomen · Klicken: auswählen',
+      hintTop: 'Objekt ziehen: verschieben · freie Fläche ziehen: Ansicht bewegen · Mausrad: zoomen · 100-mm-Raster',
       importTitle: 'Stellplätze aus Artikelstamm', matched: 'Zugeordnete Artikel', unmatched: 'Nicht zugeordnete Codes',
       noMaster: 'Keine aktuellen Stellplätze im importierten Artikelstamm.', noUnmatched: 'Alle importierten Stellplatzcodes sind zugeordnet.',
       noSelection: 'Wähle eine Regalebene, um die Stellplätze zu bearbeiten.', slotArticles: 'Artikel an diesem Stellplatz', saved: 'Lagerplan lokal gespeichert.',
@@ -86,11 +90,18 @@
     }
     return inside;
   }
+  function distanceToSegment(x, y, a, b) {
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const lengthSquared = dx * dx + dy * dy;
+    const fraction = lengthSquared ? Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / lengthSquared)) : 0;
+    return Math.hypot(x - a[0] - fraction * dx, y - a[1] - fraction * dy);
+  }
 
   function create(options) {
     const model = options.model;
     const root = options.root;
-    const camera = { yaw: -0.62, pitch: 0.62, zoom: 1 };
+    const camera = { yaw: -0.62, pitch: 0.62, zoom: 1, mode: 'orbit' };
+    const topView = { ready: false, centerX: 0, centerZ: 0, scale: 1 };
     const choice = { objectId: null, bay: 0, level: 0, upright: 0, slotId: null };
     let codePrefix = 'R01';
     let codeSearch = '';
@@ -208,12 +219,16 @@
             '" data-object="' + esc(item.id) + '" aria-pressed="' + (item.id === choice.objectId) + '"><span class="wh-object-icon" style="--wh-color:' +
             COLORS[item.type] + '"></span><span><strong>' + esc(objectName(item, t)) + '</strong><small>' + esc(t[TYPE_LABELS[item.type]]) + '</small></span></button>';
         }).join('') : '<p class="wh-empty">' + esc(t.empty) + '</p>') + '</div></aside>' +
-        '<div class="wh-main"><div class="wh-view-toolbar"><strong>' + esc(t.view) + '</strong><div><button type="button" data-action="fit">' +
-        esc(t.fit) + '</button><button type="button" data-action="top">' + esc(t.top) + '</button><button type="button" data-action="orbit">' +
-        esc(t.orbit) + '</button></div></div><canvas class="wh-canvas" role="img" aria-label="' + esc(t.view) + '"></canvas>' +
-        '<div class="wh-view-hint">' + esc(t.hint) + '</div><div class="wh-legend">' +
-        '<span><i class="matched"></i>' + esc(t.legendMatched) + '</span><span><i class="coded"></i>' + esc(t.legendCoded) +
-        '</span><span><i class="empty"></i>' + esc(t.legendEmpty) + '</span></div>' +
+        '<div class="wh-main"><div class="wh-view-toolbar"><strong>' + esc(camera.mode === 'top' ? t.planView : t.view) +
+        '</strong><div><button type="button" data-action="fit">' + esc(t.fit) +
+        '</button><button type="button" data-action="top" aria-pressed="' + (camera.mode === 'top') + '">' + esc(t.top) +
+        '</button><button type="button" data-action="orbit" aria-pressed="' + (camera.mode === 'orbit') + '">' +
+        esc(t.orbit) + '</button></div></div><canvas class="wh-canvas' + (camera.mode === 'top' ? ' is-top' : '') +
+        '" role="img" aria-label="' + esc(camera.mode === 'top' ? t.planView : t.view) + '"></canvas>' +
+        '<div class="wh-view-hint">' + esc(camera.mode === 'top' ? t.hintTop : t.hint) + '</div>' +
+        (camera.mode === 'orbit' ? '<div class="wh-legend">' +
+          '<span><i class="matched"></i>' + esc(t.legendMatched) + '</span><span><i class="coded"></i>' + esc(t.legendCoded) +
+          '</span><span><i class="empty"></i>' + esc(t.legendEmpty) + '</span></div>' : '') +
         '<div class="wh-card wh-slot-inspector"><div class="wh-slot-search"><label class="wh-field"><span>' + esc(t.searchCode) +
         '</span><input type="search" data-field="search" value="' + esc(codeSearch) + '" maxlength="80"></label>' +
         '<button type="button" class="wh-small-button" data-action="find-code">' + esc(t.findCode) + '</button></div>' +
@@ -292,6 +307,117 @@
       return boxes;
     }
 
+    function fitTop(warehouse, width, height) {
+      const corners = warehouse.objects.flatMap(function (object) { return model.footprintCorners(object); });
+      if (!corners.length) corners.push({ x: -5000, z: -3500 }, { x: 5000, z: 3500 });
+      const minX = Math.min.apply(null, corners.map(function (point) { return point.x; }));
+      const maxX = Math.max.apply(null, corners.map(function (point) { return point.x; }));
+      const minZ = Math.min.apply(null, corners.map(function (point) { return point.z; }));
+      const maxZ = Math.max.apply(null, corners.map(function (point) { return point.z; }));
+      topView.centerX = (minX + maxX) / 2;
+      topView.centerZ = (minZ + maxZ) / 2;
+      topView.scale = Math.min((width - 90) / Math.max(3000, maxX - minX),
+        (height - 100) / Math.max(3000, maxZ - minZ));
+      topView.ready = true;
+    }
+
+    function topPoint(x, z, width, height) {
+      const scale = topView.scale * camera.zoom;
+      return [(x - topView.centerX) * scale + width / 2, (z - topView.centerZ) * scale + height / 2];
+    }
+
+    function topWorld(clientX, clientY) {
+      const rect = canvas.getBoundingClientRect();
+      const scale = topView.scale * camera.zoom;
+      return {
+        x: (clientX - rect.left - canvas.clientWidth / 2) / scale + topView.centerX,
+        z: (clientY - rect.top - canvas.clientHeight / 2) / scale + topView.centerZ
+      };
+    }
+
+    function topHit(x, y) {
+      const ordered = pickFaces.slice().reverse();
+      const inside = ordered.find(function (face) { return pointInPolygon(x, y, face.polygon); });
+      if (inside) return inside;
+      return ordered.find(function (face) {
+        const xs = face.polygon.map(function (point) { return point[0]; });
+        const ys = face.polygon.map(function (point) { return point[1]; });
+        if (Math.min(Math.max.apply(null, xs) - Math.min.apply(null, xs),
+          Math.max.apply(null, ys) - Math.min.apply(null, ys)) > 14) return false;
+        return face.polygon.some(function (point, index) {
+          return distanceToSegment(x, y, point, face.polygon[(index + 1) % face.polygon.length]) <= 9;
+        });
+      });
+    }
+
+    function paintTop(ctx, width, height, warehouse) {
+      if (!topView.ready) fitTop(warehouse, width, height);
+      const scale = topView.scale * camera.zoom;
+      const left = topView.centerX - width / (2 * scale), right = topView.centerX + width / (2 * scale);
+      const top = topView.centerZ - height / (2 * scale), bottom = topView.centerZ + height / (2 * scale);
+      const step = scale * 500 >= 14 ? 500 : scale * 1000 >= 14 ? 1000 : 5000;
+      ctx.lineWidth = 1;
+      for (let x = Math.ceil(left / step) * step; x <= right; x += step) {
+        const screenX = topPoint(x, 0, width, height)[0];
+        ctx.strokeStyle = x === 0 ? '#467989' : x % (step * 2) === 0 ? '#2a3d47' : '#203039';
+        ctx.beginPath(); ctx.moveTo(screenX, 0); ctx.lineTo(screenX, height); ctx.stroke();
+      }
+      for (let z = Math.ceil(top / step) * step; z <= bottom; z += step) {
+        const screenZ = topPoint(0, z, width, height)[1];
+        ctx.strokeStyle = z === 0 ? '#467989' : z % (step * 2) === 0 ? '#2a3d47' : '#203039';
+        ctx.beginPath(); ctx.moveTo(0, screenZ); ctx.lineTo(width, screenZ); ctx.stroke();
+      }
+      pickFaces = [];
+      const objects = warehouse.objects.slice().sort(function (a, b) {
+        const rank = function (item) {
+          return ['aisle', 'goods-in', 'goods-out'].includes(item.type) ? 0 : model.RACK_TYPES.includes(item.type) ? 2 : 1;
+        };
+        return rank(a) - rank(b);
+      });
+      objects.forEach(function (object) {
+        const corners = model.footprintCorners(object);
+        const polygon = corners.map(function (point) { return topPoint(point.x, point.z, width, height); });
+        ctx.beginPath(); ctx.moveTo(polygon[0][0], polygon[0][1]);
+        polygon.slice(1).forEach(function (point) { ctx.lineTo(point[0], point[1]); }); ctx.closePath();
+        ctx.fillStyle = COLORS[object.type];
+        ctx.globalAlpha = ['aisle', 'goods-in', 'goods-out'].includes(object.type) ? 0.28 : 0.48;
+        ctx.fill(); ctx.globalAlpha = 1;
+        ctx.strokeStyle = object.id === choice.objectId ? '#91f4e2' : COLORS[object.type];
+        ctx.lineWidth = object.id === choice.objectId ? 3 : 1.5; ctx.stroke();
+        if (model.RACK_TYPES.includes(object.type)) {
+          let divider = object.uprights[0].width;
+          const angle = object.rotation * Math.PI / 180;
+          object.bays.forEach(function (bay, index) {
+            divider += bay.width;
+            const localX = divider;
+            const depth = model.objectFootprint(object).depth;
+            const start = topPoint(object.x + Math.cos(angle) * localX, object.z + Math.sin(angle) * localX, width, height);
+            const end = topPoint(object.x + Math.cos(angle) * localX - Math.sin(angle) * depth,
+              object.z + Math.sin(angle) * localX + Math.cos(angle) * depth, width, height);
+            ctx.beginPath(); ctx.moveTo(start[0], start[1]); ctx.lineTo(end[0], end[1]);
+            ctx.strokeStyle = '#a5bdc7'; ctx.lineWidth = 1; ctx.stroke();
+            divider += object.uprights[index + 1].width;
+          });
+        }
+        const centerX = polygon.reduce(function (sum, point) { return sum + point[0]; }, 0) / 4;
+        const centerY = polygon.reduce(function (sum, point) { return sum + point[1]; }, 0) / 4;
+        ctx.font = '12px Segoe UI, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.lineWidth = 3; ctx.strokeStyle = '#0d151c'; ctx.strokeText(object.name, centerX, centerY);
+        ctx.fillStyle = '#e4f2f2'; ctx.fillText(object.name, centerX, centerY);
+        pickFaces.push({ objectId: object.id, polygon: polygon });
+      });
+      const selectedObject = warehouse.objects.find(function (object) { return object.id === choice.objectId; });
+      if (selectedObject) {
+        ctx.fillStyle = '#172a2e'; ctx.fillRect(10, height - 38, Math.min(width - 20, 360), 28);
+        ctx.fillStyle = '#b6e8dc'; ctx.font = '12px Segoe UI, sans-serif'; ctx.textAlign = 'left';
+        ctx.fillText(selectedObject.name + ' · X ' + selectedObject.x + ' · Z ' + selectedObject.z + ' mm', 18, height - 20);
+      }
+      if (!warehouse.objects.length) {
+        ctx.fillStyle = '#7995a1'; ctx.font = '15px Segoe UI, sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(labels().empty, width / 2, height / 2);
+      }
+    }
+
     function paint(warehouse, matches) {
       if (!canvas) return;
       const width = Math.max(280, canvas.clientWidth);
@@ -303,6 +429,7 @@
       if (!ctx) return;
       ctx.scale(dpr, dpr);
       ctx.fillStyle = '#0d151c'; ctx.fillRect(0, 0, width, height);
+      if (camera.mode === 'top') { paintTop(ctx, width, height, warehouse); return; }
       const boxes = boxesFor(warehouse, matches);
       const yaw = camera.yaw, pitch = camera.pitch;
       function transform(object, x, y, z) {
@@ -374,28 +501,69 @@
     function wireCanvas() {
       let drag = null;
       canvas.addEventListener('pointerdown', function (event) {
-        drag = { x: event.clientX, y: event.clientY, moved: false };
+        if (camera.mode === 'top') {
+          const rect = canvas.getBoundingClientRect();
+          const x = event.clientX - rect.left, y = event.clientY - rect.top;
+          const found = topHit(x, y);
+          if (found) {
+            const object = layout().objects.find(function (item) { return item.id === found.objectId; });
+            choice.objectId = object.id; choice.slotId = null;
+            const next = clone(layout());
+            drag = { mode: 'move', x: event.clientX, y: event.clientY, moved: false,
+              origin: topWorld(event.clientX, event.clientY), startX: object.x, startZ: object.z,
+              next: next, target: next.objects.find(function (item) { return item.id === object.id; }) };
+          } else {
+            drag = { mode: 'pan', x: event.clientX, y: event.clientY, moved: false,
+              centerX: topView.centerX, centerZ: topView.centerZ };
+          }
+        } else {
+          drag = { mode: 'orbit', x: event.clientX, y: event.clientY, moved: false };
+        }
         canvas.setPointerCapture(event.pointerId);
       });
       canvas.addEventListener('pointermove', function (event) {
         if (!drag) return;
         const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
-        if (Math.abs(dx) + Math.abs(dy) > 2) drag.moved = true;
+        if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
         if (!drag.moved) return;
-        camera.yaw += dx * 0.008;
-        camera.pitch = Math.max(0.12, Math.min(1.45, camera.pitch + dy * 0.006));
-        drag.x = event.clientX; drag.y = event.clientY;
-        paint(layout(), model.matchArticles(layout(), options.getRegistry()));
+        if (drag.mode === 'move') {
+          const world = topWorld(event.clientX, event.clientY);
+          drag.target.x = model.snapCoordinate(Math.max(-500000, Math.min(500000, drag.startX + world.x - drag.origin.x)), 100);
+          drag.target.z = model.snapCoordinate(Math.max(-500000, Math.min(500000, drag.startZ + world.z - drag.origin.z)), 100);
+          paint(drag.next, null);
+        } else if (drag.mode === 'pan') {
+          const scale = topView.scale * camera.zoom;
+          topView.centerX = drag.centerX - dx / scale;
+          topView.centerZ = drag.centerZ - dy / scale;
+          paint(layout(), null);
+        } else {
+          camera.yaw += dx * 0.008;
+          camera.pitch = Math.max(0.12, Math.min(1.45, camera.pitch + dy * 0.006));
+          drag.x = event.clientX; drag.y = event.clientY;
+          paint(layout(), model.matchArticles(layout(), options.getRegistry()));
+        }
       });
       canvas.addEventListener('pointerup', function (event) {
         if (!drag) return;
-        if (!drag.moved) {
+        if (drag.mode === 'move') {
+          const moved = drag.target.x !== drag.startX || drag.target.z !== drag.startZ;
+          const next = drag.next;
+          drag = null;
+          if (moved) commit(next);
+          else render();
+          return;
+        }
+        if (drag.mode === 'orbit' && !drag.moved) {
           const rect = canvas.getBoundingClientRect();
           const x = event.clientX - rect.left, y = event.clientY - rect.top;
           const found = pickFaces.slice().reverse().find(function (face) { return pointInPolygon(x, y, face.polygon); });
           if (found && found.slotRef) selectSlot(found.slotRef);
           else if (found) { choice.objectId = found.objectId; choice.bay = 0; choice.level = 0; choice.upright = 0; choice.slotId = null; render(); }
         }
+        drag = null;
+      });
+      canvas.addEventListener('pointercancel', function () {
+        if (drag && drag.mode === 'move') render();
         drag = null;
       });
       canvas.addEventListener('wheel', function (event) {
@@ -419,18 +587,21 @@
       }
       if (action === 'fit' || action === 'top' || action === 'orbit') {
         camera.zoom = 1;
-        if (action === 'top') { camera.yaw = 0; camera.pitch = 1.45; }
-        else if (action === 'orbit') { camera.yaw = -0.62; camera.pitch = 0.62; }
-        paint(layout(), model.matchArticles(layout(), options.getRegistry())); return;
+        if (action === 'top') { camera.mode = 'top'; topView.ready = false; }
+        else if (action === 'orbit') { camera.mode = 'orbit'; camera.yaw = -0.62; camera.pitch = 0.62; }
+        else if (camera.mode === 'top') topView.ready = false;
+        render(); return;
       }
       if (action === 'add') {
         const type = root.querySelector('#wh-recipe').value;
         const next = clone(layout());
-        const newObject = model.RACK_TYPES.includes(type) ? model.createRack(type) : model.createArea(type);
+        const newObject = model.RACK_TYPES.includes(type) ? model.createRack(type) :
+          model.createArea(type, { name: labels()[TYPE_LABELS[type]] });
         const last = next.objects[next.objects.length - 1];
         newObject.x = last ? last.x + 1800 : 0;
         newObject.z = last ? last.z + 1200 : 0;
         next.objects.push(newObject); choice.objectId = newObject.id; choice.slotId = null;
+        if (camera.mode === 'top') topView.ready = false;
         commit(next); return;
       }
       const object = selected();

@@ -239,6 +239,37 @@
     return slots;
   }
 
+  function objectFootprint(object) {
+    if (RACK_TYPES.includes(object.type)) {
+      return {
+        width: object.bays.reduce(function (total, bay) { return total + bay.width; }, 0) +
+          object.uprights.reduce(function (total, upright) { return total + upright.width; }, 0),
+        depth: Math.max.apply(null, object.bays.map(function (bay) { return bay.depth; })
+          .concat(object.uprights.map(function (upright) { return upright.depth; })))
+      };
+    }
+    return { width: object.width, depth: object.depth };
+  }
+
+  function footprintCorners(object) {
+    const size = objectFootprint(object);
+    const angle = object.rotation * Math.PI / 180;
+    const cosine = Math.cos(angle), sine = Math.sin(angle);
+    return [[0, 0], [size.width, 0], [size.width, size.depth], [0, size.depth]].map(function (corner) {
+      return { x: object.x + cosine * corner[0] - sine * corner[1],
+        z: object.z + sine * corner[0] + cosine * corner[1] };
+    });
+  }
+
+  function snapCoordinate(value, step) {
+    const number = Number(value);
+    const grid = Number(step);
+    if (!Number.isFinite(number) || !Number.isInteger(grid) || grid < 1 || grid > 10000) {
+      fail('Grid position or spacing is invalid.');
+    }
+    return Math.round(number / grid) * grid;
+  }
+
   function matchArticles(layout, registry) {
     const byCode = new Map();
     listSlots(layout).forEach(function (slot) { if (slot.code) byCode.set(slot.code, slot); });
@@ -263,6 +294,7 @@
     WarehouseValidationError: WarehouseValidationError,
     createLayout: createLayout, createRack: createRack, createArea: createArea,
     resizeRack: resizeRack, normalizeLayout: normalizeLayout,
-    listSlots: listSlots, matchArticles: matchArticles
+    listSlots: listSlots, matchArticles: matchArticles,
+    objectFootprint: objectFootprint, footprintCorners: footprintCorners, snapCoordinate: snapCoordinate
   };
 }));

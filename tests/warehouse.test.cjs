@@ -48,6 +48,23 @@ test('area recipes normalize and malformed rack parts fail as validation errors'
   );
 });
 
+test('floor footprints respect rack dimensions and rotation while grid moves preserve codes', () => {
+  const rack = warehouse.createRack('pallet-rack', { bayCount: 2, levelCount: 1 });
+  rack.bays[0].width = 2900;
+  rack.x = 1000; rack.z = 2000; rack.rotation = 90;
+  rack.bays[0].levels[0].positions[0].code = 'P-01';
+  assert.deepEqual(warehouse.objectFootprint(rack), { width: 5900, depth: 1100 });
+  assert.deepEqual(warehouse.footprintCorners(rack).map((point) => [Math.round(point.x), Math.round(point.z)]),
+    [[1000, 2000], [1000, 7900], [-100, 7900], [-100, 2000]]);
+  rack.x = warehouse.snapCoordinate(1234, 100);
+  rack.z = warehouse.snapCoordinate(-167, 100);
+  const moved = warehouse.normalizeLayout({ version: 1, objects: [rack] }).objects[0];
+  assert.equal(moved.x, 1200);
+  assert.equal(moved.z, -200);
+  assert.equal(moved.bays[0].levels[0].positions[0].code, 'P-01');
+  assert.throws(() => warehouse.snapCoordinate(100, 0), /Grid/);
+});
+
 test('article-master locations match exactly while unmatched codes remain visible', () => {
   const rack = warehouse.createRack('shelf-rack', { bayCount: 1, levelCount: 1 });
   const slot = rack.bays[0].levels[0].positions[0];

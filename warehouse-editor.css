@@ -27,7 +27,9 @@
 .wh-view-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 9px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: #1a2029; font-size: .75rem; }
 .wh-view-toolbar > div { display: flex; flex-wrap: wrap; gap: 5px; }
 .wh-view-toolbar button { padding: 5px 8px; font-size: .68rem; }
+.wh-view-toolbar button[aria-pressed="true"] { border-color: #55cfbd; color: #d5fff7; background: #2a6258; }
 .wh-canvas { display: block; width: 100%; height: 540px; border: 1px solid #2a3d48; border-radius: 7px; background: #0d151c; cursor: grab; touch-action: none; }
+.wh-canvas.is-top { cursor: move; }
 .wh-canvas:active { cursor: grabbing; }
 .wh-view-hint { margin-top: -8px; color: #8c9daa; font-size: .67rem; }
 .wh-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: -8px; color: #a9bac3; font-size: .67rem; }

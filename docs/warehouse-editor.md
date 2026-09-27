@@ -6,7 +6,7 @@ The editor is available from the **Warehouse 3D / Lager 3D** item in an opened w
 
 - **Pallet rack** and **shelf rack** have 1–30 bays. Every bay has its own width and depth and 1–12 levels. Each level has a clear height, beam or shelf thickness, an optional deck with its own thickness, and 1–4 position IDs. Each upright has its own width, depth, and height.
 - **Wall, gate, emergency exit, aisle/road, goods-in, and goods-out** are dimensioned objects that can be positioned and rotated. Gates and emergency exits are drawn as frames; aisles and zones are flat surfaces. These are planning symbols, not safety or building-code verification.
-- All dimensions and coordinates are in millimeters. X and Z define the floor plane; height is vertical. The 3D canvas supports drag to rotate, wheel to zoom, click to select, fit view, and top view. Objects are positioned precisely in the properties panel.
+- All dimensions and coordinates are in millimeters. X and Z define the floor plane; height is vertical. The 3D view supports drag to rotate, wheel to zoom, and click to select a rack or position. In the top view, drag an object footprint to move it with 100 mm snapping; drag empty space to pan. The numeric X/Z fields remain available for exact coordinates. Fitting the view recenters the whole plan.
 - Generated geometry is derived from the saved measurements. Each rack, bay, upright, level, and position has a stable ID. Increasing counts retains existing IDs and codes. Reducing counts warns before coded positions are removed. A level exceeding an adjacent upright blocks that edit.
 
 ## Location codes and imported articles
@@ -17,4 +17,4 @@ The overlay uses only the current `location` from imported **article-master** da
 
 ## Storage and current limits
 
-Schema version `12` adds an empty plan to earlier workspaces during validated activation. Layout edits use metadata-only revision-checked writes, so they do not rewrite original CSV bytes or normalized row chunks. Backup export and restore include the plan. The plan is limited to 150 objects and 5,000 positions; this first version is intended for layout and code validation rather than building-code assessment, collision detection, or large-facility CAD editing.
+Schema version `12` adds an empty plan to earlier workspaces during validated activation. Layout edits, including completed top-view drags, use metadata-only revision-checked writes, so they do not rewrite original CSV bytes or normalized row chunks. Backup export and restore include the plan. The plan is limited to 150 objects and 5,000 positions; this first version is intended for layout and code validation rather than building-code assessment, collision detection, or large-facility CAD editing. Overlapping objects are currently allowed.
