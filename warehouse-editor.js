@@ -17,6 +17,8 @@
       codePrefix: 'Code prefix', generate: 'Fill empty codes', delete: 'Delete object', duplicate: 'Duplicate',
       copyName: 'Copy of', rotateLeft: 'Rotate left 90°', rotateRight: 'Rotate right 90°',
       undo: 'Undo', redo: 'Redo',
+      checks: 'Layout checks', collision: 'collision', collisions: 'collisions',
+      overlap: 'Objects overlap', 'blocked-aisle': 'Aisle obstructed', moreCollisions: 'more collisions',
       view: '3D layout', planView: 'Floor plan', fit: 'Fit view', top: 'Top view', orbit: '3D view',
       hint: 'Drag to rotate · mouse wheel to zoom · click to select',
       hintTop: 'Drag an object to move it · drag empty space to pan · wheel to zoom · 100 mm snap',
@@ -43,6 +45,8 @@
       codePrefix: 'Code-Präfix', generate: 'Leere Codes füllen', delete: 'Objekt löschen', duplicate: 'Duplizieren',
       copyName: 'Kopie von', rotateLeft: '90° links drehen', rotateRight: '90° rechts drehen',
       undo: 'Rückgängig', redo: 'Wiederholen',
+      checks: 'Planprüfung', collision: 'Kollision', collisions: 'Kollisionen',
+      overlap: 'Objekte überlappen', 'blocked-aisle': 'Gang blockiert', moreCollisions: 'weitere Kollisionen',
       view: '3D-Lagerplan', planView: 'Grundriss', fit: 'Einpassen', top: 'Draufsicht', orbit: '3D-Ansicht',
       hint: 'Ziehen: drehen · Mausrad: zoomen · Klicken: auswählen',
       hintTop: 'Objekt ziehen: verschieben · freie Fläche ziehen: Ansicht bewegen · Mausrad: zoomen · 100-mm-Raster',
@@ -249,21 +253,37 @@
       if (!slots.some(function (slot) { return slot.slotId === choice.slotId; })) choice.slotId = null;
       const coded = slots.filter(function (slot) { return Boolean(slot.code); }).length;
       const matches = model.matchArticles(warehouse, options.getRegistry());
+      const collisions = model.findCollisions(warehouse);
+      const collisionIds = new Set(collisions.flatMap(function (item) { return [item.firstId, item.secondId]; }));
+      const objectsById = new Map(warehouse.objects.map(function (item) { return [item.id, item]; }));
+      const collisionSummary = collisions.length + ' ' + (collisions.length === 1 ? t.collision : t.collisions);
+      const collisionPanel = collisions.length ? '<div class="wh-card wh-collisions"><h4>' + esc(t.checks) +
+        ' · ' + esc(collisionSummary) + '</h4><div class="wh-collision-list">' + collisions.slice(0, 12).map(function (item) {
+          const first = objectsById.get(item.firstId), second = objectsById.get(item.secondId);
+          return '<div class="wh-collision-row"><small>' + esc(t[item.kind]) + '</small><div><button type="button" data-focus-object="' +
+            esc(first.id) + '" title="' + esc(first.name) + '">' + esc(first.name) + '</button><span>↔</span><button type="button" data-focus-object="' +
+            esc(second.id) + '" title="' + esc(second.name) + '">' + esc(second.name) + '</button></div></div>';
+        }).join('') + '</div>' + (collisions.length > 12 ? '<p>' + (collisions.length - 12) + ' ' + esc(t.moreCollisions) + '</p>' : '') +
+        '</div>' : '';
       const selectedSlot = slots.find(function (slot) { return slot.slotId === choice.slotId; });
       const selectedArticles = selectedSlot ? matches.bySlot.get(selectedSlot.slotId) || [] : [];
       root.innerHTML = '<div class="wh-header"><div><p class="wh-eyebrow">OpenSlotting · 3D</p><h3>' + esc(t.view) + '</h3><p>' +
         esc(t.exact) + '</p></div><div class="wh-summary"><strong>' + warehouse.objects.length + '</strong> ' + esc(t.objects) +
-        '<br><strong>' + slots.length + '</strong> ' + esc(t.slotSummary) + ' ' + coded + ' ' + esc(t.coded) + '</div></div>' +
+        '<br><strong>' + slots.length + '</strong> ' + esc(t.slotSummary) + ' ' + coded + ' ' + esc(t.coded) +
+        (collisions.length ? '<br><span class="wh-summary-conflicts">⚠ ' + esc(collisionSummary) + '</span>' : '') + '</div></div>' +
         '<div class="wh-editor-grid"><aside class="wh-sidebar"><div class="wh-card"><h4>' + esc(t.add) + '</h4>' +
         '<select id="wh-recipe" aria-label="' + esc(t.choose) + '">' +
         model.RACK_TYPES.concat(model.AREA_TYPES).map(function (type) {
           return '<option value="' + type + '">' + esc(t[TYPE_LABELS[type]]) + '</option>';
         }).join('') + '</select><button type="button" class="wh-add-button" data-action="add">' + esc(t.addButton) + '</button></div>' +
+        collisionPanel +
         '<div class="wh-card wh-objects"><h4>' + esc(t.objects) + '</h4>' +
         (warehouse.objects.length ? warehouse.objects.map(function (item) {
           return '<button type="button" class="wh-object' + (item.id === choice.objectId ? ' active' : '') +
+            (collisionIds.has(item.id) ? ' is-conflict' : '') +
             '" data-object="' + esc(item.id) + '" aria-pressed="' + (item.id === choice.objectId) + '"><span class="wh-object-icon" style="--wh-color:' +
-            COLORS[item.type] + '"></span><span><strong>' + esc(objectName(item, t)) + '</strong><small>' + esc(t[TYPE_LABELS[item.type]]) + '</small></span></button>';
+            COLORS[item.type] + '"></span><span><strong>' + esc(objectName(item, t)) + '</strong><small>' + esc(t[TYPE_LABELS[item.type]]) +
+            (collisionIds.has(item.id) ? ' · ⚠ ' + esc(t.collision) : '') + '</small></span></button>';
         }).join('') : '<p class="wh-empty">' + esc(t.empty) + '</p>') + '</div></aside>' +
         '<div class="wh-main"><div class="wh-view-toolbar"><strong>' + esc(camera.mode === 'top' ? t.planView : t.view) +
         '</strong><div><button type="button" data-action="undo"' + (undoStack.length ? '' : ' disabled') +
@@ -302,7 +322,7 @@
           '">↷ 90°</button></div>' : '') + properties(object, t, matches) +
         '</div></aside></div><p class="wh-message" role="status" aria-live="polite">' + esc(message) + '</p>';
       canvas = root.querySelector('canvas');
-      paint(warehouse, matches);
+      paint(warehouse, matches, collisionIds);
       wireCanvas();
     }
 
@@ -403,7 +423,7 @@
       });
     }
 
-    function paintTop(ctx, width, height, warehouse) {
+    function paintTop(ctx, width, height, warehouse, collisionIds) {
       if (!topView.ready) fitTop(warehouse, width, height);
       const scale = topView.scale * camera.zoom;
       const left = topView.centerX - width / (2 * scale), right = topView.centerX + width / (2 * scale);
@@ -435,8 +455,10 @@
         ctx.fillStyle = COLORS[object.type];
         ctx.globalAlpha = ['aisle', 'goods-in', 'goods-out'].includes(object.type) ? 0.28 : 0.48;
         ctx.fill(); ctx.globalAlpha = 1;
-        ctx.strokeStyle = object.id === choice.objectId ? '#91f4e2' : COLORS[object.type];
-        ctx.lineWidth = object.id === choice.objectId ? 3 : 1.5; ctx.stroke();
+        const colliding = collisionIds.has(object.id);
+        ctx.strokeStyle = colliding ? object.id === choice.objectId ? '#ffd28a' : '#ff8374' :
+          object.id === choice.objectId ? '#91f4e2' : COLORS[object.type];
+        ctx.lineWidth = object.id === choice.objectId || colliding ? 3 : 1.5; ctx.stroke();
         if (model.RACK_TYPES.includes(object.type)) {
           let divider = object.uprights[0].width;
           const angle = object.rotation * Math.PI / 180;
@@ -455,8 +477,9 @@
         const centerX = polygon.reduce(function (sum, point) { return sum + point[0]; }, 0) / 4;
         const centerY = polygon.reduce(function (sum, point) { return sum + point[1]; }, 0) / 4;
         ctx.font = '12px Segoe UI, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.lineWidth = 3; ctx.strokeStyle = '#0d151c'; ctx.strokeText(object.name, centerX, centerY);
-        ctx.fillStyle = '#e4f2f2'; ctx.fillText(object.name, centerX, centerY);
+        const name = (colliding ? '⚠ ' : '') + object.name;
+        ctx.lineWidth = 3; ctx.strokeStyle = '#0d151c'; ctx.strokeText(name, centerX, centerY);
+        ctx.fillStyle = '#e4f2f2'; ctx.fillText(name, centerX, centerY);
         pickFaces.push({ objectId: object.id, polygon: polygon });
       });
       const selectedObject = warehouse.objects.find(function (object) { return object.id === choice.objectId; });
@@ -471,8 +494,11 @@
       }
     }
 
-    function paint(warehouse, matches) {
+    function paint(warehouse, matches, collisionIds) {
       if (!canvas) return;
+      const conflicts = collisionIds || new Set(model.findCollisions(warehouse).flatMap(function (item) {
+        return [item.firstId, item.secondId];
+      }));
       const width = Math.max(280, canvas.clientWidth);
       const height = Math.max(320, canvas.clientHeight);
       const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -482,7 +508,7 @@
       if (!ctx) return;
       ctx.scale(dpr, dpr);
       ctx.fillStyle = '#0d151c'; ctx.fillRect(0, 0, width, height);
-      if (camera.mode === 'top') { paintTop(ctx, width, height, warehouse); return; }
+      if (camera.mode === 'top') { paintTop(ctx, width, height, warehouse, conflicts); return; }
       const boxes = boxesFor(warehouse, matches);
       const yaw = camera.yaw, pitch = camera.pitch;
       function transform(object, x, y, z) {
@@ -541,8 +567,10 @@
         ctx.globalAlpha = face.shade === 0 ? 0.98 : face.shade === 2 ? 0.65 : 0.82;
         ctx.fill(); ctx.globalAlpha = 1;
         const selectedPosition = face.item.slotRef && face.item.slotRef.slotId === choice.slotId;
-        ctx.strokeStyle = selectedPosition ? '#fff2a3' : face.item.object.id === choice.objectId ? '#79f2de' : '#17252e';
-        ctx.lineWidth = selectedPosition ? 3 : face.item.object.id === choice.objectId ? 1.7 : 0.8; ctx.stroke();
+        const colliding = conflicts.has(face.item.object.id);
+        ctx.strokeStyle = selectedPosition ? '#fff2a3' : colliding ? '#ff9c72' :
+          face.item.object.id === choice.objectId ? '#79f2de' : '#17252e';
+        ctx.lineWidth = selectedPosition ? 3 : colliding ? 2 : face.item.object.id === choice.objectId ? 1.7 : 0.8; ctx.stroke();
         pickFaces.push({ objectId: face.item.object.id, slotRef: face.item.slotRef, polygon: poly });
       });
       if (!warehouse.objects.length) {
@@ -629,6 +657,13 @@
 
     root.addEventListener('click', function (event) {
       if (saving) return;
+      const conflictButton = event.target.closest('[data-focus-object]');
+      if (conflictButton) {
+        choice.objectId = conflictButton.dataset.focusObject;
+        choice.slotId = null;
+        camera.mode = 'top'; camera.zoom = 1; topView.ready = false;
+        message = ''; render(); return;
+      }
       const objectButton = event.target.closest('[data-object]');
       if (objectButton) {
         choice.objectId = objectButton.dataset.object;

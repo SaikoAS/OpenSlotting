@@ -6,6 +6,7 @@
 .wh-eyebrow { color: #5bc8b6 !important; font-size: .64rem !important; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
 .wh-summary { flex: none; min-width: 145px; padding: 8px 12px; border: 1px solid #31534f; border-radius: 7px; color: #99d7cb; background: #19312f; font-size: .74rem; text-align: right; }
 .wh-summary strong { color: #c5fff3; }
+.wh-summary-conflicts { color: #ffc48a; font-weight: 750; }
 .wh-editor-grid { display: grid; grid-template-columns: 216px minmax(0, 1fr) 286px; align-items: start; gap: 12px; min-width: 0; }
 .wh-sidebar, .wh-main, .wh-properties { display: grid; align-content: start; gap: 12px; min-width: 0; }
 .wh-card { min-width: 0; padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: #1a2029; }
@@ -19,11 +20,23 @@
 .wh-object { display: flex; align-items: center; gap: 9px; width: 100%; padding: 10px 8px; border: 1px solid transparent; border-radius: 5px; color: var(--ink); background: transparent; cursor: pointer; text-align: left; }
 .wh-object:hover { background: #29333e; }
 .wh-object.active { border-color: #389e92; background: #1d3a38; }
+.wh-object.is-conflict { border-color: #a96949; }
+.wh-object.is-conflict small { color: #ffc48a; }
 .wh-object > span:last-child { display: grid; min-width: 0; }
 .wh-object strong, .wh-object small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wh-object strong { font-size: .75rem; }
 .wh-object small { color: #9eacb8; font-size: .67rem; }
 .wh-object-icon { flex: none; width: 12px; height: 29px; border-radius: 2px; background: var(--wh-color); }
+.wh-collisions { border-color: #8f6249; background: #292523; }
+.wh-collisions h4 { color: #ffd2a0; }
+.wh-collision-list { display: grid; gap: 7px; max-height: 230px; overflow-y: auto; }
+.wh-collision-row { display: grid; gap: 4px; padding: 6px 0; border-top: 1px solid #58483f; }
+.wh-collision-row small { color: #ffc48a; font-size: .65rem; }
+.wh-collision-row > div { display: grid; gap: 2px; min-width: 0; }
+.wh-collision-row button { min-width: 0; padding: 4px; border: 1px solid #8f6249; border-radius: 4px; color: #f1ded0; background: #392e2a; cursor: pointer; font-size: .63rem; overflow-wrap: anywhere; text-align: left; }
+.wh-collision-row button:hover { background: #503a31; }
+.wh-collision-row span { color: #ffc48a; font-size: .7rem; line-height: .7; text-align: center; }
+.wh-collisions p { margin: 8px 0 0; color: #c7aa98; font-size: .65rem; }
 .wh-view-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 9px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: #1a2029; font-size: .75rem; }
 .wh-view-toolbar > div { display: flex; flex-wrap: wrap; gap: 5px; }
 .wh-view-toolbar button { padding: 5px 8px; font-size: .68rem; }

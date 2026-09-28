@@ -261,6 +261,51 @@
     });
   }
 
+  function footprintsOverlap(first, second) {
+    const corners = [footprintCorners(first), footprintCorners(second)];
+    for (const polygon of corners) {
+      for (let index = 0; index < polygon.length; index += 1) {
+        const start = polygon[index], end = polygon[(index + 1) % polygon.length];
+        const axisX = start.z - end.z, axisZ = end.x - start.x;
+        const axisLength = Math.hypot(axisX, axisZ);
+        const projections = corners.map(function (points) {
+          const values = points.map(function (point) { return point.x * axisX + point.z * axisZ; });
+          return { min: Math.min.apply(null, values), max: Math.max.apply(null, values) };
+        });
+        if (Math.min(projections[0].max, projections[1].max) -
+            Math.max(projections[0].min, projections[1].min) <= axisLength * 0.001) return false;
+      }
+    }
+    return true;
+  }
+
+  function collisionKind(first, second) {
+    if (['goods-in', 'goods-out'].includes(first.type) || ['goods-in', 'goods-out'].includes(second.type)) return null;
+    const rack = RACK_TYPES.includes(first.type) || RACK_TYPES.includes(second.type);
+    if (first.type === 'aisle' || second.type === 'aisle') {
+      return rack || first.type === 'wall' || second.type === 'wall' ? 'blocked-aisle' : null;
+    }
+    if (rack) return 'overlap';
+    if (first.type === 'wall' && second.type === 'wall') return null;
+    if ((first.type === 'wall' && ['gate', 'emergency-exit'].includes(second.type)) ||
+        (second.type === 'wall' && ['gate', 'emergency-exit'].includes(first.type))) return null;
+    return 'overlap';
+  }
+
+  function findCollisions(layout) {
+    const objects = layout.objects || [];
+    const collisions = [];
+    for (let first = 0; first < objects.length; first += 1) {
+      for (let second = first + 1; second < objects.length; second += 1) {
+        const kind = collisionKind(objects[first], objects[second]);
+        if (kind && footprintsOverlap(objects[first], objects[second])) {
+          collisions.push({ firstId: objects[first].id, secondId: objects[second].id, kind: kind });
+        }
+      }
+    }
+    return collisions;
+  }
+
   function duplicateObject(object, options) {
     const copy = JSON.parse(JSON.stringify(object));
     const settings = options || {};
@@ -338,7 +383,8 @@
     createLayout: createLayout, createRack: createRack, createArea: createArea,
     resizeRack: resizeRack, normalizeLayout: normalizeLayout,
     listSlots: listSlots, matchArticles: matchArticles,
-    objectFootprint: objectFootprint, footprintCorners: footprintCorners, snapCoordinate: snapCoordinate,
+    objectFootprint: objectFootprint, footprintCorners: footprintCorners, footprintsOverlap: footprintsOverlap,
+    findCollisions: findCollisions, snapCoordinate: snapCoordinate,
     duplicateObject: duplicateObject, rotateObject: rotateObject
   };
 }));

@@ -65,6 +65,28 @@ test('floor footprints respect rack dimensions and rotation while grid moves pre
   assert.throws(() => warehouse.snapCoordinate(100, 0), /Grid/);
 });
 
+test('collision checks use rotated footprints and ignore touching edges and intentional overlays', () => {
+  const rack = warehouse.createRack('shelf-rack', { bayCount: 1, levelCount: 1 });
+  const other = warehouse.createRack('shelf-rack', { bayCount: 1, levelCount: 1 });
+  other.x = warehouse.objectFootprint(rack).width;
+  assert.equal(warehouse.footprintsOverlap(rack, other), false);
+  other.x -= 1;
+  assert.deepEqual(warehouse.findCollisions({ objects: [rack, other] }),
+    [{ firstId: rack.id, secondId: other.id, kind: 'overlap' }]);
+  rack.rotation = 45; other.rotation = 45; other.x = -424; other.z = 424;
+  assert.equal(warehouse.footprintsOverlap(rack, other), false);
+
+  const wall = warehouse.createArea('wall');
+  wall.x = 1200; wall.z = 400; wall.rotation = 90;
+  rack.rotation = 0;
+  assert.equal(warehouse.footprintsOverlap(rack, wall), true);
+  const aisle = warehouse.createArea('aisle');
+  assert.equal(warehouse.findCollisions({ objects: [rack, aisle] })[0].kind, 'blocked-aisle');
+  const gate = warehouse.createArea('gate');
+  assert.deepEqual(warehouse.findCollisions({ objects: [wall, gate] }), []);
+  assert.deepEqual(warehouse.findCollisions({ objects: [rack, warehouse.createArea('goods-in')] }), []);
+});
+
 test('duplicating a rack retains measurements but creates independent empty-coded positions', () => {
   const original = warehouse.createRack('pallet-rack', { bayCount: 2, levelCount: 2 });
   original.bays[0].width = 3200;
