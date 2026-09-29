@@ -10,8 +10,9 @@
       aisle: 'Aisle / road', goodsIn: 'Goods in', goodsOut: 'Goods out', addButton: 'Add object', objects: 'Objects',
       empty: 'No objects yet. Add a recipe to start the layout.', properties: 'Properties', selected: 'Select an object to edit it.',
       name: 'Name', x: 'X position (mm)', z: 'Z position (mm)', rotation: 'Rotation (°)', width: 'Width (mm)',
-      depth: 'Depth / length (mm)', height: 'Height (mm)', bays: 'Bays', levels: 'Levels per bay',
-      positions: 'Positions per level', applyCounts: 'Apply counts', bay: 'Bay', level: 'Level', upright: 'Upright',
+      depth: 'Depth / length (mm)', height: 'Height (mm)', bays: 'Bays', levels: 'Levels in this bay',
+      positions: 'Positions in this level', applyCounts: 'Apply bay count', applyBayLevels: 'Apply levels in this bay',
+      applyLevelPositions: 'Apply positions in this level', bay: 'Bay', level: 'Level', upright: 'Upright',
       clearHeight: 'Level clear height (mm)', thickness: 'Beam / shelf thickness (mm)', deck: 'Add shelf deck',
       deckThickness: 'Shelf deck thickness (mm)', code: 'Location code', codes: 'Codes for selected level',
       codePrefix: 'Code prefix', generate: 'Fill empty codes', delete: 'Delete object', duplicate: 'Duplicate',
@@ -38,8 +39,10 @@
       aisle: 'Gang / Straße', goodsIn: 'Wareneingang', goodsOut: 'Warenausgang', addButton: 'Objekt hinzufügen', objects: 'Objekte',
       empty: 'Noch keine Objekte. Füge ein Rezept hinzu.', properties: 'Eigenschaften', selected: 'Wähle ein Objekt zur Bearbeitung.',
       name: 'Name', x: 'X-Position (mm)', z: 'Z-Position (mm)', rotation: 'Drehung (°)', width: 'Breite (mm)',
-      depth: 'Tiefe / Länge (mm)', height: 'Höhe (mm)', bays: 'Fächer', levels: 'Ebenen je Fach',
-      positions: 'Stellplätze je Ebene', applyCounts: 'Anzahl übernehmen', bay: 'Fach', level: 'Ebene', upright: 'Ständer',
+      depth: 'Tiefe / Länge (mm)', height: 'Höhe (mm)', bays: 'Fächer', levels: 'Ebenen in diesem Fach',
+      positions: 'Stellplätze in dieser Ebene', applyCounts: 'Fachanzahl übernehmen',
+      applyBayLevels: 'Ebenenzahl dieses Fachs übernehmen', applyLevelPositions: 'Stellplatzzahl dieser Ebene übernehmen',
+      bay: 'Fach', level: 'Ebene', upright: 'Ständer',
       clearHeight: 'Lichte Fachhöhe (mm)', thickness: 'Traverse / Regalboden (mm)', deck: 'Fachboden hinzufügen',
       deckThickness: 'Fachbodenstärke (mm)', code: 'Stellplatzcode', codes: 'Codes der gewählten Ebene',
       codePrefix: 'Code-Präfix', generate: 'Leere Codes füllen', delete: 'Objekt löschen', duplicate: 'Duplizieren',
@@ -207,19 +210,20 @@
       const stand = object.uprights[choice.upright];
       html += '<div class="wh-section"><div class="wh-property-grid">' +
         numberField(t.bays, 'count.bays', object.bays.length, 1, 30) +
-        numberField(t.levels, 'count.levels', object.bays[0].levels.length, 1, 12) +
-        numberField(t.positions, 'count.positions', object.bays[0].levels[0].positions.length, 1, 4) +
         '</div><button type="button" class="wh-small-button" data-action="resize">' + esc(t.applyCounts) + '</button></div>';
       html += '<div class="wh-section"><div class="wh-property-grid">' +
         selectField(t.bay, 'bay', object.bays.length, choice.bay) +
         numberField(t.width, 'bay.width', bay.width, 300, 6000) +
         numberField(t.depth, 'bay.depth', bay.depth, 200, 3000) +
-        '</div></div>';
+        numberField(t.levels, 'count.bayLevels', bay.levels.length, 1, 12) +
+        '</div><button type="button" class="wh-small-button" data-action="resize-bay">' + esc(t.applyBayLevels) + '</button></div>';
       html += '<div class="wh-section"><div class="wh-property-grid">' +
         selectField(t.level, 'level', bay.levels.length, choice.level) +
         numberField(t.clearHeight, 'level.clearHeight', level.clearHeight, 100, 8000) +
         numberField(t.thickness, 'level.thickness', level.thickness, 10, 300) +
-        '</div><label class="wh-check"><input type="checkbox" data-field="level.deck"' + (level.deck ? ' checked' : '') + '><span>' + esc(t.deck) + '</span></label>' +
+        numberField(t.positions, 'count.levelPositions', level.positions.length, 1, 4) +
+        '</div><button type="button" class="wh-small-button" data-action="resize-level">' + esc(t.applyLevelPositions) +
+        '</button><label class="wh-check"><input type="checkbox" data-field="level.deck"' + (level.deck ? ' checked' : '') + '><span>' + esc(t.deck) + '</span></label>' +
         numberField(t.deckThickness, 'level.deckThickness', level.deckThickness, 10, 200) + '</div>';
       html += '<div class="wh-section"><div class="wh-property-grid">' +
         selectField(t.upright, 'upright', object.uprights.length, choice.upright) +
@@ -731,13 +735,16 @@
         const next = clone(layout()); next.objects = next.objects.filter(function (item) { return item.id !== object.id; });
         choice.slotId = null; commit(next, null, null); return;
       }
-      if (action === 'resize' && model.RACK_TYPES.includes(object.type)) {
+      if (['resize', 'resize-bay', 'resize-level'].includes(action) && model.RACK_TYPES.includes(object.type)) {
         const next = clone(layout()); const target = next.objects.find(function (item) { return item.id === object.id; });
-        const count = Number(root.querySelector('[data-field="count.bays"]').value);
-        const levels = Number(root.querySelector('[data-field="count.levels"]').value);
-        const positions = Number(root.querySelector('[data-field="count.positions"]').value);
         let resized;
-        try { resized = model.resizeRack(target, count, levels, positions); }
+        try {
+          if (action === 'resize') resized = model.resizeRack(target, Number(root.querySelector('[data-field="count.bays"]').value), null, null);
+          else if (action === 'resize-bay') resized = model.resizeBayLevels(target, choice.bay,
+            Number(root.querySelector('[data-field="count.bayLevels"]').value));
+          else resized = model.resizeLevelPositions(target, choice.bay, choice.level,
+            Number(root.querySelector('[data-field="count.levelPositions"]').value));
+        }
         catch (error) { message = error.message; render(); return; }
         const retained = new Set(model.listSlots({ objects: [resized] }).map(function (slot) { return slot.slotId; }));
         const removedCoded = model.listSlots({ objects: [target] }).some(function (slot) { return slot.code && !retained.has(slot.slotId); });

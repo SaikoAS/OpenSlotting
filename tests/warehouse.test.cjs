@@ -25,6 +25,31 @@ test('rack recipe keeps stable position IDs and codes when counts grow', () => {
   assert.equal(warehouse.listSlots(layout).length, 27);
 });
 
+test('individual bay levels and level positions survive later rack resizing', () => {
+  const rack = warehouse.createRack('pallet-rack', { bayCount: 2, levelCount: 2 });
+  const firstId = rack.bays[0].levels[0].positions[0].id;
+  const secondId = rack.bays[1].levels[0].positions[0].id;
+  rack.bays[1].levels[0].positions[0].code = 'B-01';
+  const expanded = warehouse.resizeBayLevels(rack, 1, 3);
+  assert.deepEqual(expanded.bays.map((bay) => bay.levels.length), [2, 3]);
+  assert.equal(expanded.bays[0].levels[0].positions[0].id, firstId);
+  const positioned = warehouse.resizeLevelPositions(expanded, 1, 0, 3);
+  assert.equal(positioned.bays[1].levels[0].positions[0].id, secondId);
+  assert.equal(positioned.bays[1].levels[0].positions[0].code, 'B-01');
+  assert.equal(positioned.bays[1].levels[0].positions.length, 3);
+  assert.equal(positioned.bays[0].levels[0].positions.length, 2);
+  const grown = warehouse.resizeRack(positioned, 3, null, null);
+  const layout = warehouse.normalizeLayout({ version: 1, objects: [grown] });
+  assert.deepEqual(layout.objects[0].bays.map((bay) => bay.levels.length), [2, 3, 2]);
+  assert.equal(layout.objects[0].bays[1].levels[0].positions.length, 3);
+  assert.equal(layout.objects[0].bays[1].levels[0].positions[0].code, 'B-01');
+  assert.equal(layout.objects[0].bays[1].levels[0].positions[0].id, secondId);
+  const reduced = warehouse.resizeBayLevels(grown, 1, 1);
+  assert.deepEqual(reduced.bays.map((bay) => bay.levels.length), [2, 1, 2]);
+  assert.throws(() => warehouse.resizeBayLevels(grown, 1, 13), /1–12/);
+  assert.throws(() => warehouse.resizeLevelPositions(grown, 1, 0, 5), /1–4/);
+});
+
 test('layout rejects duplicate codes and levels taller than adjacent uprights', () => {
   const rack = warehouse.createRack('shelf-rack', { bayCount: 1, levelCount: 2 });
   rack.bays[0].levels[0].positions[0].code = 'A-01';
@@ -153,12 +178,13 @@ test('layout survives metadata-only save and workspace backup without rewriting 
   const repository = storage.createRepository({ indexedDB, databaseName: 'warehouse-layout-test' });
   const record = workspace.createWorkspace('Warehouse', { id: 'workspace-warehouse', now: '2026-09-27T10:00:00.000Z' });
   const created = await repository.createWorkspace(record);
-  const rack = warehouse.createRack('pallet-rack', { bayCount: 1, levelCount: 1 });
-  rack.bays[0].levels[0].positions[0].code = 'P-01-01';
+  const rack = warehouse.resizeBayLevels(warehouse.createRack('pallet-rack', { bayCount: 2, levelCount: 1 }), 1, 2);
+  rack.bays[1].levels[1].positions[0].code = 'P-02-02';
   const layout = warehouse.normalizeLayout({ version: 1, objects: [rack] });
   await repository.updateWorkspaceSummary(record.id, { warehouseLayout: layout }, { expectedRevision: created.storageRevision });
   const loaded = await repository.loadWorkspace(record.id);
-  assert.equal(loaded.warehouseLayout.objects[0].bays[0].levels[0].positions[0].code, 'P-01-01');
+  assert.deepEqual(loaded.warehouseLayout.objects[0].bays.map((bay) => bay.levels.length), [1, 2]);
+  assert.equal(loaded.warehouseLayout.objects[0].bays[1].levels[1].positions[0].code, 'P-02-02');
   assert.equal(indexedDB.inspect('warehouse-layout-test', 'workspaceSources').length, 0);
   const backup = workspace.stringifyBackup(loaded, { now: '2026-09-27T10:01:00.000Z' });
   const restored = workspace.parseBackup(backup);

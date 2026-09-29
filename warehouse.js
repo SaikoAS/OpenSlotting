@@ -102,14 +102,16 @@
 
   function resizeRack(rack, bayCount, levelCount, positionsPerLevel) {
     const count = Number(bayCount);
-    const levels = Number(levelCount);
-    const positions = Number(positionsPerLevel);
+    const levels = levelCount === null ? null : Number(levelCount);
+    const positions = positionsPerLevel === null ? null : Number(positionsPerLevel);
     if (!Number.isInteger(count) || count < 1 || count > 30 ||
-      !Number.isInteger(levels) || levels < 1 || levels > 12 ||
-      !Number.isInteger(positions) || positions < 1 || positions > 4) {
+      (levels !== null && (!Number.isInteger(levels) || levels < 1 || levels > 12)) ||
+      (positions !== null && (!Number.isInteger(positions) || positions < 1 || positions > 4))) {
       fail('Use 1–30 bays, 1–12 levels, and 1–4 positions per level.');
     }
-    const fresh = createRack(rack.type, { bayCount: count, levelCount: levels });
+    const seedLevels = levels === null ? rack.bays[0].levels.length : levels;
+    const seedPositions = positions === null ? rack.bays[0].levels[0].positions.length : positions;
+    const fresh = createRack(rack.type, { bayCount: count, levelCount: seedLevels });
     const updated = Object.assign({}, rack, {
       bays: Array.from({ length: count }, function (_, bayIndex) {
         const oldBay = rack.bays[bayIndex];
@@ -117,19 +119,19 @@
         if (!oldBay) return Object.assign({}, newBay, {
           levels: newBay.levels.map(function (level) {
             return Object.assign({}, level, {
-              positions: Array.from({ length: positions }, function (_, index) {
+              positions: Array.from({ length: seedPositions }, function (_, index) {
                 return level.positions[index] || { id: id('slot'), code: '' };
               })
             });
           })
         });
         return Object.assign({}, oldBay, {
-          levels: Array.from({ length: levels }, function (_, levelIndex) {
+          levels: Array.from({ length: levels === null ? oldBay.levels.length : levels }, function (_, levelIndex) {
             const oldLevel = oldBay.levels[levelIndex];
-            const newLevel = newBay.levels[levelIndex];
+            const newLevel = newBay.levels[levelIndex] || createRack(rack.type, { bayCount: 1, levelCount: 1 }).bays[0].levels[0];
             const chosen = oldLevel || newLevel;
             return Object.assign({}, chosen, {
-              positions: Array.from({ length: positions }, function (_, index) {
+              positions: Array.from({ length: positions === null ? chosen.positions.length : positions }, function (_, index) {
                 return chosen.positions[index] || { id: id('slot'), code: '' };
               })
             });
@@ -141,6 +143,43 @@
       })
     });
     return updated;
+  }
+
+  function resizeBayLevels(rack, bayIndex, levelCount) {
+    const index = Number(bayIndex), count = Number(levelCount);
+    if (!Number.isInteger(index) || index < 0 || index >= rack.bays.length ||
+      !Number.isInteger(count) || count < 1 || count > 12) fail('Choose a bay and 1–12 levels.');
+    const fresh = createRack(rack.type, { bayCount: 1, levelCount: count }).bays[0].levels;
+    return Object.assign({}, rack, {
+      bays: rack.bays.map(function (bay, current) {
+        if (current !== index) return bay;
+        return Object.assign({}, bay, {
+          levels: Array.from({ length: count }, function (_, levelIndex) { return bay.levels[levelIndex] || fresh[levelIndex]; })
+        });
+      })
+    });
+  }
+
+  function resizeLevelPositions(rack, bayIndex, levelIndex, positionCount) {
+    const bay = Number(bayIndex), level = Number(levelIndex), count = Number(positionCount);
+    if (!Number.isInteger(bay) || bay < 0 || bay >= rack.bays.length ||
+      !Number.isInteger(level) || level < 0 || level >= rack.bays[bay].levels.length ||
+      !Number.isInteger(count) || count < 1 || count > 4) fail('Choose a level and 1–4 positions.');
+    return Object.assign({}, rack, {
+      bays: rack.bays.map(function (item, bayNumber) {
+        if (bayNumber !== bay) return item;
+        return Object.assign({}, item, {
+          levels: item.levels.map(function (entry, levelNumber) {
+            if (levelNumber !== level) return entry;
+            return Object.assign({}, entry, {
+              positions: Array.from({ length: count }, function (_, positionIndex) {
+                return entry.positions[positionIndex] || { id: id('slot'), code: '' };
+              })
+            });
+          })
+        });
+      })
+    });
   }
 
   function normalizeLayout(layout) {
@@ -381,7 +420,8 @@
     LAYOUT_VERSION: LAYOUT_VERSION, RACK_TYPES: RACK_TYPES, AREA_TYPES: AREA_TYPES,
     WarehouseValidationError: WarehouseValidationError,
     createLayout: createLayout, createRack: createRack, createArea: createArea,
-    resizeRack: resizeRack, normalizeLayout: normalizeLayout,
+    resizeRack: resizeRack, resizeBayLevels: resizeBayLevels, resizeLevelPositions: resizeLevelPositions,
+    normalizeLayout: normalizeLayout,
     listSlots: listSlots, matchArticles: matchArticles,
     objectFootprint: objectFootprint, footprintCorners: footprintCorners, footprintsOverlap: footprintsOverlap,
     findCollisions: findCollisions, snapCoordinate: snapCoordinate,
