@@ -22,6 +22,7 @@
 .wh-object.active { border-color: #389e92; background: #1d3a38; }
 .wh-object.is-conflict { border-color: #a96949; }
 .wh-object.is-conflict small { color: #ffc48a; }
+.wh-object.is-locked small { color: #e8cb90; }
 .wh-object > span:last-child { display: grid; min-width: 0; }
 .wh-object strong, .wh-object small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wh-object strong { font-size: .75rem; }
@@ -57,6 +58,10 @@
 .wh-object-actions { display: flex; flex-wrap: wrap; gap: 5px; margin: 3px 0 13px; }
 .wh-object-actions button { padding: 5px 7px; border: 1px solid #42635f; border-radius: 5px; color: #bff2e8; background: #203c3a; cursor: pointer; font-size: .66rem; }
 .wh-object-actions button:hover { background: #2e4c4a; }
+.wh-object-actions .wh-lock-toggle { border-color: #8b754d; color: #ffdfa2; background: #3b3325; }
+.wh-object-actions .wh-lock-toggle:hover { background: #50412a; }
+.wh-locked-hint { margin: -4px 0 12px; padding: 8px; border: 1px solid #786945; border-radius: 5px; color: #f0d49e; background: #332e24; font-size: .68rem; line-height: 1.45; }
+.wh-properties :disabled { cursor: not-allowed; opacity: .55; }
 .wh-delete { padding: 5px 7px; border: 1px solid #71434c; border-radius: 5px; color: #ffb4b4; background: #38262e; cursor: pointer; font-size: .65rem; }
 .wh-delete:hover { background: #56313a; }
 .wh-field { display: grid; gap: 4px; min-width: 0; color: #9aabb7; font-size: .67rem; }

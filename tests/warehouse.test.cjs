@@ -10,6 +10,43 @@ const workspace = require('../workspace.js');
 const storage = require('../storage.js');
 const { createFakeIndexedDB } = require('./fake-indexeddb.cjs');
 
+test('object locks survive normalization and reject edits until explicitly toggled', () => {
+  const rack = warehouse.createRack('pallet-rack', { bayCount: 1, levelCount: 1 });
+  const wall = warehouse.createArea('wall');
+  assert.equal(rack.locked, false);
+  assert.equal(wall.locked, false);
+  delete wall.locked;
+  const legacy = warehouse.normalizeLayout({ version: 1, objects: [rack, wall] });
+  assert.equal(legacy.objects[1].locked, false);
+  const locked = structuredClone(legacy);
+  locked.objects[0].locked = true;
+  assert.equal(warehouse.lockedEditConflict(legacy, locked, rack.id), null);
+  const saved = warehouse.normalizeLayout(locked);
+  assert.equal(saved.objects[0].locked, true);
+  assert.equal(warehouse.lockedEditConflict(legacy, saved), rack.id);
+  const moved = structuredClone(saved);
+  moved.objects[0].x = 100;
+  assert.equal(warehouse.lockedEditConflict(saved, moved), rack.id);
+  const coded = structuredClone(saved);
+  coded.objects[0].bays[0].levels[0].positions[0].code = 'R-01';
+  assert.equal(warehouse.lockedEditConflict(saved, coded), rack.id);
+  const deleted = structuredClone(saved);
+  deleted.objects.shift();
+  assert.equal(warehouse.lockedEditConflict(saved, deleted), rack.id);
+  const unrelated = structuredClone(saved);
+  unrelated.objects[1].x = 500;
+  assert.equal(warehouse.lockedEditConflict(saved, unrelated), null);
+  const unlocked = structuredClone(saved);
+  unlocked.objects[0].locked = false;
+  assert.equal(warehouse.lockedEditConflict(saved, unlocked, rack.id), null);
+  assert.equal(warehouse.lockedEditConflict(saved, unlocked), rack.id);
+  const mixedToggle = structuredClone(unlocked);
+  mixedToggle.objects[1].x = 100;
+  assert.equal(warehouse.lockedEditConflict(saved, mixedToggle, rack.id), wall.id);
+  const copy = warehouse.duplicateObject(saved.objects[0]);
+  assert.equal(copy.locked, false);
+});
+
 test('rack recipe keeps stable position IDs and codes when counts grow', () => {
   const rack = warehouse.createRack('pallet-rack', { bayCount: 2, levelCount: 2 });
   rack.bays[0].levels[0].positions[0].code = 'R01-01-01-01';
@@ -179,12 +216,14 @@ test('layout survives metadata-only save and workspace backup without rewriting 
   const record = workspace.createWorkspace('Warehouse', { id: 'workspace-warehouse', now: '2026-09-27T10:00:00.000Z' });
   const created = await repository.createWorkspace(record);
   const rack = warehouse.resizeBayLevels(warehouse.createRack('pallet-rack', { bayCount: 2, levelCount: 1 }), 1, 2);
+  rack.locked = true;
   rack.bays[1].levels[1].positions[0].code = 'P-02-02';
   const layout = warehouse.normalizeLayout({ version: 1, objects: [rack] });
   await repository.updateWorkspaceSummary(record.id, { warehouseLayout: layout }, { expectedRevision: created.storageRevision });
   const loaded = await repository.loadWorkspace(record.id);
   assert.deepEqual(loaded.warehouseLayout.objects[0].bays.map((bay) => bay.levels.length), [1, 2]);
   assert.equal(loaded.warehouseLayout.objects[0].bays[1].levels[1].positions[0].code, 'P-02-02');
+  assert.equal(loaded.warehouseLayout.objects[0].locked, true);
   assert.equal(indexedDB.inspect('warehouse-layout-test', 'workspaceSources').length, 0);
   const backup = workspace.stringifyBackup(loaded, { now: '2026-09-27T10:01:00.000Z' });
   const restored = workspace.parseBackup(backup);

@@ -17,7 +17,9 @@
       deckThickness: 'Shelf deck thickness (mm)', code: 'Location code', codes: 'Codes for selected level',
       codePrefix: 'Code prefix', generate: 'Fill empty codes', delete: 'Delete object', duplicate: 'Duplicate',
       copyName: 'Copy of', rotateLeft: 'Rotate left 90°', rotateRight: 'Rotate right 90°',
-      undo: 'Undo', redo: 'Redo',
+      undo: 'Undo', redo: 'Redo', lock: 'Lock', unlock: 'Unlock', locked: 'Locked',
+      lockedHint: 'This object is locked. Select levels and positions to inspect them, or unlock it to make changes.',
+      lockedEdit: 'Unlock the object before changing it or using undo/redo on it.',
       checks: 'Layout checks', collision: 'collision', collisions: 'collisions',
       overlap: 'Objects overlap', 'blocked-aisle': 'Aisle obstructed', moreCollisions: 'more collisions',
       view: '3D layout', planView: 'Floor plan', fit: 'Fit view', top: 'Top view', orbit: '3D view',
@@ -47,7 +49,9 @@
       deckThickness: 'Fachbodenstärke (mm)', code: 'Stellplatzcode', codes: 'Codes der gewählten Ebene',
       codePrefix: 'Code-Präfix', generate: 'Leere Codes füllen', delete: 'Objekt löschen', duplicate: 'Duplizieren',
       copyName: 'Kopie von', rotateLeft: '90° links drehen', rotateRight: '90° rechts drehen',
-      undo: 'Rückgängig', redo: 'Wiederholen',
+      undo: 'Rückgängig', redo: 'Wiederholen', lock: 'Sperren', unlock: 'Entsperren', locked: 'Gesperrt',
+      lockedHint: 'Dieses Objekt ist gesperrt. Ebenen und Stellplätze bleiben einsehbar; zum Bearbeiten entsperren.',
+      lockedEdit: 'Objekt vor Änderungen oder Rückgängig/Wiederholen entsperren.',
       checks: 'Planprüfung', collision: 'Kollision', collisions: 'Kollisionen',
       overlap: 'Objekte überlappen', 'blocked-aisle': 'Gang blockiert', moreCollisions: 'weitere Kollisionen',
       view: '3D-Lagerplan', planView: 'Grundriss', fit: 'Einpassen', top: 'Draufsicht', orbit: '3D-Ansicht',
@@ -157,7 +161,7 @@
       else { message = labels().codeNotFound; render(); }
     }
 
-    async function commit(next, historyAction, selectionAfter) {
+    async function commit(next, historyAction, selectionAfter, toggleLockId) {
       if (saving) return;
       syncHistoryScope();
       const scope = historyWorkspaceId;
@@ -165,7 +169,14 @@
       const beforeSelection = choice.objectId;
       let normalized;
       try {
+        if (historyAction === 'undo' || historyAction === 'redo') {
+          const currentLocks = new Map(before.objects.map(function (object) { return [object.id, object.locked === true]; }));
+          next.objects.forEach(function (object) { object.locked = currentLocks.get(object.id) || false; });
+        }
         normalized = model.normalizeLayout(next);
+        if (model.lockedEditConflict(before, normalized, toggleLockId)) {
+          message = labels().lockedEdit; render(); return;
+        }
         if (JSON.stringify(normalized) === JSON.stringify(before)) { render(); return; }
         saving = true;
         root.setAttribute('aria-busy', 'true');
@@ -177,7 +188,7 @@
             undoStack.pop(); keepRecent(redoStack, { layout: before, selectionId: beforeSelection });
           } else if (historyAction === 'redo') {
             redoStack.pop(); keepRecent(undoStack, { layout: before, selectionId: beforeSelection });
-          } else {
+          } else if (!toggleLockId) {
             keepRecent(undoStack, { layout: before, selectionId: beforeSelection }); redoStack = [];
           }
         }
@@ -285,8 +296,10 @@
         (warehouse.objects.length ? warehouse.objects.map(function (item) {
           return '<button type="button" class="wh-object' + (item.id === choice.objectId ? ' active' : '') +
             (collisionIds.has(item.id) ? ' is-conflict' : '') +
+            (item.locked ? ' is-locked' : '') +
             '" data-object="' + esc(item.id) + '" aria-pressed="' + (item.id === choice.objectId) + '"><span class="wh-object-icon" style="--wh-color:' +
             COLORS[item.type] + '"></span><span><strong>' + esc(objectName(item, t)) + '</strong><small>' + esc(t[TYPE_LABELS[item.type]]) +
+            (item.locked ? ' · 🔒 ' + esc(t.locked) : '') +
             (collisionIds.has(item.id) ? ' · ⚠ ' + esc(t.collision) : '') + '</small></span></button>';
         }).join('') : '<p class="wh-empty">' + esc(t.empty) + '</p>') + '</div></aside>' +
         '<div class="wh-main"><div class="wh-view-toolbar"><strong>' + esc(camera.mode === 'top' ? t.planView : t.view) +
@@ -320,11 +333,17 @@
           }).join('') + (matches.unmatched.length === 0 ? '<p class="wh-empty">' + esc(t.noUnmatched) + '</p>' : '') + '</div>') +
         '</div></div><aside class="wh-properties"><div class="wh-card"><div class="wh-properties-head"><h4>' + esc(t.properties) + '</h4>' +
         (object ? '<button type="button" class="wh-delete" data-action="delete">' + esc(t.delete) + '</button>' : '') +
-        '</div>' + (object ? '<div class="wh-object-actions"><button type="button" data-action="duplicate">' +
+        '</div>' + (object ? '<div class="wh-object-actions"><button type="button" class="wh-lock-toggle" data-action="toggle-lock" aria-pressed="' +
+          Boolean(object.locked) + '">' + (object.locked ? '🔓 ' + esc(t.unlock) : '🔒 ' + esc(t.lock)) +
+          '</button><button type="button" data-action="duplicate">' +
           esc(t.duplicate) + '</button><button type="button" data-action="rotate-left" title="' + esc(t.rotateLeft) +
           '">↶ 90°</button><button type="button" data-action="rotate-right" title="' + esc(t.rotateRight) +
-          '">↷ 90°</button></div>' : '') + properties(object, t, matches) +
+          '">↷ 90°</button></div>' + (object.locked ? '<p class="wh-locked-hint">🔒 ' + esc(t.lockedHint) + '</p>' : '') : '') + properties(object, t, matches) +
         '</div></aside></div><p class="wh-message" role="status" aria-live="polite">' + esc(message) + '</p>';
+      if (object && object.locked) {
+        root.querySelectorAll('.wh-properties [data-field], .wh-properties [data-action]:not([data-action="toggle-lock"])')
+          .forEach(function (control) { control.disabled = true; });
+      }
       canvas = root.querySelector('canvas');
       paint(warehouse, matches, collisionIds);
       wireCanvas();
@@ -481,7 +500,7 @@
         const centerX = polygon.reduce(function (sum, point) { return sum + point[0]; }, 0) / 4;
         const centerY = polygon.reduce(function (sum, point) { return sum + point[1]; }, 0) / 4;
         ctx.font = '12px Segoe UI, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        const name = (colliding ? '⚠ ' : '') + object.name;
+        const name = (object.locked ? '🔒 ' : '') + (colliding ? '⚠ ' : '') + object.name;
         ctx.lineWidth = 3; ctx.strokeStyle = '#0d151c'; ctx.strokeText(name, centerX, centerY);
         ctx.fillStyle = '#e4f2f2'; ctx.fillText(name, centerX, centerY);
         pickFaces.push({ objectId: object.id, polygon: polygon });
@@ -490,7 +509,7 @@
       if (selectedObject) {
         ctx.fillStyle = '#172a2e'; ctx.fillRect(10, height - 38, Math.min(width - 20, 360), 28);
         ctx.fillStyle = '#b6e8dc'; ctx.font = '12px Segoe UI, sans-serif'; ctx.textAlign = 'left';
-        ctx.fillText(selectedObject.name + ' · X ' + selectedObject.x + ' · Z ' + selectedObject.z + ' mm', 18, height - 20);
+        ctx.fillText((selectedObject.locked ? '🔒 ' : '') + selectedObject.name + ' · X ' + selectedObject.x + ' · Z ' + selectedObject.z + ' mm', 18, height - 20);
       }
       if (!warehouse.objects.length) {
         ctx.fillStyle = '#7995a1'; ctx.font = '15px Segoe UI, sans-serif'; ctx.textAlign = 'center';
@@ -594,10 +613,13 @@
           if (found) {
             const object = layout().objects.find(function (item) { return item.id === found.objectId; });
             choice.objectId = object.id; choice.slotId = null;
-            const next = clone(layout());
-            drag = { mode: 'move', x: event.clientX, y: event.clientY, moved: false,
-              origin: topWorld(event.clientX, event.clientY), startX: object.x, startZ: object.z,
-              next: next, target: next.objects.find(function (item) { return item.id === object.id; }) };
+            if (object.locked) drag = { mode: 'select', x: event.clientX, y: event.clientY, moved: false };
+            else {
+              const next = clone(layout());
+              drag = { mode: 'move', x: event.clientX, y: event.clientY, moved: false,
+                origin: topWorld(event.clientX, event.clientY), startX: object.x, startZ: object.z,
+                next: next, target: next.objects.find(function (item) { return item.id === object.id; }) };
+            }
           } else {
             drag = { mode: 'pan', x: event.clientX, y: event.clientY, moved: false,
               centerX: topView.centerX, centerZ: topView.centerZ };
@@ -622,7 +644,7 @@
           topView.centerX = drag.centerX - dx / scale;
           topView.centerZ = drag.centerZ - dy / scale;
           paint(layout(), null);
-        } else {
+        } else if (drag.mode === 'orbit') {
           camera.yaw += dx * 0.008;
           camera.pitch = Math.max(0.12, Math.min(1.45, camera.pitch + dy * 0.006));
           drag.x = event.clientX; drag.y = event.clientY;
@@ -631,6 +653,7 @@
       });
       canvas.addEventListener('pointerup', function (event) {
         if (!drag) return;
+        if (drag.mode === 'select') { drag = null; render(); return; }
         if (drag.mode === 'move') {
           const moved = drag.target.x !== drag.startX || drag.target.z !== drag.startZ;
           const next = drag.next;
@@ -649,7 +672,7 @@
         drag = null;
       });
       canvas.addEventListener('pointercancel', function () {
-        if (drag && drag.mode === 'move') render();
+        if (drag && (drag.mode === 'move' || drag.mode === 'select')) render();
         drag = null;
       });
       canvas.addEventListener('wheel', function (event) {
@@ -708,6 +731,12 @@
       }
       const object = selected();
       if (!object) return;
+      if (action === 'toggle-lock') {
+        const next = clone(layout());
+        next.objects.find(function (item) { return item.id === object.id; }).locked = !object.locked;
+        commit(next, null, object.id, object.id); return;
+      }
+      if (object.locked) { message = labels().lockedEdit; render(); return; }
       if (action === 'duplicate') {
         const next = clone(layout());
         const baseName = labels().copyName + ' ' + object.name;
@@ -796,6 +825,7 @@
       if (field === 'search') { codeSearch = event.target.value; return; }
       if (field.startsWith('count.')) return;
       const object = selected(); if (!object) return;
+      if (object.locked) { message = labels().lockedEdit; render(); return; }
       const next = clone(layout()); const target = next.objects.find(function (item) { return item.id === object.id; });
       let holder = target, property = field;
       if (field.startsWith('bay.')) { holder = target.bays[choice.bay]; property = field.slice(4); }

@@ -75,7 +75,7 @@
       };
     });
     return {
-      id: settings.id || id('rack'), type: type,
+      id: settings.id || id('rack'), type: type, locked: false,
       name: settings.name || (pallet ? 'Palettenregal' : 'Fachbodenregal'),
       x: settings.x || 0, z: settings.z || 0, rotation: settings.rotation || 0,
       bays: bays,
@@ -94,7 +94,7 @@
       'goods-in': [4000, 3000, 15], 'goods-out': [4000, 3000, 15]
     }[type];
     return {
-      id: settings.id || id('area'), type: type, name: settings.name || type,
+      id: settings.id || id('area'), type: type, locked: false, name: settings.name || type,
       x: settings.x || 0, z: settings.z || 0, rotation: settings.rotation || 0,
       width: defaults[0], depth: defaults[1], height: defaults[2]
     };
@@ -194,6 +194,7 @@
       if (!source || typeof source !== 'object' || !ALL_TYPES.includes(source.type)) fail('Warehouse object type is invalid.');
       const base = {
         id: objectId(source.id, usedIds), type: source.type,
+        locked: source.locked === true,
         name: text(source.name, 'Name', 120),
         x: position(source.x, 'X'), z: position(source.z, 'Z'),
         rotation: measure(source.rotation, 'Rotation', -360, 360)
@@ -347,6 +348,7 @@
 
   function duplicateObject(object, options) {
     const copy = JSON.parse(JSON.stringify(object));
+    copy.locked = false;
     const settings = options || {};
     const suffix = ' copy';
     copy.name = String(settings.name || (object.name.slice(0, 120 - suffix.length) + suffix));
@@ -416,6 +418,30 @@
     return { bySlot: bySlot, unmatched: unmatched, withLocation: withLocation, matched: withLocation - unmatched.length };
   }
 
+  function lockedEditConflict(before, after, toggleId) {
+    const previous = before.objects || [];
+    const proposed = after.objects || [];
+    const byId = new Map(proposed.map(function (object) { return [object.id, object]; }));
+    if (toggleId && (previous.length !== proposed.length ||
+      previous.some(function (object, index) { return proposed[index].id !== object.id; }))) return toggleId;
+    for (const object of previous) {
+      const next = byId.get(object.id);
+      if (!next) { if (object.locked || toggleId) return object.id; continue; }
+      if (toggleId) {
+        const beforeData = Object.assign({}, object, { locked: false });
+        const afterData = Object.assign({}, next, { locked: false });
+        if (JSON.stringify(beforeData) !== JSON.stringify(afterData) ||
+          (object.id !== toggleId && object.locked !== next.locked) ||
+          (object.id === toggleId && object.locked === next.locked)) return object.id;
+      } else if ((object.locked && JSON.stringify(object) !== JSON.stringify(next)) ||
+        object.locked !== next.locked) return object.id;
+    }
+    if (proposed.some(function (object) { return !previous.some(function (old) { return old.id === object.id; }) && object.locked; })) {
+      return proposed.find(function (object) { return !previous.some(function (old) { return old.id === object.id; }) && object.locked; }).id;
+    }
+    return null;
+  }
+
   return {
     LAYOUT_VERSION: LAYOUT_VERSION, RACK_TYPES: RACK_TYPES, AREA_TYPES: AREA_TYPES,
     WarehouseValidationError: WarehouseValidationError,
@@ -425,6 +451,7 @@
     listSlots: listSlots, matchArticles: matchArticles,
     objectFootprint: objectFootprint, footprintCorners: footprintCorners, footprintsOverlap: footprintsOverlap,
     findCollisions: findCollisions, snapCoordinate: snapCoordinate,
-    duplicateObject: duplicateObject, rotateObject: rotateObject
+    duplicateObject: duplicateObject, rotateObject: rotateObject,
+    lockedEditConflict: lockedEditConflict
   };
 }));
