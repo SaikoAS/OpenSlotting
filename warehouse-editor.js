@@ -6,7 +6,7 @@
 
   const LABELS = {
     en: {
-      add: 'Add recipe', pallet: 'Pallet rack', shelf: 'Shelf rack', wall: 'Wall', gate: 'Gate', exit: 'Emergency exit',
+      add: 'Add recipe', pallet: 'Pallet rack', shelf: 'Shelf rack', wall: 'Wall', gate: 'Gate', door: 'Door', exit: 'Emergency exit',
       aisle: 'Aisle / road', goodsIn: 'Goods in', goodsOut: 'Goods out', addButton: 'Add object', objects: 'Objects',
       empty: 'No objects yet. Add a recipe to start the layout.', properties: 'Properties', selected: 'Select an object to edit it.',
       name: 'Name', x: 'X position (mm)', z: 'Z position (mm)', rotation: 'Rotation (°)', width: 'Width (mm)',
@@ -24,7 +24,10 @@
       overlap: 'Objects overlap', 'blocked-aisle': 'Aisle obstructed', moreCollisions: 'more collisions',
       view: '3D layout', planView: 'Floor plan', fit: 'Fit view', top: 'Top view', orbit: '3D view',
       hint: 'Drag to rotate · mouse wheel to zoom · click to select',
-      hintTop: 'Drag an object to move it · drag empty space to pan · wheel to zoom · 100 mm snap',
+      hintTop: 'Drag an object to move it · drag empty space to pan · wheel to zoom · 100 mm grid',
+      magnet: 'Magnetic snap', magnetTitle: 'Snap wall, gate and door ends together in the floor plan',
+      magnetHint: 'Magnetic snap is on: nearby wall, gate and door ends connect before the grid.',
+      snapTo: 'Connect to',
       importTitle: 'Article-master locations', matched: 'Matched articles', unmatched: 'Unmatched codes',
       noMaster: 'No current locations in the imported article master.', noUnmatched: 'All imported location codes are assigned.',
       noSelection: 'Choose a rack level to edit its positions.', slotArticles: 'Articles at this position', saved: 'Layout saved locally.',
@@ -37,7 +40,7 @@
       choose: 'Choose a recipe'
     },
     de: {
-      add: 'Rezept hinzufügen', pallet: 'Palettenregal', shelf: 'Fachbodenregal', wall: 'Wand', gate: 'Tor', exit: 'Notausgang',
+      add: 'Rezept hinzufügen', pallet: 'Palettenregal', shelf: 'Fachbodenregal', wall: 'Wand', gate: 'Tor', door: 'Tür', exit: 'Notausgang',
       aisle: 'Gang / Straße', goodsIn: 'Wareneingang', goodsOut: 'Warenausgang', addButton: 'Objekt hinzufügen', objects: 'Objekte',
       empty: 'Noch keine Objekte. Füge ein Rezept hinzu.', properties: 'Eigenschaften', selected: 'Wähle ein Objekt zur Bearbeitung.',
       name: 'Name', x: 'X-Position (mm)', z: 'Z-Position (mm)', rotation: 'Drehung (°)', width: 'Breite (mm)',
@@ -57,6 +60,9 @@
       view: '3D-Lagerplan', planView: 'Grundriss', fit: 'Einpassen', top: 'Draufsicht', orbit: '3D-Ansicht',
       hint: 'Ziehen: drehen · Mausrad: zoomen · Klicken: auswählen',
       hintTop: 'Objekt ziehen: verschieben · freie Fläche ziehen: Ansicht bewegen · Mausrad: zoomen · 100-mm-Raster',
+      magnet: 'Magnet', magnetTitle: 'Wand-, Tor- und Türenden im Grundriss verbinden',
+      magnetHint: 'Magnet aktiv: Nahe Wand-, Tor- und Türenden rasten vor dem Raster ein.',
+      snapTo: 'Verbinden mit',
       importTitle: 'Stellplätze aus Artikelstamm', matched: 'Zugeordnete Artikel', unmatched: 'Nicht zugeordnete Codes',
       noMaster: 'Keine aktuellen Stellplätze im importierten Artikelstamm.', noUnmatched: 'Alle importierten Stellplatzcodes sind zugeordnet.',
       noSelection: 'Wähle eine Regalebene, um die Stellplätze zu bearbeiten.', slotArticles: 'Artikel an diesem Stellplatz', saved: 'Lagerplan lokal gespeichert.',
@@ -70,11 +76,11 @@
     }
   };
   const TYPE_LABELS = {
-    'pallet-rack': 'pallet', 'shelf-rack': 'shelf', wall: 'wall', gate: 'gate',
+    'pallet-rack': 'pallet', 'shelf-rack': 'shelf', wall: 'wall', gate: 'gate', door: 'door',
     'emergency-exit': 'exit', aisle: 'aisle', 'goods-in': 'goodsIn', 'goods-out': 'goodsOut'
   };
   const COLORS = {
-    'pallet-rack': '#6c849b', 'shelf-rack': '#7a91a7', wall: '#647184', gate: '#cb9e54',
+    'pallet-rack': '#6c849b', 'shelf-rack': '#7a91a7', wall: '#647184', gate: '#cb9e54', door: '#b5a56d',
     'emergency-exit': '#42bd8a', aisle: '#336372', 'goods-in': '#477f88', 'goods-out': '#825d7e'
   };
   function esc(value) {
@@ -127,6 +133,8 @@
     let undoStack = [];
     let redoStack = [];
     let saving = false;
+    let magnetEnabled = false;
+    let snapPreview = null;
 
     function labels() { return LABELS[options.getLanguage() === 'de' ? 'de' : 'en']; }
     function layout() { return options.getLayout(); }
@@ -307,11 +315,13 @@
         ' title="Ctrl+Z">' + esc(t.undo) + '</button><button type="button" data-action="redo"' +
         (redoStack.length ? '' : ' disabled') + ' title="Ctrl+Y / Ctrl+Shift+Z">' + esc(t.redo) +
         '</button><button type="button" data-action="fit">' + esc(t.fit) +
+        '</button><button type="button" data-action="magnet" aria-pressed="' + magnetEnabled +
+        '" title="' + esc(t.magnetTitle) + '">⌁ ' + esc(t.magnet) +
         '</button><button type="button" data-action="top" aria-pressed="' + (camera.mode === 'top') + '">' + esc(t.top) +
         '</button><button type="button" data-action="orbit" aria-pressed="' + (camera.mode === 'orbit') + '">' +
         esc(t.orbit) + '</button></div></div><canvas class="wh-canvas' + (camera.mode === 'top' ? ' is-top' : '') +
         '" role="img" aria-label="' + esc(camera.mode === 'top' ? t.planView : t.view) + '"></canvas>' +
-        '<div class="wh-view-hint">' + esc(camera.mode === 'top' ? t.hintTop : t.hint) + '</div>' +
+        '<div class="wh-view-hint">' + esc(camera.mode === 'top' ? t.hintTop + (magnetEnabled ? ' · ' + t.magnetHint : '') : t.hint) + '</div>' +
         (camera.mode === 'orbit' ? '<div class="wh-legend">' +
           '<span><i class="matched"></i>' + esc(t.legendMatched) + '</span><span><i class="coded"></i>' + esc(t.legendCoded) +
           '</span><span><i class="empty"></i>' + esc(t.legendEmpty) + '</span></div>' : '') +
@@ -356,11 +366,15 @@
       const boxes = [];
       warehouse.objects.forEach(function (object) {
         if (!model.RACK_TYPES.includes(object.type)) {
-          if (object.type === 'gate' || object.type === 'emergency-exit') {
+          if (object.type === 'gate' || object.type === 'door' || object.type === 'emergency-exit') {
             const post = Math.min(140, object.width / 6);
             box(object, 0, 0, 0, post, object.height, object.depth, COLORS[object.type], boxes);
             box(object, object.width - post, 0, 0, post, object.height, object.depth, COLORS[object.type], boxes);
             box(object, 0, object.height - post, 0, object.width, post, object.depth, COLORS[object.type], boxes);
+            if (object.type === 'door') {
+              box(object, post, 0, (object.depth - 35) / 2, object.width - 2 * post,
+                object.height - post, 35, '#8eaf9e', boxes);
+            }
           } else {
             box(object, 0, 0, 0, object.width, object.height, object.depth, COLORS[object.type], boxes);
           }
@@ -505,6 +519,23 @@
         ctx.fillStyle = '#e4f2f2'; ctx.fillText(name, centerX, centerY);
         pickFaces.push({ objectId: object.id, polygon: polygon });
       });
+      if (snapPreview && magnetEnabled) {
+        const point = topPoint(snapPreview.point.x, snapPreview.point.z, width, height);
+        const target = warehouse.objects.find(function (object) { return object.id === snapPreview.targetId; });
+        ctx.save();
+        ctx.strokeStyle = '#f6d687'; ctx.fillStyle = '#f6d687'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(point[0], point[1], 9, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(point[0], point[1], 3, 0, Math.PI * 2); ctx.fill();
+        if (target) {
+          const label = labels().snapTo + ' ' + target.name;
+          ctx.font = '12px Segoe UI, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+          const labelX = Math.max(5, Math.min(width - 10 - ctx.measureText(label).width, point[0] + 13));
+          const labelY = Math.max(16, Math.min(height - 16, point[1] - 18));
+          ctx.lineWidth = 3; ctx.strokeStyle = '#0d151c'; ctx.strokeText(label, labelX, labelY);
+          ctx.fillText(label, labelX, labelY);
+        }
+        ctx.restore();
+      }
       const selectedObject = warehouse.objects.find(function (object) { return object.id === choice.objectId; });
       if (selectedObject) {
         ctx.fillStyle = '#172a2e'; ctx.fillRect(10, height - 38, Math.min(width - 20, 360), 28);
@@ -606,6 +637,7 @@
       let drag = null;
       canvas.addEventListener('pointerdown', function (event) {
         if (saving) return;
+        snapPreview = null;
         if (camera.mode === 'top') {
           const rect = canvas.getBoundingClientRect();
           const x = event.clientX - rect.left, y = event.clientY - rect.top;
@@ -636,8 +668,20 @@
         if (!drag.moved) return;
         if (drag.mode === 'move') {
           const world = topWorld(event.clientX, event.clientY);
-          drag.target.x = model.snapCoordinate(Math.max(-500000, Math.min(500000, drag.startX + world.x - drag.origin.x)), 100);
-          drag.target.z = model.snapCoordinate(Math.max(-500000, Math.min(500000, drag.startZ + world.z - drag.origin.z)), 100);
+          const rawX = Math.max(-500000, Math.min(500000, drag.startX + world.x - drag.origin.x));
+          const rawZ = Math.max(-500000, Math.min(500000, drag.startZ + world.z - drag.origin.z));
+          drag.target.x = rawX; drag.target.z = rawZ;
+          const scale = topView.scale * camera.zoom;
+          const tolerance = Math.max(50, Math.min(300, 14 / scale));
+          const snap = magnetEnabled ? model.findConnectionSnap(drag.target, drag.next.objects,
+            tolerance, drag.snap && drag.snap.key) : null;
+          if (snap) { drag.target.x = snap.x; drag.target.z = snap.z; }
+          else {
+            drag.target.x = model.snapCoordinate(rawX, 100);
+            drag.target.z = model.snapCoordinate(rawZ, 100);
+          }
+          drag.snap = snap;
+          snapPreview = snap;
           paint(drag.next, null);
         } else if (drag.mode === 'pan') {
           const scale = topView.scale * camera.zoom;
@@ -653,11 +697,12 @@
       });
       canvas.addEventListener('pointerup', function (event) {
         if (!drag) return;
-        if (drag.mode === 'select') { drag = null; render(); return; }
+        if (drag.mode === 'select') { drag = null; snapPreview = null; render(); return; }
         if (drag.mode === 'move') {
           const moved = drag.target.x !== drag.startX || drag.target.z !== drag.startZ;
           const next = drag.next;
           drag = null;
+          snapPreview = null;
           if (moved) commit(next);
           else render();
           return;
@@ -672,8 +717,10 @@
         drag = null;
       });
       canvas.addEventListener('pointercancel', function () {
-        if (drag && (drag.mode === 'move' || drag.mode === 'select')) render();
+        const shouldRender = drag && (drag.mode === 'move' || drag.mode === 'select');
         drag = null;
+        snapPreview = null;
+        if (shouldRender) render();
       });
       canvas.addEventListener('wheel', function (event) {
         event.preventDefault();
@@ -701,6 +748,11 @@
       const action = button.dataset.action;
       if (action === 'find-code') {
         findCode(); return;
+      }
+      if (action === 'magnet') {
+        magnetEnabled = !magnetEnabled;
+        snapPreview = null;
+        render(); return;
       }
       if (action === 'undo' || action === 'redo') {
         const stack = action === 'undo' ? undoStack : redoStack;

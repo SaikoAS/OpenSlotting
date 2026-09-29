@@ -10,7 +10,8 @@
 
   const LAYOUT_VERSION = 1;
   const RACK_TYPES = ['pallet-rack', 'shelf-rack'];
-  const AREA_TYPES = ['wall', 'gate', 'emergency-exit', 'aisle', 'goods-in', 'goods-out'];
+  const AREA_TYPES = ['wall', 'gate', 'door', 'emergency-exit', 'aisle', 'goods-in', 'goods-out'];
+  const CONNECTOR_TYPES = ['wall', 'gate', 'door', 'emergency-exit'];
   const ALL_TYPES = RACK_TYPES.concat(AREA_TYPES);
   let nextId = 0;
 
@@ -89,7 +90,7 @@
     if (!AREA_TYPES.includes(type)) fail('Unsupported area type.');
     const settings = options || {};
     const defaults = {
-      wall: [4000, 120, 3000], gate: [3000, 160, 3000],
+      wall: [4000, 120, 3000], gate: [3000, 160, 3000], door: [1000, 160, 2100],
       'emergency-exit': [1200, 160, 2200], aisle: [6000, 3000, 15],
       'goods-in': [4000, 3000, 15], 'goods-out': [4000, 3000, 15]
     }[type];
@@ -301,6 +302,49 @@
     });
   }
 
+  function connectionAnchors(object) {
+    if (!CONNECTOR_TYPES.includes(object.type)) return [];
+    const angle = object.rotation * Math.PI / 180;
+    const alongX = Math.cos(angle), alongZ = Math.sin(angle);
+    const startX = object.x - alongZ * object.depth / 2;
+    const startZ = object.z + alongX * object.depth / 2;
+    return [
+      { index: 0, x: startX, z: startZ, outwardX: -alongX, outwardZ: -alongZ },
+      { index: 1, x: startX + alongX * object.width, z: startZ + alongZ * object.width,
+        outwardX: alongX, outwardZ: alongZ }
+    ];
+  }
+
+  function findConnectionSnap(moving, objects, tolerance, preferredKey) {
+    if (!CONNECTOR_TYPES.includes(moving.type)) return null;
+    const limit = Number(tolerance);
+    if (!Number.isFinite(limit) || limit <= 0) return null;
+    const movingAnchors = connectionAnchors(moving);
+    let best = null;
+    let preferred = null;
+    (objects || []).forEach(function (target) {
+      if (target.id === moving.id || !CONNECTOR_TYPES.includes(target.type)) return;
+      connectionAnchors(target).forEach(function (end) {
+        movingAnchors.forEach(function (start) {
+          const dot = start.outwardX * end.outwardX + start.outwardZ * end.outwardZ;
+          const straight = moving.type !== 'wall' || target.type !== 'wall';
+          if (dot > (straight ? -0.985 : 0.15)) return;
+          const distance = Math.hypot(end.x - start.x, end.z - start.z);
+          const key = target.id + ':' + end.index + ':' + start.index;
+          if (distance > limit * (key === preferredKey ? 1.5 : 1)) return;
+          const x = Math.round(moving.x + end.x - start.x);
+          const z = Math.round(moving.z + end.z - start.z);
+          if (x < -500000 || x > 500000 || z < -500000 || z > 500000) return;
+          const candidate = { key: key, targetId: target.id, x: x, z: z,
+            point: { x: end.x, z: end.z }, distance: distance };
+          if (key === preferredKey) preferred = candidate;
+          if (!best || distance < best.distance) best = candidate;
+        });
+      });
+    });
+    return preferred || best;
+  }
+
   function footprintsOverlap(first, second) {
     const corners = [footprintCorners(first), footprintCorners(second)];
     for (const polygon of corners) {
@@ -444,12 +488,14 @@
 
   return {
     LAYOUT_VERSION: LAYOUT_VERSION, RACK_TYPES: RACK_TYPES, AREA_TYPES: AREA_TYPES,
+    CONNECTOR_TYPES: CONNECTOR_TYPES,
     WarehouseValidationError: WarehouseValidationError,
     createLayout: createLayout, createRack: createRack, createArea: createArea,
     resizeRack: resizeRack, resizeBayLevels: resizeBayLevels, resizeLevelPositions: resizeLevelPositions,
     normalizeLayout: normalizeLayout,
     listSlots: listSlots, matchArticles: matchArticles,
     objectFootprint: objectFootprint, footprintCorners: footprintCorners, footprintsOverlap: footprintsOverlap,
+    connectionAnchors: connectionAnchors, findConnectionSnap: findConnectionSnap,
     findCollisions: findCollisions, snapCoordinate: snapCoordinate,
     duplicateObject: duplicateObject, rotateObject: rotateObject,
     lockedEditConflict: lockedEditConflict

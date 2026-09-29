@@ -98,16 +98,67 @@ test('layout rejects duplicate codes and levels taller than adjacent uprights', 
 });
 
 test('area recipes normalize and malformed rack parts fail as validation errors', () => {
-  const types = ['wall', 'gate', 'emergency-exit', 'aisle', 'goods-in', 'goods-out'];
+  const types = ['wall', 'gate', 'door', 'emergency-exit', 'aisle', 'goods-in', 'goods-out'];
   const areas = types.map((type) => warehouse.createArea(type));
   const layout = warehouse.normalizeLayout({ version: 1, objects: areas });
   assert.deepEqual(layout.objects.map((object) => object.type), types);
+  assert.deepEqual([areas[2].width, areas[2].depth, areas[2].height], [1000, 160, 2100]);
   const rack = warehouse.createRack('shelf-rack', { bayCount: 1, levelCount: 1 });
   rack.bays[0].levels[0].positions[0] = null;
   assert.throws(
     () => warehouse.normalizeLayout({ version: 1, objects: [rack] }),
     (error) => error instanceof warehouse.WarehouseValidationError && /position is invalid/.test(error.message)
   );
+});
+
+test('magnetic connectors align wall, gate and door ends without changing dimensions', () => {
+  const wall = warehouse.createArea('wall');
+  wall.locked = true;
+  const door = warehouse.createArea('door');
+  door.x = 4025; door.z = -20;
+  const result = warehouse.findConnectionSnap(door, [wall, door], 100);
+  assert.deepEqual([result.x, result.z], [4000, -20]);
+  assert.deepEqual(result.point, { x: 4000, z: 60 });
+  assert.equal(result.targetId, wall.id);
+  assert.equal(door.width, 1000);
+  assert.equal(warehouse.findCollisions({ objects: [wall, { ...door, x: 0 }] })[0].kind, 'overlap');
+  assert.deepEqual(warehouse.findCollisions({ objects: [wall, { ...door, x: result.x, z: result.z }] }), []);
+  assert.equal(warehouse.findConnectionSnap(door, [wall], 20), null);
+  assert.equal(warehouse.findConnectionSnap({ ...door, x: 25 }, [wall], 100), null);
+
+  const gate = warehouse.createArea('gate');
+  gate.x = 4950; gate.z = -20;
+  const gateSnap = warehouse.findConnectionSnap(gate, [{ ...door, x: 4000 }], 100);
+  assert.deepEqual([gateSnap.x, gateSnap.z], [5000, -20]);
+  assert.equal(warehouse.findConnectionSnap({ ...door, rotation: 90 }, [wall], 100), null);
+  assert.equal(warehouse.findConnectionSnap(warehouse.createArea('aisle'), [wall], 100), null);
+  const pending = { ...door, x: 4175 };
+  assert.equal(warehouse.findConnectionSnap(pending, [wall], 120), null);
+  const retained = warehouse.findConnectionSnap(pending, [wall], 120, result.key);
+  assert.deepEqual([retained.x, retained.z], [4000, -20]);
+});
+
+test('magnetic connectors support right-angle and rotated walls', () => {
+  const wall = warehouse.createArea('wall');
+  const turn = warehouse.createArea('wall');
+  turn.rotation = 90; turn.x = 4060; turn.z = 85;
+  const corner = warehouse.findConnectionSnap(turn, [wall], 100);
+  assert.deepEqual([corner.x, corner.z], [4060, 60]);
+  const joined = { ...turn, x: corner.x, z: corner.z };
+  const wallEnd = warehouse.connectionAnchors(wall)[1];
+  const turnStart = warehouse.connectionAnchors(joined)[0];
+  assert.ok(Math.hypot(wallEnd.x - turnStart.x, wallEnd.z - turnStart.z) < 0.01);
+
+  wall.rotation = 30;
+  const end = warehouse.connectionAnchors(wall)[1];
+  const angled = warehouse.createArea('wall');
+  angled.rotation = 30;
+  angled.x = Math.round(end.x + Math.sin(Math.PI / 6) * angled.depth / 2 + 30);
+  angled.z = Math.round(end.z - Math.cos(Math.PI / 6) * angled.depth / 2 - 20);
+  const snapped = warehouse.findConnectionSnap(angled, [wall], 100);
+  assert.ok(snapped);
+  const aligned = warehouse.connectionAnchors({ ...angled, x: snapped.x, z: snapped.z })[0];
+  assert.ok(Math.hypot(end.x - aligned.x, end.z - aligned.z) < 1);
 });
 
 test('floor footprints respect rack dimensions and rotation while grid moves preserve codes', () => {
