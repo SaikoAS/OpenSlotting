@@ -60,6 +60,33 @@
     return date.toISOString().slice(0, 10);
   }
 
+  function matchesSelectedLine(row, scope, key, latestDate, start) {
+    return Boolean(row && entityKey(row, scope) === key && typeof row.quantity === 'bigint' &&
+      row.delivery_date && (!start || row.delivery_date >= start) &&
+      (!latestDate || row.delivery_date <= latestDate));
+  }
+
+  function compareLatestLines(a, b) {
+    const dateOrder = (b.delivery_date || '').localeCompare(a.delivery_date || '');
+    return dateOrder || (b.source_line || 0) - (a.source_line || 0);
+  }
+
+  function selectedLines(rows, scope, key, latestDate, days) {
+    const start = rangeStart(latestDate, days);
+    return (rows || []).filter(function (row) {
+      return matchesSelectedLine(row, scope, key, latestDate, start);
+    }).sort(compareLatestLines);
+  }
+
+  function visibleLineWindow(count, scrollTop, viewportHeight, rowHeight, overscan) {
+    const height = Math.max(1, rowHeight);
+    const padding = Math.max(0, overscan || 0);
+    const first = Math.max(0, Math.floor(Math.max(0, scrollTop) / height) - padding);
+    const start = Math.min(count, first);
+    const end = Math.min(count, Math.max(start, Math.ceil((Math.max(0, scrollTop) + viewportHeight) / height) + padding));
+    return { start: start, end: end, before: start * height, after: (count - end) * height };
+  }
+
   function selectedSummary(rows, scope, key, latestDate, days) {
     const start = rangeStart(latestDate, days);
     const dates = new Map();
@@ -72,8 +99,7 @@
     let firstDate = null;
     let lastDate = null;
     (rows || []).forEach(function (row) {
-      if (!row || entityKey(row, scope) !== key || typeof row.quantity !== 'bigint') return;
-      if (!row.delivery_date || start && row.delivery_date < start || latestDate && row.delivery_date > latestDate) return;
+      if (!matchesSelectedLine(row, scope, key, latestDate, start)) return;
       lines += 1;
       quantity += row.quantity;
       if (row.order_id) orders.add(JSON.stringify([row.customer_id || '', row.order_id]));
@@ -89,10 +115,7 @@
       point.quantity += row.quantity;
       point.lines += 1;
       latest.push(row);
-      latest.sort(function (a, b) {
-        const dateOrder = (b.delivery_date || '').localeCompare(a.delivery_date || '');
-        return dateOrder || (b.source_line || 0) - (a.source_line || 0);
-      });
+      latest.sort(compareLatestLines);
       if (latest.length > 25) latest.pop();
     });
     return {
@@ -109,5 +132,6 @@
     };
   }
 
-  return { buildIndex: buildIndex, entityKey: entityKey, rangeStart: rangeStart, selectedSummary: selectedSummary };
+  return { buildIndex: buildIndex, entityKey: entityKey, rangeStart: rangeStart,
+    selectedSummary: selectedSummary, selectedLines: selectedLines, visibleLineWindow: visibleLineWindow };
 });

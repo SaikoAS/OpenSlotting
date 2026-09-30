@@ -197,10 +197,25 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
 .terminal-chart-point { fill: #78e5d6; stroke: #152623; stroke-width: 2; }
 .terminal-volume-bar { fill: #2d786f; opacity: .7; }
 .terminal-chart-empty { display: grid; place-items: center; min-height: 340px; margin: 0; color: var(--muted); }
-.terminal-lines-panel { margin-top: 12px; overflow: hidden; }
+.terminal-lines-panel { margin-top: 12px; }
 .terminal-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 15px; border-bottom: 1px solid var(--line); }
 .terminal-section-heading h4 { margin: 0; font-size: .87rem; }
 .terminal-section-heading span { color: var(--muted); font-size: .72rem; }
+.terminal-lines-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px; padding: 9px 15px; border-bottom: 1px solid var(--line); }
+.terminal-lines-limit { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: .72rem; }
+.terminal-lines-limit select { padding: 5px 8px; border: 1px solid #40505e; border-radius: 4px; color: #e4f1f3; background: #232c36; }
+.terminal-columns { position: relative; color: #a9dcd5; font-size: .72rem; }
+.terminal-columns summary { cursor: pointer; }
+.terminal-column-options { position: absolute; z-index: 8; top: calc(100% + 8px); left: 0; display: grid; gap: 5px; width: max-content; min-width: 210px; max-width: min(320px, calc(100vw - 48px)); max-height: 290px; padding: 10px; overflow: auto; border: 1px solid #41515f; border-radius: 5px; background: #202a34; box-shadow: 0 8px 20px #0008; }
+.terminal-columns:not([open]) .terminal-column-options { display: none; }
+.terminal-column-options label { display: flex; align-items: center; gap: 7px; color: #dce8eb; overflow-wrap: anywhere; cursor: pointer; }
+.terminal-column-options label span { min-width: 0; }
+.terminal-lines-scroll { max-height: min(58vh, 560px); overflow: auto; overscroll-behavior: contain; }
+.terminal-lines-scroll table { width: max-content; min-width: 100%; }
+.terminal-lines-scroll thead th { position: sticky; z-index: 2; top: 0; background: #202b35; }
+.terminal-lines-scroll tbody tr:not(.terminal-lines-spacer) { height: 36px; }
+.terminal-lines-scroll tbody td { white-space: nowrap; }
+.terminal-lines-spacer, .terminal-lines-spacer td { padding: 0 !important; border: 0; }
 .terminal-lines-panel th, .terminal-lines-panel td { padding: 8px 10px; font-size: .73rem; }
 .terminal-lines-panel th { font-size: .63rem; }
 .terminal-source-cell { max-width: 160px; overflow: hidden; text-overflow: ellipsis; }

@@ -78,6 +78,11 @@
       terminal_all_days: 'All dates',
       terminal_trend: 'Trend by delivery date',
       terminal_recent_lines: 'Latest order lines',
+      terminal_all_lines: 'All order lines',
+      terminal_lines_display: 'Show lines',
+      terminal_recent_25: 'Latest 25',
+      terminal_choose_columns: 'Choose columns',
+      terminal_customer: 'Customer',
       terminal_watchlist: 'Watchlist',
       terminal_search: 'Search ID or name',
       terminal_source_note: 'Valid normalized order lines · local data',
@@ -709,6 +714,11 @@
       terminal_all_days: 'Alle Daten',
       terminal_trend: 'Verlauf nach Lieferdatum',
       terminal_recent_lines: 'Letzte Auftragszeilen',
+      terminal_all_lines: 'Alle Auftragszeilen',
+      terminal_lines_display: 'Zeilen anzeigen',
+      terminal_recent_25: 'Letzte 25',
+      terminal_choose_columns: 'Spalten auswählen',
+      terminal_customer: 'Kunde',
       terminal_watchlist: 'Beobachtungsliste',
       terminal_search: 'ID oder Name suchen',
       terminal_source_note: 'Gültige normalisierte Auftragszeilen · lokale Daten',
@@ -1416,7 +1426,12 @@
     terminalChart: document.getElementById('terminal-chart'),
     terminalChartTotal: document.getElementById('terminal-chart-total'),
     terminalChartNote: document.getElementById('terminal-chart-note'),
+    terminalLinesTitle: document.getElementById('terminal-lines-title'),
     terminalLinesCount: document.getElementById('terminal-lines-count'),
+    terminalLinesMode: document.getElementById('terminal-lines-mode'),
+    terminalLinesColumnOptions: document.getElementById('terminal-lines-column-options'),
+    terminalLinesScroll: document.getElementById('terminal-lines-scroll'),
+    terminalLinesHead: document.getElementById('terminal-lines-head'),
     terminalLinesBody: document.getElementById('terminal-lines-body'),
     terminalWatchlistCount: document.getElementById('terminal-watchlist-count'),
     terminalWatchlistRows: document.getElementById('terminal-watchlist-rows'),
@@ -1588,7 +1603,8 @@
   };
 
   let workspaceSaveChain = Promise.resolve();
-  const terminalView = { rows: null, indexes: {}, scope: 'article', selected: { article: null, customer: null, order: null } };
+  const terminalView = { rows: null, indexes: {}, scope: 'article', selected: { article: null, customer: null, order: null },
+    lineMode: 'recent', columns: new Set(), lineContext: null, allLines: null, renderedWindow: null };
   let workspaceSavePending = 0;
   let workspaceSaveRevision = 0;
   let workspaceSaveGeneration = 0;
@@ -4397,6 +4413,149 @@
     });
   }
 
+  const TERMINAL_LINE_ROW_HEIGHT = 36;
+
+  function terminalOptionalColumns() {
+    const fields = [
+      { key: 'article_name', label: translate('column_article_name') },
+      { key: 'customer_id', label: translate('detail_customer_id') },
+      { key: 'sales_unit_count', label: translate('column_sales_units'), number: true },
+      { key: 'quantity_per_sales_unit', label: translate('detail_quantity_per_sales_unit'), number: true },
+      { key: 'location', label: translate('detail_location') },
+      { key: 'unit_of_measure', label: translate('master_unit_of_measure') }
+    ];
+    (state.customFields || []).filter(function (field) { return field.active !== false; }).forEach(function (field) {
+      fields.push({ key: 'custom:' + field.id, label: field.name });
+    });
+    return fields;
+  }
+
+  function terminalLineColumns() {
+    return [
+      { key: 'delivery_date', label: translate('detail_order_date') },
+      { key: 'article_id', label: translate('column_article_id') },
+      { key: 'order_id', label: translate('detail_order_id') },
+      { key: 'customer', label: translate('terminal_customer') },
+      { key: 'quantity', label: translate('column_quantity'), number: true }
+    ].concat(terminalOptionalColumns().filter(function (column) {
+      return terminalView.columns.has(column.key);
+    }), [
+      { key: 'source_file', label: translate('detail_source_file') },
+      { key: 'source_line', label: translate('detail_source_line'), number: true }
+    ]);
+  }
+
+  function renderTerminalColumnOptions() {
+    const fragment = document.createDocumentFragment();
+    terminalOptionalColumns().forEach(function (column) {
+      const label = document.createElement('label');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.dataset.terminalColumn = column.key;
+      checkbox.checked = terminalView.columns.has(column.key);
+      const name = document.createElement('span');
+      setText(name, column.label);
+      label.appendChild(checkbox);
+      label.appendChild(name);
+      fragment.appendChild(label);
+    });
+    elements.terminalLinesColumnOptions.replaceChildren(fragment);
+  }
+
+  function terminalLineValue(line, key) {
+    if (key === 'delivery_date') return formatCalendarDate(line.delivery_date);
+    if (key === 'customer') return optionalText(line.customer_name || line.customer_id);
+    if (key === 'quantity' || key === 'sales_unit_count' || key === 'quantity_per_sales_unit') return formatQuantity(line[key]);
+    if (key === 'source_file') return line.source_file_label || line.source_file_name || '';
+    if (key === 'source_line') return Number.isInteger(line.source_line) ? String(line.source_line) : '';
+    if (key.indexOf('custom:') === 0) return optionalText(line.custom_fields && line.custom_fields[key.slice(7)]);
+    return optionalText(line[key]);
+  }
+
+  function terminalLineRow(line, columns) {
+    const row = document.createElement('tr');
+    columns.forEach(function (column) {
+      if (column.key === 'article_id' && line.article_id) {
+        const cell = document.createElement('td');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'terminal-article-link';
+        button.dataset.terminalArticleId = line.article_id;
+        setText(button, line.article_id);
+        cell.appendChild(button);
+        row.appendChild(cell);
+      } else appendCell(row, terminalLineValue(line, column.key), column.number ? 'number' :
+        column.key === 'source_file' ? 'terminal-source-cell' : '');
+    });
+    return row;
+  }
+
+  function terminalLineSpacer(height, columnCount) {
+    const row = document.createElement('tr');
+    row.className = 'terminal-lines-spacer';
+    row.style.height = height + 'px';
+    const cell = document.createElement('td');
+    cell.colSpan = columnCount;
+    cell.style.height = height + 'px';
+    row.appendChild(cell);
+    return row;
+  }
+
+  function renderTerminalLineRows() {
+    const context = terminalView.lineContext;
+    if (!context) return;
+    const lines = terminalView.lineMode === 'recent' ? context.summary.latest :
+      (terminalView.allLines || (terminalView.allLines = terminalModel.selectedLines(context.rows,
+        context.scope, context.key, context.latestDate, context.range)));
+    const columns = terminalLineColumns();
+    const visible = terminalView.lineMode === 'recent'
+      ? { start: 0, end: lines.length, before: 0, after: 0 }
+      : terminalModel.visibleLineWindow(lines.length, elements.terminalLinesScroll.scrollTop,
+        elements.terminalLinesScroll.clientHeight, TERMINAL_LINE_ROW_HEIGHT, 8);
+    const rendered = terminalView.renderedWindow;
+    if (rendered && rendered.lines === lines && rendered.start === visible.start && rendered.end === visible.end &&
+        rendered.columnCount === columns.length) return;
+    const fragment = document.createDocumentFragment();
+    if (visible.before) fragment.appendChild(terminalLineSpacer(visible.before, columns.length));
+    for (let index = visible.start; index < visible.end; index += 1) {
+      fragment.appendChild(terminalLineRow(lines[index], columns));
+    }
+    if (visible.after) fragment.appendChild(terminalLineSpacer(visible.after, columns.length));
+    if (lines.length === 0) {
+      const empty = document.createElement('tr');
+      empty.className = 'empty-row';
+      const cell = document.createElement('td');
+      cell.colSpan = columns.length;
+      setText(cell, translate('terminal_no_period_rows'));
+      empty.appendChild(cell);
+      fragment.appendChild(empty);
+    }
+    elements.terminalLinesBody.replaceChildren(fragment);
+    terminalView.renderedWindow = { lines: lines, start: visible.start, end: visible.end, columnCount: columns.length };
+  }
+
+  function renderTerminalLineTable(resetScroll) {
+    if (resetScroll) elements.terminalLinesScroll.scrollTop = 0;
+    const all = terminalView.lineMode === 'all';
+    setText(elements.terminalLinesTitle, translate(all ? 'terminal_all_lines' : 'terminal_recent_lines'));
+    elements.terminalLinesMode.value = terminalView.lineMode;
+    const context = terminalView.lineContext;
+    setText(elements.terminalLinesCount, translate('terminal_lines_shown', {
+      count: all ? context.summary.lines : context.summary.latest.length, total: context.summary.lines
+    }));
+    const fragment = document.createDocumentFragment();
+    terminalLineColumns().forEach(function (column) {
+      const heading = document.createElement('th');
+      if (column.number) heading.className = 'number';
+      setText(heading, column.label);
+      fragment.appendChild(heading);
+    });
+    elements.terminalLinesHead.replaceChildren(fragment);
+    renderTerminalColumnOptions();
+    terminalView.renderedWindow = null;
+    renderTerminalLineRows();
+  }
+
   function renderTerminal() {
     const rows = state.result && Array.isArray(state.result.rows) ? state.result.rows : null;
     const ready = Boolean(rows && rows.length > 0);
@@ -4439,26 +4598,14 @@
     setText(elements.terminalChartTotal, elements.terminalMetric.value === 'quantity' ? formatQuantity(summary.quantity) : formatNumber(summary.lines, 0));
     setText(elements.terminalChartNote, translate(elements.terminalMetric.value === 'quantity' ? 'terminal_quantity' : 'terminal_lines') + ' · ' + translate('terminal_observed_only'));
     renderTerminalChart(summary);
-    elements.terminalLinesBody.replaceChildren();
-    summary.latest.forEach(function (line) {
-      const row = document.createElement('tr');
-      appendCell(row, formatCalendarDate(line.delivery_date));
-      const articleCell = document.createElement('td');
-      const articleButton = document.createElement('button');
-      articleButton.type = 'button';
-      articleButton.className = 'terminal-article-link';
-      articleButton.dataset.terminalArticleId = line.article_id;
-      setText(articleButton, line.article_id);
-      articleCell.appendChild(articleButton);
-      row.appendChild(articleCell);
-      appendCell(row, optionalText(line.order_id));
-      appendCell(row, optionalText(line.customer_name || line.customer_id));
-      appendCell(row, formatQuantity(line.quantity), 'number');
-      appendCell(row, line.source_file_label || line.source_file_name || '', 'terminal-source-cell');
-      appendCell(row, line.source_line === null ? '' : String(line.source_line), 'number');
-      elements.terminalLinesBody.appendChild(row);
-    });
-    setText(elements.terminalLinesCount, translate('terminal_lines_shown', { count: summary.latest.length, total: summary.lines }));
+    const previous = terminalView.lineContext;
+    const range = elements.terminalRange.value;
+    const contextChanged = !previous || previous.rows !== rows || previous.scope !== scope ||
+      previous.key !== terminalView.selected[scope] || previous.range !== range;
+    if (contextChanged) terminalView.allLines = null;
+    terminalView.lineContext = { rows: rows, scope: scope, key: terminalView.selected[scope],
+      latestDate: index.latestDate, range: range, summary: summary };
+    renderTerminalLineTable(contextChanged);
     renderTerminalWatchlist(list, selected);
   }
 
@@ -7158,6 +7305,20 @@
   });
   elements.terminalMetric.addEventListener('change', renderTerminal);
   elements.terminalRange.addEventListener('change', renderTerminal);
+  elements.terminalLinesMode.addEventListener('change', function () {
+    terminalView.lineMode = elements.terminalLinesMode.value === 'all' ? 'all' : 'recent';
+    renderTerminalLineTable(true);
+  });
+  elements.terminalLinesColumnOptions.addEventListener('change', function (event) {
+    const checkbox = event.target.closest('input[data-terminal-column]');
+    if (!checkbox) return;
+    if (checkbox.checked) terminalView.columns.add(checkbox.dataset.terminalColumn);
+    else terminalView.columns.delete(checkbox.dataset.terminalColumn);
+    renderTerminalLineTable(false);
+  });
+  elements.terminalLinesScroll.addEventListener('scroll', function () {
+    if (terminalView.lineMode === 'all') renderTerminalLineRows();
+  });
   elements.terminalSearch.addEventListener('input', function () {
     const index = terminalView.indexes[terminalView.scope];
     if (!index) return;

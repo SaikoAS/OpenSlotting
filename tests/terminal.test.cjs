@@ -38,6 +38,8 @@ test('terminal range is anchored to the newest delivery date and keeps exact qua
   assert.equal(summary.customers, 2);
   assert.deepEqual(summary.points.map((point) => point.date), ['2026-09-01', '2026-09-02']);
   assert.equal(summary.latest[0].delivery_date, '2026-09-02');
+  assert.deepEqual(terminal.selectedLines(source, 'article', 'A-1', index.latestDate, '30')
+    .map((line) => line.delivery_date), ['2026-09-02', '2026-09-01']);
 });
 
 test('terminal can index one analysis level without constructing order and customer lists', () => {
@@ -46,4 +48,32 @@ test('terminal can index one analysis level without constructing order and custo
   assert.equal(index.entities.customer, undefined);
   assert.equal(index.entities.order, undefined);
   assert.equal(index.coverage.customer, 4);
+});
+
+test('overview can expose every selected line with mapped Colli and source evidence', () => {
+  const text = ['order_id;article_id;quantity;delivery_date;customer_id;Colli'];
+  for (let index = 1; index <= 40; index += 1) {
+    text.push('O-' + index + ';A-1;2;2026-09-01;C-1;' + index);
+  }
+  text.push('OTHER;A-2;2;2026-09-01;C-1;99');
+  const source = csv.importCsv(text.join('\n') + '\n', undefined,
+    { sourceFile: { id: 'src-1', name: 'orders.csv' } }).rows;
+  const index = terminal.buildIndex(source);
+  const summary = terminal.selectedSummary(source, 'article', 'A-1', index.latestDate, 'all');
+  const all = terminal.selectedLines(source, 'article', 'A-1', index.latestDate, 'all');
+  assert.equal(summary.latest.length, 25);
+  assert.equal(summary.lines, 40);
+  assert.equal(all.length, 40);
+  assert.deepEqual(all.slice(0, 25), summary.latest);
+  assert.equal(all[0].source_line, 41);
+  assert.equal(all[0].sales_unit_count, 40n * csv.QUANTITY_SCALE);
+  assert.equal(all[39].source_line, 2);
+  assert.equal(all[39].source_file_id, 'src-1');
+});
+
+test('overview window spans all rows while keeping only a small visible slice', () => {
+  assert.deepEqual(terminal.visibleLineWindow(102, 0, 360, 36, 8),
+    { start: 0, end: 18, before: 0, after: 3024 });
+  assert.deepEqual(terminal.visibleLineWindow(102, 3312, 360, 36, 8),
+    { start: 84, end: 102, before: 3024, after: 0 });
 });

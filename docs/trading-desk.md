@@ -3,7 +3,7 @@
 This branch presents the existing local order-line workflow in a dark analysis
 desk. The left rail opens import, mapping, date coverage, period comparison,
 article details, and workspace selection. The overview provides three analysis
-levels, a chart, a searchable entity list, and up to 25 recent source lines.
+levels, a chart, a searchable entity list, and a configurable order-line table.
 The controls and labels are available in English and German.
 
 ## Data shown
@@ -28,8 +28,17 @@ The controls and labels are available in English and German.
   converts totals to floating-point coordinates for drawing only; displayed
   totals remain exact. The line connects only consecutive **observed** days.
   Missing days are unknown coverage, not zero demand.
-- The source table shows up to 25 latest rows, including file and physical
-  source line. Clicking an article opens the existing full detail view.
+- The source table starts with the latest 25 rows. **All order lines** makes
+  every dated, valid row for the selected entity and range accessible in the
+  same scrollable table. Only the visible rows are placed in the page at once,
+  so large selections do not create a table element for every source line.
+  Source file and physical source line remain visible. Clicking an article
+  opens the existing full detail view.
+- **Choose columns** adds mapped article description, customer ID, Colli
+  (`sales_unit_count`), quantity per selling unit, location, unit of measure,
+  and active workspace custom fields. Missing optional values display as
+  unavailable. These choices affect only the current desk view; they do not
+  change imports, stored records, or the authoritative quantity field.
 
 The desk uses local CSS and SVG. The standard Windows launcher uses the Python
 loopback server and opens Edge maximized. Direct Edge `file:///` remains an
