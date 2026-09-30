@@ -17,7 +17,7 @@ test('release version is defined centrally for the UI and package', () => {
 });
 
 test('runtime source has no mandatory network dependency', () => {
-  const runtimeFiles = ['index.html', 'app.css', 'terminal-theme.css', 'warehouse-editor.css', 'runtime.js', 'app.js', 'terminal.js', 'warehouse-editor.js', 'warehouse.js', 'encoding.js', 'csv.js', 'periods.js', 'workspace.js', 'storage.js'];
+  const runtimeFiles = ['index.html', 'app.css', 'terminal-theme.css', 'warehouse-editor.css', 'runtime.js', 'app.js', 'terminal.js', 'warehouse-webgl.js', 'warehouse-editor.js', 'warehouse.js', 'encoding.js', 'csv.js', 'periods.js', 'workspace.js', 'storage.js'];
   const forbiddenPattern = /https?:\/\/|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\blocalhost\b|127\.0\.0\.1/;
 
   runtimeFiles.forEach((fileName) => {
@@ -32,7 +32,7 @@ test('persistent workspace runtime uses IndexedDB without localStorage payloads'
   const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
   const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8');
 
-  assert.match(indexSource, /<script src="runtime\.js"><\/script>\s*<script src="encoding\.js"><\/script>\s*<script src="csv\.js"><\/script>\s*<script src="periods\.js"><\/script>\s*<script src="warehouse\.js"><\/script>\s*<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="terminal\.js"><\/script>\s*<script src="warehouse-editor\.js"><\/script>\s*<script src="app\.js"><\/script>/);
+  assert.match(indexSource, /<script src="runtime\.js"><\/script>\s*<script src="encoding\.js"><\/script>\s*<script src="csv\.js"><\/script>\s*<script src="periods\.js"><\/script>\s*<script src="warehouse\.js"><\/script>\s*<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="terminal\.js"><\/script>\s*<script src="warehouse-webgl\.js"><\/script>\s*<script src="warehouse-editor\.js"><\/script>\s*<script src="app\.js"><\/script>/);
   assert.match(storageSource, /indexedDb\.open\(databaseName, DATABASE_VERSION\)/);
   assert.match(appSource, /workspaceRepository\.updateWorkspace/);
   assert.match(appSource, /workspaceRepository\.createWorkspace/);
@@ -257,7 +257,7 @@ test('release packaging includes the optional Windows launcher and setup', () =>
 
 test('release packaging includes persistent workspace runtime and documentation', () => {
   const packagingSource = fs.readFileSync(path.join(__dirname, '..', 'tools', 'package-release.ps1'), 'utf8');
-  ['warehouse.js', 'warehouse-editor.js', 'warehouse-editor.css', 'workspace.js', 'storage.js', 'periods.js', 'docs/workspace-format.md', 'docs/period-comparison.md', 'docs/acceptance-workspaces.md', 'docs/acceptance-period-comparison.md'].forEach((fileName) => {
+  ['warehouse.js', 'warehouse-webgl.js', 'warehouse-editor.js', 'warehouse-editor.css', 'workspace.js', 'storage.js', 'periods.js', 'docs/workspace-format.md', 'docs/period-comparison.md', 'docs/acceptance-workspaces.md', 'docs/acceptance-period-comparison.md'].forEach((fileName) => {
     assert.match(packagingSource, new RegExp("'" + fileName.replaceAll('.', '\\.') + "'"), fileName);
   });
 });

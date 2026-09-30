@@ -49,6 +49,7 @@ $releaseFiles = @(
     'runtime.js',
     'app.js',
     'terminal.js',
+    'warehouse-webgl.js',
     'warehouse-editor.js',
     'encoding.js',
     'csv.js',

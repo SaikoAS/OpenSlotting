@@ -37,7 +37,23 @@
       legendMatched: 'article matched', legendCoded: 'code assigned', legendEmpty: 'no code',
       removeWarning: 'Reducing counts removes positions with codes. Continue?', deleteWarning: 'Delete this object and its location codes?',
       slotSummary: 'positions ·', coded: 'coded', missing: 'without code', exact: 'Codes are matched exactly after trimming outer spaces. Leading zeros remain significant.',
-      choose: 'Choose a recipe'
+      choose: 'Choose a recipe',
+      wizardCreate: 'Build rack', wizardEdit: 'Edit rack structure', wizardBasics: '1 · Basics',
+      wizardBays: '2 · Bays and uprights', wizardLevels: '3 · Levels and preview',
+      wizardIntro: 'Configure the rack before adding it to the floor plan. Changes are saved only when you finish.',
+      wizardName: 'Rack name', wizardType: 'Rack type', wizardBayCount: 'Number of bays',
+      wizardDefaultLevels: 'Levels per bay to start with', wizardBayTable: 'Bays', wizardUprightTable: 'Uprights',
+      wizardLevelTable: 'Levels in bay', wizardBaySelect: 'Edit bay', wizardFront: 'Schematic front view',
+      wizardTotalWidth: 'Total width', wizardMaxDepth: 'Maximum depth', wizardMaxHeight: 'Maximum height',
+      wizardPositionCount: 'Positions', wizardCodedCount: 'coded', wizardBack: 'Back', wizardNext: 'Next',
+      wizardCancel: 'Cancel', wizardInsert: 'Add rack', wizardApply: 'Apply changes',
+      wizardEditButton: 'Edit structure in table', wizardCheck: 'Check these dimensions before applying.',
+      wizardUprightNumber: 'Upright', wizardLevelNumber: 'Level', wizardBayNumber: 'Bay',
+      wizardHeightError: 'The levels in bay {{bay}} are taller than an adjacent upright.',
+      wizardTooManyPositions: 'The layout can contain at most 5,000 positions.',
+      wizardTooManyObjects: 'The layout can contain at most 150 objects.',
+      wallSolid: 'Walls: solid', wallTransparent: 'Walls: transparent', wallHidden: 'Walls: hidden',
+      wallModeHelp: 'Change wall display in the 3D view', webglUnavailable: '3D is unavailable in this browser context. The floor plan remains available.'
     },
     de: {
       add: 'Rezept hinzufügen', pallet: 'Palettenregal', shelf: 'Fachbodenregal', wall: 'Wand', gate: 'Tor', door: 'Tür', exit: 'Notausgang',
@@ -72,7 +88,23 @@
       legendMatched: 'Artikel zugeordnet', legendCoded: 'Code vergeben', legendEmpty: 'ohne Code',
       removeWarning: 'Beim Verkleinern werden Stellplätze mit Codes entfernt. Fortfahren?', deleteWarning: 'Objekt und seine Stellplatzcodes löschen?',
       slotSummary: 'Stellplätze ·', coded: 'codiert', missing: 'ohne Code', exact: 'Codes werden nach Entfernen äußerer Leerzeichen exakt abgeglichen. Führende Nullen bleiben erhalten.',
-      choose: 'Rezept wählen'
+      choose: 'Rezept wählen',
+      wizardCreate: 'Regal aufbauen', wizardEdit: 'Regalaufbau bearbeiten', wizardBasics: '1 · Grunddaten',
+      wizardBays: '2 · Fächer und Ständer', wizardLevels: '3 · Ebenen und Vorschau',
+      wizardIntro: 'Konfiguriere das Regal vor dem Einfügen in den Grundriss. Erst mit Übernehmen werden Änderungen gespeichert.',
+      wizardName: 'Regalname', wizardType: 'Regaltyp', wizardBayCount: 'Anzahl Fächer',
+      wizardDefaultLevels: 'Ebenen je Fach zum Start', wizardBayTable: 'Fächer', wizardUprightTable: 'Ständer',
+      wizardLevelTable: 'Ebenen in Fach', wizardBaySelect: 'Fach bearbeiten', wizardFront: 'Schematische Vorderansicht',
+      wizardTotalWidth: 'Gesamtbreite', wizardMaxDepth: 'Maximale Tiefe', wizardMaxHeight: 'Maximale Höhe',
+      wizardPositionCount: 'Stellplätze', wizardCodedCount: 'codiert', wizardBack: 'Zurück', wizardNext: 'Weiter',
+      wizardCancel: 'Abbrechen', wizardInsert: 'Regal einfügen', wizardApply: 'Änderungen übernehmen',
+      wizardEditButton: 'Aufbau tabellarisch bearbeiten', wizardCheck: 'Prüfe diese Maße vor dem Übernehmen.',
+      wizardUprightNumber: 'Ständer', wizardLevelNumber: 'Ebene', wizardBayNumber: 'Fach',
+      wizardHeightError: 'Die Ebenen in Fach {{bay}} sind höher als ein angrenzender Ständer.',
+      wizardTooManyPositions: 'Der Lagerplan kann höchstens 5.000 Stellplätze enthalten.',
+      wizardTooManyObjects: 'Der Lagerplan kann höchstens 150 Objekte enthalten.',
+      wallSolid: 'Wände: massiv', wallTransparent: 'Wände: transparent', wallHidden: 'Wände: ausgeblendet',
+      wallModeHelp: 'Wanddarstellung in der 3D-Ansicht ändern', webglUnavailable: '3D ist in diesem Browserkontext nicht verfügbar. Der Grundriss bleibt nutzbar.'
     }
   };
   const TYPE_LABELS = {
@@ -129,12 +161,25 @@
     let message = '';
     let pickFaces = [];
     let canvas = null;
+    const glCanvas = document.createElement('canvas');
+    glCanvas.className = 'wh-canvas wh-webgl-canvas';
+    glCanvas.setAttribute('role', 'img');
+    const wiredCanvases = new WeakSet();
+    let webglRenderer = null;
+    let wallMode = 'solid';
     let historyWorkspaceId = null;
     let undoStack = [];
     let redoStack = [];
     let saving = false;
     let magnetEnabled = false;
     let snapPreview = null;
+    let rackWizard = null;
+
+    webglRenderer = window.OpenSlottingWarehouseWebGL && window.OpenSlottingWarehouseWebGL.create(glCanvas, {
+      onLost: function () { camera.mode = 'top'; message = labels().webglUnavailable; render(); },
+      onRestored: function () { message = ''; render(); }
+    });
+    if (!webglRenderer) { camera.mode = 'top'; message = LABELS[options.getLanguage() === 'de' ? 'de' : 'en'].webglUnavailable; }
 
     function labels() { return LABELS[options.getLanguage() === 'de' ? 'de' : 'en']; }
     function layout() { return options.getLayout(); }
@@ -144,6 +189,7 @@
         historyWorkspaceId = workspaceId;
         undoStack = [];
         redoStack = [];
+        rackWizard = null;
       }
     }
     function keepRecent(stack, value) {
@@ -169,13 +215,14 @@
       else { message = labels().codeNotFound; render(); }
     }
 
-    async function commit(next, historyAction, selectionAfter, toggleLockId) {
+    async function commit(next, historyAction, selectionAfter, toggleLockId, closeWizardOnSuccess) {
       if (saving) return;
       syncHistoryScope();
       const scope = historyWorkspaceId;
       const before = clone(layout());
       const beforeSelection = choice.objectId;
       let normalized;
+      let completed = false;
       try {
         if (historyAction === 'undo' || historyAction === 'redo') {
           const currentLocks = new Map(before.objects.map(function (object) { return [object.id, object.locked === true]; }));
@@ -183,9 +230,9 @@
         }
         normalized = model.normalizeLayout(next);
         if (model.lockedEditConflict(before, normalized, toggleLockId)) {
-          message = labels().lockedEdit; render(); return;
+          message = labels().lockedEdit; render(); return false;
         }
-        if (JSON.stringify(normalized) === JSON.stringify(before)) { render(); return; }
+        if (JSON.stringify(normalized) === JSON.stringify(before)) { render(); return false; }
         saving = true;
         root.setAttribute('aria-busy', 'true');
         root.classList.add('is-saving');
@@ -202,6 +249,8 @@
         }
         if (selectionAfter !== undefined) choice.objectId = selectionAfter;
         message = labels().saved;
+        if (closeWizardOnSuccess) rackWizard = null;
+        completed = true;
       } catch (error) {
         message = error && error.message ? error.message : String(error);
       } finally {
@@ -210,6 +259,256 @@
         root.classList.remove('is-saving');
       }
       render();
+      return completed;
+    }
+
+    function openRackWizard(object, type) {
+      const rack = object ? clone(object) : model.createRack(type, { name: labels()[TYPE_LABELS[type]] });
+      if (!object) {
+        const previous = layout().objects[layout().objects.length - 1];
+        rack.x = previous ? previous.x + 1800 : 0;
+        rack.z = previous ? previous.z + 1200 : 0;
+      }
+      rackWizard = { mode: object ? 'edit' : 'create', draft: rack, step: 0, activeBay: 0, error: '', saveError: '' };
+      render();
+      const first = root.querySelector('.wh-wizard [data-wizard-field="name"]');
+      if (first) first.focus();
+    }
+    function wizardLayout() {
+      const next = clone(layout());
+      if (rackWizard.mode === 'edit') {
+        const index = next.objects.findIndex(function (item) { return item.id === rackWizard.draft.id; });
+        if (index < 0) throw new Error(labels().selected);
+        next.objects[index] = clone(rackWizard.draft);
+      } else next.objects.push(clone(rackWizard.draft));
+      return next;
+    }
+    function wizardValidation() {
+      try { model.normalizeLayout(wizardLayout()); return ''; }
+      catch (error) {
+        const detail = error && error.message ? error.message : String(error);
+        const height = /The levels exceed the height of an adjacent upright in bay (\d+)\./.exec(detail);
+        if (height) return labels().wizardHeightError.replace('{{bay}}', height[1]);
+        if (detail === 'A layout can contain at most 5000 positions.') return labels().wizardTooManyPositions;
+        if (detail === 'A layout can contain at most 150 objects.') return labels().wizardTooManyObjects;
+        return detail;
+      }
+    }
+    function wizardRemovalWarning(before, after) {
+      const retained = new Set(model.listSlots({ objects: [after] }).map(function (slot) { return slot.slotId; }));
+      return model.listSlots({ objects: [before] }).some(function (slot) { return slot.code && !retained.has(slot.slotId); });
+    }
+    function wizardNumber(value, min, max) {
+      const number = Number(value);
+      if (!Number.isInteger(number) || number < min || number > max) {
+        throw new Error(min + '–' + max);
+      }
+      return number;
+    }
+    function wizardInput(field, value, min, max, index) {
+      return '<input type="number" data-wizard-field="' + field + '"' +
+        (index === undefined ? '' : ' data-index="' + index + '"') + ' value="' + esc(value) +
+        '" min="' + min + '" max="' + max + '" step="1">';
+    }
+    function rackDiagram(rack, t) {
+      const totalWidth = rack.bays.reduce(function (sum, bay) { return sum + bay.width; }, 0) +
+        rack.uprights.reduce(function (sum, upright) { return sum + upright.width; }, 0);
+      const maxHeight = Math.max.apply(null, rack.uprights.map(function (upright) { return upright.height; }));
+      const scaleX = 760 / Math.max(totalWidth, 1), scaleY = 180 / Math.max(maxHeight, 1);
+      let x = 20;
+      const shapes = ['<line x1="16" y1="218" x2="784" y2="218" stroke="#71909b" stroke-width="2"/>'];
+      rack.bays.forEach(function (bay, index) {
+        const upright = rack.uprights[index];
+        const uprightWidth = Math.max(2, upright.width * scaleX);
+        shapes.push('<rect x="' + x + '" y="' + (216 - upright.height * scaleY) + '" width="' +
+          uprightWidth + '" height="' + upright.height * scaleY + '" fill="#80a5b5"/>');
+        x += upright.width * scaleX;
+        const bayWidth = bay.width * scaleX;
+        let height = 0;
+        bay.levels.forEach(function (level) {
+          height += level.clearHeight;
+          shapes.push('<rect x="' + x + '" y="' + (216 - height * scaleY) + '" width="' + bayWidth +
+            '" height="' + Math.max(2, level.thickness * scaleY) + '" fill="#58c7b9"/>');
+          height += level.thickness;
+        });
+        if (rack.bays.length <= 10) shapes.push('<text x="' + (x + bayWidth / 2) +
+          '" y="237" text-anchor="middle" fill="#acc1c9" font-size="11">' + (index + 1) + '</text>');
+        x += bayWidth;
+      });
+      const last = rack.uprights[rack.uprights.length - 1];
+      shapes.push('<rect x="' + x + '" y="' + (216 - last.height * scaleY) + '" width="' +
+        Math.max(2, last.width * scaleX) + '" height="' + last.height * scaleY + '" fill="#80a5b5"/>');
+      const positions = rack.bays.reduce(function (sum, bay) {
+        return sum + bay.levels.reduce(function (levelSum, level) { return levelSum + level.positions.length; }, 0);
+      }, 0);
+      const coded = model.listSlots({ objects: [rack] }).filter(function (slot) { return slot.code; }).length;
+      const depth = Math.max.apply(null, rack.bays.map(function (bay) { return bay.depth; }).concat(rack.uprights.map(function (upright) { return upright.depth; })));
+      return '<div class="wh-wizard-preview"><strong>' + esc(t.wizardFront) + '</strong><svg viewBox="0 0 800 250" role="img" aria-label="' +
+        esc(t.wizardFront) + '">' + shapes.join('') + '</svg><div class="wh-wizard-metrics"><span>' +
+        esc(t.wizardTotalWidth) + ': <strong>' + totalWidth + ' mm</strong></span><span>' + esc(t.wizardMaxDepth) +
+        ': <strong>' + depth + ' mm</strong></span><span>' + esc(t.wizardMaxHeight) + ': <strong>' + maxHeight +
+        ' mm</strong></span><span>' + esc(t.wizardPositionCount) + ': <strong>' + positions + '</strong> · ' +
+        coded + ' ' + esc(t.wizardCodedCount) + '</span></div></div>';
+    }
+    function wizardHtml(t) {
+      const state = rackWizard, rack = state.draft;
+      const steps = [t.wizardBasics, t.wizardBays, t.wizardLevels];
+      const stepNav = '<ol class="wh-wizard-steps">' + steps.map(function (name, index) {
+        return '<li' + (index === state.step ? ' aria-current="step"' : '') + '>' + esc(name) + '</li>';
+      }).join('') + '</ol>';
+      let body = '';
+      if (state.step === 0) {
+        body = '<div class="wh-wizard-basics"><label class="wh-field"><span>' + esc(t.wizardType) + '</span><select data-wizard-field="type"' +
+          (state.mode === 'edit' ? ' disabled' : '') + '>' + model.RACK_TYPES.map(function (type) {
+            return '<option value="' + type + '"' + (rack.type === type ? ' selected' : '') + '>' +
+              esc(t[TYPE_LABELS[type]]) + '</option>';
+          }).join('') + '</select></label><label class="wh-field"><span>' + esc(t.wizardName) +
+          '</span><input type="text" data-wizard-field="name" value="' + esc(rack.name) + '" maxlength="120"></label>' +
+          '<label class="wh-field"><span>' + esc(t.wizardBayCount) + '</span>' + wizardInput('bayCount', rack.bays.length, 1, 30) + '</label>' +
+          (state.mode === 'create' ? '<label class="wh-field"><span>' + esc(t.wizardDefaultLevels) +
+            '</span>' + wizardInput('defaultLevels', rack.bays[0].levels.length, 1, 12) + '</label>' : '') + '</div>';
+      } else if (state.step === 1) {
+        body = '<h4>' + esc(t.wizardBayTable) + '</h4><div class="wh-wizard-table-wrap"><table class="wh-wizard-table"><thead><tr><th>' +
+          esc(t.wizardBayNumber) + '</th><th>' + esc(t.width) + '</th><th>' + esc(t.depth) + '</th><th>' + esc(t.levels) +
+          '</th><th></th></tr></thead><tbody>' + rack.bays.map(function (bay, index) {
+            return '<tr><th scope="row">' + (index + 1) + '</th><td>' + wizardInput('bay.width', bay.width, 300, 6000, index) +
+              '</td><td>' + wizardInput('bay.depth', bay.depth, 200, 3000, index) + '</td><td>' +
+              wizardInput('bay.levels', bay.levels.length, 1, 12, index) + '</td><td><button type="button" data-wizard-action="edit-bay" data-index="' +
+              index + '">' + esc(t.wizardLevelTable) + '</button></td></tr>';
+          }).join('') + '</tbody></table></div><h4>' + esc(t.wizardUprightTable) +
+          '</h4><div class="wh-wizard-table-wrap"><table class="wh-wizard-table"><thead><tr><th>' + esc(t.wizardUprightNumber) +
+          '</th><th>' + esc(t.width) + '</th><th>' + esc(t.depth) + '</th><th>' + esc(t.height) + '</th></tr></thead><tbody>' +
+          rack.uprights.map(function (upright, index) {
+            return '<tr><th scope="row">' + (index + 1) + '</th><td>' + wizardInput('upright.width', upright.width, 20, 500, index) +
+              '</td><td>' + wizardInput('upright.depth', upright.depth, 100, 3000, index) + '</td><td>' +
+              wizardInput('upright.height', upright.height, 200, 20000, index) + '</td></tr>';
+          }).join('') + '</tbody></table></div>';
+      } else {
+        const bay = rack.bays[state.activeBay];
+        body = '<label class="wh-field wh-wizard-bay-select"><span>' + esc(t.wizardBaySelect) + '</span><select data-wizard-field="activeBay">' +
+          rack.bays.map(function (_, index) { return '<option value="' + index + '"' +
+            (index === state.activeBay ? ' selected' : '') + '>' + esc(t.wizardBayNumber) + ' ' + (index + 1) + '</option>'; }).join('') +
+          '</select></label><div class="wh-wizard-table-wrap"><table class="wh-wizard-table"><thead><tr><th>' +
+          esc(t.wizardLevelNumber) + '</th><th>' + esc(t.clearHeight) + '</th><th>' + esc(t.thickness) + '</th><th>' +
+          esc(t.positions) + '</th><th>' + esc(t.deck) + '</th><th>' + esc(t.deckThickness) + '</th></tr></thead><tbody>' +
+          bay.levels.map(function (level, index) {
+            return '<tr><th scope="row">' + (index + 1) + '</th><td>' + wizardInput('level.clearHeight', level.clearHeight, 100, 8000, index) +
+              '</td><td>' + wizardInput('level.thickness', level.thickness, 10, 300, index) + '</td><td>' +
+              wizardInput('level.positions', level.positions.length, 1, 4, index) + '</td><td><input type="checkbox" data-wizard-field="level.deck" data-index="' +
+              index + '" aria-label="' + esc(t.deck) + ' ' + (index + 1) + '"' + (level.deck ? ' checked' : '') +
+              '></td><td>' + wizardInput('level.deckThickness', level.deckThickness, 10, 200, index) + '</td></tr>';
+          }).join('') + '</tbody></table></div>';
+      }
+      const issue = wizardValidation();
+      return '<div class="wh-wizard-overlay"><section class="wh-wizard" role="dialog" aria-modal="true" aria-labelledby="wh-wizard-title" tabindex="-1">' +
+        '<header><div><p class="wh-eyebrow">OpenSlotting · 3D</p><h3 id="wh-wizard-title">' +
+        esc(state.mode === 'edit' ? t.wizardEdit : t.wizardCreate) + '</h3><p>' + esc(t.wizardIntro) + '</p></div>' +
+        '<button type="button" data-wizard-action="cancel" aria-label="' + esc(t.wizardCancel) + '">×</button></header>' +
+        stepNav + '<div class="wh-wizard-content"><div class="wh-wizard-form">' + body + '</div>' + rackDiagram(rack, t) +
+        '</div><div class="wh-wizard-feedback" role="status" aria-live="polite">' +
+        (state.error ? '<p class="wh-wizard-error">' + esc(state.error) + '</p>' :
+          issue ? '<p class="wh-wizard-error">' + esc(t.wizardCheck) + ' ' + esc(issue) + '</p>' :
+            state.saveError ? '<p class="wh-wizard-error">' + esc(state.saveError) + '</p>' : '') +
+        '</div><footer><button type="button" data-wizard-action="cancel">' + esc(t.wizardCancel) + '</button><div>' +
+        (state.step ? '<button type="button" data-wizard-action="back">' + esc(t.wizardBack) + '</button>' : '') +
+        (state.step < 2 ? '<button type="button" class="wh-wizard-primary" data-wizard-action="next">' + esc(t.wizardNext) + '</button>' :
+          '<button type="button" class="wh-wizard-primary" data-wizard-action="finish"' + (issue || state.error ? ' disabled' : '') + '>' +
+          esc(state.mode === 'edit' ? t.wizardApply : t.wizardInsert) + '</button>') + '</div></footer></section></div>';
+    }
+    function refreshWizardFeedback() {
+      if (!rackWizard) return;
+      const issue = wizardValidation();
+      const feedback = root.querySelector('.wh-wizard-feedback');
+      if (feedback) feedback.innerHTML = rackWizard.error ? '<p class="wh-wizard-error">' + esc(rackWizard.error) + '</p>' :
+        issue ? '<p class="wh-wizard-error">' + esc(labels().wizardCheck) + ' ' + esc(issue) + '</p>' :
+          rackWizard.saveError ? '<p class="wh-wizard-error">' + esc(rackWizard.saveError) + '</p>' : '';
+      const preview = root.querySelector('.wh-wizard-preview');
+      if (preview) preview.outerHTML = rackDiagram(rackWizard.draft, labels());
+      const finish = root.querySelector('[data-wizard-action="finish"]');
+      if (finish) finish.disabled = Boolean(issue || rackWizard.error);
+    }
+    function changeWizardField(input) {
+      const field = input.dataset.wizardField;
+      if (!field || !rackWizard) return;
+      const state = rackWizard, draft = state.draft;
+      const index = Number(input.dataset.index);
+      const t = labels();
+      const fieldNames = {
+        bayCount: t.wizardBayCount, defaultLevels: t.wizardDefaultLevels,
+        'bay.width': t.width, 'bay.depth': t.depth, 'bay.levels': t.levels,
+        'upright.width': t.width, 'upright.depth': t.depth, 'upright.height': t.height,
+        'level.clearHeight': t.clearHeight, 'level.thickness': t.thickness,
+        'level.positions': t.positions, 'level.deckThickness': t.deckThickness
+      };
+      try {
+        if (field === 'type') {
+          if (state.mode !== 'create' || !model.RACK_TYPES.includes(input.value)) return;
+          state.draft = model.createRack(input.value, { bayCount: draft.bays.length,
+            name: labels()[TYPE_LABELS[input.value]], x: draft.x, z: draft.z, rotation: draft.rotation });
+          state.activeBay = 0;
+          state.error = '';
+          render();
+          return;
+        } else if (field === 'name') {
+          const name = input.value.trim();
+          if (!name || name.length > 120) throw new Error(labels().wizardName + ': 1–120');
+          draft.name = name;
+        } else if (field === 'bayCount') {
+          const count = wizardNumber(input.value, 1, 30);
+          const resized = model.resizeRack(draft, count, null, null);
+          if (wizardRemovalWarning(draft, resized) && !window.confirm(labels().removeWarning)) {
+            input.value = draft.bays.length; state.error = ''; refreshWizardFeedback(); return;
+          }
+          state.draft = resized;
+          state.activeBay = Math.min(state.activeBay, count - 1);
+        } else if (field === 'defaultLevels') {
+          if (state.mode !== 'create') return;
+          const count = wizardNumber(input.value, 1, 12);
+          let resized = draft;
+          for (let bay = 0; bay < draft.bays.length; bay += 1) resized = model.resizeBayLevels(resized, bay, count);
+          state.draft = resized;
+        } else if (field === 'activeBay') {
+          state.activeBay = wizardNumber(input.value, 0, draft.bays.length - 1);
+          state.error = '';
+          render();
+          return;
+        } else if (field === 'bay.levels') {
+          const resized = model.resizeBayLevels(draft, index, wizardNumber(input.value, 1, 12));
+          if (wizardRemovalWarning(draft, resized) && !window.confirm(labels().removeWarning)) {
+            input.value = draft.bays[index].levels.length; state.error = ''; refreshWizardFeedback(); return;
+          }
+          state.draft = resized;
+        } else if (field === 'level.positions') {
+          const resized = model.resizeLevelPositions(draft, state.activeBay, index, wizardNumber(input.value, 1, 4));
+          if (wizardRemovalWarning(draft, resized) && !window.confirm(labels().removeWarning)) {
+            input.value = draft.bays[state.activeBay].levels[index].positions.length;
+            state.error = ''; refreshWizardFeedback(); return;
+          }
+          state.draft = resized;
+        } else if (field === 'level.deck') {
+          draft.bays[state.activeBay].levels[index].deck = input.checked;
+        } else {
+          const bounds = {
+            'bay.width': [300, 6000], 'bay.depth': [200, 3000],
+            'upright.width': [20, 500], 'upright.depth': [100, 3000], 'upright.height': [200, 20000],
+            'level.clearHeight': [100, 8000], 'level.thickness': [10, 300], 'level.deckThickness': [10, 200]
+          };
+          if (!bounds[field]) return;
+          const value = wizardNumber(input.value, bounds[field][0], bounds[field][1]);
+          const parts = field.split('.');
+          const holder = parts[0] === 'bay' ? draft.bays[index] : parts[0] === 'upright' ? draft.uprights[index] :
+            draft.bays[state.activeBay].levels[index];
+          holder[parts[1]] = value;
+        }
+        state.error = '';
+        state.saveError = '';
+        input.removeAttribute('aria-invalid');
+      } catch (error) {
+        const detail = error && error.message ? error.message : String(error);
+        state.error = /^\d+–\d+$/.test(detail) ? (fieldNames[field] || field) + ': ' + detail : detail;
+        input.setAttribute('aria-invalid', 'true');
+      }
+      refreshWizardFeedback();
     }
 
     function properties(object, t, matches) {
@@ -264,6 +563,9 @@
     }
 
     function render() {
+      const focused = rackWizard && root.contains(document.activeElement) ? document.activeElement : null;
+      const focusedField = focused && focused.dataset.wizardField;
+      const focusedIndex = focused && focused.dataset.index;
       syncHistoryScope();
       const t = labels();
       const warehouse = layout();
@@ -294,7 +596,7 @@
         esc(t.exact) + '</p></div><div class="wh-summary"><strong>' + warehouse.objects.length + '</strong> ' + esc(t.objects) +
         '<br><strong>' + slots.length + '</strong> ' + esc(t.slotSummary) + ' ' + coded + ' ' + esc(t.coded) +
         (collisions.length ? '<br><span class="wh-summary-conflicts">⚠ ' + esc(collisionSummary) + '</span>' : '') + '</div></div>' +
-        '<div class="wh-editor-grid"><aside class="wh-sidebar"><div class="wh-card"><h4>' + esc(t.add) + '</h4>' +
+        '<div class="wh-editor-grid"' + (rackWizard ? ' inert' : '') + '><aside class="wh-sidebar"><div class="wh-card"><h4>' + esc(t.add) + '</h4>' +
         '<select id="wh-recipe" aria-label="' + esc(t.choose) + '">' +
         model.RACK_TYPES.concat(model.AREA_TYPES).map(function (type) {
           return '<option value="' + type + '">' + esc(t[TYPE_LABELS[type]]) + '</option>';
@@ -317,10 +619,14 @@
         '</button><button type="button" data-action="fit">' + esc(t.fit) +
         '</button><button type="button" data-action="magnet" aria-pressed="' + magnetEnabled +
         '" title="' + esc(t.magnetTitle) + '">⌁ ' + esc(t.magnet) +
-        '</button><button type="button" data-action="top" aria-pressed="' + (camera.mode === 'top') + '">' + esc(t.top) +
-        '</button><button type="button" data-action="orbit" aria-pressed="' + (camera.mode === 'orbit') + '">' +
-        esc(t.orbit) + '</button></div></div><canvas class="wh-canvas' + (camera.mode === 'top' ? ' is-top' : '') +
-        '" role="img" aria-label="' + esc(camera.mode === 'top' ? t.planView : t.view) + '"></canvas>' +
+        '</button>' + (camera.mode === 'orbit' ? '<button type="button" data-action="wall-mode" title="' +
+          esc(t.wallModeHelp) + '">' + esc(t[wallMode === 'solid' ? 'wallSolid' : wallMode === 'transparent' ? 'wallTransparent' : 'wallHidden']) +
+          '</button>' : '') + '<button type="button" data-action="top" aria-pressed="' + (camera.mode === 'top') + '">' + esc(t.top) +
+        '</button><button type="button" data-action="orbit" aria-pressed="' + (camera.mode === 'orbit') +
+        '"' + (!webglRenderer || !webglRenderer.available() ? ' disabled title="' + esc(t.webglUnavailable) + '"' : '') + '>' +
+        esc(t.orbit) + '</button></div></div><div class="wh-viewport"><canvas class="wh-canvas is-top' +
+        (camera.mode === 'top' ? '' : ' is-hidden') + '" role="img" aria-label="' + esc(t.planView) + '"></canvas>' +
+        '<div class="wh-webgl-slot' + (camera.mode === 'orbit' ? '' : ' is-hidden') + '"></div></div>' +
         '<div class="wh-view-hint">' + esc(camera.mode === 'top' ? t.hintTop + (magnetEnabled ? ' · ' + t.magnetHint : '') : t.hint) + '</div>' +
         (camera.mode === 'orbit' ? '<div class="wh-legend">' +
           '<span><i class="matched"></i>' + esc(t.legendMatched) + '</span><span><i class="coded"></i>' + esc(t.legendCoded) +
@@ -345,18 +651,28 @@
         (object ? '<button type="button" class="wh-delete" data-action="delete">' + esc(t.delete) + '</button>' : '') +
         '</div>' + (object ? '<div class="wh-object-actions"><button type="button" class="wh-lock-toggle" data-action="toggle-lock" aria-pressed="' +
           Boolean(object.locked) + '">' + (object.locked ? '🔓 ' + esc(t.unlock) : '🔒 ' + esc(t.lock)) +
-          '</button><button type="button" data-action="duplicate">' +
+        '</button>' + (model.RACK_TYPES.includes(object.type) ? '<button type="button" data-action="edit-rack">' +
+          esc(t.wizardEditButton) + '</button>' : '') + '<button type="button" data-action="duplicate">' +
           esc(t.duplicate) + '</button><button type="button" data-action="rotate-left" title="' + esc(t.rotateLeft) +
           '">↶ 90°</button><button type="button" data-action="rotate-right" title="' + esc(t.rotateRight) +
           '">↷ 90°</button></div>' + (object.locked ? '<p class="wh-locked-hint">🔒 ' + esc(t.lockedHint) + '</p>' : '') : '') + properties(object, t, matches) +
-        '</div></aside></div><p class="wh-message" role="status" aria-live="polite">' + esc(message) + '</p>';
+        '</div></aside></div>' + (rackWizard ? wizardHtml(t) : '') +
+        '<p class="wh-message" role="status" aria-live="polite">' + esc(message) + '</p>';
       if (object && object.locked) {
         root.querySelectorAll('.wh-properties [data-field], .wh-properties [data-action]:not([data-action="toggle-lock"])')
           .forEach(function (control) { control.disabled = true; });
       }
-      canvas = root.querySelector('canvas');
+      root.querySelector('.wh-webgl-slot').appendChild(glCanvas);
+      glCanvas.setAttribute('aria-label', t.view);
+      canvas = root.querySelector('canvas.is-top');
       paint(warehouse, matches, collisionIds);
       wireCanvas();
+      if (rackWizard && focusedField) {
+        const replacement = Array.from(root.querySelectorAll('.wh-wizard [data-wizard-field]')).find(function (item) {
+          return item.dataset.wizardField === focusedField && item.dataset.index === focusedIndex;
+        });
+        if (replacement) replacement.focus();
+      }
     }
 
     function box(object, x, y, z, width, height, depth, color, list, slotRef) {
@@ -549,10 +865,17 @@
     }
 
     function paint(warehouse, matches, collisionIds) {
-      if (!canvas) return;
       const conflicts = collisionIds || new Set(model.findCollisions(warehouse).flatMap(function (item) {
         return [item.firstId, item.secondId];
       }));
+      if (camera.mode === 'orbit') {
+        if (webglRenderer && webglRenderer.available()) {
+          webglRenderer.render(boxesFor(warehouse, matches || model.matchArticles(warehouse, options.getRegistry())),
+            camera, choice.objectId, choice.slotId, conflicts, wallMode);
+        }
+        return;
+      }
+      if (!canvas) return;
       const width = Math.max(280, canvas.clientWidth);
       const height = Math.max(320, canvas.clientHeight);
       const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -562,80 +885,15 @@
       if (!ctx) return;
       ctx.scale(dpr, dpr);
       ctx.fillStyle = '#0d151c'; ctx.fillRect(0, 0, width, height);
-      if (camera.mode === 'top') { paintTop(ctx, width, height, warehouse, conflicts); return; }
-      const boxes = boxesFor(warehouse, matches);
-      const yaw = camera.yaw, pitch = camera.pitch;
-      function transform(object, x, y, z) {
-        const angle = object.rotation * Math.PI / 180;
-        const wx = object.x + Math.cos(angle) * x - Math.sin(angle) * z;
-        const wz = object.z + Math.sin(angle) * x + Math.cos(angle) * z;
-        const rx = Math.cos(yaw) * wx - Math.sin(yaw) * wz;
-        const rz = Math.sin(yaw) * wx + Math.cos(yaw) * wz;
-        return { x: rx, y: rz * Math.sin(pitch) - y * Math.cos(pitch), depth: rz * Math.cos(pitch) + y * Math.sin(pitch) };
-      }
-      const projected = boxes.map(function (item) {
-        const points = [
-          [0, 0, 0], [item.width, 0, 0], [item.width, 0, item.depth], [0, 0, item.depth],
-          [0, item.height, 0], [item.width, item.height, 0], [item.width, item.height, item.depth], [0, item.height, item.depth]
-        ].map(function (point) { return transform(item.object, item.x + point[0], item.y + point[1], item.z + point[2]); });
-        return { item: item, points: points };
-      });
-      const extent = projected.flatMap(function (item) { return item.points; });
-      if (!extent.length) {
-        extent.push({ x: -5000, y: -3500 }); extent.push({ x: 5000, y: 3500 });
-      }
-      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-      extent.forEach(function (p) {
-        minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
-        minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
-      });
-      const centerX = (minX + maxX) / 2, centerY = (minY + maxY) / 2;
-      const scale = Math.min((width - 90) / Math.max(3000, maxX - minX), (height - 100) / Math.max(3000, maxY - minY)) * camera.zoom;
-      function screen(p) { return [(p.x - centerX) * scale + width / 2, (p.y - centerY) * scale + height / 2]; }
-      const floorSize = Math.max(10000, Math.ceil(Math.max(maxX - minX, maxY - minY) / 5000) * 5000);
-      ctx.strokeStyle = '#23323d'; ctx.lineWidth = 1;
-      const floorObject = { x: 0, z: 0, rotation: 0 };
-      const gridStep = Math.max(1000, Math.ceil(floorSize / 60000) * 1000);
-      for (let value = -floorSize; value <= floorSize; value += gridStep) {
-        [[value, -floorSize, value, floorSize], [-floorSize, value, floorSize, value]].forEach(function (line) {
-          const a = screen(transform(floorObject, line[0], 0, line[1]));
-          const b = screen(transform(floorObject, line[2], 0, line[3]));
-          ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
-        });
-      }
-      const faces = [];
-      projected.forEach(function (entry) {
-        [[4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]].forEach(function (indices, faceIndex) {
-          const points = indices.map(function (index) { return entry.points[index]; });
-          faces.push({ item: entry.item, polygon: points.map(screen), depth: points.reduce(function (sum, p) { return sum + p.depth; }, 0) / 4,
-            shade: faceIndex });
-        });
-      });
-      faces.sort(function (a, b) { return a.depth - b.depth; });
-      pickFaces = [];
-      faces.forEach(function (face) {
-        const poly = face.polygon;
-        ctx.beginPath(); ctx.moveTo(poly[0][0], poly[0][1]);
-        poly.slice(1).forEach(function (p) { ctx.lineTo(p[0], p[1]); }); ctx.closePath();
-        ctx.fillStyle = face.item.color;
-        ctx.globalAlpha = face.shade === 0 ? 0.98 : face.shade === 2 ? 0.65 : 0.82;
-        ctx.fill(); ctx.globalAlpha = 1;
-        const selectedPosition = face.item.slotRef && face.item.slotRef.slotId === choice.slotId;
-        const colliding = conflicts.has(face.item.object.id);
-        ctx.strokeStyle = selectedPosition ? '#fff2a3' : colliding ? '#ff9c72' :
-          face.item.object.id === choice.objectId ? '#79f2de' : '#17252e';
-        ctx.lineWidth = selectedPosition ? 3 : colliding ? 2 : face.item.object.id === choice.objectId ? 1.7 : 0.8; ctx.stroke();
-        pickFaces.push({ objectId: face.item.object.id, slotRef: face.item.slotRef, polygon: poly });
-      });
-      if (!warehouse.objects.length) {
-        ctx.fillStyle = '#7995a1'; ctx.font = '15px Segoe UI, sans-serif'; ctx.textAlign = 'center';
-        ctx.fillText(labels().empty, width / 2, height / 2);
-      }
+      paintTop(ctx, width, height, warehouse, conflicts);
     }
 
     function wireCanvas() {
+      const inputCanvas = camera.mode === 'top' ? canvas : glCanvas;
+      if (wiredCanvases.has(inputCanvas)) return;
+      wiredCanvases.add(inputCanvas);
       let drag = null;
-      canvas.addEventListener('pointerdown', function (event) {
+      inputCanvas.addEventListener('pointerdown', function (event) {
         if (saving) return;
         snapPreview = null;
         if (camera.mode === 'top') {
@@ -659,9 +917,9 @@
         } else {
           drag = { mode: 'orbit', x: event.clientX, y: event.clientY, moved: false };
         }
-        canvas.setPointerCapture(event.pointerId);
+        inputCanvas.setPointerCapture(event.pointerId);
       });
-      canvas.addEventListener('pointermove', function (event) {
+      inputCanvas.addEventListener('pointermove', function (event) {
         if (!drag) return;
         const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
         if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
@@ -695,7 +953,7 @@
           paint(layout(), model.matchArticles(layout(), options.getRegistry()));
         }
       });
-      canvas.addEventListener('pointerup', function (event) {
+      inputCanvas.addEventListener('pointerup', function (event) {
         if (!drag) return;
         if (drag.mode === 'select') { drag = null; snapPreview = null; render(); return; }
         if (drag.mode === 'move') {
@@ -708,29 +966,57 @@
           return;
         }
         if (drag.mode === 'orbit' && !drag.moved) {
-          const rect = canvas.getBoundingClientRect();
-          const x = event.clientX - rect.left, y = event.clientY - rect.top;
-          const found = pickFaces.slice().reverse().find(function (face) { return pointInPolygon(x, y, face.polygon); });
-          if (found && found.slotRef) selectSlot(found.slotRef);
+          const found = webglRenderer && webglRenderer.pick(event.clientX, event.clientY);
+          if (found && found.slotId) selectSlot(found);
           else if (found) { choice.objectId = found.objectId; choice.bay = 0; choice.level = 0; choice.upright = 0; choice.slotId = null; render(); }
         }
         drag = null;
       });
-      canvas.addEventListener('pointercancel', function () {
+      inputCanvas.addEventListener('pointercancel', function () {
         const shouldRender = drag && (drag.mode === 'move' || drag.mode === 'select');
         drag = null;
         snapPreview = null;
         if (shouldRender) render();
       });
-      canvas.addEventListener('wheel', function (event) {
+      inputCanvas.addEventListener('wheel', function (event) {
         event.preventDefault();
         camera.zoom = Math.max(0.25, Math.min(4, camera.zoom * (event.deltaY < 0 ? 1.12 : 0.89)));
         paint(layout(), model.matchArticles(layout(), options.getRegistry()));
       }, { passive: false });
     }
 
-    root.addEventListener('click', function (event) {
+    root.addEventListener('click', async function (event) {
       if (saving) return;
+      if (rackWizard) {
+        const wizardButton = event.target.closest('[data-wizard-action]');
+        if (!wizardButton) return;
+        const action = wizardButton.dataset.wizardAction;
+        if (action === 'cancel') { rackWizard = null; render(); root.querySelector('#wh-recipe').focus(); return; }
+        if (action === 'back') { rackWizard.step -= 1; rackWizard.error = ''; render(); root.querySelector('.wh-wizard').focus(); return; }
+        if (action === 'next') {
+          if (rackWizard.error) return;
+          rackWizard.step += 1; render(); root.querySelector('.wh-wizard').focus(); return;
+        }
+        if (action === 'edit-bay') {
+          if (rackWizard.error) return;
+          rackWizard.activeBay = Number(wizardButton.dataset.index);
+          rackWizard.step = 2;
+          rackWizard.error = '';
+          render(); root.querySelector('.wh-wizard').focus(); return;
+        }
+        if (action === 'finish') {
+          if (rackWizard.error) { refreshWizardFeedback(); return; }
+          const issue = wizardValidation();
+          if (issue) { rackWizard.error = issue; render(); return; }
+          const next = wizardLayout();
+          const rackId = rackWizard.draft.id;
+          if (JSON.stringify(next) === JSON.stringify(layout())) { rackWizard = null; render(); return; }
+          const saved = await commit(next, null, rackId, null, true);
+          if (!saved && rackWizard) { rackWizard.saveError = message; render(); }
+          return;
+        }
+        return;
+      }
       const conflictButton = event.target.closest('[data-focus-object]');
       if (conflictButton) {
         choice.objectId = conflictButton.dataset.focusObject;
@@ -754,6 +1040,10 @@
         snapPreview = null;
         render(); return;
       }
+      if (action === 'wall-mode') {
+        wallMode = wallMode === 'solid' ? 'transparent' : wallMode === 'transparent' ? 'hidden' : 'solid';
+        render(); return;
+      }
       if (action === 'undo' || action === 'redo') {
         const stack = action === 'undo' ? undoStack : redoStack;
         if (stack.length) {
@@ -765,12 +1055,15 @@
       if (action === 'fit' || action === 'top' || action === 'orbit') {
         camera.zoom = 1;
         if (action === 'top') { camera.mode = 'top'; topView.ready = false; }
-        else if (action === 'orbit') { camera.mode = 'orbit'; camera.yaw = -0.62; camera.pitch = 0.62; }
+        else if (action === 'orbit' && webglRenderer && webglRenderer.available()) {
+          camera.mode = 'orbit'; camera.yaw = -0.62; camera.pitch = 0.62;
+        }
         else if (camera.mode === 'top') topView.ready = false;
         render(); return;
       }
       if (action === 'add') {
         const type = root.querySelector('#wh-recipe').value;
+        if (model.RACK_TYPES.includes(type)) { openRackWizard(null, type); return; }
         const next = clone(layout());
         const newObject = model.RACK_TYPES.includes(type) ? model.createRack(type) :
           model.createArea(type, { name: labels()[TYPE_LABELS[type]] });
@@ -789,6 +1082,7 @@
         commit(next, null, object.id, object.id); return;
       }
       if (object.locked) { message = labels().lockedEdit; render(); return; }
+      if (action === 'edit-rack' && model.RACK_TYPES.includes(object.type)) { openRackWizard(object); return; }
       if (action === 'duplicate') {
         const next = clone(layout());
         const baseName = labels().copyName + ' ' + object.name;
@@ -850,6 +1144,22 @@
 
     root.addEventListener('keydown', function (event) {
       if (saving) return;
+      if (rackWizard) {
+        if (event.key === 'Escape') { event.preventDefault(); rackWizard = null; render(); root.querySelector('#wh-recipe').focus(); }
+        if (event.key === 'Tab') {
+          const controls = Array.from(root.querySelectorAll('.wh-wizard button:not(:disabled), .wh-wizard input:not(:disabled), .wh-wizard select:not(:disabled)'));
+          if (controls.length) {
+            const first = controls[0], last = controls[controls.length - 1];
+            const dialog = root.querySelector('.wh-wizard');
+            if (event.shiftKey && (document.activeElement === first || document.activeElement === dialog)) {
+              event.preventDefault(); last.focus();
+            } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === dialog)) {
+              event.preventDefault(); first.focus();
+            }
+          }
+        }
+        return;
+      }
       const editable = event.target.closest('input, textarea, select, [contenteditable="true"]');
       if (event.ctrlKey && !event.altKey && !editable) {
         const key = event.key.toLowerCase();
@@ -867,6 +1177,7 @@
 
     root.addEventListener('change', function (event) {
       if (saving) return;
+      if (rackWizard) { changeWizardField(event.target); return; }
       const selector = event.target.dataset.select;
       if (selector) {
         choice[selector] = Number(event.target.value); choice.slotId = null; render(); return;

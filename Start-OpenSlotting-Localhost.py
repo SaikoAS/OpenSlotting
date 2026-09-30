@@ -27,6 +27,7 @@ RUNTIME_FILES = frozenset(
         "app.js",
         "terminal.js",
         "warehouse.js",
+        "warehouse-webgl.js",
         "warehouse-editor.js",
         "encoding.js",
         "csv.js",
