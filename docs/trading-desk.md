@@ -18,22 +18,56 @@ The controls and labels are available in English and German.
   This keeps equal order IDs for different customers separate. Rows without
   `order_id` do not appear in order groups. A repeated order ID with no
   customer ID remains ambiguous and is grouped under the empty customer key.
-- The entity list is ordered by total exact quantity over **all** retained
-  order lines. Its search checks ID and available name. The footer shows how
-  many normalized lines carry an ID at the selected level.
+- The entity list is scrollable through every matching ID; only the visible
+  buttons are rendered. Its ranking can use all retained rows or the selected
+  date window and follows the chosen metric (exact quantity or line count).
+  Entities without rows in the window remain searchable with zero for that
+  ranking. The footer shows how many normalized lines carry an ID at the
+  selected level.
 - The range controls affect the selected entity's chart, KPI cards, and source
   lines. The 30 and 90 day windows end on the latest delivery date in the
   opened data, not on today's date. "All dates" includes every valid date.
 - Quantity totals use the existing scaled-integer representation. The chart
   converts totals to floating-point coordinates for drawing only; displayed
-  totals remain exact. The line connects only consecutive **observed** days.
-  Missing days are unknown coverage, not zero demand.
+  totals remain exact. In day view the line connects consecutive observed
+  days; in grouped views it connects adjacent buckets that have rows. Empty
+  buckets break the line. Missing days are unknown coverage, not zero demand.
+- The chart groups values by calendar day, ISO week (Monday to Sunday), or
+  calendar month. Auto uses days for up to 45 calendar days, weeks through 180,
+  and months for longer ranges. Each bucket adds only the selected entity's
+  actual rows using exact quantity arithmetic. Empty buckets have no plotted
+  value; they are not manufactured zero-demand observations.
+- The coverage strip under the chart uses valid dated rows from the **whole
+  workspace**, not merely the selected entity. Expected days follow the
+  workspace's configured weekdays, as in period comparison. Green means every
+  expected day in the bucket has at least one valid row, amber means some do,
+  and gray means none do. A text summary states recorded and unknown expected
+  days. This detects date presence, not completeness of each source export.
 - The source table starts with the latest 25 rows. **All order lines** makes
   every dated, valid row for the selected entity and range accessible in the
   same scrollable table. Only the visible rows are placed in the page at once,
   so large selections do not create a table element for every source line.
   Source file and physical source line remain visible. Clicking an article
   opens the existing full detail view.
+- Date, customer, order and source filters search the full selected entity and
+  range; using them switches the table to **All order lines**. Column headings
+  sort those rows. The CSV button exports the currently displayed, filtered
+  rows and selected columns, using exact decimal quantities and source evidence.
+  Potential spreadsheet formulas in text fields are escaped.
+- Clicking the chart selects the nearest observed day and filters the table.
+  Holding the primary mouse button and dragging across the chart selects an
+  inclusive calendar range, in either direction. The chosen dates populate
+  the table's From/To fields and a highlighted band marks the range. Missing
+  days inside it remain unknown rather than being turned into zero values.
+  In week or month view a click selects that calendar bucket instead. The
+  separate selection panel shows exact quantity, line, order, customer, and
+  observed-day counts for the selected entity and dates, plus workspace date
+  coverage for that selection. Other table text filters do not alter this
+  date-selection summary. The KPI cards above remain totals for the full main
+  range and are labeled accordingly.
+  The day selector and From/To fields provide keyboard access; **Clear chart
+  selection** removes the date selection. Chart selections do not change the
+  main range or KPI totals.
 - **Choose columns** adds mapped article description, customer ID, Colli
   (`sales_unit_count`), quantity per selling unit, location, unit of measure,
   and active workspace custom fields. Missing optional values display as

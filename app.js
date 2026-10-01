@@ -101,6 +101,40 @@
       terminal_entities_count: '{{count}} entries',
       terminal_valid_rows: 'Dated, valid rows in selected range',
       terminal_observed_only: 'Observed dates only · gaps are unknown',
+      terminal_rank_basis: 'Ranking',
+      terminal_rank_all: 'All data',
+      terminal_rank_period: 'Selected period',
+      terminal_day_filter: 'Date selection',
+      terminal_all_observed_days: 'All observed days',
+      terminal_clear_day: 'Clear chart selection',
+      terminal_chart_click_hint: 'Click to select the displayed day, week or month; drag for a custom range.',
+      terminal_chart_selected_range: '{{from}} – {{to}}',
+      terminal_chart_selected_day: 'Selected day: {{day}}',
+      terminal_granularity: 'Group by',
+      terminal_granularity_auto: 'Auto',
+      terminal_granularity_day: 'Day',
+      terminal_granularity_week: 'Week',
+      terminal_granularity_month: 'Month',
+      terminal_chart_coverage: 'Data coverage: {{observed}}/{{expected}} expected days recorded · {{unknown}} unknown · whole workspace · {{unit}} view',
+      terminal_chart_coverage_unavailable: 'Data coverage unavailable: select expected weekdays in Coverage & periods.',
+      terminal_chart_bucket_title: '{{from}} – {{to}} · {{quantity}} quantity · {{lines}} lines · {{observed}}/{{expected}} expected days recorded',
+      terminal_chart_no_expected: 'No expected weekdays in this interval',
+      terminal_chart_bucket_empty: '{{from}} – {{to}} · no lines for this selection · {{observed}}/{{expected}} expected days recorded in the workspace',
+      terminal_chart_coverage_legend: 'Green: rows on every expected day · amber: some days · gray: none · dark: no expected weekday',
+      terminal_selection_title: 'Selected date range',
+      terminal_selection_days: 'Recorded days',
+      terminal_selection_invalid: 'The start date must not be after the end date.',
+      terminal_selection_scope_note: 'Values refer to the chosen entity within the main range and date selection; other table filters are not included.',
+      terminal_selection_no_rows: 'No order lines in this selection; zero demand is not established.',
+      terminal_total_period: 'Entire displayed period',
+      terminal_selection_coverage: 'Workspace coverage in selection: {{observed}}/{{expected}} expected days recorded · {{unknown}} unknown. Missing days are not zero demand.',
+      terminal_selection_coverage_unavailable: 'Coverage cannot be assessed until expected weekdays are selected.',
+      terminal_from: 'From',
+      terminal_to: 'To',
+      terminal_source: 'Source',
+      terminal_clear_filters: 'Clear filters',
+      terminal_export_filtered: 'Export filtered CSV',
+      terminal_filtered_lines: '{{count}} of {{total}} lines after filters',
       main_menu_eyebrow: 'Workspace menu',
       main_menu_greeting: 'What would you like to do?',
       main_menu_intro: 'Choose an area to continue working in this workspace.',
@@ -737,6 +771,40 @@
       terminal_entities_count: '{{count}} Einträge',
       terminal_valid_rows: 'Datierte, gültige Zeilen im gewählten Zeitraum',
       terminal_observed_only: 'Nur erfasste Tage · Lücken sind unbekannt',
+      terminal_rank_basis: 'Rangfolge',
+      terminal_rank_all: 'Alle Daten',
+      terminal_rank_period: 'Gewählter Zeitraum',
+      terminal_day_filter: 'Datumsauswahl',
+      terminal_all_observed_days: 'Alle erfassten Tage',
+      terminal_clear_day: 'Diagrammauswahl aufheben',
+      terminal_chart_click_hint: 'Klick wählt den angezeigten Tag, die Woche oder den Monat; Ziehen legt einen eigenen Zeitraum fest.',
+      terminal_chart_selected_range: '{{from}} – {{to}}',
+      terminal_chart_selected_day: 'Ausgewählter Tag: {{day}}',
+      terminal_granularity: 'Gruppieren nach',
+      terminal_granularity_auto: 'Automatisch',
+      terminal_granularity_day: 'Tag',
+      terminal_granularity_week: 'Woche',
+      terminal_granularity_month: 'Monat',
+      terminal_chart_coverage: 'Datenabdeckung: {{observed}}/{{expected}} erwartete Tage erfasst · {{unknown}} unbekannt · gesamter Arbeitsbereich · Ansicht: {{unit}}',
+      terminal_chart_coverage_unavailable: 'Datenabdeckung nicht bewertbar: Erwartete Wochentage unter Datenabdeckung festlegen.',
+      terminal_chart_bucket_title: '{{from}} – {{to}} · {{quantity}} Menge · {{lines}} Zeilen · {{observed}}/{{expected}} erwartete Tage erfasst',
+      terminal_chart_no_expected: 'Keine erwarteten Wochentage in diesem Intervall',
+      terminal_chart_bucket_empty: '{{from}} – {{to}} · keine Zeilen für diese Auswahl · {{observed}}/{{expected}} erwartete Tage im Arbeitsbereich erfasst',
+      terminal_chart_coverage_legend: 'Grün: Zeilen an allen erwarteten Tagen · Gelb: an einigen · Grau: an keinem · Dunkel: kein erwarteter Wochentag',
+      terminal_selection_title: 'Ausgewählter Zeitraum',
+      terminal_selection_days: 'Erfasste Tage',
+      terminal_selection_invalid: 'Das Startdatum darf nicht nach dem Enddatum liegen.',
+      terminal_selection_scope_note: 'Werte für die gewählte Ansicht innerhalb des Hauptzeitraums und der Datumsauswahl; weitere Tabellenfilter sind nicht enthalten.',
+      terminal_selection_no_rows: 'Keine Auftragszeilen in dieser Auswahl; Nullbedarf ist damit nicht belegt.',
+      terminal_total_period: 'Gesamter angezeigter Zeitraum',
+      terminal_selection_coverage: 'Abdeckung des Arbeitsbereichs in der Auswahl: {{observed}}/{{expected}} erwartete Tage erfasst · {{unknown}} unbekannt. Fehlende Tage sind kein Nullbedarf.',
+      terminal_selection_coverage_unavailable: 'Abdeckung erst mit festgelegten erwarteten Wochentagen bewertbar.',
+      terminal_from: 'Von',
+      terminal_to: 'Bis',
+      terminal_source: 'Quelle',
+      terminal_clear_filters: 'Filter löschen',
+      terminal_export_filtered: 'Gefilterte CSV exportieren',
+      terminal_filtered_lines: '{{count}} von {{total}} Zeilen nach Filtern',
       main_menu_eyebrow: 'Workspace-Menü',
       main_menu_greeting: 'Was möchtest du tun?',
       main_menu_intro: 'Wähle einen Bereich, um in diesem Workspace weiterzuarbeiten.',
@@ -1426,15 +1494,32 @@
     terminalChart: document.getElementById('terminal-chart'),
     terminalChartTotal: document.getElementById('terminal-chart-total'),
     terminalChartNote: document.getElementById('terminal-chart-note'),
+    terminalChartGranularity: document.getElementById('terminal-chart-granularity'),
+    terminalChartCoverage: document.getElementById('terminal-chart-coverage'),
+    terminalChartDay: document.getElementById('terminal-chart-day'),
+    terminalChartClear: document.getElementById('terminal-chart-clear'),
+    terminalChartSelectionStatus: document.getElementById('terminal-chart-selection-status'),
+    terminalSelectionSummary: document.getElementById('terminal-chart-selection-summary'),
+    terminalSelectionRange: document.getElementById('terminal-selection-range'),
+    terminalSelectionMetrics: document.getElementById('terminal-selection-metrics'),
+    terminalSelectionCoverage: document.getElementById('terminal-selection-coverage'),
     terminalLinesTitle: document.getElementById('terminal-lines-title'),
     terminalLinesCount: document.getElementById('terminal-lines-count'),
     terminalLinesMode: document.getElementById('terminal-lines-mode'),
+    terminalLinesExport: document.getElementById('terminal-lines-export'),
+    terminalFilterFrom: document.getElementById('terminal-filter-from'),
+    terminalFilterTo: document.getElementById('terminal-filter-to'),
+    terminalFilterCustomer: document.getElementById('terminal-filter-customer'),
+    terminalFilterOrder: document.getElementById('terminal-filter-order'),
+    terminalFilterSource: document.getElementById('terminal-filter-source'),
+    terminalFilterClear: document.getElementById('terminal-filter-clear'),
     terminalLinesColumnOptions: document.getElementById('terminal-lines-column-options'),
     terminalLinesScroll: document.getElementById('terminal-lines-scroll'),
     terminalLinesHead: document.getElementById('terminal-lines-head'),
     terminalLinesBody: document.getElementById('terminal-lines-body'),
     terminalWatchlistCount: document.getElementById('terminal-watchlist-count'),
     terminalWatchlistRows: document.getElementById('terminal-watchlist-rows'),
+    terminalWatchlistRank: document.getElementById('terminal-watchlist-rank'),
     terminalSourceNote: document.getElementById('terminal-source-note'),
     mainMenuWorkspaceName: document.getElementById('main-menu-workspace-name'),
     runtimeBadge: document.getElementById('runtime-badge'),
@@ -1604,7 +1689,10 @@
 
   let workspaceSaveChain = Promise.resolve();
   const terminalView = { rows: null, indexes: {}, scope: 'article', selected: { article: null, customer: null, order: null },
-    lineMode: 'recent', columns: new Set(), lineContext: null, allLines: null, renderedWindow: null };
+    lineMode: 'recent', columns: new Set(), lineContext: null, allLines: null, filteredLines: null,
+    sortKey: 'delivery_date', sortDirection: 'desc', day: null, watchlist: null, watchMatches: null,
+    coverage: null, chartData: null, selectionCache: null,
+    renderedWindow: null };
   let workspaceSavePending = 0;
   let workspaceSaveRevision = 0;
   let workspaceSaveGeneration = 0;
@@ -4318,27 +4406,67 @@
 
   function renderTerminalChart(summary) {
     elements.terminalChart.replaceChildren();
+    terminalView.chartPoints = summary.points;
+    const chartData = terminalView.chartData;
+    const buckets = chartData ? chartData.buckets : [];
+    if (terminalView.day && !summary.points.some(function (point) { return point.date === terminalView.day; })) terminalView.day = null;
+    const dayOptions = document.createDocumentFragment();
+    const allDays = document.createElement('option');
+    allDays.value = '';
+    setText(allDays, translate('terminal_all_observed_days'));
+    dayOptions.appendChild(allDays);
+    summary.points.forEach(function (point) {
+      const option = document.createElement('option');
+      option.value = point.date;
+      setText(option, formatCalendarDate(point.date));
+      dayOptions.appendChild(option);
+    });
+    elements.terminalChartDay.replaceChildren(dayOptions);
+    elements.terminalChartDay.value = terminalView.day || '';
+    const filterFrom = elements.terminalFilterFrom.value;
+    const filterTo = elements.terminalFilterTo.value;
+    elements.terminalChartClear.disabled = !terminalView.day && !filterFrom && !filterTo;
+    setText(elements.terminalChartSelectionStatus, terminalView.day
+      ? translate('terminal_chart_selected_day', { day: formatCalendarDate(terminalView.day) })
+      : filterFrom || filterTo ? translate('terminal_chart_selected_range', {
+        from: filterFrom ? formatCalendarDate(filterFrom) : '…',
+        to: filterTo ? formatCalendarDate(filterTo) : '…'
+      }) : '');
+    const coverage = chartData && chartData.coverage;
+    setText(elements.terminalChartCoverage, chartData && coverage && coverage.expectedDayCount > 0
+      ? translate('terminal_chart_coverage', {
+        observed: formatNumber(coverage.observedDayCount, 0),
+        expected: formatNumber(coverage.expectedDayCount, 0),
+        unknown: formatNumber(coverage.missingDayCount, 0),
+        unit: translate({ day: 'terminal_granularity_day', week: 'terminal_granularity_week',
+          month: 'terminal_granularity_month' }[chartData.granularity])
+      }) + ' · ' + translate('terminal_chart_coverage_legend')
+      : chartData && chartData.expectedWeekdaysConfigured
+        ? translate('terminal_chart_no_expected') : translate('terminal_chart_coverage_unavailable'));
     const metric = elements.terminalMetric.value;
-    if (summary.points.length === 0) {
+    if (!buckets.length) {
       const empty = document.createElement('p');
       empty.className = 'terminal-chart-empty';
       setText(empty, translate('terminal_no_period_rows'));
       elements.terminalChart.appendChild(empty);
       return;
     }
-    const svg = terminalSvg('svg', { viewBox: '0 0 900 360', role: 'img', 'aria-label': translate('terminal_trend'), preserveAspectRatio: 'none' });
+    const svg = terminalSvg('svg', { viewBox: '0 0 900 360', role: 'img', 'aria-label': translate('terminal_trend'), preserveAspectRatio: 'none', 'data-selectable': 'true' });
     const plotLeft = 64;
     const plotRight = 836;
     const plotTop = 25;
     const plotBottom = 265;
-    const values = summary.points.map(function (point) {
-      return metric === 'quantity' ? Number(point.quantity) / Number(core.QUANTITY_SCALE) : point.lines;
+    const values = buckets.map(function (bucket) {
+      return bucket.hasRows ? (metric === 'quantity' ? Number(bucket.quantity) / Number(core.QUANTITY_SCALE) : bucket.lines) : 0;
     });
     const maxValue = values.reduce(function (max, value) { return Math.max(max, value); }, 1);
-    const minTime = Date.parse(summary.points[0].date + 'T00:00:00Z');
-    const maxTime = Date.parse(summary.points[summary.points.length - 1].date + 'T00:00:00Z');
-    const span = Math.max(1, maxTime - minTime);
-    const x = function (point) { return plotLeft + (Date.parse(point.date + 'T00:00:00Z') - minTime) / span * (plotRight - plotLeft); };
+    const minTime = Date.parse(chartData.start + 'T00:00:00Z');
+    const maxTime = Date.parse(chartData.end + 'T00:00:00Z');
+    const span = Math.max(86400000, maxTime - minTime + 86400000);
+    const dateX = function (date, addDay) {
+      return plotLeft + (Date.parse(date + 'T00:00:00Z') - minTime + (addDay ? 86400000 : 0)) / span * (plotRight - plotLeft);
+    };
+    const x = function (bucket) { return (dateX(bucket.from, false) + dateX(bucket.to, true)) / 2; };
     const y = function (value) { return plotBottom - Math.max(0, value) / maxValue * (plotBottom - plotTop); };
     for (let tick = 0; tick <= 4; tick += 1) {
       const tickY = plotBottom - tick * (plotBottom - plotTop) / 4;
@@ -4346,11 +4474,20 @@
       const scaleValue = metric === 'quantity' ? BigInt(Math.round(maxValue * tick / 4 * Number(core.QUANTITY_SCALE))) : maxValue * tick / 4;
       svg.appendChild(terminalSvg('text', { x: plotLeft - 12, y: tickY + 4, 'text-anchor': 'end', class: 'terminal-axis-label' }, metric === 'quantity' ? formatQuantity(scaleValue) : formatNumber(scaleValue, 0)));
     }
-    const points = summary.points.map(function (point, index) { return [x(point), y(values[index])]; });
+    if (!terminalView.day && (filterFrom || filterTo) && (!filterFrom || filterFrom <= chartData.end) &&
+        (!filterTo || filterTo >= chartData.start) && (!filterFrom || !filterTo || filterFrom <= filterTo)) {
+      const bandStart = Math.max(minTime, Date.parse((filterFrom || chartData.start) + 'T00:00:00Z'));
+      const bandEnd = Math.min(maxTime, Date.parse((filterTo || chartData.end) + 'T00:00:00Z'));
+      const bandX = plotLeft + (bandStart - minTime) / span * (plotRight - plotLeft);
+      const bandWidth = Math.max(2, (bandEnd - bandStart + 86400000) / span * (plotRight - plotLeft));
+      svg.appendChild(terminalSvg('rect', { x: bandX, y: plotTop, width: bandWidth,
+        height: 305, class: 'terminal-chart-range' }));
+    }
+    const points = buckets.map(function (bucket, index) { return [x(bucket), y(values[index])]; });
     const segments = [];
-    summary.points.forEach(function (point, index) {
-      const previous = summary.points[index - 1];
-      if (!previous || Date.parse(point.date + 'T00:00:00Z') - Date.parse(previous.date + 'T00:00:00Z') > 86400000) segments.push([]);
+    buckets.forEach(function (bucket, index) {
+      if (!bucket.hasRows) return;
+      if (!buckets[index - 1] || !buckets[index - 1].hasRows) segments.push([]);
       segments[segments.length - 1].push(points[index]);
     });
     segments.forEach(function (segment) {
@@ -4360,42 +4497,139 @@
       svg.appendChild(terminalSvg('path', { d: areaPath, class: 'terminal-chart-area' }));
       svg.appendChild(terminalSvg('path', { d: linePath, class: 'terminal-chart-line' }));
     });
-    if (summary.points.length <= 150) {
-      summary.points.forEach(function (point, index) {
+    if (terminalView.day) {
+      const activeIndex = buckets.findIndex(function (bucket) { return bucket.from <= terminalView.day && bucket.to >= terminalView.day; });
+      if (activeIndex >= 0) {
+        svg.appendChild(terminalSvg('line', { x1: points[activeIndex][0], y1: plotTop,
+          x2: points[activeIndex][0], y2: 330, class: 'terminal-chart-selection' }));
+        if (buckets[activeIndex].hasRows) svg.appendChild(terminalSvg('circle', {
+          cx: points[activeIndex][0], cy: points[activeIndex][1],
+          r: 7, class: 'terminal-chart-selected-point' }));
+      }
+    }
+    if (buckets.length <= 150) {
+      buckets.forEach(function (bucket, index) {
+        if (!bucket.hasRows) return;
         const circle = terminalSvg('circle', { cx: points[index][0], cy: points[index][1], r: 4, class: 'terminal-chart-point' });
-        circle.appendChild(terminalSvg('title', {}, point.date + ' · ' + (metric === 'quantity' ? formatQuantity(point.quantity) : formatNumber(point.lines, 0))));
+        circle.appendChild(terminalSvg('title', {}, translate('terminal_chart_bucket_title', {
+          from: formatCalendarDate(bucket.from), to: formatCalendarDate(bucket.to),
+          quantity: formatQuantity(bucket.quantity), lines: formatNumber(bucket.lines, 0),
+          observed: bucket.observedDays, expected: bucket.expectedDays
+        })));
         svg.appendChild(circle);
       });
     }
-    const maxLines = summary.points.reduce(function (max, point) { return Math.max(max, point.lines); }, 1);
-    const barWidth = Math.max(2, Math.min(12, 600 / summary.points.length));
-    summary.points.forEach(function (point) {
-      const barHeight = point.lines / maxLines * 48;
-      svg.appendChild(terminalSvg('rect', { x: x(point) - barWidth / 2, y: 330 - barHeight, width: barWidth, height: barHeight, class: 'terminal-volume-bar' }));
+    const maxLines = buckets.reduce(function (max, bucket) { return Math.max(max, bucket.lines); }, 1);
+    const barWidth = Math.max(1, Math.min(12, 600 / buckets.length));
+    buckets.forEach(function (bucket) {
+      if (!bucket.hasRows) return;
+      const barHeight = bucket.lines / maxLines * 48;
+      svg.appendChild(terminalSvg('rect', { x: x(bucket) - barWidth / 2, y: 330 - barHeight,
+        width: barWidth, height: barHeight, class: 'terminal-volume-bar' }));
     });
-    [0, Math.floor((summary.points.length - 1) / 2), summary.points.length - 1].filter(function (index, position, array) { return array.indexOf(index) === position; }).forEach(function (index) {
-      const point = summary.points[index];
-      svg.appendChild(terminalSvg('text', { x: x(point), y: 354, 'text-anchor': index === 0 ? 'start' : index === summary.points.length - 1 ? 'end' : 'middle', class: 'terminal-axis-label' }, formatCalendarDate(point.date)));
+    buckets.forEach(function (bucket) {
+      const className = bucket.expectedDays === 0 ? 'terminal-coverage-unavailable' :
+        bucket.observedDays === 0 ? 'terminal-coverage-unknown' :
+        bucket.observedDays < bucket.expectedDays ? 'terminal-coverage-partial' : 'terminal-coverage-complete';
+      const rect = terminalSvg('rect', { x: dateX(bucket.from, false), y: 336,
+        width: Math.max(1, dateX(bucket.to, true) - dateX(bucket.from, false)), height: 8, class: className });
+      rect.appendChild(terminalSvg('title', {}, bucket.expectedDays > 0
+        ? translate(bucket.hasRows ? 'terminal_chart_bucket_title' : 'terminal_chart_bucket_empty', {
+          from: formatCalendarDate(bucket.from), to: formatCalendarDate(bucket.to),
+          quantity: formatQuantity(bucket.quantity), lines: formatNumber(bucket.lines, 0),
+          observed: bucket.observedDays, expected: bucket.expectedDays
+        }) : translate('terminal_chart_no_expected')));
+      svg.appendChild(rect);
     });
+    [0, Math.floor((buckets.length - 1) / 2), buckets.length - 1].filter(function (index, position, array) { return array.indexOf(index) === position; }).forEach(function (index) {
+      const bucket = buckets[index];
+      svg.appendChild(terminalSvg('text', { x: x(bucket), y: 357,
+        'text-anchor': index === 0 ? 'start' : index === buckets.length - 1 ? 'end' : 'middle',
+        class: 'terminal-axis-label' }, chartData.granularity === 'month'
+        ? new Intl.DateTimeFormat(state.language === 'de' ? 'de-DE' : 'en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(bucket.from + 'T00:00:00Z'))
+        : formatCalendarDate(bucket.from)));
+    });
+    if (summary.points.length === 0) svg.appendChild(terminalSvg('text', { x: 450, y: 150,
+      'text-anchor': 'middle', class: 'terminal-axis-label' }, translate('terminal_no_period_rows')));
     elements.terminalChart.appendChild(svg);
   }
 
-  function renderTerminalWatchlist(list, selected) {
-    const query = elements.terminalSearch.value.trim().toLocaleLowerCase(state.language === 'de' ? 'de-DE' : 'en-US');
-    const matches = query ? list.filter(function (entity) { return (entity.label + ' ' + entity.secondary).toLocaleLowerCase(state.language === 'de' ? 'de-DE' : 'en-US').includes(query); }) : list;
-    setText(elements.terminalWatchlistCount, translate('terminal_entities_count', { count: matches.length }) + ' · ' + translate('terminal_all_days'));
-    elements.terminalWatchlistRows.replaceChildren();
-    if (matches.length === 0) {
-      const empty = document.createElement('p');
-      empty.className = 'terminal-watchlist-empty';
-      setText(empty, list.length === 0 ? translate('terminal_no_entities') : translate('no_matches'));
-      elements.terminalWatchlistRows.appendChild(empty);
+  function renderTerminalSelectionSummary() {
+    const chartData = terminalView.chartData;
+    const context = terminalView.lineContext;
+    const active = Boolean(terminalView.day || elements.terminalFilterFrom.value || elements.terminalFilterTo.value);
+    elements.terminalSelectionSummary.classList.toggle('hidden', !active || !chartData || !context);
+    if (!active || !chartData || !context) return;
+    const from = terminalView.day || elements.terminalFilterFrom.value || chartData.start;
+    const to = terminalView.day || elements.terminalFilterTo.value || chartData.end;
+    setText(elements.terminalSelectionRange, formatCalendarDate(from) + ' – ' + formatCalendarDate(to));
+    if (from > to) {
+      elements.terminalSelectionMetrics.replaceChildren();
+      setText(elements.terminalSelectionCoverage, translate('terminal_selection_invalid'));
+      return;
     }
-    matches.slice(0, 100).forEach(function (entity) {
+    const lines = !context.key ? [] : terminalView.allLines || (terminalView.allLines = terminalModel.selectedLines(context.rows,
+      context.scope, context.key, context.latestDate, context.range));
+    const cached = terminalView.selectionCache;
+    if (!cached || cached.lines !== lines || cached.from !== from || cached.to !== to ||
+        cached.coverageSource !== chartData.coverage) {
+      terminalView.selectionCache = { lines: lines, from: from, to: to, coverageSource: chartData.coverage,
+        values: terminalModel.summarizeSelection(lines, from, to),
+        coverage: terminalModel.coverageCounts(chartData.coverage.expectedDates,
+          chartData.coverage.observedDates, from, to) };
+    }
+    const selected = terminalView.selectionCache.values;
+    const metrics = [
+      [translate('terminal_quantity'), formatQuantity(selected.quantity)],
+      [translate('terminal_lines'), formatNumber(selected.lines, 0)],
+      [translate('terminal_distinct_orders'), formatNumber(selected.orders, 0)],
+      [translate('terminal_distinct_customers'), formatNumber(selected.customers, 0)],
+      [translate('terminal_selection_days'), formatNumber(selected.days, 0)]
+    ];
+    const fragment = document.createDocumentFragment();
+    metrics.forEach(function (metric) {
+      const item = document.createElement('div');
+      const label = document.createElement('small');
+      const value = document.createElement('strong');
+      setText(label, metric[0]);
+      setText(value, metric[1]);
+      item.appendChild(label);
+      item.appendChild(value);
+      fragment.appendChild(item);
+    });
+    elements.terminalSelectionMetrics.replaceChildren(fragment);
+    const coverage = terminalView.selectionCache.coverage;
+    setText(elements.terminalSelectionCoverage, (chartData.expectedWeekdaysConfigured && coverage.expected > 0
+      ? translate('terminal_selection_coverage', {
+        observed: formatNumber(coverage.observed, 0), expected: formatNumber(coverage.expected, 0),
+        unknown: formatNumber(coverage.unknown, 0)
+      }) : chartData.expectedWeekdaysConfigured ? translate('terminal_chart_no_expected')
+        : translate('terminal_selection_coverage_unavailable')) + ' ' +
+      (selected.lines === 0 ? translate('terminal_selection_no_rows') + ' ' : '') +
+      translate('terminal_selection_scope_note'));
+  }
+
+  function renderTerminalWatchlistWindow(selected) {
+    const matches = terminalView.watchMatches || [];
+    if (matches.length === 0) return;
+    const visible = terminalModel.visibleLineWindow(matches.length, elements.terminalWatchlistRows.scrollTop,
+      elements.terminalWatchlistRows.clientHeight, 48, 5);
+    const previous = terminalView.watchWindow;
+    if (previous && previous.list === matches && previous.start === visible.start && previous.end === visible.end &&
+        previous.selected === (selected && selected.key)) return;
+    const fragment = document.createDocumentFragment();
+    if (visible.before) {
+      const spacer = document.createElement('div');
+      spacer.style.height = visible.before + 'px';
+      spacer.setAttribute('aria-hidden', 'true');
+      fragment.appendChild(spacer);
+    }
+    matches.slice(visible.start, visible.end).forEach(function (entity) {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'terminal-watchlist-item' + (selected && entity.key === selected.key ? ' selected' : '');
       button.dataset.terminalEntityKey = entity.key;
+      button.setAttribute('aria-pressed', String(Boolean(selected && entity.key === selected.key)));
       const name = document.createElement('span');
       name.className = 'terminal-watchlist-name';
       const label = document.createElement('strong');
@@ -4409,8 +4643,39 @@
       setText(value, elements.terminalMetric.value === 'quantity' ? formatQuantity(entity.quantity) : formatNumber(entity.lines, 0));
       button.appendChild(name);
       button.appendChild(value);
-      elements.terminalWatchlistRows.appendChild(button);
+      fragment.appendChild(button);
     });
+    if (visible.after) {
+      const spacer = document.createElement('div');
+      spacer.style.height = visible.after + 'px';
+      spacer.setAttribute('aria-hidden', 'true');
+      fragment.appendChild(spacer);
+    }
+    elements.terminalWatchlistRows.replaceChildren(fragment);
+    terminalView.watchWindow = { list: matches, start: visible.start, end: visible.end,
+      selected: selected && selected.key };
+  }
+
+  function renderTerminalWatchlist(list, selected) {
+    const query = elements.terminalSearch.value.trim().toLocaleLowerCase(state.language === 'de' ? 'de-DE' : 'en-US');
+    if (terminalView.watchMatchList !== list || terminalView.watchQuery !== query) {
+      terminalView.watchMatches = query ? list.filter(function (entity) { return (entity.label + ' ' + entity.secondary).toLocaleLowerCase(state.language === 'de' ? 'de-DE' : 'en-US').includes(query); }) : list;
+      terminalView.watchMatchList = list;
+      terminalView.watchQuery = query;
+      terminalView.watchWindow = null;
+      elements.terminalWatchlistRows.scrollTop = 0;
+    }
+    const matches = terminalView.watchMatches;
+    setText(elements.terminalWatchlistCount, translate('terminal_entities_count', { count: matches.length }) + ' · ' +
+      translate(elements.terminalWatchlistRank.value === 'all' ? 'terminal_rank_all' : 'terminal_rank_period'));
+    if (matches.length === 0) {
+      const empty = document.createElement('p');
+      empty.className = 'terminal-watchlist-empty';
+      setText(empty, list.length === 0 ? translate('terminal_no_entities') : translate('no_matches'));
+      elements.terminalWatchlistRows.replaceChildren(empty);
+      return;
+    }
+    renderTerminalWatchlistWindow(selected);
   }
 
   const TERMINAL_LINE_ROW_HEIGHT = 36;
@@ -4501,12 +4766,35 @@
     return row;
   }
 
+  function terminalCurrentLines() {
+    const context = terminalView.lineContext;
+    if (!context || !context.key) return [];
+    if (terminalView.lineMode === 'recent') return context.summary.latest;
+    if (!terminalView.filteredLines) {
+      const all = terminalView.allLines || (terminalView.allLines = terminalModel.selectedLines(context.rows,
+        context.scope, context.key, context.latestDate, context.range));
+      terminalView.filteredLines = terminalModel.sortLines(terminalModel.filterLines(all, {
+        day: terminalView.day,
+        from: elements.terminalFilterFrom.value,
+        to: elements.terminalFilterTo.value,
+        customer: elements.terminalFilterCustomer.value.trim(),
+        order: elements.terminalFilterOrder.value.trim(),
+        source: elements.terminalFilterSource.value.trim()
+      }), terminalView.sortKey, terminalView.sortDirection);
+    }
+    return terminalView.filteredLines;
+  }
+
+  function terminalHasFilters() {
+    return Boolean(terminalView.day || elements.terminalFilterFrom.value || elements.terminalFilterTo.value ||
+      elements.terminalFilterCustomer.value.trim() || elements.terminalFilterOrder.value.trim() ||
+      elements.terminalFilterSource.value.trim());
+  }
+
   function renderTerminalLineRows() {
     const context = terminalView.lineContext;
     if (!context) return;
-    const lines = terminalView.lineMode === 'recent' ? context.summary.latest :
-      (terminalView.allLines || (terminalView.allLines = terminalModel.selectedLines(context.rows,
-        context.scope, context.key, context.latestDate, context.range)));
+    const lines = terminalCurrentLines();
     const columns = terminalLineColumns();
     const visible = terminalView.lineMode === 'recent'
       ? { start: 0, end: lines.length, before: 0, after: 0 }
@@ -4536,18 +4824,27 @@
 
   function renderTerminalLineTable(resetScroll) {
     if (resetScroll) elements.terminalLinesScroll.scrollTop = 0;
+    if (terminalHasFilters()) terminalView.lineMode = 'all';
     const all = terminalView.lineMode === 'all';
     setText(elements.terminalLinesTitle, translate(all ? 'terminal_all_lines' : 'terminal_recent_lines'));
     elements.terminalLinesMode.value = terminalView.lineMode;
+    elements.terminalLinesMode.querySelector('option[value="recent"]').disabled = terminalHasFilters();
     const context = terminalView.lineContext;
-    setText(elements.terminalLinesCount, translate('terminal_lines_shown', {
-      count: all ? context.summary.lines : context.summary.latest.length, total: context.summary.lines
+    const lines = terminalCurrentLines();
+    setText(elements.terminalLinesCount, translate(all && terminalHasFilters() ? 'terminal_filtered_lines' : 'terminal_lines_shown', {
+      count: lines.length, total: context.summary.lines
     }));
+    elements.terminalLinesExport.disabled = lines.length === 0;
     const fragment = document.createDocumentFragment();
     terminalLineColumns().forEach(function (column) {
       const heading = document.createElement('th');
       if (column.number) heading.className = 'number';
-      setText(heading, column.label);
+      if (all && terminalView.sortKey === column.key) heading.setAttribute('aria-sort', terminalView.sortDirection === 'asc' ? 'ascending' : 'descending');
+      const sortButton = document.createElement('button');
+      sortButton.type = 'button';
+      sortButton.dataset.terminalSort = column.key;
+      setText(sortButton, column.label + (all && terminalView.sortKey === column.key ? (terminalView.sortDirection === 'asc' ? ' ↑' : ' ↓') : ''));
+      heading.appendChild(sortButton);
       fragment.appendChild(heading);
     });
     elements.terminalLinesHead.replaceChildren(fragment);
@@ -4567,6 +4864,13 @@
       terminalView.rows = rows;
       terminalView.indexes = {};
       terminalView.selected = { article: null, customer: null, order: null };
+      terminalView.watchlist = null;
+      terminalView.day = null;
+      terminalView.coverage = null;
+      terminalView.chartData = null;
+      terminalView.selectionCache = null;
+      [elements.terminalFilterFrom, elements.terminalFilterTo, elements.terminalFilterCustomer,
+        elements.terminalFilterOrder, elements.terminalFilterSource].forEach(function (input) { input.value = ''; });
     }
     const scope = terminalView.scope;
     if (!terminalView.indexes[scope]) {
@@ -4585,28 +4889,60 @@
     setText(elements.terminalEntityTitle, selected ? selected.label : translate('terminal_no_entities'));
     setText(elements.terminalEntitySubtitle, selected ? selected.secondary : '');
     setText(elements.terminalSourceNote, translate('terminal_id_coverage', { identified: formatNumber(index.coverage[scope], 0), total: formatNumber(index.coverage.total, 0) }));
+    const range = elements.terminalRange.value;
     const summary = selected
-      ? terminalModel.selectedSummary(rows, scope, selected.key, index.latestDate, elements.terminalRange.value)
-      : terminalModel.selectedSummary([], scope, '', index.latestDate, elements.terminalRange.value);
-    setText(elements.terminalDataPeriod, summary.firstDate ? formatCalendarDate(summary.firstDate) + ' – ' + formatCalendarDate(summary.lastDate) : '—');
+      ? terminalModel.selectedSummary(rows, scope, selected.key, index.latestDate, range)
+      : terminalModel.selectedSummary([], scope, '', index.latestDate, range);
+    const chartStart = terminalModel.rangeStart(index.latestDate, range) || index.earliestDate;
+    const chartEnd = index.latestDate;
+    const expectedWeekdays = state.periodSettings && Array.isArray(state.periodSettings.expectedWeekdays)
+      ? state.periodSettings.expectedWeekdays : [0, 1, 2, 3, 4, 5, 6];
+    const weekdaysKey = expectedWeekdays.join(',');
+    if (!terminalView.coverage || terminalView.coverage.rows !== rows ||
+        terminalView.coverage.start !== chartStart || terminalView.coverage.end !== chartEnd ||
+        terminalView.coverage.weekdaysKey !== weekdaysKey) {
+      terminalView.coverage = { rows: rows, start: chartStart, end: chartEnd, weekdaysKey: weekdaysKey,
+        result: periods.coverageForPeriod(rows, { start: chartStart, end: chartEnd }, expectedWeekdays) };
+    }
+    const granularity = terminalModel.chartGranularity(chartStart, chartEnd, elements.terminalChartGranularity.value);
+    terminalView.chartData = { start: chartStart, end: chartEnd, granularity: granularity,
+      expectedWeekdaysConfigured: expectedWeekdays.length > 0, coverage: terminalView.coverage.result,
+      buckets: terminalModel.aggregateChart(summary.points, chartStart, chartEnd, granularity,
+        terminalView.coverage.result.expectedDates, terminalView.coverage.result.observedDates) };
+    setText(elements.terminalDataPeriod, chartStart && chartEnd
+      ? formatCalendarDate(chartStart) + ' – ' + formatCalendarDate(chartEnd) : '—');
     renderMetricCards(elements.terminalKpis, [
-      [translate('terminal_quantity'), formatQuantity(summary.quantity), translate('terminal_valid_rows')],
-      [translate('terminal_lines'), formatNumber(summary.lines, 0), translate('terminal_valid_rows')],
-      [translate('terminal_distinct_orders'), formatNumber(summary.orders, 0), ''],
-      [translate(scope === 'article' ? 'terminal_distinct_customers' : 'terminal_distinct_articles'), formatNumber(scope === 'article' ? summary.customers : summary.articles, 0), '']
+      [translate('terminal_quantity'), formatQuantity(summary.quantity), translate('terminal_total_period')],
+      [translate('terminal_lines'), formatNumber(summary.lines, 0), translate('terminal_total_period')],
+      [translate('terminal_distinct_orders'), formatNumber(summary.orders, 0), translate('terminal_total_period')],
+      [translate(scope === 'article' ? 'terminal_distinct_customers' : 'terminal_distinct_articles'),
+        formatNumber(scope === 'article' ? summary.customers : summary.articles, 0), translate('terminal_total_period')]
     ]);
     setText(elements.terminalChartTotal, elements.terminalMetric.value === 'quantity' ? formatQuantity(summary.quantity) : formatNumber(summary.lines, 0));
-    setText(elements.terminalChartNote, translate(elements.terminalMetric.value === 'quantity' ? 'terminal_quantity' : 'terminal_lines') + ' · ' + translate('terminal_observed_only'));
+    setText(elements.terminalChartNote, translate('terminal_total_period') + ' · ' +
+      translate(elements.terminalMetric.value === 'quantity' ? 'terminal_quantity' : 'terminal_lines') +
+      ' · ' + translate('terminal_observed_only'));
     renderTerminalChart(summary);
     const previous = terminalView.lineContext;
-    const range = elements.terminalRange.value;
     const contextChanged = !previous || previous.rows !== rows || previous.scope !== scope ||
       previous.key !== terminalView.selected[scope] || previous.range !== range;
-    if (contextChanged) terminalView.allLines = null;
+    if (contextChanged) {
+      terminalView.allLines = null;
+      terminalView.filteredLines = null;
+      terminalView.selectionCache = null;
+    }
     terminalView.lineContext = { rows: rows, scope: scope, key: terminalView.selected[scope],
       latestDate: index.latestDate, range: range, summary: summary };
     renderTerminalLineTable(contextChanged);
-    renderTerminalWatchlist(list, selected);
+    renderTerminalSelectionSummary();
+    const rankDays = elements.terminalWatchlistRank.value === 'period' ? range : 'all';
+    const metric = elements.terminalMetric.value;
+    if (!terminalView.watchlist || terminalView.watchlist.rows !== rows || terminalView.watchlist.scope !== scope ||
+        terminalView.watchlist.days !== rankDays || terminalView.watchlist.metric !== metric) {
+      terminalView.watchlist = { rows: rows, scope: scope, days: rankDays, metric: metric,
+        list: terminalModel.rankEntities(rows, list, scope, index.latestDate, rankDays, metric) };
+    }
+    renderTerminalWatchlist(terminalView.watchlist.list, selected);
   }
 
   function appendCell(row, value, className) {
@@ -7305,9 +7641,147 @@
   });
   elements.terminalMetric.addEventListener('change', renderTerminal);
   elements.terminalRange.addEventListener('change', renderTerminal);
+  elements.terminalChartGranularity.addEventListener('change', renderTerminal);
+  elements.terminalWatchlistRank.addEventListener('change', renderTerminal);
   elements.terminalLinesMode.addEventListener('change', function () {
     terminalView.lineMode = elements.terminalLinesMode.value === 'all' ? 'all' : 'recent';
     renderTerminalLineTable(true);
+  });
+  function updateTerminalFilters() {
+    terminalView.lineMode = 'all';
+    terminalView.filteredLines = null;
+    renderTerminalLineTable(true);
+    renderTerminalSelectionSummary();
+  }
+  [elements.terminalFilterFrom, elements.terminalFilterTo, elements.terminalFilterCustomer,
+    elements.terminalFilterOrder, elements.terminalFilterSource].forEach(function (input) {
+    input.addEventListener('input', function () {
+      if (input === elements.terminalFilterFrom || input === elements.terminalFilterTo) {
+        terminalView.day = null;
+        if (terminalView.lineContext) renderTerminalChart(terminalView.lineContext.summary);
+      }
+      updateTerminalFilters();
+    });
+  });
+  elements.terminalFilterClear.addEventListener('click', function () {
+    [elements.terminalFilterFrom, elements.terminalFilterTo, elements.terminalFilterCustomer,
+      elements.terminalFilterOrder, elements.terminalFilterSource].forEach(function (input) { input.value = ''; });
+    terminalView.day = null;
+    if (terminalView.lineContext) renderTerminalChart(terminalView.lineContext.summary);
+    updateTerminalFilters();
+  });
+  elements.terminalChartDay.addEventListener('change', function () {
+    terminalView.day = elements.terminalChartDay.value || null;
+    elements.terminalFilterFrom.value = '';
+    elements.terminalFilterTo.value = '';
+    if (terminalView.lineContext) renderTerminalChart(terminalView.lineContext.summary);
+    updateTerminalFilters();
+  });
+  elements.terminalChartClear.addEventListener('click', function () {
+    terminalView.day = null;
+    elements.terminalFilterFrom.value = '';
+    elements.terminalFilterTo.value = '';
+    if (terminalView.lineContext) renderTerminalChart(terminalView.lineContext.summary);
+    updateTerminalFilters();
+  });
+  let terminalChartDrag = null;
+  function terminalChartPointerX(event, svg) {
+    const bounds = svg.getBoundingClientRect();
+    return (event.clientX - bounds.left) / bounds.width * 900;
+  }
+  elements.terminalChart.addEventListener('pointerdown', function (event) {
+    if (event.button !== 0 || !event.isPrimary) return;
+    const svg = event.target.closest('svg[data-selectable]');
+    if (!svg || !terminalView.chartData || !terminalView.chartData.buckets.length) return;
+    const chartX = terminalChartPointerX(event, svg);
+    if (chartX < 64 || chartX > 836) return;
+    const band = terminalSvg('rect', { x: chartX, y: 25, width: 1, height: 305, class: 'terminal-chart-drag-range' });
+    svg.appendChild(band);
+    terminalChartDrag = { svg: svg, pointerId: event.pointerId, startX: chartX, endX: chartX, band: band };
+    svg.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  });
+  elements.terminalChart.addEventListener('pointermove', function (event) {
+    const drag = terminalChartDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    drag.endX = Math.max(64, Math.min(836, terminalChartPointerX(event, drag.svg)));
+    drag.band.setAttribute('x', String(Math.min(drag.startX, drag.endX)));
+    drag.band.setAttribute('width', String(Math.max(1, Math.abs(drag.endX - drag.startX))));
+  });
+  elements.terminalChart.addEventListener('pointerup', function (event) {
+    const drag = terminalChartDrag;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    terminalChartDrag = null;
+    drag.endX = Math.max(64, Math.min(836, terminalChartPointerX(event, drag.svg)));
+    if (drag.svg.hasPointerCapture(event.pointerId)) drag.svg.releasePointerCapture(event.pointerId);
+    const chartData = terminalView.chartData;
+    if (!chartData || !chartData.buckets.length) return;
+    const domain = [{ date: chartData.start }, { date: chartData.end }];
+    const range = terminalModel.chartDateRange(domain, drag.startX, drag.endX, 64, 836);
+    if (Math.abs(drag.endX - drag.startX) > 6 && range && range.from !== range.to) {
+      terminalView.day = null;
+      elements.terminalFilterFrom.value = range.from;
+      elements.terminalFilterTo.value = range.to;
+      if (terminalView.lineContext) renderTerminalChart(terminalView.lineContext.summary);
+      updateTerminalFilters();
+      return;
+    }
+    const clickedDate = terminalModel.chartDateAtX(domain, drag.endX, 64, 836);
+    if (chartData.granularity === 'day') {
+      const points = terminalView.chartPoints || [];
+      const target = Date.parse(clickedDate + 'T00:00:00Z');
+      const nearest = points.length ? points.reduce(function (best, point) {
+        return Math.abs(Date.parse(point.date + 'T00:00:00Z') - target) <
+          Math.abs(Date.parse(best.date + 'T00:00:00Z') - target) ? point : best;
+      }, points[0]) : null;
+      terminalView.day = nearest ? nearest.date : null;
+      elements.terminalFilterFrom.value = nearest ? '' : clickedDate;
+      elements.terminalFilterTo.value = nearest ? '' : clickedDate;
+    } else {
+      const bucket = chartData.buckets.find(function (item) { return item.from <= clickedDate && item.to >= clickedDate; });
+      if (!bucket) return;
+      terminalView.day = null;
+      elements.terminalFilterFrom.value = bucket.from;
+      elements.terminalFilterTo.value = bucket.to;
+    }
+    if (terminalView.lineContext) renderTerminalChart(terminalView.lineContext.summary);
+    updateTerminalFilters();
+  });
+  elements.terminalChart.addEventListener('pointercancel', function (event) {
+    if (!terminalChartDrag || terminalChartDrag.pointerId !== event.pointerId) return;
+    terminalChartDrag.band.remove();
+    terminalChartDrag = null;
+  });
+  elements.terminalLinesHead.addEventListener('click', function (event) {
+    const button = event.target.closest('button[data-terminal-sort]');
+    if (!button) return;
+    if (terminalView.sortKey === button.dataset.terminalSort) {
+      terminalView.sortDirection = terminalView.sortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      terminalView.sortKey = button.dataset.terminalSort;
+      terminalView.sortDirection = ['quantity', 'sales_unit_count', 'quantity_per_sales_unit', 'source_line'].includes(terminalView.sortKey) ? 'desc' : 'asc';
+    }
+    terminalView.lineMode = 'all';
+    terminalView.filteredLines = null;
+    renderTerminalLineTable(true);
+    if (event.detail === 0) {
+      const replacement = Array.from(elements.terminalLinesHead.querySelectorAll('button[data-terminal-sort]'))
+        .find(function (item) { return item.dataset.terminalSort === terminalView.sortKey; });
+      if (replacement) replacement.focus();
+    }
+  });
+  elements.terminalLinesExport.addEventListener('click', function () {
+    const lines = terminalCurrentLines();
+    if (!lines.length) return;
+    const columns = terminalLineColumns();
+    const csv = terminalModel.exportLinesCsv(lines, columns, function (line, key) {
+      if (key === 'delivery_date') return line.delivery_date || '';
+      if (['quantity', 'sales_unit_count', 'quantity_per_sales_unit'].includes(key)) {
+        return typeof line[key] === 'bigint' ? core.formatScaledQuantity(line[key], 'en').replace(/,/g, '') : '';
+      }
+      return terminalLineValue(line, key);
+    });
+    downloadTextFile('openslotting-order-lines-' + new Date().toISOString().slice(0, 10) + '.csv', csv, 'text/csv;charset=utf-8');
   });
   elements.terminalLinesColumnOptions.addEventListener('change', function (event) {
     const checkbox = event.target.closest('input[data-terminal-column]');
@@ -7319,10 +7793,14 @@
   elements.terminalLinesScroll.addEventListener('scroll', function () {
     if (terminalView.lineMode === 'all') renderTerminalLineRows();
   });
+  elements.terminalWatchlistRows.addEventListener('scroll', function () {
+    const selectedKey = terminalView.selected[terminalView.scope];
+    renderTerminalWatchlistWindow(selectedKey ? { key: selectedKey } : null);
+  });
   elements.terminalSearch.addEventListener('input', function () {
     const index = terminalView.indexes[terminalView.scope];
-    if (!index) return;
-    const list = index.entities[terminalView.scope];
+    if (!index || !terminalView.watchlist) return;
+    const list = terminalView.watchlist.list;
     renderTerminalWatchlist(list, list.find(function (entity) { return entity.key === terminalView.selected[terminalView.scope]; }) || null);
   });
   elements.terminalWatchlistRows.addEventListener('click', function (event) {
@@ -7330,6 +7808,11 @@
     if (!button) return;
     terminalView.selected[terminalView.scope] = button.dataset.terminalEntityKey;
     renderTerminal();
+    if (event.detail === 0) {
+      const replacement = Array.from(elements.terminalWatchlistRows.querySelectorAll('button[data-terminal-entity-key]'))
+        .find(function (item) { return item.dataset.terminalEntityKey === terminalView.selected[terminalView.scope]; });
+      if (replacement) replacement.focus();
+    }
   });
   elements.terminalLinesBody.addEventListener('click', function (event) {
     const button = event.target.closest('button[data-terminal-article-id]');
