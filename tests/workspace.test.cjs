@@ -733,6 +733,55 @@ test('schema-eleven migration adds an empty warehouse layout and preserves impor
   assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V11');
 });
 
+test('schema-twelve migration adds empty source rules without altering imports', () => {
+  const legacy = analyzedWorkspace('workspace-v12', 'Version twelve', 'SKU-V12');
+  legacy.schemaVersion = 12;
+  delete legacy.files[0].sourceRules;
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.deepEqual(migrated.files[0].sourceRules, []);
+  assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V12');
+});
+
+test('named source rules survive backup and profiles remap only selected rules', () => {
+  const rule = { sourcePosition: 4, type: 'exclude-empty', name: 'Missing status',
+    description: 'Ignore unfinished export lines', enabled: true, includeInProfile: true };
+  const localOnly = { sourcePosition: 4, type: 'exclude-equals', value: 'draft', name: 'Draft',
+    description: 'Specific to this one file', enabled: true, includeInProfile: false };
+  const source = { headers: ['Order', 'SKU', 'Quantity', 'Date', 'Status'], sourceType: 'order-lines',
+    mapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },
+    customFieldMapping: {}, sourceRules: [rule, localOnly] };
+  const profile = workspace.createImportProfile(source, 'Filtered orders', [], {
+    id: 'profile-filtered', now: '2026-10-02T08:00:00.000Z'
+  });
+  assert.deepEqual(profile.sourceRules.map((item) => item.name), ['Missing status']);
+  const reordered = workspace.planImportProfile(profile,
+    { headers: ['Status', 'Date', 'Quantity', 'SKU', 'Order'] }, []);
+  assert.equal(reordered.compatible, true);
+  assert.equal(reordered.sourceRules[0].sourcePosition, 0);
+  assert.equal(reordered.sourceRules[0].description, rule.description);
+  const missing = workspace.planImportProfile(profile,
+    { headers: ['Date', 'Quantity', 'SKU', 'Order'] }, []);
+  assert.equal(missing.compatible, false);
+  assert.ok(missing.unresolved.some((item) => item.ruleName === 'Missing status' && item.reason === 'missing'));
+  const original = analyzedWorkspace('workspace-source-rules', 'Source rules', 'SKU-RULE');
+  original.files[0].sourceRules = [{ ...rule, sourcePosition: 1 }];
+  original.importProfiles = [profile];
+  const validated = workspace.validateWorkspace(original);
+  const restored = workspace.parseBackup(workspace.stringifyBackup(validated));
+  assert.deepEqual(restored.files[0].sourceRules, validated.files[0].sourceRules);
+  assert.deepEqual(restored.importProfiles[0].sourceRules, profile.sourceRules);
+  const captured = workspace.captureWorkspaceTrusted(validated, {
+    language: 'en', files: validated.files, customFields: [], importProfiles: validated.importProfiles,
+    articleRegistry: validated.articleRegistry
+  });
+  assert.deepEqual(captured.files[0].sourceRules, validated.files[0].sourceRules);
+  assert.throws(() => workspace.normalizeSourceRules([{ ...rule, description: '' }]),
+    (error) => error.code === 'invalid_source_rules');
+  assert.throws(() => workspace.normalizeSourceRules([rule, { ...rule }]),
+    (error) => error.code === 'invalid_source_rules');
+});
+
 test('import profiles keep mappings and ordered rules and match reordered unique headers', () => {
   const source = {
     headers: ['AUFTRNR', 'ARTNR', 'MENGE', 'DATUM'],

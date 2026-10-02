@@ -80,6 +80,7 @@
       qualityColumnIncomplete: 'The mapped column is empty in {{count}} data rows.',
       qualityColumnTypeMismatch: 'The mapped column contains {{count}} values that do not match the expected type.',
       qualityPreparationApplied: 'Explicit preparation rules changed {{count}} values before validation.',
+      sourceRuleExcluded: 'Rule “{{name}}” excluded this row because source column “{{column}}” matched. Reason: {{description}}',
       capabilityReady: 'All included order-line sources provide this capability.',
       capabilityPartial: 'Only some included order-line sources provide this capability.',
       capabilityBlocked: 'No included order-line source provides this capability.',
@@ -121,6 +122,7 @@
       qualityColumnIncomplete: 'Die zugeordnete Spalte ist in {{count}} Datenzeilen leer.',
       qualityColumnTypeMismatch: 'Die zugeordnete Spalte enthält {{count}} Werte mit einem unerwarteten Typ.',
       qualityPreparationApplied: 'Explizite Aufbereitungsregeln haben {{count}} Werte vor der Prüfung geändert.',
+      sourceRuleExcluded: 'Regel „{{name}}“ hat diese Zeile ausgeschlossen, weil Quellspalte „{{column}}“ zutrifft. Grund: {{description}}',
       capabilityReady: 'Alle einbezogenen Auftragszeilenquellen stellen diese Fähigkeit bereit.',
       capabilityPartial: 'Nur ein Teil der einbezogenen Auftragszeilenquellen stellt diese Fähigkeit bereit.',
       capabilityBlocked: 'Keine einbezogene Auftragszeilenquelle stellt diese Fähigkeit bereit.',
@@ -1216,6 +1218,32 @@
     return compiled;
   }
 
+  function matchingSourceRule(values, rules) {
+    return (Array.isArray(rules) ? rules : []).find(function (rule) {
+      if (!rule || rule.enabled === false || !Number.isInteger(rule.sourcePosition) ||
+          rule.sourcePosition < 0 || rule.sourcePosition >= values.length) return false;
+      const raw = String(values[rule.sourcePosition] === undefined || values[rule.sourcePosition] === null
+        ? '' : values[rule.sourcePosition]);
+      if (rule.type === 'exclude-empty') return raw.trim() === '';
+      if (rule.type === 'exclude-equals') return typeof rule.value === 'string' && raw === rule.value;
+      if (rule.type === 'exclude-contains') return typeof rule.value === 'string' && rule.value.length > 0 && raw.includes(rule.value);
+      return false;
+    }) || null;
+  }
+
+  function sourceRuleIssue(rule, dataRow, headers, mapping, locale) {
+    const position = rule.sourcePosition;
+    const column = headers[position] || '#' + (position + 1);
+    return { sourceLine: dataRow.sourceLine, field: null, code: 'source_rule_excluded',
+      severity: 'info', blocking: true, ruleName: rule.name, ruleDescription: rule.description,
+      sourceColumnPosition: position, sourceColumn: column,
+      rawValue: String(dataRow.values[position] === undefined ? '' : dataRow.values[position]),
+      deliveryDate: mappedDeliveryDate(dataRow.values, mapping),
+      message: message(locale, 'sourceRuleExcluded', {
+        name: rule.name, column: column, description: rule.description
+      }) };
+  }
+
   function hasEnabledPreparationRules(mapping, customFieldMapping, customFields, preparationRules) {
     function enabledFor(targetId, sourceIndex) {
       return Number.isInteger(sourceIndex) && Array.isArray(preparationRules && preparationRules[targetId]) &&
@@ -1545,6 +1573,7 @@
     const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
     const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
     const preparationRules = compilePreparationRules(options && options.preparationRules ? options.preparationRules : {});
+    const sourceRules = Array.isArray(options && options.sourceRules) ? options.sourceRules : [];
     let columnCatalog = [];
     let columnProfileStates = [];
     let rawColumnCatalog = [];
@@ -1558,6 +1587,7 @@
     const structuralLines = new Set();
     const dateByLine = new Map();
     const preparationCounts = {};
+    let filteredRows = 0;
 
     const parsed = parseCsvChunks(chunks, Object.assign({}, options, {
       retainRows: false,
@@ -1602,6 +1632,13 @@
           return;
         }
         if (headerHasParserError || mappingIssues.length > 0) {
+          return;
+        }
+
+        const sourceRule = !rowHasParserError && matchingSourceRule(dataRow.values, sourceRules);
+        if (sourceRule) {
+          filteredRows += 1;
+          issues.push(sourceRuleIssue(sourceRule, dataRow, headers, selectedMapping, locale));
           return;
         }
 
@@ -1694,6 +1731,7 @@
       totalRows: totalRows,
       validRows: rows.length,
       invalidRows: invalidLines.size,
+      filteredRows: filteredRows,
       structuralRows: structuralLines.size,
       mapping: selectedMapping,
       preparationCounts: preparationCounts,
@@ -1740,6 +1778,7 @@
     const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
     const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
     const preparationRules = compilePreparationRules(options && options.preparationRules ? options.preparationRules : {});
+    const sourceRules = Array.isArray(options && options.sourceRules) ? options.sourceRules : [];
     const preparationCounts = {};
     const profileRawSeparately = hasEnabledPreparationRules(selectedMapping, customFieldMapping, customFields, preparationRules);
     const rawColumnCatalog = profileRawSeparately ? buildColumnCatalog(headers, sourceFile) : columnCatalog;
@@ -1801,6 +1840,7 @@
     const rows = [];
     const invalidLines = new Set();
     const structuralLines = new Set();
+    let filteredRows = 0;
 
     dataRows.forEach(function (dataRow, rowIndex) {
       if (dataRow.values.length !== headers.length) {
@@ -1813,6 +1853,13 @@
           deliveryDate: mappedDeliveryDate(dataRow.values, selectedMapping),
           message: message(locale, 'columnCount', { actual: dataRow.values.length, expected: headers.length })
         });
+        return;
+      }
+
+      const sourceRule = !parserErrorLines.has(dataRow.sourceLine) && matchingSourceRule(dataRow.values, sourceRules);
+      if (sourceRule) {
+        filteredRows += 1;
+        issues.push(sourceRuleIssue(sourceRule, dataRow, headers, selectedMapping, locale));
         return;
       }
 
@@ -1848,6 +1895,7 @@
       totalRows: dataRows.length,
       validRows: rows.length,
       invalidRows: invalidLines.size,
+      filteredRows: filteredRows,
       structuralRows: structuralLines.size,
       mapping: selectedMapping,
       preparationCounts: preparationCounts,
@@ -2649,18 +2697,22 @@
       const code = issue && issue.code ? String(issue.code) : 'unknown_validation_issue';
       const severity = issue && issue.severity === 'warning' ? 'warning' : (issue && issue.severity === 'info' ? 'info' : 'error');
       const articleId = issue && issue.articleId ? String(issue.articleId) : '';
-      const key = [sourceId, sourceType, field, code, severity, articleId].join('\u0000');
+      const key = [sourceId, sourceType, field, code, severity, articleId,
+        issue && issue.ruleName || ''].join('\u0000');
       if (!groups.has(key)) {
         groups.set(key, {
           scope: Number.isInteger(issue && issue.sourceLine) ? 'row' : (field ? 'column' : 'source'),
           code: code,
           severity: severity,
-          blocking: issue && issue.blocking !== undefined ? Boolean(issue.blocking) : issueIsBlocking(issue),
+          blocking: code === 'source_rule_excluded' ? false :
+            (issue && issue.blocking !== undefined ? Boolean(issue.blocking) : issueIsBlocking(issue)),
           sourceFileId: issue && issue.sourceFileId || null,
           sourceFileLabel: issue && (issue.sourceFileLabel || issue.sourceFileName) || null,
           sourceFileName: issue && issue.sourceFileName || null,
           sourceType: sourceType,
           field: field || null,
+          sourceColumnPosition: issue && Number.isInteger(issue.sourceColumnPosition) ? issue.sourceColumnPosition : null,
+          sourceColumn: issue && issue.sourceColumn || null,
           article_id: issue && issue.articleId || null,
           message: issue && issue.message || code,
           affectedCount: 0,
@@ -2891,6 +2943,7 @@
     const issues = [];
     let totalRows = 0;
     let invalidRows = 0;
+    let filteredRows = 0;
     let structuralRows = 0;
     let includedFiles = 0;
     const usedSourceIds = new Set();
@@ -2976,6 +3029,7 @@
 
       totalRows += result ? result.totalRows : 0;
       invalidRows += result ? result.invalidRows : 0;
+      filteredRows += result ? result.filteredRows || 0 : 0;
       structuralRows += result ? result.structuralRows : 0;
       if (included) {
         includedFiles += 1;
@@ -3010,6 +3064,7 @@
         totalRows: result ? result.totalRows : 0,
         validRows: result ? result.validRows : 0,
         invalidRows: result ? result.invalidRows : 0,
+        filteredRows: result ? result.filteredRows || 0 : 0,
         structuralRows: result ? result.structuralRows : 0,
         dateStart: range.start,
         dateEnd: range.end
@@ -3034,6 +3089,7 @@
       validRows: retainedRows.length,
       analysisRows: rows.length,
       invalidRows: invalidRows,
+      filteredRows: filteredRows,
       structuralRows: structuralRows,
       selectedFiles: fileSummaries.length,
       includedFiles: includedFiles,

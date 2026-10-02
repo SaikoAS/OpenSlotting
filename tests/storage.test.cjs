@@ -213,6 +213,22 @@ test('chunked storage round trip preserves ordered preparation rules', async () 
   assert.deepEqual(restored.files[0].result.preparationCounts, { article_id: 1 });
 });
 
+test('chunked storage round trip preserves source-column rule names and explanations', async () => {
+  const indexedDB = createFakeIndexedDB();
+  const databaseName = 'source-rules-storage-test';
+  const repository = storage.createRepository({ indexedDB, databaseName });
+  const original = workspaceWithRows('workspace-source-rules', 1);
+  original.files[0].sourceRules = [{ sourcePosition: 1, type: 'exclude-empty',
+    name: 'Missing SKU', description: 'Do not analyze rows without an SKU',
+    enabled: true, includeInProfile: true }];
+  const validated = workspace.validateWorkspace(original);
+  await repository.createWorkspace(validated);
+  const stored = indexedDB.inspect(databaseName, 'workspaceSources')[0];
+  assert.deepEqual(stored.sourceRules, validated.files[0].sourceRules);
+  const restored = await repository.loadWorkspace(validated.id);
+  assert.deepEqual(restored.files[0].sourceRules, validated.files[0].sourceRules);
+});
+
 test('renaming and replacing one workspace does not alter another workspace', async () => {
   const indexedDB = createFakeIndexedDB();
   const repository = storage.createRepository({ indexedDB, databaseName: 'replace-test' });

@@ -1864,6 +1864,58 @@ test('sentinel preparation preserves raw and prepared values on required-field f
   assert.equal(issue.preparedValue, '');
 });
 
+test('source-column rules exclude matching raw rows with named evidence without treating them as invalid', () => {
+  const text = [
+    'order_id;article_id;quantity;delivery_date;Check',
+    'O-1;A-1;2;2026-09-01;ok',
+    'O-2;A-2;3;2026-09-02;   ',
+    'O-3;A-3;4;2026-09-03;skip',
+    'O-4;A-4;5;2026-09-04;Keep'
+  ].join('\n') + '\n';
+  const mapping = { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 };
+  const sourceRules = [
+    { sourcePosition: 4, type: 'exclude-empty', name: 'Missing check', description: 'Only checked orders count', enabled: true },
+    { sourcePosition: 4, type: 'exclude-equals', value: 'skip', name: 'Skip marker', description: 'Test export marker', enabled: true },
+    { sourcePosition: 4, type: 'exclude-contains', value: 'eep', name: 'Contains marker', description: 'Disabled example', enabled: false }
+  ];
+  const options = { sourceFile: { id: 'source-filter', name: 'checks.csv' }, sourceRules };
+  const streaming = csv.importCsvStreaming(text, mapping, options);
+  const parsed = csv.importParsedCsv(csv.parseCsv(text), mapping, options);
+  for (const result of [streaming, parsed]) {
+    assert.deepEqual(result.rows.map((row) => row.order_id), ['O-1', 'O-4']);
+    assert.equal(result.totalRows, 4);
+    assert.equal(result.validRows, 2);
+    assert.equal(result.filteredRows, 2);
+    assert.equal(result.invalidRows, 0);
+    const excluded = result.issues.filter((issue) => issue.code === 'source_rule_excluded');
+    assert.deepEqual(excluded.map((issue) => [issue.sourceLine, issue.ruleName]),
+      [[3, 'Missing check'], [4, 'Skip marker']]);
+    assert.equal(excluded[0].ruleDescription, 'Only checked orders count');
+    assert.equal(excluded[0].rawValue, '   ');
+    assert.equal(excluded[0].deliveryDate, '2026-09-02');
+  }
+  assert.equal(csv.reconstructRawSource(text, 3).raw_fields[4].value, '   ');
+  const combined = csv.combineImportResults([{ id: 'source-filter', name: 'checks.csv',
+    sourceType: 'order-lines', result: streaming }]);
+  assert.equal(combined.filteredRows, 2);
+  assert.equal(combined.invalidRows, 0);
+  assert.equal(combined.files[0].filteredRows, 2);
+  assert.equal(combined.dataQualityFindings.filter((finding) => finding.code === 'source_rule_excluded').length, 2);
+  assert.ok(combined.dataQualityFindings.filter((finding) => finding.code === 'source_rule_excluded')
+    .every((finding) => finding.severity === 'info' && finding.blocking === false));
+});
+
+test('source-column contains rule is case-sensitive and preserves first-match order', () => {
+  const text = 'order_id;article_id;quantity;delivery_date;Flag\nO-1;A-1;1;2026-09-01;Hold\nO-2;A-2;1;2026-09-02;hold\n';
+  const rules = [
+    { sourcePosition: 4, type: 'exclude-contains', value: 'Hold', name: 'Upper', description: 'Uppercase hold' },
+    { sourcePosition: 4, type: 'exclude-equals', value: 'Hold', name: 'Second', description: 'Later duplicate match' }
+  ];
+  const result = csv.importCsv(text, { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 }, { sourceRules: rules });
+  assert.deepEqual(result.rows.map((row) => row.order_id), ['O-2']);
+  assert.deepEqual(result.issues.filter((issue) => issue.code === 'source_rule_excluded').map((issue) => issue.ruleName), ['Upper']);
+});
+
 test('normalization reuses the single prepared row used for profiling', () => {
   const result = csv.importCsvStreaming('order_id;article_id;quantity;delivery_date\nO-1;C;1;2026-09-01\n', {
     order_id: 0, article_id: 1, quantity: 2, delivery_date: 3

@@ -86,6 +86,12 @@ Rules run after CSV decoding and before the existing field normalization and val
 
 Rule configuration is stored with its source in the workspace and portable backup. Reopening a workspace, restoring a backup, worker preparation, and the main-thread fallback use the same ordered rule definitions and CSV import implementation.
 
+## Named source-column filters
+
+The source-column overview also lets users create named rules for any physical source column, including a column that is not mapped to a normalized field. Each rule requires a name and a user-written explanation. The selectable functions are **ignore row if empty** (outer whitespace counts as empty), **ignore row if exactly equal**, and **ignore row if text contains**. The latter two compare original text case-sensitively. Rules run in list order on the original decoded row after the CSV structure check and before field preparation and validation. The first matching enabled rule excludes the row from analysis. An empty comparison text cannot be enabled.
+
+Filtered rows are counted separately from invalid rows. Their original bytes remain in the source, and a source-line finding records the rule name, explanation, column, and original value. Column profiles still describe the source data, including filtered rows. Each rule can be marked for inclusion in an import profile. Saving or updating a profile copies only marked rules; applying that profile remaps their source positions by the same exact-layout or unique-header logic used for field mappings. A missing or ambiguous filter column prevents application without changing the import.
+
 ## Normalized fields
 
 | Field | Required | Meaning |

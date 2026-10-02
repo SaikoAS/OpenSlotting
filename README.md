@@ -47,7 +47,7 @@ The current implementation includes:
 - ordered source-column catalogs with duplicate-header and physical-position metadata
 - bounded streaming source-column profiles with representative and frequent values
 - explainable mapping suggestions and a source-column overview with profile evidence
-- workspace-local import profiles that reuse a source type, field mapping, and ordered preparation rules across CSV imports
+- workspace-local import profiles that reuse a source type, field mapping, ordered preparation rules, and selected named source-column filters across CSV imports
 - independent encoding selection, mapping, parsing, and validation per source file
 - visible exclusion of files with blocking import errors
 - source-file and source-line traceability for validation notes and article details
@@ -238,7 +238,7 @@ For example:
 | Menge | Quantity |
 | Qty | Quantity |
 
-Users can review and change the mapping independently for every file in the current batch. They can save the selected import's mapping and preparation rules as a named, workspace-local import profile, then apply it to another import. The profile matches an identical column layout by position or uniquely named columns after reordering. Missing or ambiguous columns prevent application and leave the target import unchanged. Applying a profile replaces that import's source type, mappings, and rules; validation must then run again. Profiles are included in workspace backups, but are not shared between workspaces.
+Users can review and change the mapping independently for every file in the current batch. They can save the selected import's mapping, preparation rules, and source-column filters marked for reuse as a named, workspace-local import profile, then apply it to another import. The profile matches an identical column layout by position or uniquely named columns after reordering. Missing or ambiguous columns prevent application and leave the target import unchanged. Applying a profile replaces that import's source type, mappings, and rules; validation must then run again. Profiles are included in workspace backups, but are not shared between workspaces.
 
 Article descriptions are optional display metadata. Articles are always grouped by
 `article_id`. If one article ID has multiple distinct non-empty descriptions,

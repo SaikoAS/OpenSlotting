@@ -269,7 +269,7 @@
         <div class="import-profile-controls">
           <div class="import-profile-heading">
             <strong data-i18n="import_profile_title">Importprofile</strong>
-            <span class="table-note" data-i18n="import_profile_scope">Nur in diesem Workspace · Quelltyp, Zuordnungen und Regeln</span>
+            <span class="table-note" data-i18n="import_profile_scope">Nur in diesem Workspace · Quelltyp, Zuordnungen, Aufbereitung und ausgewählte Quellregeln</span>
           </div>
           <label class="compact-field" for="import-profile-name">
             <span data-i18n="import_profile_name">Profilname</span>
@@ -387,6 +387,7 @@
         <div class="source-table-filters" role="group" aria-label="Zeilenfilter" data-i18n-aria-label="source_table_filter_label">
           <button type="button" data-source-filter="all" aria-pressed="true" data-i18n="source_table_filter_all">Alle Zeilen</button>
           <button type="button" data-source-filter="errors" aria-pressed="false" data-i18n="source_table_filter_errors">Nur Fehler</button>
+          <button type="button" data-source-filter="excluded" aria-pressed="false" data-i18n="source_table_filter_excluded">Durch Quellregeln ausgeschlossen</button>
           <button type="button" data-source-filter="changed" aria-pressed="false" data-i18n="source_table_filter_changed">Durch Regeln geändert</button>
         </div>
         <p id="source-table-status" class="table-note" role="status"></p>
@@ -416,13 +417,13 @@
         <div class="coverage-detail-grid">
           <section class="coverage-detail-card" aria-labelledby="coverage-sources-title">
             <h3 id="coverage-sources-title" data-i18n="coverage_sources_title">Coverage by source</h3>
-            <p class="table-note" data-i18n="coverage_sources_intro">Review ranges, valid rows, dated invalid rows, and selling-unit coverage per source.</p>
-            <div class="table-scroll"><table><thead><tr><th data-i18n="source_file_column">Source file</th><th data-i18n="coverage_range">Observed range</th><th class="number" data-i18n="column_days">Days</th><th class="number" data-i18n="valid_rows_column">Valid</th><th class="number" data-i18n="invalid_rows_column">Invalid</th><th class="number" data-i18n="selling_unit_rows">Selling-unit rows</th><th><span class="visually-hidden" data-i18n="comparison_action">Action</span></th></tr></thead><tbody id="coverage-source-table-body"></tbody></table></div>
+            <p class="table-note" data-i18n="coverage_sources_intro">Review ranges, valid rows, invalid rows, rule-excluded rows, and selling-unit coverage per source.</p>
+            <div class="table-scroll"><table><thead><tr><th data-i18n="source_file_column">Source file</th><th data-i18n="coverage_range">Observed range</th><th class="number" data-i18n="column_days">Days</th><th class="number" data-i18n="valid_rows_column">Valid</th><th class="number" data-i18n="invalid_rows_column">Invalid</th><th class="number" data-i18n="coverage_filtered_rows">Rule-excluded</th><th class="number" data-i18n="selling_unit_rows">Selling-unit rows</th><th><span class="visually-hidden" data-i18n="comparison_action">Action</span></th></tr></thead><tbody id="coverage-source-table-body"></tbody></table></div>
           </section>
           <section class="coverage-detail-card" aria-labelledby="coverage-dates-title">
             <h3 id="coverage-dates-title" data-i18n="coverage_dates_title">Coverage by date</h3>
-            <p class="table-note" data-i18n="coverage_dates_intro">Invalid rows appear on a date only when that row contains a valid mapped delivery date.</p>
-            <div class="table-scroll"><table><thead><tr><th data-i18n="detail_order_date">Delivery date</th><th class="number" data-i18n="valid_rows_column">Valid</th><th class="number" data-i18n="invalid_rows_column">Invalid</th><th data-i18n="source_files_title">Source files</th><th><span class="visually-hidden" data-i18n="comparison_action">Action</span></th></tr></thead><tbody id="coverage-date-table-body"></tbody></table></div>
+            <p class="table-note" data-i18n="coverage_dates_intro">Invalid and rule-excluded rows appear on a date only when that row contains a valid mapped delivery date.</p>
+            <div class="table-scroll"><table><thead><tr><th data-i18n="detail_order_date">Delivery date</th><th class="number" data-i18n="valid_rows_column">Valid</th><th class="number" data-i18n="invalid_rows_column">Invalid</th><th class="number" data-i18n="coverage_filtered_rows">Rule-excluded</th><th data-i18n="source_files_title">Source files</th><th><span class="visually-hidden" data-i18n="comparison_action">Action</span></th></tr></thead><tbody id="coverage-date-table-body"></tbody></table></div>
             <div id="coverage-date-pagination" class="table-pagination hidden" aria-live="polite"><button id="coverage-date-previous" class="secondary-button" type="button" data-i18n="previous_page">Previous</button><span id="coverage-date-page-status" class="table-note"></span><button id="coverage-date-next" class="secondary-button" type="button" data-i18n="next_page">Next</button></div>
           </section>
         </div>

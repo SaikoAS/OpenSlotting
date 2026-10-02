@@ -265,6 +265,24 @@
       prep_rule_move_up: 'Move rule up',
       prep_rule_move_down: 'Move rule down',
       prep_rule_remove: 'Remove rule',
+      source_rules_title: 'Rules for this source column',
+      source_rules_help: 'Enabled rules check original source values before validation. A matching row is excluded from analysis but stays in the source table with this reason. Exact and contains comparisons are case-sensitive. After changing to a comparison function, enter its text and enable the rule.',
+      source_rule_name: 'Rule name',
+      source_rule_description: 'Reason / information for later review',
+      source_rule_type: 'Function',
+      source_rule_value: 'Comparison text',
+      source_rule_enabled: 'Enabled',
+      source_rule_profile: 'Include in import profile',
+      source_rule_add: 'Add source rule',
+      source_rule_remove: 'Remove source rule',
+      source_rule_invalid: 'Enter a name and explanation within the field limits.',
+      source_rule_limit: 'A source can have at most 100 source rules.',
+      source_rule_exclude_empty: 'If empty, ignore row',
+      source_rule_exclude_equals: 'If exactly equal, ignore row',
+      source_rule_exclude_contains: 'If text contains, ignore row',
+      source_rule_count: '{{count}} source rules',
+      source_rule_open: 'Edit rules for column {{column}}',
+      source_rule_none: 'No rules for this column yet.',
       source_columns_title: 'Source-column overview',
       source_columns_hint: 'Each decoded source column is shown by physical position. Suggestions never change mappings automatically.',
       source_column_header: 'Source column',
@@ -400,6 +418,7 @@
       issue_status: 'Status',
       issue_status_included: 'Row included',
       issue_status_excluded: 'Row excluded',
+      issue_status_filtered: 'Excluded by rule',
       source_table_title: 'Imported file as table',
       source_table_note: 'All recognized rows are in one continuous scroll area. Original values, rule effects, and row findings remain visible together.',
       source_table_jump_label: 'Source line',
@@ -413,12 +432,14 @@
       source_table_warning: 'Note',
       source_table_error: 'Error',
       source_table_excluded: 'Excluded',
+      source_table_filtered: 'Excluded by rule',
       source_table_rule_effect: 'After rule: {{value}}',
       source_table_rule_names: 'Applied: {{rules}}',
       source_table_expand_value: 'Show full value',
       source_table_filter_label: 'Row filter',
       source_table_filter_all: 'All rows',
       source_table_filter_errors: 'Errors only',
+      source_table_filter_excluded: 'Source-rule exclusions',
       source_table_filter_changed: 'Changed by rules',
       source_table_filter_building: 'Finding rows changed by rules… {{count}} checked',
       source_table_filter_position: '{{file}} · matching rows {{first}}–{{last}} of {{total}}',
@@ -430,7 +451,7 @@
       mapping_rules_active: '{{count}} active rules',
       mapping_source_select: 'Choose import',
       import_profile_title: 'Import profiles',
-      import_profile_scope: 'This workspace only · source type, mappings, and rules',
+      import_profile_scope: 'This workspace only · source type, mappings, preparation and selected source rules',
       import_profile_name: 'Profile name',
       import_profile_name_placeholder: 'e.g. EGV order lines',
       import_profile_save: 'Save current mapping',
@@ -440,8 +461,8 @@
       import_profile_delete: 'Delete profile',
       import_profile_none: 'No saved profiles',
       import_profile_empty: 'Save the current mapping to reuse it with another import.',
-      import_profile_ready: '{{count}} mapped fields found. Applying replaces the current mappings and rules for this import.',
-      import_profile_unresolved: '{{matched}} mapped fields found; {{count}} fields are missing or ambiguous ({{details}}). The import remains unchanged.',
+      import_profile_ready: '{{count}} mapped fields and {{rules}} source rules found. Applying replaces the current mappings and rules for this import.',
+      import_profile_unresolved: '{{matched}} mapped fields found; {{count}} fields or source rules are missing or ambiguous ({{details}}). The import remains unchanged.',
       import_profile_saved: 'Profile “{{name}}” saved in this workspace.',
       import_profile_updated: 'Profile “{{name}}” updated from the current import.',
       import_profile_applied: 'Profile “{{name}}” applied to “{{file}}”. Run validation to update the results.',
@@ -485,6 +506,7 @@
       quality_summary_affected: '{{count}} affected',
       quality_summary_valid_rows: '{{count}} valid rows',
       quality_summary_invalid_rows: '{{count}} invalid rows',
+      quality_summary_filtered_rows: '{{count}} rows excluded by source rules',
       quality_summary_blocking: '{{count}} blocking',
       quality_summary_advisory: '{{count}} advisory',
       quality_scope_source: 'Source',
@@ -574,9 +596,9 @@
       coverage_unknown_note: 'Dates without imported rows remain unknown coverage, not zero demand.',
       coverage_timeline_label: 'Observed date coverage',
       coverage_sources_title: 'Coverage by source',
-      coverage_sources_intro: 'Review ranges, valid rows, dated invalid rows, and selling-unit coverage per source.',
+      coverage_sources_intro: 'Review ranges, valid rows, invalid rows, rule-excluded rows, and selling-unit coverage per source.',
       coverage_dates_title: 'Coverage by date',
-      coverage_dates_intro: 'Invalid rows appear on a date only when that row contains a valid mapped delivery date.',
+      coverage_dates_intro: 'Invalid and rule-excluded rows appear on a date only when that row contains a valid mapped delivery date.',
       coverage_range: 'Observed range',
       selling_unit_rows: 'Selling-unit rows',
       coverage_date_page: 'Page {{page}} of {{pages}} · {{count}} dates on this page',
@@ -586,10 +608,12 @@
       coverage_evidence_type: 'Type',
       coverage_valid_row: 'Valid row',
       coverage_invalid_row: 'Excluded row',
+      coverage_filtered_row: 'Excluded by source rule',
+      coverage_filtered_rows: 'Rule-excluded',
       coverage_advisory_row: 'Advisory · row included',
       coverage_drilldown_date_title: 'Evidence for {{date}}',
       coverage_drilldown_source_title: 'Evidence for {{source}}',
-      coverage_drilldown_summary: '{{valid}} valid rows · {{invalid}} invalid source rows · {{sources}} contributing sources',
+      coverage_drilldown_summary: '{{valid}} valid rows · {{invalid}} invalid source rows · {{filtered}} rule-excluded rows · {{sources}} contributing sources',
       expected_weekdays: 'Expected weekdays',
       expected_weekdays_hint: 'Only selected weekdays count toward unknown dates.',
       weekday_mon: 'Mon',
@@ -935,6 +959,24 @@
       prep_rule_move_up: 'Regel nach oben',
       prep_rule_move_down: 'Regel nach unten',
       prep_rule_remove: 'Regel entfernen',
+      source_rules_title: 'Regeln für diese Quellspalte',
+      source_rules_help: 'Aktive Regeln prüfen Originalwerte vor der Validierung. Eine passende Zeile wird aus der Auswertung ausgeschlossen, bleibt aber mit diesem Grund in der Quelltabelle sichtbar. Exakt- und Enthält-Vergleiche beachten Groß-/Kleinschreibung. Nach dem Wechsel zu einer Vergleichsfunktion Text eingeben und die Regel wieder aktivieren.',
+      source_rule_name: 'Regelname',
+      source_rule_description: 'Grund / Infotext für die spätere Prüfung',
+      source_rule_type: 'Funktion',
+      source_rule_value: 'Vergleichstext',
+      source_rule_enabled: 'Aktiv',
+      source_rule_profile: 'In Importprofil übernehmen',
+      source_rule_add: 'Quellregel hinzufügen',
+      source_rule_remove: 'Quellregel entfernen',
+      source_rule_invalid: 'Name und Infotext innerhalb der Feldlängen eingeben.',
+      source_rule_limit: 'Eine Quelle darf höchstens 100 Quellregeln haben.',
+      source_rule_exclude_empty: 'Wenn leer, Zeile ignorieren',
+      source_rule_exclude_equals: 'Wenn exakt gleich, Zeile ignorieren',
+      source_rule_exclude_contains: 'Wenn Text enthält, Zeile ignorieren',
+      source_rule_count: '{{count}} Quellregeln',
+      source_rule_open: 'Regeln für Spalte {{column}} bearbeiten',
+      source_rule_none: 'Für diese Spalte gibt es noch keine Regeln.',
       source_columns_title: 'Übersicht der Quellspalten',
       source_columns_hint: 'Jede dekodierte Quellspalte wird nach physischer Position gezeigt. Vorschläge ändern Zuordnungen nie automatisch.',
       source_column_header: 'Quellspalte',
@@ -1070,6 +1112,7 @@
       issue_status: 'Status',
       issue_status_included: 'Zeile einbezogen',
       issue_status_excluded: 'Zeile ausgeschlossen',
+      issue_status_filtered: 'Durch Regel ausgeschlossen',
       source_table_title: 'Importdatei als Tabelle',
       source_table_note: 'Alle erkannten Zeilen stehen in einem durchgehend scrollbaren Tabellenbereich. Originalwerte, Regeleffekte und Zeilenfehler sind gemeinsam sichtbar.',
       source_table_jump_label: 'Quellzeile',
@@ -1083,12 +1126,14 @@
       source_table_warning: 'Hinweis',
       source_table_error: 'Fehler',
       source_table_excluded: 'Ausgeschlossen',
+      source_table_filtered: 'Durch Regel ausgeschlossen',
       source_table_rule_effect: 'Nach Regel: {{value}}',
       source_table_rule_names: 'Angewendet: {{rules}}',
       source_table_expand_value: 'Ganzen Wert anzeigen',
       source_table_filter_label: 'Zeilenfilter',
       source_table_filter_all: 'Alle Zeilen',
       source_table_filter_errors: 'Nur Fehler',
+      source_table_filter_excluded: 'Durch Quellregeln ausgeschlossen',
       source_table_filter_changed: 'Durch Regeln geändert',
       source_table_filter_building: 'Durch Regeln geänderte Zeilen werden gesucht… {{count}} geprüft',
       source_table_filter_position: '{{file}} · passende Zeilen {{first}}–{{last}} von {{total}}',
@@ -1100,7 +1145,7 @@
       mapping_rules_active: '{{count}} aktive Regeln',
       mapping_source_select: 'Import auswählen',
       import_profile_title: 'Importprofile',
-      import_profile_scope: 'Nur in diesem Workspace · Quelltyp, Zuordnungen und Regeln',
+      import_profile_scope: 'Nur in diesem Workspace · Quelltyp, Zuordnungen, Aufbereitung und ausgewählte Quellregeln',
       import_profile_name: 'Profilname',
       import_profile_name_placeholder: 'z. B. Auftragszeilen EGV',
       import_profile_save: 'Aktuelle Zuordnung speichern',
@@ -1110,8 +1155,8 @@
       import_profile_delete: 'Profil löschen',
       import_profile_none: 'Keine gespeicherten Profile',
       import_profile_empty: 'Speichere die aktuelle Zuordnung, um sie für weitere Importe zu verwenden.',
-      import_profile_ready: '{{count}} zugeordnete Felder gefunden. Beim Anwenden werden die aktuellen Zuordnungen und Regeln dieses Imports ersetzt.',
-      import_profile_unresolved: '{{matched}} zugeordnete Felder gefunden; {{count}} Felder fehlen oder sind mehrdeutig ({{details}}). Der Import bleibt unverändert.',
+      import_profile_ready: '{{count}} zugeordnete Felder und {{rules}} Quellregeln gefunden. Beim Anwenden werden die aktuellen Zuordnungen und Regeln dieses Imports ersetzt.',
+      import_profile_unresolved: '{{matched}} zugeordnete Felder gefunden; {{count}} Felder oder Quellregeln fehlen oder sind mehrdeutig ({{details}}). Der Import bleibt unverändert.',
       import_profile_saved: 'Profil „{{name}}“ in diesem Workspace gespeichert.',
       import_profile_updated: 'Profil „{{name}}“ aus dem aktuellen Import aktualisiert.',
       import_profile_applied: 'Profil „{{name}}“ auf „{{file}}“ angewendet. Mit „Spalten prüfen“ werden die Ergebnisse aktualisiert.',
@@ -1155,6 +1200,7 @@
       quality_summary_affected: '{{count}} betroffen',
       quality_summary_valid_rows: '{{count}} gültige Zeilen',
       quality_summary_invalid_rows: '{{count}} ungültige Zeilen',
+      quality_summary_filtered_rows: '{{count}} Zeilen durch Quellregeln ausgeschlossen',
       quality_summary_blocking: '{{count}} blockierend',
       quality_summary_advisory: '{{count}} hinweisend',
       quality_scope_source: 'Quelle',
@@ -1244,9 +1290,9 @@
       coverage_unknown_note: 'Tage ohne importierte Zeilen bleiben unbekannte Abdeckung und gelten nicht als Nullabsatz.',
       coverage_timeline_label: 'Beobachtete Datumsabdeckung',
       coverage_sources_title: 'Abdeckung nach Quelle',
-      coverage_sources_intro: 'Zeiträume, gültige Zeilen, datierbare fehlerhafte Zeilen und Verkaufseinheiten-Abdeckung je Quelle prüfen.',
+      coverage_sources_intro: 'Zeiträume, gültige, fehlerhafte und durch Regeln ausgeschlossene Zeilen sowie Verkaufseinheiten je Quelle prüfen.',
       coverage_dates_title: 'Abdeckung nach Datum',
-      coverage_dates_intro: 'Fehlerhafte Zeilen erscheinen nur dann bei einem Datum, wenn sie ein gültiges zugeordnetes Lieferdatum enthalten.',
+      coverage_dates_intro: 'Fehlerhafte und durch Regeln ausgeschlossene Zeilen erscheinen nur mit gültigem zugeordnetem Lieferdatum bei einem Datum.',
       coverage_range: 'Beobachteter Zeitraum',
       selling_unit_rows: 'Verkaufseinheiten-Zeilen',
       coverage_date_page: 'Seite {{page}} von {{pages}} · {{count}} Datumswerte auf dieser Seite',
@@ -1256,10 +1302,12 @@
       coverage_evidence_type: 'Typ',
       coverage_valid_row: 'Gültige Zeile',
       coverage_invalid_row: 'Ausgeschlossene Zeile',
+      coverage_filtered_row: 'Durch Quellregel ausgeschlossen',
+      coverage_filtered_rows: 'Durch Regel ausgeschlossen',
       coverage_advisory_row: 'Hinweis · Zeile einbezogen',
       coverage_drilldown_date_title: 'Nachweise für {{date}}',
       coverage_drilldown_source_title: 'Nachweise für {{source}}',
-      coverage_drilldown_summary: '{{valid}} gültige Zeilen · {{invalid}} fehlerhafte Quellzeilen · {{sources}} beitragende Quellen',
+      coverage_drilldown_summary: '{{valid}} gültige Zeilen · {{invalid}} fehlerhafte Quellzeilen · {{filtered}} durch Regeln ausgeschlossene Zeilen · {{sources}} beitragende Quellen',
       expected_weekdays: 'Erwartete Wochentage',
       expected_weekdays_hint: 'Nur ausgewählte Wochentage zählen als unbekannte Tage.',
       weekday_mon: 'Mo',
@@ -2350,6 +2398,16 @@
       const sourceCell = document.createElement('th');
       sourceCell.scope = 'row';
       setText(sourceCell, (position + 1) + ': ' + (entry.header || translate('empty_header')));
+      const ruleButton = document.createElement('button');
+      ruleButton.type = 'button';
+      ruleButton.className = 'text-button source-rule-open';
+      ruleButton.dataset.focusSourceRule = String(position);
+      const ruleCount = (file.sourceRules || []).filter(function (rule) { return rule.sourcePosition === position; }).length;
+      setText(ruleButton, translate('source_rule_count', { count: ruleCount }));
+      ruleButton.setAttribute('aria-label', translate('source_rule_open', {
+        column: (position + 1) + ': ' + (entry.header || translate('empty_header'))
+      }));
+      sourceCell.appendChild(ruleButton);
       row.appendChild(sourceCell);
       const mappingCell = document.createElement('td');
       const mappingSelect = document.createElement('select');
@@ -2656,6 +2714,7 @@
         selectedFile.parsed ? translate('mapping_file_rows', { count: selectedFile.dataRowCount }) : null,
         translate(mappingStatusKey(selectedFile)),
         translate('mapping_rules_active', { count: accessiblePreparationRuleCount(selectedFile) }),
+        translate('source_rule_count', { count: (selectedFile.sourceRules || []).length }),
         translate(selectedFile.sourceType === 'article-master' ? 'source_type_article_master' : 'source_type_order_lines'),
         selectedFile.activeEncoding ? formatEncodingName(selectedFile.activeEncoding) : null
       ].filter(Boolean).join(' · ')
@@ -2692,7 +2751,9 @@
     } else if (!plan) {
       setText(elements.importProfilePreview, translate('import_profile_source_required'));
     } else if (plan.compatible) {
-      setText(elements.importProfilePreview, translate('import_profile_ready', { count: plan.matchedCount }));
+      setText(elements.importProfilePreview, translate('import_profile_ready', {
+        count: plan.matchedCount, rules: plan.sourceRules.length
+      }));
     } else {
       setText(elements.importProfilePreview, translate('import_profile_unresolved', {
         matched: plan.matchedCount, count: plan.unresolved.length, details: importProfileUnresolvedText(plan)
@@ -2710,7 +2771,8 @@
     return plan.unresolved.slice(0, 4).map(function (item) {
       const customField = state.customFields.find(function (field) { return field.id === item.targetId; });
       const target = customField ? customField.name : core.getFieldLabel(item.targetId, state.language);
-      return (item.header || '—') + ' → ' + target + ' (' + translate(reasonKeys[item.reason] || reasonKeys.missing) + ')';
+      return (item.header || '—') + ' → ' + (item.ruleName || target) +
+        ' (' + translate(reasonKeys[item.reason] || reasonKeys.missing) + ')';
     }).join(', ');
   }
 
@@ -2765,6 +2827,7 @@
     file.mapping = plan.mapping;
     file.customFieldMapping = plan.customFieldMapping;
     file.preparationRules = workspaceModel.normalizePreparationRules(plan.preparationRules);
+    file.sourceRules = workspaceModel.normalizeSourceRules(plan.sourceRules, file.headers.length);
     file.confirmedMapping = null;
     file.confirmedCustomFieldMapping = null;
     refreshColumnCatalogOwnership(file);
@@ -2915,7 +2978,124 @@
         ? profile.sampleValues.map(function (sample) { return sample.value; }).join(', ')
         : '—'));
     wrapper.appendChild(samples);
+    renderSourceRuleEditor(file, position, wrapper);
     section.appendChild(wrapper);
+  }
+
+  function sourceRuleTypeLabel(type) {
+    const keys = { 'exclude-empty': 'source_rule_exclude_empty',
+      'exclude-equals': 'source_rule_exclude_equals', 'exclude-contains': 'source_rule_exclude_contains' };
+    return translate(keys[type]);
+  }
+
+  function sourceRuleField(labelKey, control) {
+    const label = document.createElement('label');
+    label.className = 'compact-field' + (control.type === 'checkbox' ? ' source-rule-checkbox' : '');
+    const caption = document.createElement('span');
+    setText(caption, translate(labelKey));
+    label.appendChild(caption);
+    label.appendChild(control);
+    return label;
+  }
+
+  function sourceRuleTypeSelect(value, fieldName) {
+    const select = document.createElement('select');
+    select.dataset[fieldName] = 'type';
+    workspaceModel.SOURCE_RULE_TYPES.forEach(function (type) {
+      addOption(select, type, sourceRuleTypeLabel(type));
+    });
+    select.value = value;
+    return select;
+  }
+
+  function renderSourceRuleEditor(file, position, wrapper) {
+    const disabled = state.workspaceLoading || state.files.some(function (item) { return Boolean(item.reading); });
+    const rules = (file.sourceRules || []).map(function (rule, index) { return { rule: rule, index: index }; })
+      .filter(function (item) { return item.rule.sourcePosition === position; });
+    const details = document.createElement('details');
+    details.className = 'source-rule-editor';
+    details.dataset.sourceRuleFileId = file.id;
+    details.dataset.sourceRulePosition = String(position);
+    details.open = true;
+    const summary = document.createElement('summary');
+    setText(summary, translate('source_rules_title') + ' · ' + translate('source_rule_count', { count: rules.length }));
+    details.appendChild(summary);
+    const help = document.createElement('p');
+    help.className = 'table-note';
+    setText(help, translate('source_rules_help'));
+    details.appendChild(help);
+    if (!rules.length) {
+      const empty = document.createElement('p');
+      empty.className = 'table-note';
+      setText(empty, translate('source_rule_none'));
+      details.appendChild(empty);
+    }
+    rules.forEach(function (item) {
+      const rule = item.rule;
+      const row = document.createElement('div');
+      row.className = 'source-rule-row';
+      row.dataset.sourceRuleIndex = String(item.index);
+      const name = document.createElement('input');
+      name.type = 'text'; name.maxLength = 120; name.required = true; name.value = rule.name;
+      name.dataset.sourceRuleField = 'name'; name.disabled = disabled;
+      row.appendChild(sourceRuleField('source_rule_name', name));
+      const description = document.createElement('textarea');
+      description.rows = 2; description.maxLength = 500; description.required = true;
+      description.value = rule.description; description.dataset.sourceRuleField = 'description';
+      description.disabled = disabled;
+      row.appendChild(sourceRuleField('source_rule_description', description));
+      const type = sourceRuleTypeSelect(rule.type, 'sourceRuleField');
+      type.disabled = disabled;
+      row.appendChild(sourceRuleField('source_rule_type', type));
+      const value = document.createElement('input');
+      value.type = 'text'; value.maxLength = 512; value.value = rule.value || '';
+      value.dataset.sourceRuleField = 'value'; value.disabled = disabled;
+      const valueField = sourceRuleField('source_rule_value', value);
+      valueField.hidden = rule.type === 'exclude-empty';
+      row.appendChild(valueField);
+      ['enabled', 'includeInProfile'].forEach(function (field) {
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox'; checkbox.checked = rule[field] !== false;
+        checkbox.dataset.sourceRuleField = field; checkbox.disabled = disabled;
+        row.appendChild(sourceRuleField(field === 'enabled' ? 'source_rule_enabled' : 'source_rule_profile', checkbox));
+      });
+      const remove = document.createElement('button');
+      remove.type = 'button'; remove.className = 'secondary-button';
+      remove.dataset.sourceRuleAction = 'remove'; remove.disabled = disabled;
+      setText(remove, translate('source_rule_remove'));
+      row.appendChild(remove);
+      details.appendChild(row);
+    });
+    const draft = document.createElement('div');
+    draft.className = 'source-rule-row source-rule-draft';
+    const draftName = document.createElement('input');
+    draftName.type = 'text'; draftName.maxLength = 120; draftName.required = true;
+    draftName.dataset.sourceRuleNewField = 'name'; draftName.disabled = disabled;
+    draft.appendChild(sourceRuleField('source_rule_name', draftName));
+    const draftDescription = document.createElement('textarea');
+    draftDescription.rows = 2; draftDescription.maxLength = 500; draftDescription.required = true;
+    draftDescription.dataset.sourceRuleNewField = 'description'; draftDescription.disabled = disabled;
+    draft.appendChild(sourceRuleField('source_rule_description', draftDescription));
+    const draftType = sourceRuleTypeSelect('exclude-empty', 'sourceRuleNewField');
+    draftType.disabled = disabled;
+    draft.appendChild(sourceRuleField('source_rule_type', draftType));
+    const draftValue = document.createElement('input');
+    draftValue.type = 'text'; draftValue.maxLength = 512;
+    draftValue.dataset.sourceRuleNewField = 'value'; draftValue.disabled = disabled;
+    const draftValueField = sourceRuleField('source_rule_value', draftValue);
+    draftValueField.hidden = true;
+    draft.appendChild(draftValueField);
+    const draftProfile = document.createElement('input');
+    draftProfile.type = 'checkbox'; draftProfile.checked = true;
+    draftProfile.dataset.sourceRuleNewField = 'includeInProfile'; draftProfile.disabled = disabled;
+    draft.appendChild(sourceRuleField('source_rule_profile', draftProfile));
+    const add = document.createElement('button');
+    add.type = 'button'; add.className = 'primary-button'; add.dataset.sourceRuleAction = 'add';
+    add.disabled = disabled || (file.sourceRules || []).length >= 100;
+    setText(add, translate('source_rule_add'));
+    draft.appendChild(add);
+    details.appendChild(draft);
+    wrapper.appendChild(details);
   }
 
   function renderMapping() {
@@ -3181,20 +3361,23 @@
 
   function sourceTableFilteredIndexes(file) {
     if (state.sourceTableFilter === 'all') return null;
-    if (state.sourceTableFilter === 'errors') {
+    if (state.sourceTableFilter === 'errors' || state.sourceTableFilter === 'excluded') {
       const issuesByLine = sourceTableIssuesByLine(file);
-      if (file.sourceErrorIndexIssues !== issuesByLine) {
+      const excluded = state.sourceTableFilter === 'excluded';
+      const cacheKey = excluded ? 'sourceExcluded' : 'sourceError';
+      if (file[cacheKey + 'IndexIssues'] !== issuesByLine) {
         const matches = [];
         issuesByLine.forEach(function (issues, line) {
-          if (!issues.some(core.issueIsBlocking)) return;
+          if (!issues.some(function (issue) { return excluded ? issue.code === 'source_rule_excluded' :
+            issue.code !== 'source_rule_excluded' && core.issueIsBlocking(issue); })) return;
           const index = core.findIndexedSourceRow(file.sourceRecordIndex.records, line);
           if (index >= 0) matches.push(index);
         });
         matches.sort(function (left, right) { return left - right; });
-        file.sourceErrorIndexes = Array.from(new Set(matches));
-        file.sourceErrorIndexIssues = issuesByLine;
+        file[cacheKey + 'Indexes'] = Array.from(new Set(matches));
+        file[cacheKey + 'IndexIssues'] = issuesByLine;
       }
-      return file.sourceErrorIndexes || [];
+      return file[cacheKey + 'Indexes'] || [];
     }
     if (accessiblePreparationRuleCount(file) === 0) return [];
     if (file.sourceChangedIndexes && file.sourceChangedSignature === file.sourceTableEffectSignature) {
@@ -3306,7 +3489,8 @@
       row.setAttribute('aria-rowindex', String(filteredIndex + 2));
       const blocking = Boolean(file.result && file.result.blocking) ||
         (file.result ? rowIssues.some(core.issueIsBlocking) : rowIssues.length > 0);
-      const rowStatus = blocking
+      const filtered = rowIssues.some(function (issue) { return issue.code === 'source_rule_excluded'; });
+      const rowStatus = filtered ? 'source_table_filtered' : blocking
         ? 'source_table_excluded'
         : rowIssues.length > 0 ? 'source_table_warning' : (file.result ? 'source_table_valid' : 'source_table_unchecked');
       appendCell(row, String(record.sourceLine), 'source-line-cell');
@@ -3314,7 +3498,7 @@
       const statusContent = document.createElement('div');
       statusContent.className = 'source-cell-content';
       const badge = document.createElement('span');
-      badge.className = 'status-badge ' + (blocking ? 'excluded' : (rowIssues.length ? 'warning' : ''));
+      badge.className = 'status-badge ' + (filtered ? 'warning' : blocking ? 'excluded' : (rowIssues.length ? 'warning' : ''));
       setText(badge, translate(rowStatus));
       statusContent.appendChild(badge);
       if (rowIssues.length > 0) {
@@ -3356,7 +3540,9 @@
         }
         const issues = columnIssues.get(position) || [];
         if (issues.length > 0) {
-          cell.classList.add(issues.some(core.issueIsBlocking) ? 'source-cell-error' : 'source-cell-warning');
+          cell.classList.add(issues.some(function (issue) { return issue.code !== 'source_rule_excluded' && core.issueIsBlocking(issue); })
+            ? 'source-cell-error' : issues.some(function (issue) { return issue.code === 'source_rule_excluded'; })
+              ? 'source-cell-filtered' : 'source-cell-warning');
           issues.forEach(function (issue) {
             const message = document.createElement('small');
             message.className = 'source-cell-issue';
@@ -3445,7 +3631,7 @@
   }
 
   function setSourceTableFilter(filter) {
-    state.sourceTableFilter = ['all', 'errors', 'changed'].includes(filter) ? filter : 'all';
+    state.sourceTableFilter = ['all', 'errors', 'excluded', 'changed'].includes(filter) ? filter : 'all';
     const selectedFile = state.files.find(function (file) { return file.id === state.selectedMappingFileId; });
     if (selectedFile && state.sourceTableFilter !== 'changed') {
       selectedFile.sourceChangedToken = (selectedFile.sourceChangedToken || 0) + 1;
@@ -3819,6 +4005,7 @@
         dateEnd: file.dateEnd,
         validRows: file.validRows,
         invalidRows: file.invalidRows,
+        filteredRows: file.filteredRows || 0,
         dates: new Set(),
         salesUnitRows: 0
       }];
@@ -3826,7 +4013,8 @@
     const dateMap = new Map();
     function dateEntry(date) {
       if (!dateMap.has(date)) {
-        dateMap.set(date, { date: date, validRows: 0, invalidLines: new Set(), sources: new Map() });
+        dateMap.set(date, { date: date, validRows: 0, invalidLines: new Set(),
+          filteredLines: new Set(), sources: new Map() });
       }
       return dateMap.get(date);
     }
@@ -3851,7 +4039,9 @@
         return;
       }
       const entry = dateEntry(issue.deliveryDate);
-      entry.invalidLines.add(String(issue.sourceFileId || '') + ':' + issue.sourceLine);
+      const lineKey = String(issue.sourceFileId || '') + ':' + issue.sourceLine;
+      if (issue.code === 'source_rule_excluded') entry.filteredLines.add(lineKey);
+      else entry.invalidLines.add(lineKey);
       if (issue.sourceFileId) {
         entry.sources.set(issue.sourceFileId, issue.sourceFileLabel || issue.sourceFileName || issue.sourceFileId);
       }
@@ -3880,6 +4070,7 @@
       appendCell(row, formatNumber(source.dates.size, 0), 'number');
       appendCell(row, formatNumber(source.validRows, 0), 'number');
       appendCell(row, formatNumber(source.invalidRows, 0), 'number');
+      appendCell(row, formatNumber(source.filteredRows, 0), 'number');
       appendCell(row, formatNumber(source.salesUnitRows, 0), 'number');
       const action = document.createElement('td');
       action.appendChild(evidenceButton('coverageSourceId', source.id));
@@ -3899,6 +4090,7 @@
       appendCell(row, entry.date);
       appendCell(row, formatNumber(entry.validRows, 0), 'number');
       appendCell(row, formatNumber(entry.invalidLines.size, 0), 'number');
+      appendCell(row, formatNumber(entry.filteredLines.size, 0), 'number');
       appendCell(row, Array.from(entry.sources.values()).join(', ') || translate('empty_value'));
       const action = document.createElement('td');
       action.appendChild(evidenceButton('coverageDate', entry.date));
@@ -3931,10 +4123,13 @@
       return source && source.sourceType !== 'article-master' && (isDate ? issue.deliveryDate === selection.value : issue.sourceFileId === selection.value);
     });
     const invalidLines = new Set(issues.filter(function (issue) {
-      return core.issueIsBlocking(issue) && Number.isInteger(issue.sourceLine);
+      return issue.code !== 'source_rule_excluded' && core.issueIsBlocking(issue) && Number.isInteger(issue.sourceLine);
     }).map(function (issue) {
       return String(issue.sourceFileId || '') + ':' + issue.sourceLine;
     }));
+    const filteredLines = new Set(issues.filter(function (issue) {
+      return issue.code === 'source_rule_excluded' && Number.isInteger(issue.sourceLine);
+    }).map(function (issue) { return String(issue.sourceFileId || '') + ':' + issue.sourceLine; }));
     const sources = new Set();
     validRows.forEach(function (row) { if (row.source_file_id) { sources.add(row.source_file_id); } });
     issues.forEach(function (issue) { if (issue.sourceFileId) { sources.add(issue.sourceFileId); } });
@@ -3945,6 +4140,7 @@
     setText(elements.coverageDrilldownSummary, translate('coverage_drilldown_summary', {
       valid: validRows.length,
       invalid: invalidLines.size,
+      filtered: filteredLines.size,
       sources: sources.size
     }));
     elements.coverageDrilldownTableBody.replaceChildren();
@@ -3960,7 +4156,8 @@
     });
     issues.forEach(function (issue) {
       const row = document.createElement('tr');
-      appendCell(row, translate(core.issueIsBlocking(issue) ? 'coverage_invalid_row' : 'coverage_advisory_row'));
+      appendCell(row, translate(issue.code === 'source_rule_excluded' ? 'coverage_filtered_row' :
+        core.issueIsBlocking(issue) ? 'coverage_invalid_row' : 'coverage_advisory_row'));
       appendCell(row, optionalText(issue.sourceFileLabel || issue.sourceFileName));
       appendCell(row, Number.isInteger(issue.sourceLine) ? String(issue.sourceLine) : translate('empty_value'), 'number');
       appendCell(row, optionalText(issue.deliveryDate));
@@ -5341,16 +5538,18 @@
     visibleIssues.forEach(function (issue) {
       const row = document.createElement('tr');
       const blocking = core.issueIsBlocking(issue);
-      row.className = 'issue-row ' + (blocking ? 'blocking' : 'advisory');
+      const filtered = issue.code === 'source_rule_excluded';
+      row.className = 'issue-row ' + (filtered ? 'advisory' : blocking ? 'blocking' : 'advisory');
       appendCell(row, optionalText(issue.sourceFileLabel || issue.sourceFileName));
       appendCell(row, issue.sourceLine === null ? translate('empty_value') : String(issue.sourceLine));
-      appendCell(row, issue.field ? core.getFieldLabel(issue.field, state.language) : translate('structure_field'));
+      appendCell(row, filtered ? (issue.sourceColumn || translate('source_column_header')) :
+        issue.field ? core.getFieldLabel(issue.field, state.language) : translate('structure_field'));
       appendCell(row, issue.code);
       appendCell(row, issue.message);
       const statusCell = document.createElement('td');
       const status = document.createElement('span');
-      status.className = 'status-badge ' + (blocking ? 'excluded' : 'warning');
-      setText(status, translate(blocking ? 'issue_status_excluded' : 'issue_status_included'));
+      status.className = 'status-badge ' + (filtered ? 'warning' : blocking ? 'excluded' : 'warning');
+      setText(status, translate(filtered ? 'issue_status_filtered' : blocking ? 'issue_status_excluded' : 'issue_status_included'));
       statusCell.appendChild(status);
       row.appendChild(statusCell);
       elements.issuesTableBody.appendChild(row);
@@ -5488,6 +5687,7 @@
       translate('quality_summary_affected', { count: affected }),
       !crossSource && resultFile ? translate('quality_summary_valid_rows', { count: Number(resultFile.validRows || 0) }) : null,
       !crossSource && resultFile ? translate('quality_summary_invalid_rows', { count: Number(resultFile.invalidRows || 0) }) : null,
+      !crossSource && resultFile && resultFile.filteredRows ? translate('quality_summary_filtered_rows', { count: resultFile.filteredRows }) : null,
       blocking > 0
         ? translate('quality_summary_blocking', { count: blocking })
         : translate('quality_summary_advisory', { count: entries.length })
@@ -5616,14 +5816,16 @@
             sourceFile: sourceContext(file),
             customFields: state.customFields,
             customFieldMapping: customFieldMapping,
-            preparationRules: file.preparationRules
+            preparationRules: file.preparationRules,
+            sourceRules: file.sourceRules
           })
           : core.importCsvStreaming(file.content, mapping, {
             locale: state.language,
             sourceFile: sourceContext(file),
             customFields: state.customFields,
             customFieldMapping: customFieldMapping,
-            preparationRules: file.preparationRules
+            preparationRules: file.preparationRules,
+            sourceRules: file.sourceRules
           });
         if (file.result && Array.isArray(file.result.rawColumnCatalog)) {
           file.columnCatalog = file.result.rawColumnCatalog;
@@ -5856,6 +6058,7 @@
         headers: [],
         mapping: {},
         preparationRules: {},
+        sourceRules: [],
         customFieldMapping: {},
         confirmedMapping: null,
         columnCatalog: [],
@@ -5964,6 +6167,7 @@
       headers: [],
       mapping: {},
       preparationRules: workspaceModel.normalizePreparationRules(stored.preparationRules),
+      sourceRules: workspaceModel.normalizeSourceRules(stored.sourceRules),
       customFieldMapping: {},
       confirmedCustomFieldMapping: null,
       confirmedMapping: null,
@@ -6009,6 +6213,7 @@
         errorKey: file.errorKey,
         mapping: file.mapping,
         preparationRules: file.preparationRules,
+        sourceRules: file.sourceRules,
         customFieldMapping: file.customFieldMapping,
         confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
@@ -6057,14 +6262,16 @@
               sourceFile: sourceContext(file),
               customFields: validated.customFields,
               customFieldMapping: customFieldMapping,
-              preparationRules: file.preparationRules
+              preparationRules: file.preparationRules,
+              sourceRules: file.sourceRules
             })
             : importBufferStreaming(file, mapping, {
               locale: language,
               sourceFile: sourceContext(file),
               customFields: validated.customFields,
               customFieldMapping: customFieldMapping,
-              preparationRules: file.preparationRules
+              preparationRules: file.preparationRules,
+              sourceRules: file.sourceRules
             });
           if (file.result && Array.isArray(file.result.rawColumnCatalog)) {
             file.columnCatalog = file.result.rawColumnCatalog;
@@ -7289,6 +7496,13 @@
     elements.mappingPanel.classList.remove('focused');
     renderMapping();
   });
+  elements.mappingGrid.addEventListener('click', function (event) {
+    const button = event.target.closest('button[data-focus-source-rule]');
+    if (!button || !elements.mappingGrid.contains(button)) return;
+    openMappingDrawer(Number(button.dataset.focusSourceRule));
+    const editor = elements.mappingGrid.querySelector('.source-rule-editor');
+    if (editor) editor.querySelector('summary').focus();
+  });
   elements.sourceTableHead.addEventListener('click', function (event) {
     const button = event.target.closest('button[data-source-column-position]');
     if (!button || !elements.sourceTableHead.contains(button)) return;
@@ -7396,6 +7610,89 @@
       renderMapping();
       showMappingMessage(translate('prep_rule_limit'));
       return;
+    }
+    clearAnalysis();
+    renderMapping();
+    persistActiveWorkspace().catch(function () {});
+  });
+  elements.mappingGrid.addEventListener('change', function (event) {
+    const control = event.target.closest('[data-source-rule-new-field="type"]');
+    if (!control || !elements.mappingGrid.contains(control)) return;
+    const draft = control.closest('.source-rule-draft');
+    const valueField = draft.querySelector('[data-source-rule-new-field="value"]').closest('label');
+    valueField.hidden = control.value === 'exclude-empty';
+  });
+  elements.mappingGrid.addEventListener('change', function (event) {
+    const control = event.target.closest('[data-source-rule-field]');
+    if (!control || !elements.mappingGrid.contains(control)) return;
+    const editor = control.closest('.source-rule-editor');
+    const row = control.closest('[data-source-rule-index]');
+    const file = editor && state.files.find(function (item) { return item.id === editor.dataset.sourceRuleFileId; });
+    const index = row && Number(row.dataset.sourceRuleIndex);
+    if (!file || !Number.isInteger(index) || !file.sourceRules || !file.sourceRules[index]) return;
+    const field = control.dataset.sourceRuleField;
+    const previous = Object.assign({}, file.sourceRules[index]);
+    const rule = file.sourceRules[index];
+    if (field === 'enabled' || field === 'includeInProfile') rule[field] = control.checked;
+    else if (field === 'type') {
+      rule.type = control.value;
+      if (rule.type === 'exclude-empty') delete rule.value;
+      else if (typeof rule.value !== 'string') {
+        rule.value = '';
+        rule.enabled = false;
+      }
+    } else if (field === 'name' || field === 'description') rule[field] = control.value.trim();
+    else if (field === 'value') rule.value = control.value;
+    try {
+      file.sourceRules = workspaceModel.normalizeSourceRules(file.sourceRules, file.headers.length);
+    } catch (error) {
+      file.sourceRules[index] = previous;
+      control.setCustomValidity(translate('source_rule_invalid'));
+      control.reportValidity();
+      showMappingMessage(translate('source_rule_invalid'));
+      return;
+    }
+    control.setCustomValidity('');
+    clearAnalysis();
+    renderMapping();
+    persistActiveWorkspace().catch(function () {});
+  });
+  elements.mappingGrid.addEventListener('click', function (event) {
+    const button = event.target.closest('button[data-source-rule-action]');
+    if (!button || !elements.mappingGrid.contains(button)) return;
+    const editor = button.closest('.source-rule-editor');
+    const file = editor && state.files.find(function (item) { return item.id === editor.dataset.sourceRuleFileId; });
+    if (!file) return;
+    file.sourceRules = file.sourceRules || [];
+    if (button.dataset.sourceRuleAction === 'remove') {
+      const row = button.closest('[data-source-rule-index]');
+      if (!row) return;
+      file.sourceRules.splice(Number(row.dataset.sourceRuleIndex), 1);
+    } else {
+      if (file.sourceRules.length >= 100) return showMappingMessage(translate('source_rule_limit'));
+      const draft = button.closest('.source-rule-draft');
+      const name = draft.querySelector('[data-source-rule-new-field="name"]');
+      const description = draft.querySelector('[data-source-rule-new-field="description"]');
+      const type = draft.querySelector('[data-source-rule-new-field="type"]');
+      const value = draft.querySelector('[data-source-rule-new-field="value"]');
+      const profile = draft.querySelector('[data-source-rule-new-field="includeInProfile"]');
+      if (!name.value.trim() || !description.value.trim() ||
+          (type.value !== 'exclude-empty' && !value.value)) {
+        const invalid = !name.value.trim() ? name : !description.value.trim() ? description : value;
+        invalid.setCustomValidity(translate('source_rule_invalid'));
+        invalid.reportValidity();
+        return;
+      }
+      const rule = { sourcePosition: Number(editor.dataset.sourceRulePosition), type: type.value,
+        name: name.value.trim(), description: description.value.trim(), enabled: true,
+        includeInProfile: profile.checked };
+      if (rule.type !== 'exclude-empty') rule.value = value.value;
+      try {
+        file.sourceRules = workspaceModel.normalizeSourceRules(file.sourceRules.concat([rule]), file.headers.length);
+      } catch (error) {
+        showMappingMessage(translate('source_rule_invalid'));
+        return;
+      }
     }
     clearAnalysis();
     renderMapping();
