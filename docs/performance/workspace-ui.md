@@ -33,6 +33,9 @@ oder Dateien dieser Basis zu verändern. Generierter Code bleibt in ignoriertem
 `dist/performance-browser/`. Er stellt ausschließlich benannte UI-/Harnessdateien
 auf IPv4-Loopback bereit. Sein begrenztes `connect-src 'self'` dient dem Lesen
 des Quellenmanifests; die produktive CSP bleibt `connect-src 'none'`.
+Diese Reproduktionsbefehle benötigen den Git-Checkout. Entwicklerhelper und
+Experimente werden nicht mit dem Anwender-ZIP ausgeliefert; dieses enthält
+die Anwendung, Dokumentation und festgehaltenen Messergebnisse.
 
 ```powershell
 python tools/benchmarks/serve.py --port 8877
@@ -143,6 +146,22 @@ Tests**, ohne ausgelassene Tests. Beide Launcher-Logiksuiten bestehen jeweils
 unter PowerShell 7 und Windows PowerShell 5.1. Produktions-JS/Modulsyntax und
 `git diff --check` sind geprüft. Tatsächlich ausgeführt wurde Python 3.13.14; 3.8-Kompatibilität
 ist zusätzlich statisch geprüft, kein behaupteter Lauf auf einer 3.8-Installation.
+
+### Prüfung des ausgepackten Testpakets
+
+Ein ZIP wurde mit `tools/package-release.ps1` aus einem ausdrücklich benannten
+lokalen Git-Commit gebaut und in einen neuen Ordner ausgepackt. Die ZIP-Kommentar-
+Commit-ID stimmt mit dem Kandidaten überein. **74 Dateien und 31 Serverprüfpunkte**
+bestehen: vollständige Bytes aller vorhandenen Allowlist-Ressourcen, GET/HEAD,
+SHA-256-ETags/304, Modul-MIME, CSP mit `connect-src 'none'`, Health-PID und
+Anwendungswurzel, gesperrte Dokument-/Daten-/Traversalpfade, fremder Host und POST.
+Keine Tests, Quell-CSV, Datenbanken, Entwicklerabhängigkeiten oder EXE/DLL sind
+enthalten. Der ausgepackte Server lief mit dem vorhandenen Python auf einem
+zufälligen IPv4-Loopback-Port und wurde anschließend beendet; sein Listener
+ist geschlossen. Dies bestätigt Paketierung und Serverbetrieb, keine komplette
+Edge- oder Firmenabnahme. Die Version wurde nicht erhöht, keine neue Release
+veröffentlicht. ZIP, Commit, SHA-256 und Prüfbericht liegen lokal unter
+`dist/local-performance/<Kandidaten-Kurz-ID>/`.
 
 Vor einer Firmenfreigabe bleibt die [Localhost-Abnahme](../acceptance-localhost.md)
 am konkreten ausgepackten Git-Kandidaten offen: genehmigter Python-/Edge-Pfad,
