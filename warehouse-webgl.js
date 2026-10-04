@@ -30,6 +30,17 @@
     pushVertex(target, first, rgba, none, bias);
     pushVertex(target, second, rgba, none, bias);
   }
+
+  function panTarget(target, yaw, pitch, dx, dy, scale) {
+    if (!target || !Number.isFinite(scale) || scale <= 0) return target;
+    const right = -dx / scale, down = -dy / scale;
+    return {
+      x: target.x + right * Math.cos(yaw) + down * Math.sin(yaw) * Math.sin(pitch),
+      y: target.y - down * Math.cos(pitch),
+      z: target.z - right * Math.sin(yaw) + down * Math.cos(yaw) * Math.sin(pitch)
+    };
+  }
+
   function projectScene(boxes, camera, width, height, selectedId, selectedSlotId, collisionIds, wallMode) {
     const visible = boxes.filter(function (item) { return wallMode !== 'hidden' || item.object.type !== 'wall'; });
     const yaw = camera.yaw, pitch = camera.pitch;
@@ -50,22 +61,37 @@
     });
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     let minDepth = Infinity, maxDepth = -Infinity;
+    let minWorldY = Infinity, maxWorldY = -Infinity;
     projected.forEach(function (entry) {
       entry.corners.forEach(function (p) {
         minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
         minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
         minDepth = Math.min(minDepth, p.depth); maxDepth = Math.max(maxDepth, p.depth);
       });
+      minWorldY = Math.min(minWorldY, entry.item.y);
+      maxWorldY = Math.max(maxWorldY, entry.item.y + entry.item.height);
     });
     if (!projected.length) {
       minX = -5000; maxX = 5000; minY = -3500; maxY = 3500;
       minDepth = -5000; maxDepth = 5000;
+      minWorldY = 0; maxWorldY = 0;
     }
     const span = Math.max(1000, maxDepth - minDepth);
     const near = maxDepth + span * .1, far = minDepth - span * .1;
-    const centerX = (minX + maxX) / 2, centerY = (minY + maxY) / 2;
-    const scale = Math.min((width - 90) / Math.max(3000, maxX - minX),
-      (height - 100) / Math.max(3000, maxY - minY)) * camera.zoom;
+    const fitX = (minX + maxX) / 2, fitY = (minY + maxY) / 2;
+    const targetY = (minWorldY + maxWorldY) / 2;
+    const targetRotatedZ = (fitY + targetY * Math.cos(pitch)) / Math.sin(pitch);
+    const fitTarget = {
+      x: Math.cos(yaw) * fitX + Math.sin(yaw) * targetRotatedZ,
+      y: targetY,
+      z: -Math.sin(yaw) * fitX + Math.cos(yaw) * targetRotatedZ
+    };
+    const target = camera.target || fitTarget;
+    const center = transform({ x: 0, z: 0, rotation: 0 }, target.x, target.y, target.z);
+    const centerX = center.x, centerY = center.y;
+    const fitScale = Math.min((width - 90) / Math.max(3000, maxX - minX),
+      (height - 100) / Math.max(3000, maxY - minY));
+    const scale = (Number.isFinite(camera.baseScale) && camera.baseScale > 0 ? camera.baseScale : fitScale) * camera.zoom;
     function clip(p) {
       return { x: ((p.x - centerX) * scale + width / 2) / width * 2 - 1,
         y: 1 - ((p.y - centerY) * scale + height / 2) / height * 2,
@@ -119,7 +145,8 @@
       pushLine(grid, c, d, gridColor);
     }
     return { opaque: new Float32Array(opaque), transparent: transparent.map(function (item) { return new Float32Array(item.vertices); }),
-      edges: new Float32Array(edges), grid: new Float32Array(grid), pickMap: pickMap };
+      edges: new Float32Array(edges), grid: new Float32Array(grid), pickMap: pickMap,
+      view: { fitTarget: fitTarget, fitScale: fitScale, scale: scale } };
   }
 
   function create(canvas, callbacks) {
@@ -223,7 +250,8 @@
       try { initialize(); lost = false; if (callbacks && callbacks.onRestored) callbacks.onRestored(); }
       catch (error) { lost = true; if (callbacks && callbacks.onLost) callbacks.onLost(); }
     });
-    return { render: render, pick: pick, available: function () { return !lost; } };
+    return { render: render, pick: pick, view: function () { return scene && scene.view; },
+      available: function () { return !lost; } };
   }
-  return { create: create, projectScene: projectScene, idColor: idColor };
+  return { create: create, projectScene: projectScene, panTarget: panTarget, idColor: idColor };
 }));

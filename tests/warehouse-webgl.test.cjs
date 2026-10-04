@@ -45,3 +45,38 @@ test('wall display modes change only projected geometry, not the saved plan', ()
   assert.deepEqual(hidden.pickMap.slice(1), [{ objectId: 'rack-1' }]);
   assert.equal(boxes.length, 2);
 });
+
+test('orbit camera pans in screen space and fit restores the whole-scene framing', () => {
+  const boxes = [box('pallet-rack', 'rack-1', 0), box('pallet-rack', 'rack-2', 4000)];
+  const originalBoxes = JSON.stringify(boxes);
+  const width = 800, height = 500;
+  const viewCamera = { yaw: 0.47, pitch: 0.72, zoom: 1 };
+  const fitted = renderer.projectScene(boxes, viewCamera, width, height, null, null, conflicts, 'solid');
+  const anchoredCamera = { ...viewCamera, target: fitted.view.fitTarget, baseScale: fitted.view.fitScale };
+  const anchored = renderer.projectScene(boxes, anchoredCamera, width, height, null, null, conflicts, 'solid');
+  assert.ok(Math.abs(fitted.opaque[0] - anchored.opaque[0]) < 0.00001);
+  assert.ok(Math.abs(fitted.opaque[1] - anchored.opaque[1]) < 0.00001);
+
+  const target = renderer.panTarget(anchoredCamera.target, viewCamera.yaw, viewCamera.pitch,
+    80, 40, anchored.view.scale);
+  const panned = renderer.projectScene(boxes, { ...anchoredCamera, target },
+    width, height, null, null, conflicts, 'solid');
+  assert.ok(Math.abs(panned.opaque[0] - anchored.opaque[0] - 2 * 80 / width) < 0.00001);
+  assert.ok(Math.abs(panned.opaque[1] - anchored.opaque[1] + 2 * 40 / height) < 0.00001);
+  assert.equal(panned.view.scale, anchored.view.scale);
+
+  const rotated = renderer.projectScene(boxes, { ...anchoredCamera, target, yaw: 0.9 },
+    width, height, null, null, conflicts, 'solid');
+  assert.equal(rotated.view.scale, anchored.view.scale);
+  assert.notEqual(rotated.view.fitTarget.x, anchored.view.fitTarget.x);
+  assert.equal(JSON.stringify(boxes), originalBoxes);
+});
+
+test('focus framing can fit one object independently of the full layout', () => {
+  const boxes = [box('pallet-rack', 'near', 0), box('pallet-rack', 'far', 20000)];
+  const full = renderer.projectScene(boxes, camera, 800, 500, null, null, conflicts, 'solid');
+  const focused = renderer.projectScene(boxes.filter((item) => item.object.id === 'far'),
+    camera, 800, 500, null, null, conflicts, 'solid');
+  assert.ok(focused.view.fitScale > full.view.fitScale);
+  assert.notEqual(focused.view.fitTarget.z, full.view.fitTarget.z);
+});

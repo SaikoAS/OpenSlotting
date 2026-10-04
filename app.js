@@ -65,9 +65,11 @@
       terminal_articles: 'Articles',
       terminal_customers: 'Customers',
       terminal_orders: 'Orders',
-      warehouse_nav: 'Warehouse 3D',
+      warehouse_nav: 'Warehouse editor',
       warehouse_title: 'Warehouse editor',
-      warehouse_description: 'Build racks and areas, assign location codes, and inspect article-master matches.',
+      warehouse_description: 'Build racks and areas and assign location codes.',
+      warehouse_analysis_nav: '3D analysis',
+      warehouse_analysis_title: '3D warehouse analysis',
       terminal_scope_label: 'Analysis level',
       terminal_metric: 'Metric',
       terminal_range: 'Range',
@@ -143,7 +145,8 @@
       main_menu_coverage_description: 'Check date coverage and prepare comparisons.',
       main_menu_comparison_description: 'Compare selected periods and inspect changes.',
       main_menu_analysis_description: 'Explore articles, demand, and source evidence.',
-      main_menu_warehouse_description: 'Build a warehouse layout and link imported locations.',
+      main_menu_warehouse_description: 'Build the technical warehouse layout and assign position codes.',
+      main_menu_warehouse_analysis_description: 'Inspect locations and imported article assignments.',
       main_menu_workspace_selection_description: 'Switch or manage workspaces.',
       workspace_cancel_loading: 'Cancel loading',
       workspace_recover_save_failure: 'Discard unsaved changes and reload',
@@ -759,9 +762,11 @@
       terminal_articles: 'Artikel',
       terminal_customers: 'Kunden',
       terminal_orders: 'Aufträge',
-      warehouse_nav: 'Lager 3D',
+      warehouse_nav: '3D-Editor',
       warehouse_title: 'Lagereditor',
-      warehouse_description: 'Regale und Bereiche aufbauen, Stellplatzcodes vergeben und Artikelstamm-Zuordnungen prüfen.',
+      warehouse_description: 'Regale und Bereiche aufbauen und Stellplatzcodes vergeben.',
+      warehouse_analysis_nav: '3D-Auswertung',
+      warehouse_analysis_title: '3D-Lagerauswertung',
       terminal_scope_label: 'Auswertungsebene',
       terminal_metric: 'Kennzahl',
       terminal_range: 'Zeitraum',
@@ -837,7 +842,8 @@
       main_menu_coverage_description: 'Datenabdeckung prüfen und Vergleiche vorbereiten.',
       main_menu_comparison_description: 'Ausgewählte Perioden vergleichen und Änderungen prüfen.',
       main_menu_analysis_description: 'Artikel, Bedarf und Quelldaten erkunden.',
-      main_menu_warehouse_description: 'Lagerplan aufbauen und importierte Stellplätze zuordnen.',
+      main_menu_warehouse_description: 'Technischen Lagerplan aufbauen und Stellplatzcodes vergeben.',
+      main_menu_warehouse_analysis_description: 'Stellplätze und importierte Artikelzuordnungen prüfen.',
       main_menu_workspace_selection_description: 'Arbeitsbereich wechseln oder verwalten.',
       workspace_cancel_loading: 'Laden abbrechen',
       workspace_recover_save_failure: 'Ungespeicherte Änderungen verwerfen und neu laden',
@@ -1458,6 +1464,7 @@
     activePageTarget: 'main-menu-panel'
   };
   let warehouseEditor = null;
+  let warehouseAnalysis = null;
 
   const TABLE_PAGE_SIZE = 100;
   const SOURCE_TABLE_ROW_HEIGHT = 56;
@@ -1511,6 +1518,7 @@
     'workspace-panel': { view: 'workspace-page', kicker: 'nav_kicker', title: 'workspace_title', status: 'page_status_workspace' },
     'main-menu-panel': { view: 'main-menu-page', kicker: 'main_menu_eyebrow', title: 'main_menu_title', status: 'page_status_ready' },
     'warehouse-panel': { view: 'warehouse-page', kicker: 'main_menu_eyebrow', title: 'warehouse_title', status: 'page_status_ready' },
+    'warehouse-analysis-panel': { view: 'warehouse-analysis-page', kicker: 'main_menu_eyebrow', title: 'warehouse_analysis_title', status: 'page_status_ready' },
     'import-panel': { view: 'import-page', kicker: 'workflow_import', title: 'select_file_title', status: 'page_status_import' },
     'mapping-panel': { view: 'mapping-page', kicker: 'workflow_mapping', title: 'mapping_title', status: 'page_status_mapping' },
     'coverage-panel': { view: 'coverage-page', kicker: 'workflow_coverage', title: 'coverage_title', status: 'page_status_coverage' },
@@ -3749,6 +3757,7 @@
       'workspace-panel': Boolean(state.activeWorkspace),
       'main-menu-panel': Boolean(state.activeWorkspace),
       'warehouse-panel': Boolean(state.activeWorkspace),
+      'warehouse-analysis-panel': Boolean(state.activeWorkspace),
       'import-panel': Boolean(state.activeWorkspace),
       'mapping-panel': state.files.length > 0,
       'coverage-panel': Boolean(state.result && analysisRowCount(state.result) > 0),
@@ -3758,6 +3767,7 @@
     const completion = {
       'workspace-panel': Boolean(state.activeWorkspace),
       'warehouse-panel': Boolean(state.warehouseLayout.objects.length),
+      'warehouse-analysis-panel': false,
       'import-panel': state.files.length > 0,
       'mapping-panel': Boolean(state.result && analysisRowCount(state.result) > 0),
       'coverage-panel': Boolean(state.comparison),
@@ -3797,6 +3807,7 @@
     });
     if (requestedTarget === 'main-menu-panel') renderTerminal();
     if (requestedTarget === 'warehouse-panel' && warehouseEditor) warehouseEditor.render();
+    if (requestedTarget === 'warehouse-analysis-panel' && warehouseAnalysis) warehouseAnalysis.render();
   }
 
   function coverageText(coverage) {
@@ -8320,7 +8331,6 @@
     model: warehouseModel,
     getLayout: function () { return state.warehouseLayout; },
     getWorkspaceId: function () { return state.activeWorkspace ? state.activeWorkspace.id : null; },
-    getRegistry: function () { return state.articleRegistry; },
     getLanguage: function () { return state.language; },
     save: async function (layout) {
       const previous = state.warehouseLayout;
@@ -8333,6 +8343,14 @@
         throw error;
       }
     }
+  });
+  warehouseAnalysis = window.OpenSlottingWarehouseAnalysis.create({
+    root: document.getElementById('warehouse-analysis-root'),
+    model: warehouseModel,
+    getLayout: function () { return state.warehouseLayout; },
+    getRegistry: function () { return state.articleRegistry; },
+    getWorkspaceId: function () { return state.activeWorkspace ? state.activeWorkspace.id : null; },
+    getLanguage: function () { return state.language; }
   });
   applyLanguage();
   initializeWorkspaces();

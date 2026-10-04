@@ -22,19 +22,13 @@
       lockedEdit: 'Unlock the object before changing it or using undo/redo on it.',
       checks: 'Layout checks', collision: 'collision', collisions: 'collisions',
       overlap: 'Objects overlap', 'blocked-aisle': 'Aisle obstructed', moreCollisions: 'more collisions',
-      view: '3D layout', planView: 'Floor plan', fit: 'Fit view', top: 'Top view', orbit: '3D view',
-      hint: 'Drag to rotate · mouse wheel to zoom · click to select',
+      view: '3D layout', planView: 'Floor plan', fit: 'Fit view', focus: 'Focus object', top: 'Top view', orbit: '3D view',
+      hint: 'Left drag: rotate · right or middle drag / Shift+drag: pan · wheel: zoom · double-click: focus object',
       hintTop: 'Drag an object to move it · drag empty space to pan · wheel to zoom · 100 mm grid',
       magnet: 'Magnetic snap', magnetTitle: 'Snap wall, gate and door ends together in the floor plan',
       magnetHint: 'Magnetic snap is on: nearby wall, gate and door ends connect before the grid.',
       snapTo: 'Connect to',
-      importTitle: 'Article-master locations', matched: 'Matched articles', unmatched: 'Unmatched codes',
-      noMaster: 'No current locations in the imported article master.', noUnmatched: 'All imported location codes are assigned.',
-      noSelection: 'Choose a rack level to edit its positions.', slotArticles: 'Articles at this position', saved: 'Layout saved locally.',
-      slotSelection: 'Selected position', noSlotSelection: 'Click a position marker or find a code.',
-      searchCode: 'Find location code', findCode: 'Find', codeNotFound: 'No position has this exact code.',
-      noArticles: 'No current article-master match.', position: 'Position',
-      legendMatched: 'article matched', legendCoded: 'code assigned', legendEmpty: 'no code',
+      noSelection: 'Choose a rack level to edit its positions.', saved: 'Layout saved locally.',
       removeWarning: 'Reducing counts removes positions with codes. Continue?', deleteWarning: 'Delete this object and its location codes?',
       slotSummary: 'positions ·', coded: 'coded', missing: 'without code', exact: 'Codes are matched exactly after trimming outer spaces. Leading zeros remain significant.',
       choose: 'Choose a recipe',
@@ -73,19 +67,13 @@
       lockedEdit: 'Objekt vor Änderungen oder Rückgängig/Wiederholen entsperren.',
       checks: 'Planprüfung', collision: 'Kollision', collisions: 'Kollisionen',
       overlap: 'Objekte überlappen', 'blocked-aisle': 'Gang blockiert', moreCollisions: 'weitere Kollisionen',
-      view: '3D-Lagerplan', planView: 'Grundriss', fit: 'Einpassen', top: 'Draufsicht', orbit: '3D-Ansicht',
-      hint: 'Ziehen: drehen · Mausrad: zoomen · Klicken: auswählen',
+      view: '3D-Lagerplan', planView: 'Grundriss', fit: 'Einpassen', focus: 'Objekt fokussieren', top: 'Draufsicht', orbit: '3D-Ansicht',
+      hint: 'Links ziehen: drehen · rechts oder mittig ziehen / Umschalt+ziehen: verschieben · Mausrad: zoomen · Doppelklick: Objekt fokussieren',
       hintTop: 'Objekt ziehen: verschieben · freie Fläche ziehen: Ansicht bewegen · Mausrad: zoomen · 100-mm-Raster',
       magnet: 'Magnet', magnetTitle: 'Wand-, Tor- und Türenden im Grundriss verbinden',
       magnetHint: 'Magnet aktiv: Nahe Wand-, Tor- und Türenden rasten vor dem Raster ein.',
       snapTo: 'Verbinden mit',
-      importTitle: 'Stellplätze aus Artikelstamm', matched: 'Zugeordnete Artikel', unmatched: 'Nicht zugeordnete Codes',
-      noMaster: 'Keine aktuellen Stellplätze im importierten Artikelstamm.', noUnmatched: 'Alle importierten Stellplatzcodes sind zugeordnet.',
-      noSelection: 'Wähle eine Regalebene, um die Stellplätze zu bearbeiten.', slotArticles: 'Artikel an diesem Stellplatz', saved: 'Lagerplan lokal gespeichert.',
-      slotSelection: 'Ausgewählter Stellplatz', noSlotSelection: 'Stellplatzmarkierung anklicken oder Code suchen.',
-      searchCode: 'Stellplatzcode suchen', findCode: 'Finden', codeNotFound: 'Kein Stellplatz mit genau diesem Code gefunden.',
-      noArticles: 'Keine aktuelle Zuordnung im Artikelstamm.', position: 'Position',
-      legendMatched: 'Artikel zugeordnet', legendCoded: 'Code vergeben', legendEmpty: 'ohne Code',
+      noSelection: 'Wähle eine Regalebene, um die Stellplätze zu bearbeiten.', saved: 'Lagerplan lokal gespeichert.',
       removeWarning: 'Beim Verkleinern werden Stellplätze mit Codes entfernt. Fortfahren?', deleteWarning: 'Objekt und seine Stellplatzcodes löschen?',
       slotSummary: 'Stellplätze ·', coded: 'codiert', missing: 'ohne Code', exact: 'Codes werden nach Entfernen äußerer Leerzeichen exakt abgeglichen. Führende Nullen bleiben erhalten.',
       choose: 'Rezept wählen',
@@ -153,11 +141,10 @@
   function create(options) {
     const model = options.model;
     const root = options.root;
-    const camera = { yaw: -0.62, pitch: 0.62, zoom: 1, mode: 'orbit' };
-    const topView = { ready: false, centerX: 0, centerZ: 0, scale: 1 };
+    const camera = { yaw: -0.62, pitch: 0.62, zoom: 1, target: null, baseScale: null, mode: 'orbit' };
+    const topView = { ready: false, centerX: 0, centerZ: 0, scale: 1, zoom: 1 };
     const choice = { objectId: null, bay: 0, level: 0, upright: 0, slotId: null };
     let codePrefix = 'R01';
-    let codeSearch = '';
     let message = '';
     let pickFaces = [];
     let canvas = null;
@@ -174,6 +161,9 @@
     let magnetEnabled = false;
     let snapPreview = null;
     let rackWizard = null;
+    const boxesFor = function (warehouse, matches) {
+      return window.OpenSlottingWarehouseScene.buildBoxes(model, warehouse, matches);
+    };
 
     webglRenderer = window.OpenSlottingWarehouseWebGL && window.OpenSlottingWarehouseWebGL.create(glCanvas, {
       onLost: function () { camera.mode = 'top'; message = labels().webglUnavailable; render(); },
@@ -190,6 +180,9 @@
         undoStack = [];
         redoStack = [];
         rackWizard = null;
+        camera.yaw = -0.62; camera.pitch = 0.62; camera.zoom = 1;
+        camera.target = null; camera.baseScale = null;
+        topView.ready = false; topView.zoom = 1;
       }
     }
     function keepRecent(stack, value) {
@@ -198,21 +191,34 @@
     }
     function selected() { return layout().objects.find(function (object) { return object.id === choice.objectId; }) || null; }
     function objectName(object, t) { return object.name || t[TYPE_LABELS[object.type]]; }
+    function ensureOrbitAnchor() {
+      const view = webglRenderer && webglRenderer.view();
+      if (!view) return null;
+      if (!camera.target) camera.target = Object.assign({}, view.fitTarget);
+      if (!Number.isFinite(camera.baseScale) || camera.baseScale <= 0) camera.baseScale = view.fitScale;
+      return view;
+    }
+    function focusObject(objectId) {
+      if (camera.mode !== 'orbit' || !objectId) return false;
+      const targetBoxes = boxesFor(layout())
+        .filter(function (item) { return item.object.id === objectId; });
+      if (!targetBoxes.length) return false;
+      const view = window.OpenSlottingWarehouseWebGL.projectScene(targetBoxes,
+        { yaw: camera.yaw, pitch: camera.pitch, zoom: 1 },
+        Math.max(280, glCanvas.clientWidth), Math.max(320, glCanvas.clientHeight),
+        null, null, new Set(), 'solid').view;
+      camera.target = Object.assign({}, view.fitTarget);
+      camera.baseScale = view.fitScale;
+      camera.zoom = 1;
+      return true;
+    }
     function selectSlot(slot) {
       choice.objectId = slot.objectId;
       choice.bay = slot.bayIndex;
       choice.level = slot.levelIndex;
       choice.slotId = slot.slotId;
-      const current = model.listSlots(layout()).find(function (item) { return item.slotId === slot.slotId; });
-      codeSearch = current ? current.code : '';
       message = '';
       render();
-    }
-    function findCode() {
-      codeSearch = root.querySelector('[data-field="search"]').value.trim();
-      const found = model.listSlots(layout()).find(function (slot) { return slot.code === codeSearch && Boolean(codeSearch); });
-      if (found) selectSlot(found);
-      else { message = labels().codeNotFound; render(); }
     }
 
     async function commit(next, historyAction, selectionAfter, toggleLockId, closeWizardOnSuccess) {
@@ -511,7 +517,7 @@
       refreshWizardFeedback();
     }
 
-    function properties(object, t, matches) {
+    function properties(object, t) {
       if (!object) return '<p class="wh-empty">' + esc(t.selected) + '</p>';
       let html = '<div class="wh-property-grid">' + textField(t.name, 'name', object.name) +
         numberField(t.x, 'x', object.x, -500000, 500000) + numberField(t.z, 'z', object.z, -500000, 500000) +
@@ -551,11 +557,8 @@
         '</div></div>';
       html += '<div class="wh-section"><strong>' + esc(t.codes) + '</strong>' +
         level.positions.map(function (slot, index) {
-          const articles = matches.bySlot.get(slot.id) || [];
           return '<label class="wh-code-row' + (slot.id === choice.slotId ? ' selected' : '') + '"><span>' + (index + 1) + '</span><input type="text" data-field="slot.code" data-slot-index="' +
-            index + '" value="' + esc(slot.code) + '" maxlength="80" placeholder="' + esc(t.code) + '"></label>' +
-            (articles.length ? '<div class="wh-slot-articles"><strong>' + esc(t.slotArticles) + ':</strong> ' +
-              articles.map(function (article) { return esc(article.articleId) + (article.name ? ' · ' + esc(article.name) : ''); }).join(', ') + '</div>' : '');
+            index + '" value="' + esc(slot.code) + '" maxlength="80" placeholder="' + esc(t.code) + '"></label>';
         }).join('') + '</div>';
       html += '<div class="wh-section wh-code-generator">' + textField(t.codePrefix, 'prefix', codePrefix) +
         '<button type="button" class="wh-small-button" data-action="generate">' + esc(t.generate) + '</button></div>';
@@ -577,7 +580,6 @@
       const slots = model.listSlots(warehouse);
       if (!slots.some(function (slot) { return slot.slotId === choice.slotId; })) choice.slotId = null;
       const coded = slots.filter(function (slot) { return Boolean(slot.code); }).length;
-      const matches = model.matchArticles(warehouse, options.getRegistry());
       const collisions = model.findCollisions(warehouse);
       const collisionIds = new Set(collisions.flatMap(function (item) { return [item.firstId, item.secondId]; }));
       const objectsById = new Map(warehouse.objects.map(function (item) { return [item.id, item]; }));
@@ -590,8 +592,6 @@
             esc(second.id) + '" title="' + esc(second.name) + '">' + esc(second.name) + '</button></div></div>';
         }).join('') + '</div>' + (collisions.length > 12 ? '<p>' + (collisions.length - 12) + ' ' + esc(t.moreCollisions) + '</p>' : '') +
         '</div>' : '';
-      const selectedSlot = slots.find(function (slot) { return slot.slotId === choice.slotId; });
-      const selectedArticles = selectedSlot ? matches.bySlot.get(selectedSlot.slotId) || [] : [];
       root.innerHTML = '<div class="wh-header"><div><p class="wh-eyebrow">OpenSlotting · 3D</p><h3>' + esc(t.view) + '</h3><p>' +
         esc(t.exact) + '</p></div><div class="wh-summary"><strong>' + warehouse.objects.length + '</strong> ' + esc(t.objects) +
         '<br><strong>' + slots.length + '</strong> ' + esc(t.slotSummary) + ' ' + coded + ' ' + esc(t.coded) +
@@ -617,7 +617,8 @@
         ' title="Ctrl+Z">' + esc(t.undo) + '</button><button type="button" data-action="redo"' +
         (redoStack.length ? '' : ' disabled') + ' title="Ctrl+Y / Ctrl+Shift+Z">' + esc(t.redo) +
         '</button><button type="button" data-action="fit">' + esc(t.fit) +
-        '</button><button type="button" data-action="magnet" aria-pressed="' + magnetEnabled +
+        '</button>' + (camera.mode === 'orbit' ? '<button type="button" data-action="focus"' +
+          (object ? '' : ' disabled') + '>' + esc(t.focus) + '</button>' : '') + '<button type="button" data-action="magnet" aria-pressed="' + magnetEnabled +
         '" title="' + esc(t.magnetTitle) + '">⌁ ' + esc(t.magnet) +
         '</button>' + (camera.mode === 'orbit' ? '<button type="button" data-action="wall-mode" title="' +
           esc(t.wallModeHelp) + '">' + esc(t[wallMode === 'solid' ? 'wallSolid' : wallMode === 'transparent' ? 'wallTransparent' : 'wallHidden']) +
@@ -628,26 +629,7 @@
         (camera.mode === 'top' ? '' : ' is-hidden') + '" role="img" aria-label="' + esc(t.planView) + '"></canvas>' +
         '<div class="wh-webgl-slot' + (camera.mode === 'orbit' ? '' : ' is-hidden') + '"></div></div>' +
         '<div class="wh-view-hint">' + esc(camera.mode === 'top' ? t.hintTop + (magnetEnabled ? ' · ' + t.magnetHint : '') : t.hint) + '</div>' +
-        (camera.mode === 'orbit' ? '<div class="wh-legend">' +
-          '<span><i class="matched"></i>' + esc(t.legendMatched) + '</span><span><i class="coded"></i>' + esc(t.legendCoded) +
-          '</span><span><i class="empty"></i>' + esc(t.legendEmpty) + '</span></div>' : '') +
-        '<div class="wh-card wh-slot-inspector"><div class="wh-slot-search"><label class="wh-field"><span>' + esc(t.searchCode) +
-        '</span><input type="search" data-field="search" value="' + esc(codeSearch) + '" maxlength="80"></label>' +
-        '<button type="button" class="wh-small-button" data-action="find-code">' + esc(t.findCode) + '</button></div>' +
-        '<h4>' + esc(t.slotSelection) + '</h4>' + (selectedSlot ?
-          '<div class="wh-selected-code">' + esc(selectedSlot.code || t.missing) + '</div><p class="wh-slot-path">' +
-          esc(selectedSlot.objectName) + ' · ' + esc(t.bay) + ' ' + (selectedSlot.bayIndex + 1) + ' · ' + esc(t.level) + ' ' +
-          (selectedSlot.levelIndex + 1) + ' · ' + esc(t.position) + ' ' + (selectedSlot.positionIndex + 1) + '</p>' +
-          (selectedArticles.length ? '<div class="wh-selected-articles"><strong>' + esc(t.slotArticles) + '</strong>' +
-            selectedArticles.map(function (article) { return '<div>' + esc(article.articleId) + (article.name ? ' · ' + esc(article.name) : '') + '</div>'; }).join('') + '</div>' :
-            '<p class="wh-empty">' + esc(t.noArticles) + '</p>') : '<p class="wh-empty">' + esc(t.noSlotSelection) + '</p>') +
-        '</div><div class="wh-card wh-import"><div class="wh-import-head"><h4>' + esc(t.importTitle) +
-        '</h4><span><strong>' + matches.matched + '</strong> ' + esc(t.matched) + ' · <strong>' + matches.unmatched.length + '</strong> ' + esc(t.unmatched) +
-        '</span></div>' + (matches.withLocation === 0 ? '<p class="wh-empty">' + esc(t.noMaster) + '</p>' :
-          '<div class="wh-match-list">' + matches.unmatched.slice(0, 16).map(function (item) {
-            return '<div><strong>' + esc(item.code) + '</strong><span>' + esc(item.articleId) + ' · ' + esc(item.name) + '</span></div>';
-          }).join('') + (matches.unmatched.length === 0 ? '<p class="wh-empty">' + esc(t.noUnmatched) + '</p>' : '') + '</div>') +
-        '</div></div><aside class="wh-properties"><div class="wh-card"><div class="wh-properties-head"><h4>' + esc(t.properties) + '</h4>' +
+        '</div><aside class="wh-properties"><div class="wh-card"><div class="wh-properties-head"><h4>' + esc(t.properties) + '</h4>' +
         (object ? '<button type="button" class="wh-delete" data-action="delete">' + esc(t.delete) + '</button>' : '') +
         '</div>' + (object ? '<div class="wh-object-actions"><button type="button" class="wh-lock-toggle" data-action="toggle-lock" aria-pressed="' +
           Boolean(object.locked) + '">' + (object.locked ? '🔓 ' + esc(t.unlock) : '🔒 ' + esc(t.lock)) +
@@ -655,7 +637,7 @@
           esc(t.wizardEditButton) + '</button>' : '') + '<button type="button" data-action="duplicate">' +
           esc(t.duplicate) + '</button><button type="button" data-action="rotate-left" title="' + esc(t.rotateLeft) +
           '">↶ 90°</button><button type="button" data-action="rotate-right" title="' + esc(t.rotateRight) +
-          '">↷ 90°</button></div>' + (object.locked ? '<p class="wh-locked-hint">🔒 ' + esc(t.lockedHint) + '</p>' : '') : '') + properties(object, t, matches) +
+          '">↷ 90°</button></div>' + (object.locked ? '<p class="wh-locked-hint">🔒 ' + esc(t.lockedHint) + '</p>' : '') : '') + properties(object, t) +
         '</div></aside></div>' + (rackWizard ? wizardHtml(t) : '') +
         '<p class="wh-message" role="status" aria-live="polite">' + esc(message) + '</p>';
       if (object && object.locked) {
@@ -665,7 +647,7 @@
       root.querySelector('.wh-webgl-slot').appendChild(glCanvas);
       glCanvas.setAttribute('aria-label', t.view);
       canvas = root.querySelector('canvas.is-top');
-      paint(warehouse, matches, collisionIds);
+      paint(warehouse, collisionIds);
       wireCanvas();
       if (rackWizard && focusedField) {
         const replacement = Array.from(root.querySelectorAll('.wh-wizard [data-wizard-field]')).find(function (item) {
@@ -673,64 +655,6 @@
         });
         if (replacement) replacement.focus();
       }
-    }
-
-    function box(object, x, y, z, width, height, depth, color, list, slotRef) {
-      list.push({ object: object, x: x, y: y, z: z, width: width, height: height, depth: depth, color: color, slotRef: slotRef || null });
-    }
-    function boxesFor(warehouse, matches) {
-      const boxes = [];
-      warehouse.objects.forEach(function (object) {
-        if (!model.RACK_TYPES.includes(object.type)) {
-          if (object.type === 'gate' || object.type === 'door' || object.type === 'emergency-exit') {
-            const post = Math.min(140, object.width / 6);
-            box(object, 0, 0, 0, post, object.height, object.depth, COLORS[object.type], boxes);
-            box(object, object.width - post, 0, 0, post, object.height, object.depth, COLORS[object.type], boxes);
-            box(object, 0, object.height - post, 0, object.width, post, object.depth, COLORS[object.type], boxes);
-            if (object.type === 'door') {
-              box(object, post, 0, (object.depth - 35) / 2, object.width - 2 * post,
-                object.height - post, 35, '#8eaf9e', boxes);
-            }
-          } else {
-            box(object, 0, 0, 0, object.width, object.height, object.depth, COLORS[object.type], boxes);
-          }
-          return;
-        }
-        let offset = 0;
-        object.bays.forEach(function (bay, bayIndex) {
-          const upright = object.uprights[bayIndex];
-          const postDepth = Math.min(90, upright.depth / 3);
-          box(object, offset, 0, 0, upright.width, upright.height, postDepth, '#7790a6', boxes);
-          box(object, offset, 0, upright.depth - postDepth, upright.width, upright.height, postDepth, '#7790a6', boxes);
-          box(object, offset, upright.height - 85, 0, upright.width, 85, upright.depth, '#7790a6', boxes);
-          box(object, offset, 0, 0, upright.width, 75, upright.depth, '#7790a6', boxes);
-          offset += upright.width;
-          let y = 0;
-          bay.levels.forEach(function (level, levelIndex) {
-            y += level.clearHeight;
-            box(object, offset, y, 0, bay.width, level.thickness, 75, '#d2a75e', boxes);
-            box(object, offset, y, bay.depth - 75, bay.width, level.thickness, 75, '#d2a75e', boxes);
-            if (level.deck) box(object, offset, y + level.thickness, 0, bay.width, level.deckThickness, bay.depth, '#8298a8', boxes);
-            const markerWidth = Math.min(180, bay.width / (level.positions.length * 3));
-            level.positions.forEach(function (slot, index) {
-              const markerX = offset + (index + 0.5) * bay.width / level.positions.length - markerWidth / 2;
-              const color = matches.bySlot.has(slot.id) ? '#45d3b1' : slot.code ? '#62b3cb' : '#465b69';
-              box(object, markerX, y + level.thickness + (level.deck ? level.deckThickness : 0) + 8,
-                Math.max(5, bay.depth / 2 - 50), markerWidth, 18, 100, color, boxes,
-                { objectId: object.id, bayIndex: bayIndex, levelIndex: levelIndex, positionIndex: index, slotId: slot.id });
-            });
-            y += level.thickness;
-          });
-          offset += bay.width;
-        });
-        const end = object.uprights[object.uprights.length - 1];
-        const endPostDepth = Math.min(90, end.depth / 3);
-        box(object, offset, 0, 0, end.width, end.height, endPostDepth, '#7790a6', boxes);
-        box(object, offset, 0, end.depth - endPostDepth, end.width, end.height, endPostDepth, '#7790a6', boxes);
-        box(object, offset, end.height - 85, 0, end.width, 85, end.depth, '#7790a6', boxes);
-        box(object, offset, 0, 0, end.width, 75, end.depth, '#7790a6', boxes);
-      });
-      return boxes;
     }
 
     function fitTop(warehouse, width, height) {
@@ -748,13 +672,13 @@
     }
 
     function topPoint(x, z, width, height) {
-      const scale = topView.scale * camera.zoom;
+      const scale = topView.scale * topView.zoom;
       return [(x - topView.centerX) * scale + width / 2, (z - topView.centerZ) * scale + height / 2];
     }
 
     function topWorld(clientX, clientY) {
       const rect = canvas.getBoundingClientRect();
-      const scale = topView.scale * camera.zoom;
+      const scale = topView.scale * topView.zoom;
       return {
         x: (clientX - rect.left - canvas.clientWidth / 2) / scale + topView.centerX,
         z: (clientY - rect.top - canvas.clientHeight / 2) / scale + topView.centerZ
@@ -778,7 +702,7 @@
 
     function paintTop(ctx, width, height, warehouse, collisionIds) {
       if (!topView.ready) fitTop(warehouse, width, height);
-      const scale = topView.scale * camera.zoom;
+      const scale = topView.scale * topView.zoom;
       const left = topView.centerX - width / (2 * scale), right = topView.centerX + width / (2 * scale);
       const top = topView.centerZ - height / (2 * scale), bottom = topView.centerZ + height / (2 * scale);
       const step = scale * 500 >= 14 ? 500 : scale * 1000 >= 14 ? 1000 : 5000;
@@ -864,13 +788,13 @@
       }
     }
 
-    function paint(warehouse, matches, collisionIds) {
+    function paint(warehouse, collisionIds) {
       const conflicts = collisionIds || new Set(model.findCollisions(warehouse).flatMap(function (item) {
         return [item.firstId, item.secondId];
       }));
       if (camera.mode === 'orbit') {
         if (webglRenderer && webglRenderer.available()) {
-          webglRenderer.render(boxesFor(warehouse, matches || model.matchArticles(warehouse, options.getRegistry())),
+          webglRenderer.render(boxesFor(warehouse),
             camera, choice.objectId, choice.slotId, conflicts, wallMode);
         }
         return;
@@ -895,6 +819,8 @@
       let drag = null;
       inputCanvas.addEventListener('pointerdown', function (event) {
         if (saving) return;
+        if (camera.mode === 'top' && event.button !== 0) return;
+        if (camera.mode === 'orbit' && ![0, 1, 2].includes(event.button)) return;
         snapPreview = null;
         if (camera.mode === 'top') {
           const rect = canvas.getBoundingClientRect();
@@ -915,7 +841,10 @@
               centerX: topView.centerX, centerZ: topView.centerZ };
           }
         } else {
-          drag = { mode: 'orbit', x: event.clientX, y: event.clientY, moved: false };
+          event.preventDefault();
+          ensureOrbitAnchor();
+          drag = { mode: event.button === 1 || event.button === 2 || event.shiftKey ? 'orbit-pan' : 'orbit',
+            x: event.clientX, y: event.clientY, moved: false };
         }
         inputCanvas.setPointerCapture(event.pointerId);
       });
@@ -929,7 +858,7 @@
           const rawX = Math.max(-500000, Math.min(500000, drag.startX + world.x - drag.origin.x));
           const rawZ = Math.max(-500000, Math.min(500000, drag.startZ + world.z - drag.origin.z));
           drag.target.x = rawX; drag.target.z = rawZ;
-          const scale = topView.scale * camera.zoom;
+          const scale = topView.scale * topView.zoom;
           const tolerance = Math.max(50, Math.min(300, 14 / scale));
           const snap = magnetEnabled ? model.findConnectionSnap(drag.target, drag.next.objects,
             tolerance, drag.snap && drag.snap.key) : null;
@@ -942,7 +871,7 @@
           snapPreview = snap;
           paint(drag.next, null);
         } else if (drag.mode === 'pan') {
-          const scale = topView.scale * camera.zoom;
+          const scale = topView.scale * topView.zoom;
           topView.centerX = drag.centerX - dx / scale;
           topView.centerZ = drag.centerZ - dy / scale;
           paint(layout(), null);
@@ -950,7 +879,14 @@
           camera.yaw += dx * 0.008;
           camera.pitch = Math.max(0.12, Math.min(1.45, camera.pitch + dy * 0.006));
           drag.x = event.clientX; drag.y = event.clientY;
-          paint(layout(), model.matchArticles(layout(), options.getRegistry()));
+          paint(layout());
+        } else if (drag.mode === 'orbit-pan') {
+          const view = webglRenderer && webglRenderer.view();
+          if (!view || !camera.target) return;
+          camera.target = window.OpenSlottingWarehouseWebGL.panTarget(camera.target,
+            camera.yaw, camera.pitch, dx, dy, view.scale);
+          drag.x = event.clientX; drag.y = event.clientY;
+          paint(layout());
         }
       });
       inputCanvas.addEventListener('pointerup', function (event) {
@@ -980,9 +916,27 @@
       });
       inputCanvas.addEventListener('wheel', function (event) {
         event.preventDefault();
-        camera.zoom = Math.max(0.25, Math.min(4, camera.zoom * (event.deltaY < 0 ? 1.12 : 0.89)));
-        paint(layout(), model.matchArticles(layout(), options.getRegistry()));
+        if (camera.mode === 'orbit') {
+          ensureOrbitAnchor();
+          camera.zoom = Math.max(0.25, Math.min(4, camera.zoom * (event.deltaY < 0 ? 1.12 : 0.89)));
+        } else {
+          topView.zoom = Math.max(0.25, Math.min(4, topView.zoom * (event.deltaY < 0 ? 1.12 : 0.89)));
+        }
+        paint(layout());
       }, { passive: false });
+      if (inputCanvas === glCanvas) {
+        inputCanvas.addEventListener('contextmenu', function (event) { event.preventDefault(); });
+        inputCanvas.addEventListener('dblclick', function (event) {
+          event.preventDefault();
+          const found = webglRenderer && webglRenderer.pick(event.clientX, event.clientY);
+          if (!found || !focusObject(found.objectId)) return;
+          if (found.slotId) selectSlot(found);
+          else {
+            choice.objectId = found.objectId; choice.slotId = null;
+            render();
+          }
+        });
+      }
     }
 
     root.addEventListener('click', async function (event) {
@@ -1021,7 +975,7 @@
       if (conflictButton) {
         choice.objectId = conflictButton.dataset.focusObject;
         choice.slotId = null;
-        camera.mode = 'top'; camera.zoom = 1; topView.ready = false;
+        camera.mode = 'top'; topView.zoom = 1; topView.ready = false;
         message = ''; render(); return;
       }
       const objectButton = event.target.closest('[data-object]');
@@ -1032,9 +986,6 @@
       const button = event.target.closest('[data-action]');
       if (!button) return;
       const action = button.dataset.action;
-      if (action === 'find-code') {
-        findCode(); return;
-      }
       if (action === 'magnet') {
         magnetEnabled = !magnetEnabled;
         snapPreview = null;
@@ -1043,6 +994,10 @@
       if (action === 'wall-mode') {
         wallMode = wallMode === 'solid' ? 'transparent' : wallMode === 'transparent' ? 'hidden' : 'solid';
         render(); return;
+      }
+      if (action === 'focus') {
+        if (focusObject(choice.objectId)) render();
+        return;
       }
       if (action === 'undo' || action === 'redo') {
         const stack = action === 'undo' ? undoStack : redoStack;
@@ -1053,12 +1008,14 @@
         return;
       }
       if (action === 'fit' || action === 'top' || action === 'orbit') {
-        camera.zoom = 1;
-        if (action === 'top') { camera.mode = 'top'; topView.ready = false; }
+        if (action === 'fit' && camera.mode === 'orbit') {
+          camera.zoom = 1; camera.target = null; camera.baseScale = null;
+        } else if (action === 'fit') {
+          topView.zoom = 1; topView.ready = false;
+        } else if (action === 'top') { camera.mode = 'top'; topView.ready = false; }
         else if (action === 'orbit' && webglRenderer && webglRenderer.available()) {
-          camera.mode = 'orbit'; camera.yaw = -0.62; camera.pitch = 0.62;
+          camera.mode = 'orbit';
         }
-        else if (camera.mode === 'top') topView.ready = false;
         render(); return;
       }
       if (action === 'add') {
@@ -1170,9 +1127,6 @@
           event.preventDefault(); commit(clone(target.layout), action, target.selectionId); return;
         }
       }
-      if (event.key === 'Enter' && event.target.dataset.field === 'search') {
-        event.preventDefault(); findCode();
-      }
     });
 
     root.addEventListener('change', function (event) {
@@ -1185,7 +1139,6 @@
       const field = event.target.dataset.field;
       if (!field) return;
       if (field === 'prefix') { codePrefix = event.target.value.trim(); return; }
-      if (field === 'search') { codeSearch = event.target.value; return; }
       if (field.startsWith('count.')) return;
       const object = selected(); if (!object) return;
       if (object.locked) { message = labels().lockedEdit; render(); return; }
@@ -1200,7 +1153,7 @@
     });
 
     window.addEventListener('resize', function () {
-      if (canvas && canvas.isConnected && canvas.clientWidth > 0) paint(layout(), model.matchArticles(layout(), options.getRegistry()));
+      if (canvas && canvas.isConnected && canvas.clientWidth > 0) paint(layout());
     });
     return { render: render };
   }
