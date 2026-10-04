@@ -1,0 +1,1825 @@
+{
+  "createdUtc": "2026-10-04T10:05:01.436Z",
+  "environment": {
+    "node": "v24.18.1",
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "12th Gen Intel(R) Core(TM) i9-12900F",
+    "logicalCpus": 24,
+    "totalMemoryBytes": 68572536832
+  },
+  "syntheticOnly": true,
+  "domainBaseline": "Current csv.js analyzeRows and periods.js comparePeriods single-pass accumulator",
+  "method": "5 warm samples, rotated variant order; GC outside timing; distinct period queries. Build and retained memory charged separately. No browser/UI/cache/operational acceptance claim.",
+  "cases": [
+    {
+      "rows": 1000,
+      "articles": 200,
+      "observedCalendarDays": 365,
+      "unknownDateRows": 10,
+      "exactParityPassed": true,
+      "sampleRepetitions": 5,
+      "build": {
+        "samplesMs": {
+          "columnsBigInt": [
+            0.14860000000000184,
+            0.13949999999999818,
+            0.129099999999994,
+            0.15439999999999543,
+            0.05079999999998108
+          ],
+          "columnsInt64": [
+            0.15350000000000819,
+            0.13680000000000803,
+            0.11440000000000339,
+            0.12159999999998661,
+            0.10030000000000427
+          ],
+          "rangeIndex": [
+            2.8619999999999948,
+            2.552800000000005,
+            2.080200000000005,
+            2.6658999999999935,
+            2.0345000000000084
+          ],
+          "dateOnlyIndex": [
+            1.5304000000000002,
+            1.4718000000000018,
+            1.3606000000000051,
+            1.2817000000000007,
+            1.1769999999999925
+          ],
+          "articleIndex": [
+            1.6699000000000126,
+            1.7509000000000015,
+            1.7062999999999988,
+            1.6281999999999925,
+            1.6680000000000064
+          ]
+        },
+        "medianMs": {
+          "columnsBigInt": 0.13949999999999818,
+          "columnsInt64": 0.12159999999998661,
+          "rangeIndex": 2.552800000000005,
+          "dateOnlyIndex": 1.3606000000000051,
+          "articleIndex": 1.6699000000000126
+        },
+        "buildAndFirstResult": {
+          "columnsBigInt": {
+            "samplesMs": [
+              0.18039999999999878,
+              0.22099999999999653,
+              0.1723999999999961,
+              0.19750000000000512,
+              0.16899999999999693
+            ],
+            "medianMs": 0.18039999999999878
+          },
+          "columnsInt64": {
+            "samplesMs": [
+              0.19529999999999603,
+              0.19170000000000442,
+              0.21760000000000446,
+              0.23329999999999984,
+              0.20650000000000546
+            ],
+            "medianMs": 0.20650000000000546
+          },
+          "rangeIndex": {
+            "samplesMs": [
+              3.5504999999999995,
+              3.4696,
+              3.126099999999994,
+              3.2642000000000024,
+              2.664199999999994
+            ],
+            "medianMs": 3.2642000000000024
+          }
+        }
+      },
+      "memory": {
+        "baseline": {
+          "rssBytes": 41889792,
+          "heapBytes": 5986392,
+          "externalBytes": 2118046,
+          "arrayBufferBytes": 137503
+        },
+        "retainedDeltas": {
+          "columnsBigInt": {
+            "rssBytes": 0,
+            "heapBytes": -42688,
+            "externalBytes": 5072,
+            "arrayBufferBytes": 4000
+          },
+          "columnsInt64": {
+            "rssBytes": 16384,
+            "heapBytes": 3072,
+            "externalBytes": 16000,
+            "arrayBufferBytes": 12000
+          },
+          "rangeIndex": {
+            "rssBytes": 1519616,
+            "heapBytes": 2674632,
+            "externalBytes": 11624,
+            "arrayBufferBytes": 11624
+          },
+          "dateOnlyIndex": {
+            "rssBytes": 335872,
+            "heapBytes": 361400,
+            "externalBytes": 2928,
+            "arrayBufferBytes": 2928
+          },
+          "articleIndex": {
+            "rssBytes": 757760,
+            "heapBytes": 886304,
+            "externalBytes": 2928,
+            "arrayBufferBytes": 2928
+          }
+        },
+        "processPeakRssBytes": 90058752,
+        "note": "Process high-water RSS covers all variants, validation and retained indexes; it is not an isolated index peak. Retained deltas are after explicit GC, can be negative/noisy."
+      },
+      "quantityRepresentations": {
+        "bigint": "bigint-unbounded",
+        "int64": "int64-proven",
+        "int64Metadata": {
+          "rows": 1000,
+          "articles": 200,
+          "quantityBytes": 8000,
+          "fixedTypedBytes": 8000,
+          "detailIndexesPreserved": true
+        }
+      },
+      "domainReference": {
+        "currentAnalyzeRows": {
+          "samplesMs": [
+            1.8610000000000468,
+            1.7463000000000193,
+            1.980600000000038,
+            1.7025999999999613,
+            1.8833999999999946
+          ],
+          "medianMs": 1.8610000000000468
+        }
+      },
+      "quantityKernels": [
+        {
+          "queryCount": 1,
+          "timings": {
+            "mapExact": {
+              "samplesMs": [
+                0.09840000000002647,
+                0.044399999999996,
+                0.048599999999964894,
+                0.04660000000001219,
+                0.05129999999996926
+              ],
+              "medianMs": 0.048599999999964894
+            },
+            "columnBigInt": {
+              "samplesMs": [
+                0.06759999999997035,
+                0.06270000000000664,
+                0.06299999999998818,
+                0.06729999999998881,
+                0.06700000000000728
+              ],
+              "medianMs": 0.06700000000000728
+            },
+            "columnInt64": {
+              "samplesMs": [
+                0.27329999999994925,
+                0.08129999999999882,
+                0.07040000000000646,
+                0.0695999999999799,
+                0.06479999999999109
+              ],
+              "medianMs": 0.07040000000000646
+            }
+          },
+          "buildPlusQueryMs": {
+            "columnBigInt": 0.20650000000000546,
+            "columnInt64": 0.19199999999999307
+          },
+          "breakEvenQueries": {
+            "columnBigInt": null,
+            "columnInt64": null
+          }
+        },
+        {
+          "queryCount": 8,
+          "timings": {
+            "mapExact": {
+              "samplesMs": [
+                0.28329999999994016,
+                0.3025000000000091,
+                0.2764999999999418,
+                0.3524999999999636,
+                0.1756000000000313
+              ],
+              "medianMs": 0.28329999999994016
+            },
+            "columnBigInt": {
+              "samplesMs": [
+                0.15679999999997563,
+                0.15879999999992833,
+                0.15629999999998745,
+                0.1571999999999889,
+                0.20409999999992579
+              ],
+              "medianMs": 0.1571999999999889
+            },
+            "columnInt64": {
+              "samplesMs": [
+                0.30149999999991905,
+                0.2939000000000078,
+                0.31380000000001473,
+                0.2965999999998985,
+                0.2943000000000211
+              ],
+              "medianMs": 0.2965999999998985
+            }
+          },
+          "buildPlusQueryMs": {
+            "columnBigInt": 0.2966999999999871,
+            "columnInt64": 0.4181999999998851
+          },
+          "breakEvenQueries": {
+            "columnBigInt": 9,
+            "columnInt64": null
+          }
+        },
+        {
+          "queryCount": 32,
+          "timings": {
+            "mapExact": {
+              "samplesMs": [
+                0.6807000000001153,
+                0.7280000000000655,
+                0.6339000000000397,
+                0.6194000000000415,
+                0.6286999999999807
+              ],
+              "medianMs": 0.6339000000000397
+            },
+            "columnBigInt": {
+              "samplesMs": [
+                0.34750000000008185,
+                0.32930000000010295,
+                0.33140000000003056,
+                0.3351000000000113,
+                0.3205000000000382
+              ],
+              "medianMs": 0.33140000000003056
+            },
+            "columnInt64": {
+              "samplesMs": [
+                0.44399999999996,
+                0.8659999999999854,
+                0.4388000000001284,
+                0.3998999999998887,
+                0.40150000000016917
+              ],
+              "medianMs": 0.4388000000001284
+            }
+          },
+          "buildPlusQueryMs": {
+            "columnBigInt": 0.47090000000002874,
+            "columnInt64": 0.560400000000115
+          },
+          "breakEvenQueries": {
+            "columnBigInt": 15,
+            "columnInt64": 20
+          }
+        }
+      ],
+      "fullPeriodComparison": [
+        {
+          "queryCount": 1,
+          "timings": {
+            "currentSinglePass": {
+              "samplesMs": [
+                4.967800000000011,
+                4.959099999999978,
+                4.808400000000006,
+                4.829999999999984,
+                4.891399999999976
+              ],
+              "medianMs": 4.891399999999976
+            },
+            "indexedFullParity": {
+              "samplesMs": [
+                1.724299999999971,
+                1.7595999999999776,
+                2.0364999999999895,
+                1.7259000000000242,
+                1.7896000000000072
+              ],
+              "medianMs": 1.7595999999999776
+            },
+            "dateOnlyFullParity": {
+              "samplesMs": [
+                1.7801000000000045,
+                1.7215000000000487,
+                1.7329999999999472,
+                1.7176000000000045,
+                1.6905000000000427
+              ],
+              "medianMs": 1.7215000000000487
+            }
+          },
+          "buildPlusQueryMs": 4.3123999999999825,
+          "dateOnlyBuildPlusQueryMs": 3.082100000000054,
+          "breakEvenQueries": 1,
+          "dateOnlyBreakEvenQueries": 1
+        },
+        {
+          "queryCount": 8,
+          "timings": {
+            "currentSinglePass": {
+              "samplesMs": [
+                37.214200000000005,
+                37.10979999999995,
+                36.95950000000005,
+                38.25290000000007,
+                37.82069999999999
+              ],
+              "medianMs": 37.214200000000005
+            },
+            "indexedFullParity": {
+              "samplesMs": [
+                12.226099999999974,
+                12.035199999999918,
+                12.36869999999999,
+                12.360399999999913,
+                12.551799999999957
+              ],
+              "medianMs": 12.360399999999913
+            },
+            "dateOnlyFullParity": {
+              "samplesMs": [
+                12.535799999999995,
+                12.173399999999901,
+                12.366300000000024,
+                12.21289999999999,
+                12.535199999999918
+              ],
+              "medianMs": 12.366300000000024
+            }
+          },
+          "buildPlusQueryMs": 14.913199999999918,
+          "dateOnlyBuildPlusQueryMs": 13.726900000000029,
+          "breakEvenQueries": 1,
+          "dateOnlyBreakEvenQueries": 1
+        },
+        {
+          "queryCount": 32,
+          "timings": {
+            "currentSinglePass": {
+              "samplesMs": [
+                144.48430000000008,
+                142.68329999999992,
+                143.78819999999996,
+                142.4619,
+                143.95450000000028
+              ],
+              "medianMs": 143.78819999999996
+            },
+            "indexedFullParity": {
+              "samplesMs": [
+                47.234500000000025,
+                47.72429999999986,
+                48.0333999999998,
+                49.13220000000001,
+                48.59529999999995
+              ],
+              "medianMs": 48.0333999999998
+            },
+            "dateOnlyFullParity": {
+              "samplesMs": [
+                48.22630000000004,
+                46.63169999999991,
+                48.34590000000003,
+                47.95049999999992,
+                48.572299999999814
+              ],
+              "medianMs": 48.22630000000004
+            }
+          },
+          "buildPlusQueryMs": 50.586199999999806,
+          "dateOnlyBuildPlusQueryMs": 49.58690000000004,
+          "breakEvenQueries": 1,
+          "dateOnlyBreakEvenQueries": 1
+        }
+      ],
+      "narrowRangeQueries": [
+        {
+          "queryCount": 1,
+          "timings": {
+            "narrowExactScan": {
+              "samplesMs": [
+                0.04820000000000846,
+                0.022699999999986176,
+                0.021900000000073305,
+                0.016200000000026193,
+                0.022700000000099863
+              ],
+              "medianMs": 0.022699999999986176
+            },
+            "dayPrefix": {
+              "samplesMs": [
+                0.018799999999998818,
+                0.0141999999999598,
+                0.01490000000001146,
+                0.009599999999977626,
+                0.013000000000033651
+              ],
+              "medianMs": 0.0141999999999598
+            }
+          },
+          "buildPlusQueryMs": 2.5669999999999646,
+          "breakEvenQueries": 301
+        },
+        {
+          "queryCount": 8,
+          "timings": {
+            "narrowExactScan": {
+              "samplesMs": [
+                0.09620000000006712,
+                0.10999999999989996,
+                0.0866999999999507,
+                0.08719999999993888,
+                0.09119999999995798
+              ],
+              "medianMs": 0.09119999999995798
+            },
+            "dayPrefix": {
+              "samplesMs": [
+                0.030399999999985994,
+                0.026299999999991996,
+                0.027000000000043656,
+                0.031000000000062755,
+                0.02479999999991378
+              ],
+              "medianMs": 0.027000000000043656
+            }
+          },
+          "buildPlusQueryMs": 2.5798000000000485,
+          "breakEvenQueries": 319
+        },
+        {
+          "queryCount": 32,
+          "timings": {
+            "narrowExactScan": {
+              "samplesMs": [
+                0.31599999999980355,
+                0.35809999999992215,
+                0.3368000000000393,
+                0.3766000000000531,
+                0.5120999999999185
+              ],
+              "medianMs": 0.35809999999992215
+            },
+            "dayPrefix": {
+              "samplesMs": [
+                0.0749999999998181,
+                0.07500000000027285,
+                0.08379999999988286,
+                0.07599999999956708,
+                0.07709999999997308
+              ],
+              "medianMs": 0.07599999999956708
+            }
+          },
+          "buildPlusQueryMs": 2.628799999999572,
+          "breakEvenQueries": 290
+        }
+      ],
+      "terminalSummaries": [
+        {
+          "queryCount": 1,
+          "timings": {
+            "currentTerminalSummary": {
+              "samplesMs": [
+                0.0744000000000824,
+                0.04970000000002983,
+                0.045600000000035834,
+                0.08510000000001128,
+                0.024699999999938882
+              ],
+              "medianMs": 0.04970000000002983
+            },
+            "entityPostingSummary": {
+              "samplesMs": [
+                0.02729999999996835,
+                0.025999999999953616,
+                0.012799999999970169,
+                0.024499999999989086,
+                0.017800000000079308
+              ],
+              "medianMs": 0.024499999999989086
+            },
+            "articleOnlySummary": {
+              "samplesMs": [
+                0.03300000000001546,
+                0.03240000000005239,
+                0.03899999999998727,
+                0.03240000000005239,
+                0.016100000000051296
+              ],
+              "medianMs": 0.03240000000005239
+            }
+          },
+          "buildPlusQueryMs": 2.577299999999994,
+          "articleOnlyBuildPlusQueryMs": 1.702300000000065,
+          "breakEvenQueries": 102,
+          "articleOnlyBreakEvenQueries": 97
+        },
+        {
+          "queryCount": 8,
+          "timings": {
+            "currentTerminalSummary": {
+              "samplesMs": [
+                0.30119999999999436,
+                0.11990000000002965,
+                0.11860000000001492,
+                0.12800000000004275,
+                0.1274999999998272
+              ],
+              "medianMs": 0.1274999999998272
+            },
+            "entityPostingSummary": {
+              "samplesMs": [
+                0.032199999999988904,
+                0.0323999999999387,
+                0.025700000000028922,
+                0.037500000000136424,
+                0.029399999999895954
+              ],
+              "medianMs": 0.032199999999988904
+            },
+            "articleOnlySummary": {
+              "samplesMs": [
+                0.03840000000002419,
+                0.02980000000002292,
+                0.02940000000000964,
+                0.027600000000120417,
+                0.04079999999999018
+              ],
+              "medianMs": 0.02980000000002292
+            }
+          },
+          "buildPlusQueryMs": 2.5849999999999937,
+          "articleOnlyBuildPlusQueryMs": 1.6997000000000355,
+          "breakEvenQueries": 215,
+          "articleOnlyBreakEvenQueries": 137
+        },
+        {
+          "queryCount": 32,
+          "timings": {
+            "currentTerminalSummary": {
+              "samplesMs": [
+                0.5028000000002066,
+                0.49530000000004293,
+                0.5097999999998137,
+                0.4369000000001506,
+                0.45959999999968204
+              ],
+              "medianMs": 0.49530000000004293
+            },
+            "entityPostingSummary": {
+              "samplesMs": [
+                0.09290000000009968,
+                0.07950000000028012,
+                0.08619999999973516,
+                0.09289999999964493,
+                0.06860000000006039
+              ],
+              "medianMs": 0.08619999999973516
+            },
+            "articleOnlySummary": {
+              "samplesMs": [
+                0.08360000000038781,
+                0.09130000000004657,
+                0.07909999999992579,
+                0.07949999999982538,
+                0.07189999999991414
+              ],
+              "medianMs": 0.07949999999982538
+            }
+          },
+          "buildPlusQueryMs": 2.63899999999974,
+          "articleOnlyBuildPlusQueryMs": 1.749399999999838,
+          "breakEvenQueries": 200,
+          "articleOnlyBreakEvenQueries": 129
+        }
+      ]
+    },
+    {
+      "rows": 10000,
+      "articles": 200,
+      "observedCalendarDays": 365,
+      "unknownDateRows": 100,
+      "exactParityPassed": true,
+      "sampleRepetitions": 5,
+      "build": {
+        "samplesMs": {
+          "columnsBigInt": [
+            1.1388000000000034,
+            0.4005000000000223,
+            0.9556999999999789,
+            0.384900000000016,
+            0.7974999999999
+          ],
+          "columnsInt64": [
+            1.0351,
+            1.0031999999999925,
+            1.053699999999992,
+            0.49310000000002674,
+            1.0452999999999975
+          ],
+          "rangeIndex": [
+            27.816399999999987,
+            25.866499999999974,
+            26.35749999999996,
+            28.39930000000004,
+            27.67240000000004
+          ],
+          "dateOnlyIndex": [
+            12.454099999999983,
+            12.155300000000011,
+            12.526099999999985,
+            12.196799999999996,
+            11.681300000000078
+          ],
+          "articleIndex": [
+            15.492799999999988,
+            15.863099999999974,
+            16.019200000000012,
+            16.074400000000026,
+            15.437199999999962
+          ]
+        },
+        "medianMs": {
+          "columnsBigInt": 0.7974999999999,
+          "columnsInt64": 1.0351,
+          "rangeIndex": 27.67240000000004,
+          "dateOnlyIndex": 12.196799999999996,
+          "articleIndex": 15.863099999999974
+        },
+        "buildAndFirstResult": {
+          "columnsBigInt": {
+            "samplesMs": [
+              1.6441999999999979,
+              1.7509000000000015,
+              1.3695000000000164,
+              1.4057000000000244,
+              1.406000000000006
+            ],
+            "medianMs": 1.406000000000006
+          },
+          "columnsInt64": {
+            "samplesMs": [
+              2.0619999999999976,
+              1.3729999999999905,
+              1.1517999999999802,
+              0.8789000000000158,
+              1.1409000000000162
+            ],
+            "medianMs": 1.1517999999999802
+          },
+          "rangeIndex": {
+            "samplesMs": [
+              34.89200000000001,
+              35.26180000000002,
+              27.560399999999987,
+              26.971600000000024,
+              26.986099999999965
+            ],
+            "medianMs": 27.560399999999987
+          }
+        }
+      },
+      "memory": {
+        "baseline": {
+          "rssBytes": 52621312,
+          "heapBytes": 10754504,
+          "externalBytes": 2118046,
+          "arrayBufferBytes": 137503
+        },
+        "retainedDeltas": {
+          "columnsBigInt": {
+            "rssBytes": 233472,
+            "heapBytes": 44688,
+            "externalBytes": 77072,
+            "arrayBufferBytes": 40000
+          },
+          "columnsInt64": {
+            "rssBytes": -278528,
+            "heapBytes": 16456,
+            "externalBytes": 160000,
+            "arrayBufferBytes": 120000
+          },
+          "rangeIndex": {
+            "rssBytes": 13840384,
+            "heapBytes": 23683296,
+            "externalBytes": 163704,
+            "arrayBufferBytes": 163704
+          },
+          "dateOnlyIndex": {
+            "rssBytes": 3391488,
+            "heapBytes": 2740608,
+            "externalBytes": 2928,
+            "arrayBufferBytes": 2928
+          },
+          "articleIndex": {
+            "rssBytes": 2232320,
+            "heapBytes": 6385704,
+            "externalBytes": 83728,
+            "arrayBufferBytes": 83728
+          }
+        },
+        "processPeakRssBytes": 232501248,
+        "note": "Process high-water RSS covers all variants, validation and retained indexes; it is not an isolated index peak. Retained deltas are after explicit GC, can be negative/noisy."
+      },
+      "quantityRepresentations": {
+        "bigint": "bigint-unbounded",
+        "int64": "int64-proven",
+        "int64Metadata": {
+          "rows": 10000,
+          "articles": 200,
+          "quantityBytes": 80000,
+          "fixedTypedBytes": 80000,
+          "detailIndexesPreserved": true
+        }
+      },
+      "domainReference": {
+        "currentAnalyzeRows": {
+          "samplesMs": [
+            12.086299999999937,
+            13.930999999999585,
+            12.617699999999786,
+            12.995699999999943,
+            13.090500000000247
+          ],
+          "medianMs": 12.995699999999943
+        }
+      },
+      "quantityKernels": [
+        {
+          "queryCount": 1,
+          "timings": {
+            "mapExact": {
+              "samplesMs": [
+                0.9963999999999942,
+                0.5731000000000677,
+                0.5880999999999403,
+                0.4952000000002954,
+                0.5064000000002125
+              ],
+              "medianMs": 0.5731000000000677
+            },
+            "columnBigInt": {
+              "samplesMs": [
+                0.1912000000002081,
+                0.26490000000012515,
+                0.20210000000042783,
+                0.1730000000002292,
+                0.14239999999972497
+              ],
+              "medianMs": 0.1912000000002081
+            },
+            "columnInt64": {
+              "samplesMs": [
+                0.38719999999966603,
+                0.6322999999997592,
+                0.1954000000000633,
+                0.24579999999969004,
+                0.17830000000003565
+              ],
+              "medianMs": 0.24579999999969004
+            }
+          },
+          "buildPlusQueryMs": {
+            "columnBigInt": 0.988700000000108,
+            "columnInt64": 1.28089999999969
+          },
+          "breakEvenQueries": {
+            "columnBigInt": 3,
+            "columnInt64": 4
+          }
+        },
+        {
+          "queryCount": 8,
+          "timings": {
+            "mapExact": {
+              "samplesMs": [
+                1.915599999999813,
+                2.0252000000000407,
+                1.9059000000002015,
+                1.8904999999999745,
+                1.9513999999999214
+              ],
+              "medianMs": 1.915599999999813
+            },
+            "columnBigInt": {
+              "samplesMs": [
+                1.3346000000001368,
+                1.0208999999999833,
+                1.0498999999999796,
+                1.3451999999997497,
+                1.334400000000187
+              ],
+              "medianMs": 1.334400000000187
+            },
+            "columnInt64": {
+              "samplesMs": [
+                1.6399000000001251,
+                1.7233000000001084,
+                1.671400000000176,
+                1.6730000000002292,
+                1.6366999999995642
+              ],
+              "medianMs": 1.671400000000176
+            }
+          },
+          "buildPlusQueryMs": {
+            "columnBigInt": 2.131900000000087,
+            "columnInt64": 2.706500000000176
+          },
+          "breakEvenQueries": {
+            "columnBigInt": 11,
+            "columnInt64": 34
+          }
+        },
+        {
+          "queryCount": 32,
+          "timings": {
+            "mapExact": {
+              "samplesMs": [
+                6.889799999999923,
+                8.072200000000521,
+                6.894500000000335,
+                8.177300000000287,
+                6.894200000000637
+              ],
+              "medianMs": 6.894500000000335
+            },
+            "columnBigInt": {
+              "samplesMs": [
+                3.4958000000005995,
+                3.386700000000019,
+                3.7244000000000597,
+                3.669799999999668,
+                3.8065999999998894
+              ],
+              "medianMs": 3.669799999999668
+            },
+            "columnInt64": {
+              "samplesMs": [
+                5.207699999999932,
+                5.716699999999946,
+                5.306599999999889,
+                6.200300000000425,
+                5.41190000000006
+              ],
+              "medianMs": 5.41190000000006
+            }
+          },
+          "buildPlusQueryMs": {
+            "columnBigInt": 4.467299999999568,
+            "columnInt64": 6.44700000000006
+          },
+          "breakEvenQueries": {
+            "columnBigInt": 8,
+            "columnInt64": 23
+          }
+        }
+      ],
+      "fullPeriodComparison": [
+        {
+          "queryCount": 1,
+          "timings": {
+            "currentSinglePass": {
+              "samplesMs": [
+                41.56730000000016,
+                42.39150000000018,
+                43.09029999999984,
+                42.003999999999905,
+                40.56710000000021
+              ],
+              "medianMs": 42.003999999999905
+            },
+            "indexedFullParity": {
+              "samplesMs": [
+                10.267299999999977,
+                10.085199999999986,
+                10.869799999999941,
+                9.772100000000137,
+                9.928499999999985
+              ],
+              "medianMs": 10.085199999999986
+            },
+            "dateOnlyFullParity": {
+              "samplesMs": [
+                10.193299999999908,
+                10.400900000000092,
+                10.151100000000042,
+                10.037599999999657,
+                10.664600000000064
+              ],
+              "medianMs": 10.193299999999908
+            }
+          },
+          "buildPlusQueryMs": 37.757600000000025,
+          "dateOnlyBuildPlusQueryMs": 22.390099999999904,
+          "breakEvenQueries": 1,
+          "dateOnlyBreakEvenQueries": 1
+        },
+        {
+          "queryCount": 8,
+          "timings": {
+            "currentSinglePass": {
+              "samplesMs": [
+                309.7386999999999,
+                310.6706000000004,
+                316.97080000000005,
+                359.1055000000006,
+                322.3299999999999
+              ],
+              "medianMs": 316.97080000000005
+            },
+            "indexedFullParity": {
+              "samplesMs": [
+                75.19310000000041,
+                80.7510000000002,
+                76.33640000000014,
+                78.6280999999999,
+                75.34389999999985
+              ],
+              "medianMs": 76.33640000000014
+            },
+            "dateOnlyFullParity": {
+              "samplesMs": [
+                76.45470000000023,
+                75.63960000000043,
+                75.30359999999928,
+                77.40380000000005,
+                75.77930000000015
+              ],
+              "medianMs": 75.77930000000015
+            }
+          },
+          "buildPlusQueryMs": 104.00880000000018,
+          "dateOnlyBuildPlusQueryMs": 87.97610000000014,
+          "breakEvenQueries": 1,
+          "dateOnlyBreakEvenQueries": 1
+        },
+        {
+          "queryCount": 32,
+          "timings": {
+            "currentSinglePass": {
+              "samplesMs": [
+                1251.1545999999998,
+                1280.5282000000007,
+                1241.6139999999996,
+                1232.2137000000002,
+                1288.6795999999995
+              ],
+              "medianMs": 1251.1545999999998
+            },
+            "indexedFullParity": {
+              "samplesMs": [
+                294.66989999999896,
+                287.0505000000012,
+                289.4927000000007,
+                287.97450000000026,
+                289.85649999999987
+              ],
+              "medianMs": 289.4927000000007
+            },
+            "dateOnlyFullParity": {
+              "samplesMs": [
+                296.47459999999955,
+                292.51840000000084,
+                287.45440000000053,
+                286.7403000000013,
+                293.53250000000116
+              ],
+              "medianMs": 292.51840000000084
+            }
+          },
+          "buildPlusQueryMs": 317.16510000000073,
+          "dateOnlyBuildPlusQueryMs": 304.71520000000083,
+          "breakEvenQueries": 1,
+          "dateOnlyBreakEvenQueries": 1
+        }
+      ],
+      "narrowRangeQueries": [
+        {
+          "queryCount": 1,
+          "timings": {
+            "narrowExactScan": {
+              "samplesMs": [
+                0.5140000000001237,
+                0.2719999999999345,
+                0.18519999999989523,
+                0.2262999999998101,
+                0.266399999999976
+              ],
+              "medianMs": 0.266399999999976
+            },
+            "dayPrefix": {
+              "samplesMs": [
+                0.02779999999984284,
+                0.02539999999999054,
+                0.027599999999893043,
+                0.026600000000144064,
+                0.034500000000207365
+              ],
+              "medianMs": 0.027599999999893043
+            }
+          },
+          "buildPlusQueryMs": 27.699999999999932,
+          "breakEvenQueries": 116
+        },
+        {
+          "queryCount": 8,
+          "timings": {
+            "narrowExactScan": {
+              "samplesMs": [
+                1.2872999999999593,
+                1.0586999999995896,
+                1.0504000000000815,
+                1.03650000000016,
+                1.030800000000454
+              ],
+              "medianMs": 1.0504000000000815
+            },
+            "dayPrefix": {
+              "samplesMs": [
+                0.03629999999975553,
+                0.0400999999992564,
+                0.03830000000016298,
+                0.040300000000570435,
+                0.04179999999996653
+              ],
+              "medianMs": 0.0400999999992564
+            }
+          },
+          "buildPlusQueryMs": 27.712499999999295,
+          "breakEvenQueries": 220
+        },
+        {
+          "queryCount": 32,
+          "timings": {
+            "narrowExactScan": {
+              "samplesMs": [
+                3.5288000000000466,
+                3.5142999999989115,
+                4.188399999999092,
+                4.106100000000879,
+                3.4267999999974563
+              ],
+              "medianMs": 3.5288000000000466
+            },
+            "dayPrefix": {
+              "samplesMs": [
+                0.10840000000098371,
+                0.11709999999948195,
+                0.09690000000045984,
+                0.1169000000008964,
+                0.09060000000317814
+              ],
+              "medianMs": 0.10840000000098371
+            }
+          },
+          "buildPlusQueryMs": 27.780800000001022,
+          "breakEvenQueries": 259
+        }
+      ],
+      "terminalSummaries": [
+        {
+          "queryCount": 1,
+          "timings": {
+            "currentTerminalSummary": {
+              "samplesMs": [
+                0.3653999999996813,
+                0.3844000000003689,
+                0.2379000000000815,
+                0.6992000000000189,
+                0.20649999999977808
+              ],
+              "medianMs": 0.3653999999996813
+            },
+            "entityPostingSummary": {
+              "samplesMs": [
+                0.08339999999998327,
+                0.0775999999996202,
+                0.055600000000140426,
+                0.17079999999987194,
+                0.08100000000013097
+              ],
+              "medianMs": 0.08100000000013097
+            },
+            "articleOnlySummary": {
+              "samplesMs": [
+                0.08179999999993015,
+                0.09850000000005821,
+                0.10590000000001965,
+                0.07110000000011496,
+                0.05470000000013897
+              ],
+              "medianMs": 0.08179999999993015
+            }
+          },
+          "buildPlusQueryMs": 27.75340000000017,
+          "articleOnlyBuildPlusQueryMs": 15.944899999999905,
+          "breakEvenQueries": 98,
+          "articleOnlyBreakEvenQueries": 56
+        },
+        {
+          "queryCount": 8,
+          "timings": {
+            "currentTerminalSummary": {
+              "samplesMs": [
+                1.1792999999997846,
+                1.2966999999998734,
+                0.9363000000003012,
+                1.4128000000000611,
+                1.2645000000002256
+              ],
+              "medianMs": 1.2645000000002256
+            },
+            "entityPostingSummary": {
+              "samplesMs": [
+                0.1768999999994776,
+                0.13439999999991414,
+                0.1401000000005297,
+                0.14350000000013097,
+                0.1462999999994281
+              ],
+              "medianMs": 0.14350000000013097
+            },
+            "articleOnlySummary": {
+              "samplesMs": [
+                0.15380000000004657,
+                0.14500000000043656,
+                0.16260000000056607,
+                0.1342000000004191,
+                0.15500000000065484
+              ],
+              "medianMs": 0.15380000000004657
+            }
+          },
+          "buildPlusQueryMs": 27.81590000000017,
+          "articleOnlyBuildPlusQueryMs": 16.01690000000002,
+          "breakEvenQueries": 198,
+          "articleOnlyBreakEvenQueries": 115
+        },
+        {
+          "queryCount": 32,
+          "timings": {
+            "currentTerminalSummary": {
+              "samplesMs": [
+                4.535499999998137,
+                4.304500000002008,
+                3.3518999999978405,
+                4.103100000000268,
+                3.9241000000001804
+              ],
+              "medianMs": 4.103100000000268
+            },
+            "entityPostingSummary": {
+              "samplesMs": [
+                0.5332999999991443,
+                0.5092999999978929,
+                0.495600000002014,
+                0.462599999998929,
+                0.5393000000003667
+              ],
+              "medianMs": 0.5092999999978929
+            },
+            "articleOnlySummary": {
+              "samplesMs": [
+                0.5172999999995227,
+                0.5195000000021537,
+                0.44139999999970314,
+                0.5165999999990163,
+                0.5131000000001222
+              ],
+              "medianMs": 0.5165999999990163
+            }
+          },
+          "buildPlusQueryMs": 28.18169999999793,
+          "articleOnlyBuildPlusQueryMs": 16.37969999999899,
+          "breakEvenQueries": 247,
+          "articleOnlyBreakEvenQueries": 142
+        }
+      ]
+    },
+    {
+      "rows": 50000,
+      "articles": 200,
+      "observedCalendarDays": 365,
+      "unknownDateRows": 496,
+      "exactParityPassed": true,
+      "sampleRepetitions": 5,
+      "build": {
+        "samplesMs": {
+          "columnsBigInt": [
+            6.158699999999953,
+            5.823900000000094,
+            3.5637000000001535,
+            6.410699999999906,
+            4.18119999999999
+          ],
+          "columnsInt64": [
+            4.298900000000003,
+            7.85550000000012,
+            4.4715000000001055,
+            4.606299999999919,
+            4.970499999999902
+          ],
+          "rangeIndex": [
+            183.05649999999991,
+            172.78949999999986,
+            161.90489999999977,
+            162.49670000000015,
+            162.03859999999986
+          ],
+          "dateOnlyIndex": [
+            59.91709999999989,
+            62.375999999999976,
+            63.04669999999987,
+            58.60460000000012,
+            57.128099999999904
+          ],
+          "articleIndex": [
+            81.23070000000007,
+            74.60489999999982,
+            76.88950000000023,
+            74.55540000000019,
+            80.18139999999994
+          ]
+        },
+        "medianMs": {
+          "columnsBigInt": 5.823900000000094,
+          "columnsInt64": 4.606299999999919,
+          "rangeIndex": 162.49670000000015,
+          "dateOnlyIndex": 59.91709999999989,
+          "articleIndex": 76.88950000000023
+        },
+        "buildAndFirstResult": {
+          "columnsBigInt": {
+            "samplesMs": [
+              7.115000000000009,
+              5.513999999999896,
+              7.945699999999988,
+              4.755999999999972,
+              7.899400000000014
+            ],
+            "medianMs": 7.115000000000009
+          },
+          "columnsInt64": {
+            "samplesMs": [
+              9.830499999999972,
+              6.7841999999999985,
+              7.011799999999994,
+              6.152500000000032,
+              6.6884000000000015
+            ],
+            "medianMs": 6.7841999999999985
+          },
+          "rangeIndex": {
+            "samplesMs": [
+              157.06570000000005,
+              180.3754,
+              156.36,
+              178.31989999999996,
+              172.14099999999985
+            ],
+            "medianMs": 172.14099999999985
+          }
+        }
+      },
+      "memory": {
+        "baseline": {
+          "rssBytes": 88989696,
+          "heapBytes": 31863352,
+          "externalBytes": 2118046,
+          "arrayBufferBytes": 137503
+        },
+        "retainedDeltas": {
+          "columnsBigInt": {
+            "rssBytes": 1097728,
+            "heapBytes": 390104,
+            "externalBytes": 397072,
+            "arrayBufferBytes": 200000
+          },
+          "columnsInt64": {
+            "rssBytes": -339968,
+            "heapBytes": 16336,
+            "externalBytes": 800000,
+            "arrayBufferBytes": 600000
+          },
+          "rangeIndex": {
+            "rssBytes": 8613888,
+            "heapBytes": 99590752,
+            "externalBytes": 403696,
+            "arrayBufferBytes": 403696
+          },
+          "dateOnlyIndex": {
+            "rssBytes": 21897216,
+            "heapBytes": 12740112,
+            "externalBytes": 2928,
+            "arrayBufferBytes": 2928
+          },
+          "articleIndex": {
+            "rssBytes": 27996160,
+            "heapBytes": 18440128,
+            "externalBytes": 121328,
+            "arrayBufferBytes": 121328
+          }
+        },
+        "processPeakRssBytes": 466006016,
+        "note": "Process high-water RSS covers all variants, validation and retained indexes; it is not an isolated index peak. Retained deltas are after explicit GC, can be negative/noisy."
+      },
+      "quantityRepresentations": {
+        "bigint": "bigint-unbounded",
+        "int64": "int64-proven",
+        "int64Metadata": {
+          "rows": 50000,
+          "articles": 200,
+          "quantityBytes": 400000,
+          "fixedTypedBytes": 400000,
+          "detailIndexesPreserved": true
+        }
+      },
+      "domainReference": {
+        "currentAnalyzeRows": {
+          "samplesMs": [
+            63.20060000000012,
+            61.005599999998594,
+            58.576100000000224,
+            62.36629999999968,
+            60.58209999999963
+          ],
+          "medianMs": 61.005599999998594
+        }
+      },
+      "quantityKernels": [
+        {
+          "queryCount": 1,
+          "timings": {
+            "mapExact": {
+              "samplesMs": [
+                6.168399999998655,
+                5.997100000000501,
+                4.4033999999992375,
+                3.8650999999990745,
+                3.1877999999996973
+              ],
+              "medianMs": 4.4033999999992375
+            },
+            "columnBigInt": {
+              "samplesMs": [
+                1.6770999999989726,
+                1.7382999999990716,
+                1.71520000000055,
+                1.4453000000012253,
+                1.5619999999998981
+              ],
+              "medianMs": 1.6770999999989726
+            },
+            "columnInt64": {
+              "samplesMs": [
+                1.2391999999999825,
+                1.988600000000588,
+                1.4184999999997672,
+                1.3289000000004307,
+                1.2281000000002678
+              ],
+              "medianMs": 1.3289000000004307
+            }
+          },
+          "buildPlusQueryMs": {
+            "columnBigInt": 7.500999999999067,
+            "columnInt64": 5.93520000000035
+          },
+          "breakEvenQueries": {
+            "columnBigInt": 3,
+            "columnInt64": 2
+          }
+        },
+        {
+          "queryCount": 8,
+          "timings": {
+            "mapExact": {
+              "samplesMs": [
+                23.266499999999724,
+                20.32300000000032,
+                16.061999999999898,
+                20.275400000000445,
+                15.058399999999892
+              ],
+              "medianMs": 20.275400000000445
+            },
+            "columnBigInt": {
+              "samplesMs": [
+                13.356700000000274,
+                9.62670000000071,
+                11.618999999998778,
+                9.063400000000911,
+                8.345899999998437
+              ],
+              "medianMs": 9.62670000000071
+            },
+            "columnInt64": {
+              "samplesMs": [
+                11.38760000000002,
+                11.532899999998335,
+                13.881599999998798,
+                10.313199999998687,
+                10.320699999998396
+              ],
+              "medianMs": 11.38760000000002
+            }
+          },
+          "buildPlusQueryMs": {
+            "columnBigInt": 15.450600000000804,
+            "columnInt64": 15.99389999999994
+          },
+          "breakEvenQueries": {
+            "columnBigInt": 5,
+            "columnInt64": 5
+          }
+        },
+        {
+          "queryCount": 32,
+          "timings": {
+            "mapExact": {
+              "samplesMs": [
+                45.41100000000006,
+                41.737600000000384,
+                41.499299999999494,
+                47.6875,
+                45.5737999999983
+              ],
+              "medianMs": 45.41100000000006
+            },
+            "columnBigInt": {
+              "samplesMs": [
+                20.62489999999889,
+                22.971799999999348,
+                23.381000000001222,
+                22.317699999999604,
+                23.179700000000594
+              ],
+              "medianMs": 22.971799999999348
+            },
+            "columnInt64": {
+              "samplesMs": [
+                27.80840000000171,
+                27.559399999998277,
+                28.67699999999968,
+                32.50339999999778,
+                28.910400000000664
+              ],
+              "medianMs": 28.67699999999968
+            }
+          },
+          "buildPlusQueryMs": {
+            "columnBigInt": 28.795699999999442,
+            "columnInt64": 33.2832999999996
+          },
+          "breakEvenQueries": {
+            "columnBigInt": 9,
+            "columnInt64": 9
+          }
+        }
+      ],
+      "fullPeriodComparison": [
+        {
+          "queryCount": 1,
+          "timings": {
+            "currentSinglePass": {
+              "samplesMs": [
+                188.65949999999975,
+                188.95290000000023,
+                191.6243999999988,
+                187.15450000000055,
+                178.2471000000005
+              ],
+              "medianMs": 188.65949999999975
+            },
+            "indexedFullParity": {
+              "samplesMs": [
+                32.03900000000067,
+                35.014499999999316,
+                33.20080000000053,
+                30.960699999999633,
+                30.33759999999893
+              ],
+              "medianMs": 32.03900000000067
+            },
+            "dateOnlyFullParity": {
+              "samplesMs": [
+                35.35519999999997,
+                36.617700000000696,
+                33.64919999999984,
+                30.41150000000016,
+                30.357500000000073
+              ],
+              "medianMs": 33.64919999999984
+            }
+          },
+          "buildPlusQueryMs": 194.53570000000082,
+          "dateOnlyBuildPlusQueryMs": 93.56629999999973,
+          "breakEvenQueries": 2,
+          "dateOnlyBreakEvenQueries": 1
+        },
+        {
+          "queryCount": 8,
+          "timings": {
+            "currentSinglePass": {
+              "samplesMs": [
+                1381.4467000000004,
+                1381.7485000000015,
+                1394.7276999999995,
+                1391.1347999999998,
+                1393.7704000000012
+              ],
+              "medianMs": 1391.1347999999998
+            },
+            "indexedFullParity": {
+              "samplesMs": [
+                214.94570000000022,
+                215.57580000000235,
+                213.0712999999996,
+                222.14080000000104,
+                223.21970000000147
+              ],
+              "medianMs": 215.57580000000235
+            },
+            "dateOnlyFullParity": {
+              "samplesMs": [
+                217.16239999999743,
+                213.03870000000097,
+                220.54859999999826,
+                218.7440999999999,
+                215.69770000000062
+              ],
+              "medianMs": 217.16239999999743
+            }
+          },
+          "buildPlusQueryMs": 378.0725000000025,
+          "dateOnlyBuildPlusQueryMs": 277.0794999999973,
+          "breakEvenQueries": 2,
+          "dateOnlyBreakEvenQueries": 1
+        },
+        {
+          "queryCount": 32,
+          "timings": {
+            "currentSinglePass": {
+              "samplesMs": [
+                5694.371999999996,
+                5620.309699999998,
+                5712.622799999997,
+                5639.4251,
+                5598.361200000014
+              ],
+              "medianMs": 5639.4251
+            },
+            "indexedFullParity": {
+              "samplesMs": [
+                858.1854000000021,
+                864.2339999999967,
+                875.2622000000047,
+                853.3029000000024,
+                869.8340000000026
+              ],
+              "medianMs": 864.2339999999967
+            },
+            "dateOnlyFullParity": {
+              "samplesMs": [
+                856.6532000000007,
+                880.1328000000067,
+                951.5005999999994,
+                882.2145999999993,
+                862.9408000000112
+              ],
+              "medianMs": 880.1328000000067
+            }
+          },
+          "buildPlusQueryMs": 1026.730699999997,
+          "dateOnlyBuildPlusQueryMs": 940.0499000000066,
+          "breakEvenQueries": 2,
+          "dateOnlyBreakEvenQueries": 1
+        }
+      ],
+      "narrowRangeQueries": [
+        {
+          "queryCount": 1,
+          "timings": {
+            "narrowExactScan": {
+              "samplesMs": [
+                2.5720000000001164,
+                2.5592000000015105,
+                2.5918000000001484,
+                2.5483000000003813,
+                2.5191999999988184
+              ],
+              "medianMs": 2.5592000000015105
+            },
+            "dayPrefix": {
+              "samplesMs": [
+                0.031899999999950523,
+                0.03330000000096334,
+                0.031199999999444117,
+                0.035499999999956344,
+                0.053599999999278225
+              ],
+              "medianMs": 0.03330000000096334
+            }
+          },
+          "buildPlusQueryMs": 162.5300000000011,
+          "breakEvenQueries": 65
+        },
+        {
+          "queryCount": 8,
+          "timings": {
+            "narrowExactScan": {
+              "samplesMs": [
+                14.025300000001153,
+                11.73830000000089,
+                10.462299999999232,
+                10.582699999999022,
+                12.165199999999459
+              ],
+              "medianMs": 11.73830000000089
+            },
+            "dayPrefix": {
+              "samplesMs": [
+                0.06120000000009895,
+                0.049300000002403976,
+                0.0525999999990745,
+                0.049100000000180444,
+                0.045700000002398156
+              ],
+              "medianMs": 0.049300000002403976
+            }
+          },
+          "buildPlusQueryMs": 162.54600000000255,
+          "breakEvenQueries": 112
+        },
+        {
+          "queryCount": 32,
+          "timings": {
+            "narrowExactScan": {
+              "samplesMs": [
+                30.75239999999758,
+                30.245599999994738,
+                30.080000000001746,
+                32.12350000000151,
+                31.356499999994412
+              ],
+              "medianMs": 30.75239999999758
+            },
+            "dayPrefix": {
+              "samplesMs": [
+                0.1316999999980908,
+                0.10829999999259599,
+                0.12780000000202563,
+                0.12279999999736901,
+                0.10570000000006985
+              ],
+              "medianMs": 0.12279999999736901
+            }
+          },
+          "buildPlusQueryMs": 162.61949999999752,
+          "breakEvenQueries": 170
+        }
+      ],
+      "terminalSummaries": [
+        {
+          "queryCount": 1,
+          "timings": {
+            "currentTerminalSummary": {
+              "samplesMs": [
+                3.1577999999990425,
+                4.2585999999992055,
+                3.4367999999994936,
+                3.2388000000009924,
+                2.9478999999992084
+              ],
+              "medianMs": 3.2388000000009924
+            },
+            "entityPostingSummary": {
+              "samplesMs": [
+                0.33139999999912106,
+                0.28880000000026484,
+                0.3394000000007509,
+                0.33809999999903084,
+                0.28070000000116124
+              ],
+              "medianMs": 0.33139999999912106
+            },
+            "articleOnlySummary": {
+              "samplesMs": [
+                0.3279999999995198,
+                0.42849999999998545,
+                0.43690000000060536,
+                0.2844999999997526,
+                0.2760999999991327
+              ],
+              "medianMs": 0.3279999999995198
+            }
+          },
+          "buildPlusQueryMs": 162.82809999999927,
+          "articleOnlyBuildPlusQueryMs": 77.21749999999975,
+          "breakEvenQueries": 56,
+          "articleOnlyBreakEvenQueries": 27
+        },
+        {
+          "queryCount": 8,
+          "timings": {
+            "currentTerminalSummary": {
+              "samplesMs": [
+                9.377000000000407,
+                11.718399999997928,
+                9.856699999996636,
+                10.45890000000145,
+                10.567999999999302
+              ],
+              "medianMs": 10.45890000000145
+            },
+            "entityPostingSummary": {
+              "samplesMs": [
+                0.9866000000001804,
+                1.185699999998178,
+                1.1234000000004016,
+                0.9614000000001397,
+                1.1031000000002678
+              ],
+              "medianMs": 1.1031000000002678
+            },
+            "articleOnlySummary": {
+              "samplesMs": [
+                1.0577999999986787,
+                1.0639999999984866,
+                0.8829999999979918,
+                1.0063999999983935,
+                1.1891999999970722
+              ],
+              "medianMs": 1.0577999999986787
+            }
+          },
+          "buildPlusQueryMs": 163.5998000000004,
+          "articleOnlyBuildPlusQueryMs": 77.9472999999989,
+          "breakEvenQueries": 139,
+          "articleOnlyBreakEvenQueries": 66
+        },
+        {
+          "queryCount": 32,
+          "timings": {
+            "currentTerminalSummary": {
+              "samplesMs": [
+                41.32259999999951,
+                29.42729999999574,
+                28.708400000003166,
+                32.63199999999779,
+                24.890199999994365
+              ],
+              "medianMs": 29.42729999999574
+            },
+            "entityPostingSummary": {
+              "samplesMs": [
+                4.894499999994878,
+                5.138399999996182,
+                4.760399999999208,
+                4.417600000000675,
+                4.628100000001723
+              ],
+              "medianMs": 4.760399999999208
+            },
+            "articleOnlySummary": {
+              "samplesMs": [
+                4.645899999988615,
+                4.338900000002468,
+                4.473199999993085,
+                3.916400000001886,
+                3.9900999999954365
+              ],
+              "medianMs": 4.338900000002468
+            }
+          },
+          "buildPlusQueryMs": 167.25709999999935,
+          "articleOnlyBuildPlusQueryMs": 81.2284000000027,
+          "breakEvenQueries": 211,
+          "articleOnlyBreakEvenQueries": 99
+        }
+      ]
+    }
+  ]
+}

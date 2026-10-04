@@ -39,6 +39,10 @@ Der [Projektstrukturplan](../../docs/project-structure-plan.md) ordnet alle
 vorhandenen Dateigruppen einem möglichen Ziel zu. Es wurden keine
 Anwendungsdateien dafür verschoben.
 
+Das ergänzende [Feature-Labor](../feature-lab/README.md) untersucht Import und
+Export, Quellspalten, mathematische Analyse, Suche, Lagerfunktionen, Editorhistorie
+und UI. Seine Ergebnisgrenzen und Messungen werden getrennt geführt.
+
 ## Browserlauf in Microsoft Edge
 
 Aus dem Projektordner:

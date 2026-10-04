@@ -1,0 +1,1532 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-10-04T09:57:55.945Z",
+  "baselineCommit": "59525a447004396b47747f587c7ba14511357719",
+  "node": "v24.18.1",
+  "platform": "win32",
+  "cpu": "12th Gen Intel(R) Core(TM) i9-12900F",
+  "logicalCpus": 24,
+  "repeats": 5,
+  "warmup": 1,
+  "input": "deterministic synthetic only",
+  "timingScope": "fixture/analysis preparation and correctness assertions excluded; import encoding resolution/eager decode included as preprocessing; all exports include UTF8 encode and same SHA256 sink; separate cold subprocess per method/size; RSS entire child including fixtures/baseline/contracts",
+  "measurements": [
+    {
+      "group": "import",
+      "variant": "baseline-64k",
+      "count": 1000,
+      "inputBytes": 106690,
+      "medianMs": 23.066299999999984,
+      "samplesMs": [
+        23.066299999999984,
+        22.81819999999999,
+        22.99109999999999,
+        30.070999999999998,
+        26.05170000000001
+      ],
+      "preprocessingMedianMs": 0.8791999999999973,
+      "preprocessingSamplesMs": [
+        0.8791999999999973,
+        0.7926999999999964,
+        0.8055999999999983,
+        0.9624000000000024,
+        0.9089000000000169
+      ],
+      "processMedianMs": 22.187099999999987,
+      "peakRssMiB": 78.546875,
+      "outputHash": "9e860232a41b220dca0326fb2bf7d74df99d9035b161941ddbeb8707118db073",
+      "validRows": 940,
+      "invalidRows": 58,
+      "filteredRows": 2
+    },
+    {
+      "group": "import",
+      "variant": "chunk-256k",
+      "count": 1000,
+      "inputBytes": 106690,
+      "medianMs": 26.893599999999992,
+      "samplesMs": [
+        24.85379999999998,
+        27.723499999999973,
+        26.893599999999992,
+        29.635700000000014,
+        24.1841
+      ],
+      "preprocessingMedianMs": 0.9545999999999992,
+      "preprocessingSamplesMs": [
+        1.0288000000000181,
+        0.9545999999999992,
+        0.968100000000021,
+        0.9191999999999894,
+        0.9029000000000451
+      ],
+      "processMedianMs": 25.92549999999997,
+      "peakRssMiB": 77.9921875,
+      "outputHash": "9e860232a41b220dca0326fb2bf7d74df99d9035b161941ddbeb8707118db073",
+      "validRows": 940,
+      "invalidRows": 58,
+      "filteredRows": 2
+    },
+    {
+      "group": "import",
+      "variant": "adaptive",
+      "count": 1000,
+      "inputBytes": 106690,
+      "medianMs": 30.0231,
+      "samplesMs": [
+        24.676199999999994,
+        31.945899999999995,
+        33.1251,
+        29.23709999999997,
+        30.0231
+      ],
+      "preprocessingMedianMs": 1.030600000000021,
+      "preprocessingSamplesMs": [
+        0.9728000000000065,
+        1.030600000000021,
+        1.6647000000000105,
+        0.9936999999999898,
+        1.0501999999999612
+      ],
+      "processMedianMs": 28.97290000000004,
+      "peakRssMiB": 77.94140625,
+      "outputHash": "9e860232a41b220dca0326fb2bf7d74df99d9035b161941ddbeb8707118db073",
+      "validRows": 940,
+      "invalidRows": 58,
+      "filteredRows": 2
+    },
+    {
+      "group": "import",
+      "variant": "eager",
+      "count": 1000,
+      "inputBytes": 106690,
+      "medianMs": 26.542400000000015,
+      "samplesMs": [
+        27.0574,
+        26.542400000000015,
+        24.41580000000002,
+        27.013599999999997,
+        25.997000000000014
+      ],
+      "preprocessingMedianMs": 1.0634000000000015,
+      "preprocessingSamplesMs": [
+        1.5843000000000131,
+        1.1077999999999975,
+        0.970799999999997,
+        1.0634000000000015,
+        0.90300000000002
+      ],
+      "processMedianMs": 25.434600000000017,
+      "peakRssMiB": 78.9609375,
+      "outputHash": "9e860232a41b220dca0326fb2bf7d74df99d9035b161941ddbeb8707118db073",
+      "validRows": 940,
+      "invalidRows": 58,
+      "filteredRows": 2
+    },
+    {
+      "group": "terminal",
+      "variant": "baseline",
+      "count": 1000,
+      "inputBytes": 76753,
+      "medianMs": 1.9517000000000024,
+      "samplesMs": [
+        1.5730000000000075,
+        2.185299999999998,
+        2.04849999999999,
+        1.9033000000000015,
+        1.9517000000000024
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 1.9517000000000024,
+      "peakRssMiB": 55.22265625,
+      "outputHash": "cc653590371ba764e0032786e73185fd6a7680cfb11aa352799ffa389b9c6d67"
+    },
+    {
+      "group": "terminal",
+      "variant": "sink-32",
+      "count": 1000,
+      "inputBytes": 76753,
+      "medianMs": 2.238900000000001,
+      "samplesMs": [
+        2.357600000000005,
+        2.2469000000000108,
+        2.238900000000001,
+        1.5775000000000006,
+        2.1210999999999984
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 2.238900000000001,
+      "peakRssMiB": 55.796875,
+      "outputHash": "cc653590371ba764e0032786e73185fd6a7680cfb11aa352799ffa389b9c6d67"
+    },
+    {
+      "group": "terminal",
+      "variant": "sink-512",
+      "count": 1000,
+      "inputBytes": 76753,
+      "medianMs": 1.3395999999999901,
+      "samplesMs": [
+        1.5614000000000061,
+        1.3395999999999901,
+        1.4077999999999946,
+        1.2083999999999975,
+        1.1773999999999916
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 1.3395999999999901,
+      "peakRssMiB": 55.21875,
+      "outputHash": "cc653590371ba764e0032786e73185fd6a7680cfb11aa352799ffa389b9c6d67"
+    },
+    {
+      "group": "terminal",
+      "variant": "collect-512",
+      "count": 1000,
+      "inputBytes": 76753,
+      "medianMs": 1.352400000000003,
+      "samplesMs": [
+        1.435299999999998,
+        1.352400000000003,
+        1.370200000000004,
+        1.1714000000000055,
+        1.2753000000000014
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 1.352400000000003,
+      "peakRssMiB": 55.22265625,
+      "outputHash": "cc653590371ba764e0032786e73185fd6a7680cfb11aa352799ffa389b9c6d67"
+    },
+    {
+      "group": "analysis",
+      "variant": "baseline",
+      "count": 1000,
+      "inputBytes": 171286,
+      "medianMs": 4.1768,
+      "samplesMs": [
+        4.110599999999998,
+        4.1768,
+        4.225899999999996,
+        4.347399999999993,
+        4.143000000000001
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 4.1768,
+      "peakRssMiB": 58.35546875,
+      "outputHash": "527cf8b4d9067adbe2be67cf5da74983729034684d968ad6298dfa78113a301c"
+    },
+    {
+      "group": "analysis",
+      "variant": "sink-32",
+      "count": 1000,
+      "inputBytes": 171286,
+      "medianMs": 4.0504999999999995,
+      "samplesMs": [
+        5.5545999999999935,
+        4.0504999999999995,
+        4.0452999999999975,
+        4.346800000000002,
+        4.029299999999992
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 4.0504999999999995,
+      "peakRssMiB": 58.21484375,
+      "outputHash": "527cf8b4d9067adbe2be67cf5da74983729034684d968ad6298dfa78113a301c"
+    },
+    {
+      "group": "analysis",
+      "variant": "sink-512",
+      "count": 1000,
+      "inputBytes": 171286,
+      "medianMs": 4.266500000000008,
+      "samplesMs": [
+        4.358700000000006,
+        4.116500000000002,
+        4.176699999999997,
+        4.375500000000002,
+        4.266500000000008
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 4.266500000000008,
+      "peakRssMiB": 58.13671875,
+      "outputHash": "527cf8b4d9067adbe2be67cf5da74983729034684d968ad6298dfa78113a301c"
+    },
+    {
+      "group": "analysis",
+      "variant": "collect-512",
+      "count": 1000,
+      "inputBytes": 171286,
+      "medianMs": 4.399799999999999,
+      "samplesMs": [
+        4.406599999999997,
+        4.591500000000011,
+        4.302899999999994,
+        4.399799999999999,
+        4.350399999999993
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 4.399799999999999,
+      "peakRssMiB": 58.2109375,
+      "outputHash": "527cf8b4d9067adbe2be67cf5da74983729034684d968ad6298dfa78113a301c"
+    },
+    {
+      "group": "import",
+      "variant": "chunk-256k",
+      "count": 10000,
+      "inputBytes": 1083382,
+      "medianMs": 191.49520000000007,
+      "samplesMs": [
+        189.09130000000005,
+        200.98969999999997,
+        194.90819999999997,
+        190.58079999999995,
+        191.49520000000007
+      ],
+      "preprocessingMedianMs": 5.972999999999956,
+      "preprocessingSamplesMs": [
+        5.588099999999997,
+        5.757799999999975,
+        6.315900000000056,
+        6.073700000000144,
+        5.972999999999956
+      ],
+      "processMedianMs": 185.5222000000001,
+      "peakRssMiB": 208.1328125,
+      "outputHash": "a0f8f10a197ddcdaaa718b2cafc363fede97a8a1783fe8696d0b7d6865c35292",
+      "validRows": 9388,
+      "invalidRows": 587,
+      "filteredRows": 25
+    },
+    {
+      "group": "import",
+      "variant": "adaptive",
+      "count": 10000,
+      "inputBytes": 1083382,
+      "medianMs": 197.57619999999997,
+      "samplesMs": [
+        196.86109999999996,
+        208.52469999999994,
+        217.08659999999998,
+        197.57619999999997,
+        196.3316000000002
+      ],
+      "preprocessingMedianMs": 5.909600000000069,
+      "preprocessingSamplesMs": [
+        5.581700000000069,
+        5.909600000000069,
+        6.14670000000001,
+        6.128600000000006,
+        5.680399999999963
+      ],
+      "processMedianMs": 191.44759999999997,
+      "peakRssMiB": 208.58984375,
+      "outputHash": "a0f8f10a197ddcdaaa718b2cafc363fede97a8a1783fe8696d0b7d6865c35292",
+      "validRows": 9388,
+      "invalidRows": 587,
+      "filteredRows": 25
+    },
+    {
+      "group": "import",
+      "variant": "eager",
+      "count": 10000,
+      "inputBytes": 1083382,
+      "medianMs": 206.90919999999983,
+      "samplesMs": [
+        207.10490000000004,
+        208.62380000000007,
+        203.32269999999994,
+        200.86360000000013,
+        206.90919999999983
+      ],
+      "preprocessingMedianMs": 6.5651000000000295,
+      "preprocessingSamplesMs": [
+        6.199499999999944,
+        5.708500000000072,
+        6.63779999999997,
+        6.5651000000000295,
+        6.587600000000066
+      ],
+      "processMedianMs": 200.32159999999976,
+      "peakRssMiB": 209.4921875,
+      "outputHash": "a0f8f10a197ddcdaaa718b2cafc363fede97a8a1783fe8696d0b7d6865c35292",
+      "validRows": 9388,
+      "invalidRows": 587,
+      "filteredRows": 25
+    },
+    {
+      "group": "import",
+      "variant": "baseline-64k",
+      "count": 10000,
+      "inputBytes": 1083382,
+      "medianMs": 212.51509999999985,
+      "samplesMs": [
+        220.3379000000001,
+        204.67579999999998,
+        217.12430000000006,
+        212.44650000000001,
+        212.51509999999985
+      ],
+      "preprocessingMedianMs": 5.717299999999909,
+      "preprocessingSamplesMs": [
+        5.9746000000000095,
+        5.200199999999995,
+        5.717299999999909,
+        5.653599999999869,
+        6.195300000000088
+      ],
+      "processMedianMs": 206.79290000000015,
+      "peakRssMiB": 207.55859375,
+      "outputHash": "a0f8f10a197ddcdaaa718b2cafc363fede97a8a1783fe8696d0b7d6865c35292",
+      "validRows": 9388,
+      "invalidRows": 587,
+      "filteredRows": 25
+    },
+    {
+      "group": "terminal",
+      "variant": "sink-32",
+      "count": 10000,
+      "inputBytes": 806381,
+      "medianMs": 9.792400000000015,
+      "samplesMs": [
+        10.70399999999998,
+        10.315300000000008,
+        9.696400000000011,
+        9.792400000000015,
+        9.727599999999995
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 9.792400000000015,
+      "peakRssMiB": 125.234375,
+      "outputHash": "f194d20f656946034f66b85c797b840cd564d91e13b907dfe89fdff8182864af"
+    },
+    {
+      "group": "terminal",
+      "variant": "sink-512",
+      "count": 10000,
+      "inputBytes": 806381,
+      "medianMs": 10.19919999999999,
+      "samplesMs": [
+        10.0822,
+        10.599400000000003,
+        9.924700000000001,
+        10.21350000000001,
+        10.19919999999999
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 10.19919999999999,
+      "peakRssMiB": 126.82421875,
+      "outputHash": "f194d20f656946034f66b85c797b840cd564d91e13b907dfe89fdff8182864af"
+    },
+    {
+      "group": "terminal",
+      "variant": "collect-512",
+      "count": 10000,
+      "inputBytes": 806381,
+      "medianMs": 11.601200000000006,
+      "samplesMs": [
+        10.835499999999996,
+        11.601200000000006,
+        11.958399999999983,
+        12.587500000000006,
+        10.6695
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 11.601200000000006,
+      "peakRssMiB": 128.140625,
+      "outputHash": "f194d20f656946034f66b85c797b840cd564d91e13b907dfe89fdff8182864af"
+    },
+    {
+      "group": "terminal",
+      "variant": "baseline",
+      "count": 10000,
+      "inputBytes": 806381,
+      "medianMs": 12.065300000000008,
+      "samplesMs": [
+        12.065300000000008,
+        12.0839,
+        12.23830000000001,
+        11.987799999999993,
+        11.746200000000016
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 12.065300000000008,
+      "peakRssMiB": 126.23046875,
+      "outputHash": "f194d20f656946034f66b85c797b840cd564d91e13b907dfe89fdff8182864af"
+    },
+    {
+      "group": "analysis",
+      "variant": "sink-32",
+      "count": 10000,
+      "inputBytes": 1773315,
+      "medianMs": 36.089800000000025,
+      "samplesMs": [
+        35.59309999999999,
+        36.089800000000025,
+        36.8116,
+        36.99880000000002,
+        35.523000000000025
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 36.089800000000025,
+      "peakRssMiB": 147.2890625,
+      "outputHash": "511a7f888769a4e62961cf859fba1e301122e6d9f1da8d3800309e51d25f4434"
+    },
+    {
+      "group": "analysis",
+      "variant": "sink-512",
+      "count": 10000,
+      "inputBytes": 1773315,
+      "medianMs": 39.70960000000002,
+      "samplesMs": [
+        40.59139999999999,
+        38.67070000000001,
+        39.25,
+        39.70960000000002,
+        41.4751
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 39.70960000000002,
+      "peakRssMiB": 149.6953125,
+      "outputHash": "511a7f888769a4e62961cf859fba1e301122e6d9f1da8d3800309e51d25f4434"
+    },
+    {
+      "group": "analysis",
+      "variant": "collect-512",
+      "count": 10000,
+      "inputBytes": 1773315,
+      "medianMs": 40.16089999999997,
+      "samplesMs": [
+        40.180499999999995,
+        39.841999999999985,
+        40.16089999999997,
+        40.00870000000003,
+        43.78520000000003
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 40.16089999999997,
+      "peakRssMiB": 151.47265625,
+      "outputHash": "511a7f888769a4e62961cf859fba1e301122e6d9f1da8d3800309e51d25f4434"
+    },
+    {
+      "group": "analysis",
+      "variant": "baseline",
+      "count": 10000,
+      "inputBytes": 1773315,
+      "medianMs": 38.9624,
+      "samplesMs": [
+        38.481599999999986,
+        38.9624,
+        38.67719999999997,
+        39.80170000000004,
+        39.9572
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 38.9624,
+      "peakRssMiB": 150.515625,
+      "outputHash": "511a7f888769a4e62961cf859fba1e301122e6d9f1da8d3800309e51d25f4434"
+    },
+    {
+      "group": "import",
+      "variant": "adaptive",
+      "count": 50000,
+      "inputBytes": 5448039,
+      "medianMs": 940.6351999999997,
+      "samplesMs": [
+        979.2667000000001,
+        940.6351999999997,
+        931.9816999999994,
+        928.0153,
+        945.8680000000004
+      ],
+      "preprocessingMedianMs": 26.527700000000095,
+      "preprocessingSamplesMs": [
+        26.527700000000095,
+        28.714500000000044,
+        26.1882999999998,
+        26.564800000000105,
+        25.35189999999966
+      ],
+      "processMedianMs": 911.9206999999997,
+      "peakRssMiB": 353.63671875,
+      "outputHash": "ebe12809db64f9e003a0bbace543c521c094d8c45862c91a95611223adcad128",
+      "validRows": 46931,
+      "invalidRows": 2941,
+      "filteredRows": 128
+    },
+    {
+      "group": "import",
+      "variant": "eager",
+      "count": 50000,
+      "inputBytes": 5448039,
+      "medianMs": 1075.9298999999996,
+      "samplesMs": [
+        1132.2257,
+        1075.9298999999996,
+        1098.5623999999998,
+        993.3310000000001,
+        937.3071999999993
+      ],
+      "preprocessingMedianMs": 29.658100000000104,
+      "preprocessingSamplesMs": [
+        28.985200000000077,
+        29.658100000000104,
+        28.412199999999757,
+        33.544299999999566,
+        30.43289999999979
+      ],
+      "processMedianMs": 1046.2717999999995,
+      "peakRssMiB": 309.4296875,
+      "outputHash": "ebe12809db64f9e003a0bbace543c521c094d8c45862c91a95611223adcad128",
+      "validRows": 46931,
+      "invalidRows": 2941,
+      "filteredRows": 128
+    },
+    {
+      "group": "import",
+      "variant": "baseline-64k",
+      "count": 50000,
+      "inputBytes": 5448039,
+      "medianMs": 927.8467999999998,
+      "samplesMs": [
+        913.4108000000001,
+        927.8467999999998,
+        919.8859000000002,
+        939.4930999999997,
+        946.6813999999995
+      ],
+      "preprocessingMedianMs": 27.0308,
+      "preprocessingSamplesMs": [
+        27.032300000000305,
+        27.0308,
+        26.672000000000025,
+        27.9391999999998,
+        25.739700000000084
+      ],
+      "processMedianMs": 900.8159999999998,
+      "peakRssMiB": 299.140625,
+      "outputHash": "ebe12809db64f9e003a0bbace543c521c094d8c45862c91a95611223adcad128",
+      "validRows": 46931,
+      "invalidRows": 2941,
+      "filteredRows": 128
+    },
+    {
+      "group": "import",
+      "variant": "chunk-256k",
+      "count": 50000,
+      "inputBytes": 5448039,
+      "medianMs": 939.8286000000007,
+      "samplesMs": [
+        938.9772999999996,
+        918.8456000000001,
+        953.7618000000002,
+        939.8286000000007,
+        943.8017999999993
+      ],
+      "preprocessingMedianMs": 26.002700000000004,
+      "preprocessingSamplesMs": [
+        24.62609999999995,
+        26.596500000000106,
+        26.002700000000004,
+        24.738900000000285,
+        26.07639999999992
+      ],
+      "processMedianMs": 915.0897000000004,
+      "peakRssMiB": 353.98828125,
+      "outputHash": "ebe12809db64f9e003a0bbace543c521c094d8c45862c91a95611223adcad128",
+      "validRows": 46931,
+      "invalidRows": 2941,
+      "filteredRows": 128
+    },
+    {
+      "group": "terminal",
+      "variant": "sink-512",
+      "count": 50000,
+      "inputBytes": 4207549,
+      "medianMs": 52.8347,
+      "samplesMs": [
+        56.185,
+        52.288299999999936,
+        52.8347,
+        54.4769,
+        51.270500000000084
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 52.8347,
+      "peakRssMiB": 330.95703125,
+      "outputHash": "cd0555ca104fb8c8b33facaed9ab2104a2fbeda8323222b5baf8f9cda1bec107"
+    },
+    {
+      "group": "terminal",
+      "variant": "collect-512",
+      "count": 50000,
+      "inputBytes": 4207549,
+      "medianMs": 54.227499999999964,
+      "samplesMs": [
+        53.54230000000001,
+        54.07810000000006,
+        55.00540000000001,
+        56.02380000000005,
+        54.227499999999964
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 54.227499999999964,
+      "peakRssMiB": 331.3828125,
+      "outputHash": "cd0555ca104fb8c8b33facaed9ab2104a2fbeda8323222b5baf8f9cda1bec107"
+    },
+    {
+      "group": "terminal",
+      "variant": "baseline",
+      "count": 50000,
+      "inputBytes": 4207549,
+      "medianMs": 56.70259999999996,
+      "samplesMs": [
+        57.55030000000005,
+        55.513000000000034,
+        56.70259999999996,
+        56.44219999999996,
+        65.29189999999994
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 56.70259999999996,
+      "peakRssMiB": 339.4453125,
+      "outputHash": "cd0555ca104fb8c8b33facaed9ab2104a2fbeda8323222b5baf8f9cda1bec107"
+    },
+    {
+      "group": "terminal",
+      "variant": "sink-32",
+      "count": 50000,
+      "inputBytes": 4207549,
+      "medianMs": 50.33100000000002,
+      "samplesMs": [
+        50.35230000000007,
+        48.30529999999999,
+        49.38639999999998,
+        50.33100000000002,
+        50.7423
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 50.33100000000002,
+      "peakRssMiB": 331.078125,
+      "outputHash": "cd0555ca104fb8c8b33facaed9ab2104a2fbeda8323222b5baf8f9cda1bec107"
+    },
+    {
+      "group": "analysis",
+      "variant": "sink-512",
+      "count": 50000,
+      "inputBytes": 9170168,
+      "medianMs": 182.9071,
+      "samplesMs": [
+        176.68099999999993,
+        182.9071,
+        179.60159999999996,
+        184.6119000000001,
+        186.82309999999984
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 182.9071,
+      "peakRssMiB": 372.125,
+      "outputHash": "a45ff61effea205672c5b1d3dff68a265ece47533ef6a5191db3ab0d3f49d722"
+    },
+    {
+      "group": "analysis",
+      "variant": "collect-512",
+      "count": 50000,
+      "inputBytes": 9170168,
+      "medianMs": 187.73630000000003,
+      "samplesMs": [
+        185.73989999999992,
+        189.5639000000001,
+        187.8411000000001,
+        187.65750000000003,
+        187.73630000000003
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 187.73630000000003,
+      "peakRssMiB": 372.3828125,
+      "outputHash": "a45ff61effea205672c5b1d3dff68a265ece47533ef6a5191db3ab0d3f49d722"
+    },
+    {
+      "group": "analysis",
+      "variant": "baseline",
+      "count": 50000,
+      "inputBytes": 9170168,
+      "medianMs": 178.67000000000007,
+      "samplesMs": [
+        176.8193,
+        178.78849999999989,
+        183.77319999999986,
+        178.67000000000007,
+        177.92849999999999
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 178.67000000000007,
+      "peakRssMiB": 386.76171875,
+      "outputHash": "a45ff61effea205672c5b1d3dff68a265ece47533ef6a5191db3ab0d3f49d722"
+    },
+    {
+      "group": "analysis",
+      "variant": "sink-32",
+      "count": 50000,
+      "inputBytes": 9170168,
+      "medianMs": 174.78269999999998,
+      "samplesMs": [
+        176.62260000000003,
+        171.33859999999993,
+        173.77819999999997,
+        174.78269999999998,
+        177.48340000000007
+      ],
+      "preprocessingMedianMs": 0,
+      "preprocessingSamplesMs": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "processMedianMs": 174.78269999999998,
+      "peakRssMiB": 362.01171875,
+      "outputHash": "a45ff61effea205672c5b1d3dff68a265ece47533ef6a5191db3ab0d3f49d722"
+    }
+  ],
+  "interpretationQuality": [
+    {
+      "method": "existing-suggestions",
+      "decisions": 18,
+      "positiveTargets": 11,
+      "truePositives": 7,
+      "falsePositives": 4,
+      "abstained": 7,
+      "precision": 0.6363636363636364,
+      "recall": 0.6363636363636364,
+      "abstentionRate": 0.3888888888888889,
+      "top1AccuracyOnKnownTargets": 0.8181818181818182,
+      "cases": [
+        {
+          "case": "bekannte-aliase",
+          "field": "order_id",
+          "expectedPosition": 0,
+          "selected": 0,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "bekannte-aliase",
+          "field": "article_id",
+          "expectedPosition": 1,
+          "selected": 1,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "bekannte-aliase",
+          "field": "quantity",
+          "expectedPosition": 2,
+          "selected": 2,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "bekannte-aliase",
+          "field": "delivery_date",
+          "expectedPosition": 3,
+          "selected": 3,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "doppelter-header-typkonflikt",
+          "field": "article_id",
+          "expectedPosition": 0,
+          "selected": 0,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "doppelter-header-typkonflikt",
+          "field": "quantity",
+          "expectedPosition": 2,
+          "selected": 1,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "doppelter-header-typkonflikt",
+          "field": "delivery_date",
+          "expectedPosition": 3,
+          "selected": 3,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "nur-wertformate",
+          "field": "quantity",
+          "expectedPosition": null,
+          "selected": 1,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "nur-wertformate",
+          "field": "delivery_date",
+          "expectedPosition": null,
+          "selected": 3,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "zwei-plausible-mengen",
+          "field": "quantity",
+          "expectedPosition": null,
+          "selected": 1,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "falscher-datumsheader",
+          "field": "delivery_date",
+          "expectedPosition": 3,
+          "selected": 2,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "leer",
+          "field": "quantity",
+          "expectedPosition": null,
+          "selected": 1,
+          "definitive": true,
+          "correct": false
+        },
+        {
+          "case": "leer",
+          "field": "delivery_date",
+          "expectedPosition": null,
+          "selected": 2,
+          "definitive": true,
+          "correct": false
+        },
+        {
+          "case": "tokens-und-zusatz",
+          "field": "article_id",
+          "expectedPosition": 0,
+          "selected": 0,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "tokens-und-zusatz",
+          "field": "quantity",
+          "expectedPosition": 1,
+          "selected": 1,
+          "definitive": false,
+          "correct": true
+        },
+        {
+          "case": "tokens-und-zusatz",
+          "field": "delivery_date",
+          "expectedPosition": 2,
+          "selected": 2,
+          "definitive": false,
+          "correct": true
+        },
+        {
+          "case": "fachlich-taeuschender-header",
+          "field": "quantity",
+          "expectedPosition": null,
+          "selected": 1,
+          "definitive": true,
+          "correct": false
+        },
+        {
+          "case": "fachlich-taeuschender-header",
+          "field": "delivery_date",
+          "expectedPosition": null,
+          "selected": 2,
+          "definitive": true,
+          "correct": false
+        }
+      ]
+    },
+    {
+      "method": "deterministic-rules",
+      "decisions": 18,
+      "positiveTargets": 11,
+      "truePositives": 7,
+      "falsePositives": 4,
+      "abstained": 7,
+      "precision": 0.6363636363636364,
+      "recall": 0.6363636363636364,
+      "abstentionRate": 0.3888888888888889,
+      "top1AccuracyOnKnownTargets": 0.6363636363636364,
+      "cases": [
+        {
+          "case": "bekannte-aliase",
+          "field": "order_id",
+          "expectedPosition": 0,
+          "selected": 0,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "bekannte-aliase",
+          "field": "article_id",
+          "expectedPosition": 1,
+          "selected": 1,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "bekannte-aliase",
+          "field": "quantity",
+          "expectedPosition": 2,
+          "selected": 2,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "bekannte-aliase",
+          "field": "delivery_date",
+          "expectedPosition": 3,
+          "selected": 3,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "doppelter-header-typkonflikt",
+          "field": "article_id",
+          "expectedPosition": 0,
+          "selected": 0,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "doppelter-header-typkonflikt",
+          "field": "quantity",
+          "expectedPosition": 2,
+          "selected": 1,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "doppelter-header-typkonflikt",
+          "field": "delivery_date",
+          "expectedPosition": 3,
+          "selected": 3,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "nur-wertformate",
+          "field": "quantity",
+          "expectedPosition": null,
+          "selected": null,
+          "definitive": false,
+          "correct": true
+        },
+        {
+          "case": "nur-wertformate",
+          "field": "delivery_date",
+          "expectedPosition": null,
+          "selected": null,
+          "definitive": false,
+          "correct": true
+        },
+        {
+          "case": "zwei-plausible-mengen",
+          "field": "quantity",
+          "expectedPosition": null,
+          "selected": 1,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "falscher-datumsheader",
+          "field": "delivery_date",
+          "expectedPosition": 3,
+          "selected": 2,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "leer",
+          "field": "quantity",
+          "expectedPosition": null,
+          "selected": 1,
+          "definitive": true,
+          "correct": false
+        },
+        {
+          "case": "leer",
+          "field": "delivery_date",
+          "expectedPosition": null,
+          "selected": 2,
+          "definitive": true,
+          "correct": false
+        },
+        {
+          "case": "tokens-und-zusatz",
+          "field": "article_id",
+          "expectedPosition": 0,
+          "selected": 0,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "tokens-und-zusatz",
+          "field": "quantity",
+          "expectedPosition": 1,
+          "selected": null,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "tokens-und-zusatz",
+          "field": "delivery_date",
+          "expectedPosition": 2,
+          "selected": null,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "fachlich-taeuschender-header",
+          "field": "quantity",
+          "expectedPosition": null,
+          "selected": 1,
+          "definitive": true,
+          "correct": false
+        },
+        {
+          "case": "fachlich-taeuschender-header",
+          "field": "delivery_date",
+          "expectedPosition": null,
+          "selected": 2,
+          "definitive": true,
+          "correct": false
+        }
+      ]
+    },
+    {
+      "method": "profile-top-k",
+      "decisions": 18,
+      "positiveTargets": 11,
+      "truePositives": 11,
+      "falsePositives": 2,
+      "abstained": 5,
+      "precision": 0.8461538461538461,
+      "recall": 1,
+      "abstentionRate": 0.2777777777777778,
+      "top1AccuracyOnKnownTargets": 1,
+      "cases": [
+        {
+          "case": "bekannte-aliase",
+          "field": "order_id",
+          "expectedPosition": 0,
+          "selected": 0,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "bekannte-aliase",
+          "field": "article_id",
+          "expectedPosition": 1,
+          "selected": 1,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "bekannte-aliase",
+          "field": "quantity",
+          "expectedPosition": 2,
+          "selected": 2,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "bekannte-aliase",
+          "field": "delivery_date",
+          "expectedPosition": 3,
+          "selected": 3,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "doppelter-header-typkonflikt",
+          "field": "article_id",
+          "expectedPosition": 0,
+          "selected": 0,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "doppelter-header-typkonflikt",
+          "field": "quantity",
+          "expectedPosition": 2,
+          "selected": 2,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "doppelter-header-typkonflikt",
+          "field": "delivery_date",
+          "expectedPosition": 3,
+          "selected": 3,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "nur-wertformate",
+          "field": "quantity",
+          "expectedPosition": null,
+          "selected": 1,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "nur-wertformate",
+          "field": "delivery_date",
+          "expectedPosition": null,
+          "selected": 3,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "zwei-plausible-mengen",
+          "field": "quantity",
+          "expectedPosition": null,
+          "selected": 1,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "falscher-datumsheader",
+          "field": "delivery_date",
+          "expectedPosition": 3,
+          "selected": 3,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "leer",
+          "field": "quantity",
+          "expectedPosition": null,
+          "selected": 1,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "leer",
+          "field": "delivery_date",
+          "expectedPosition": null,
+          "selected": 2,
+          "definitive": false,
+          "correct": false
+        },
+        {
+          "case": "tokens-und-zusatz",
+          "field": "article_id",
+          "expectedPosition": 0,
+          "selected": 0,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "tokens-und-zusatz",
+          "field": "quantity",
+          "expectedPosition": 1,
+          "selected": 1,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "tokens-und-zusatz",
+          "field": "delivery_date",
+          "expectedPosition": 2,
+          "selected": 2,
+          "definitive": true,
+          "correct": true
+        },
+        {
+          "case": "fachlich-taeuschender-header",
+          "field": "quantity",
+          "expectedPosition": null,
+          "selected": 1,
+          "definitive": true,
+          "correct": false
+        },
+        {
+          "case": "fachlich-taeuschender-header",
+          "field": "delivery_date",
+          "expectedPosition": null,
+          "selected": 2,
+          "definitive": true,
+          "correct": false
+        }
+      ]
+    }
+  ],
+  "interpretationCost": [
+    {
+      "count": 1000,
+      "columns": 10,
+      "profileMs": {
+        "median": 7.059799999999996,
+        "samples": [
+          7.979899999999816,
+          7.398800000000392,
+          6.94439999999986,
+          7.059799999999996,
+          6.531199999999899
+        ]
+      },
+      "headerSuggestionMs": {
+        "median": 1.503400000000056,
+        "samples": [
+          1.5438999999996668,
+          1.6372000000001208,
+          1.2916000000000167,
+          1.503400000000056,
+          1.4825000000000728
+        ]
+      },
+      "profileSuggestionMs": {
+        "median": 1.5988000000002103,
+        "samples": [
+          1.8121000000001004,
+          1.5988000000002103,
+          1.515700000000379,
+          1.4337000000000444,
+          2.0327000000002045
+        ]
+      }
+    },
+    {
+      "count": 10000,
+      "columns": 10,
+      "profileMs": {
+        "median": 68.32870000000003,
+        "samples": [
+          68.32870000000003,
+          81.1281999999992,
+          72.34000000000015,
+          66.44579999999951,
+          66.28900000000067
+        ]
+      },
+      "headerSuggestionMs": {
+        "median": 1.3716999999996915,
+        "samples": [
+          1.2854999999999563,
+          1.542699999999968,
+          1.3716999999996915,
+          1.3649999999997817,
+          1.3866999999991094
+        ]
+      },
+      "profileSuggestionMs": {
+        "median": 1.3483999999989464,
+        "samples": [
+          1.5653999999994994,
+          1.3312999999998283,
+          1.3483999999989464,
+          1.657999999999447,
+          1.2879000000011729
+        ]
+      }
+    },
+    {
+      "count": 50000,
+      "columns": 10,
+      "profileMs": {
+        "median": 327.1505000000034,
+        "samples": [
+          340.49869999999646,
+          331.61999999999534,
+          323.54469999999856,
+          321.0005999999994,
+          327.1505000000034
+        ]
+      },
+      "headerSuggestionMs": {
+        "median": 1.2278000000005704,
+        "samples": [
+          1.4270000000033178,
+          1.2219999999942956,
+          1.216099999997823,
+          1.4434000000037486,
+          1.2278000000005704
+        ]
+      },
+      "profileSuggestionMs": {
+        "median": 1.2709000000031665,
+        "samples": [
+          1.419499999996333,
+          1.219199999999546,
+          1.2709000000031665,
+          1.2788999999975204,
+          1.2179999999934807
+        ]
+      }
+    }
+  ],
+  "interpretationGroundTruth": "fixtures/interpretation-ground-truth.cjs; explicit independent labels, includes hidden semantic counterexample"
+}

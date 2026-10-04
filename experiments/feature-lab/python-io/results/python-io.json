@@ -1,0 +1,507 @@
+{
+  "generatedAt": "2026-10-04T10:18:41Z",
+  "baselineCommit": "59525a447004396b47747f587c7ba14511357719",
+  "environment": {
+    "python": "3.13.14",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "machine": "AMD64",
+    "logicalCpus": 24,
+    "sqliteVersion": "3.50.4"
+  },
+  "methodology": {
+    "repeats": 5,
+    "sizes": [
+      1000,
+      10000
+    ],
+    "fixtures": "deterministic synthetic UTF-8 CSV",
+    "build": "source copy + source SHA + strict CSV parse + projection + index + projection SHA + final directory rename",
+    "read": "consume all positional rows, no business analysis, no original-source rehash",
+    "filtered": "exact raw source-position-0 string match 0000000017; indexed only in SQLite",
+    "memory": "separate tracemalloc peakPythonBytes; NOT process RSS or SQLite/gzip native memory",
+    "diskCache": "warm OS cache likely; no control, no production-throughput claim",
+    "integrations": "none; no server/API/Workspace parser/schema or ERP mapping"
+  },
+  "results": [
+    {
+      "rows": 1000,
+      "format": "json",
+      "sourceBytes": 82568,
+      "originalSha256": "757e918a7a0f9623ffbc3032c703fb61bf37d653a51f892ba4ff2b6876b7f3b9",
+      "rowsSha256": "7df9e62c564b50b0a9569a7302a12bcb5d99cebcd87e17a423934afe4c91f3ba",
+      "projectionBytes": 156558,
+      "bundleBytes": 239700,
+      "filterMatches": 10,
+      "build": {
+        "medianMs": 40.39790004026145,
+        "minMs": 35.76300002168864,
+        "maxMs": 48.08279999997467,
+        "samplesMs": [
+          35.76300002168864,
+          48.08279999997467,
+          44.26689993124455,
+          40.39790004026145,
+          39.3231000052765
+        ]
+      },
+      "read": {
+        "medianMs": 1.1994000524282455,
+        "minMs": 1.1828000424429774,
+        "maxMs": 1.325800083577633,
+        "samplesMs": [
+          1.1994000524282455,
+          1.1828000424429774,
+          1.1848999420180917,
+          1.325800083577633,
+          1.256900024600327
+        ]
+      },
+      "filtered": {
+        "medianMs": 1.15430005826056,
+        "minMs": 1.119400025345385,
+        "maxMs": 1.2344999704509974,
+        "samplesMs": [
+          1.192399999126792,
+          1.2344999704509974,
+          1.15430005826056,
+          1.119400025345385,
+          1.1251999530941248
+        ]
+      },
+      "peakPythonBytes": {
+        "build": 749580,
+        "read": 997628,
+        "filtered": 997628
+      }
+    },
+    {
+      "rows": 1000,
+      "format": "ndjson",
+      "sourceBytes": 82568,
+      "originalSha256": "757e918a7a0f9623ffbc3032c703fb61bf37d653a51f892ba4ff2b6876b7f3b9",
+      "rowsSha256": "7df9e62c564b50b0a9569a7302a12bcb5d99cebcd87e17a423934afe4c91f3ba",
+      "projectionBytes": 156550,
+      "bundleBytes": 239696,
+      "filterMatches": 10,
+      "build": {
+        "medianMs": 17.246900009922683,
+        "minMs": 16.5007000323385,
+        "maxMs": 17.8089999826625,
+        "samplesMs": [
+          16.5007000323385,
+          17.77940010651946,
+          17.8089999826625,
+          16.853000037372112,
+          17.246900009922683
+        ]
+      },
+      "read": {
+        "medianMs": 2.0435999613255262,
+        "minMs": 1.985899987630546,
+        "maxMs": 2.1439000265672803,
+        "samplesMs": [
+          2.1439000265672803,
+          2.003900008276105,
+          1.985899987630546,
+          2.117499941959977,
+          2.0435999613255262
+        ]
+      },
+      "filtered": {
+        "medianMs": 1.907799975015223,
+        "minMs": 1.8498999997973442,
+        "maxMs": 1.997999963350594,
+        "samplesMs": [
+          1.9511999562382698,
+          1.907799975015223,
+          1.8498999997973442,
+          1.860500080510974,
+          1.997999963350594
+        ]
+      },
+      "peakPythonBytes": {
+        "build": 696943,
+        "read": 48376,
+        "filtered": 49170
+      }
+    },
+    {
+      "rows": 1000,
+      "format": "ndjson-gzip",
+      "sourceBytes": 82568,
+      "originalSha256": "757e918a7a0f9623ffbc3032c703fb61bf37d653a51f892ba4ff2b6876b7f3b9",
+      "rowsSha256": "7df9e62c564b50b0a9569a7302a12bcb5d99cebcd87e17a423934afe4c91f3ba",
+      "projectionBytes": 18414,
+      "bundleBytes": 101568,
+      "filterMatches": 10,
+      "build": {
+        "medianMs": 19.77340003941208,
+        "minMs": 19.26960004493594,
+        "maxMs": 21.011600038036704,
+        "samplesMs": [
+          20.061400020495057,
+          19.77340003941208,
+          19.694300019182265,
+          19.26960004493594,
+          21.011600038036704
+        ]
+      },
+      "read": {
+        "medianMs": 2.3158000549301505,
+        "minMs": 2.297499915584922,
+        "maxMs": 2.3765000514686108,
+        "samplesMs": [
+          2.3765000514686108,
+          2.3135000374168158,
+          2.3158000549301505,
+          2.3293999256566167,
+          2.297499915584922
+        ]
+      },
+      "filtered": {
+        "medianMs": 2.2190000163391232,
+        "minMs": 2.1937000565230846,
+        "maxMs": 2.732600085437298,
+        "samplesMs": [
+          2.1991999819874763,
+          2.732600085437298,
+          2.3984999861568213,
+          2.1937000565230846,
+          2.2190000163391232
+        ]
+      },
+      "peakPythonBytes": {
+        "build": 620670,
+        "read": 171123,
+        "filtered": 171056
+      }
+    },
+    {
+      "rows": 1000,
+      "format": "sqlite",
+      "sourceBytes": 82568,
+      "originalSha256": "757e918a7a0f9623ffbc3032c703fb61bf37d653a51f892ba4ff2b6876b7f3b9",
+      "rowsSha256": "7df9e62c564b50b0a9569a7302a12bcb5d99cebcd87e17a423934afe4c91f3ba",
+      "projectionBytes": 163840,
+      "bundleBytes": 247039,
+      "filterMatches": 10,
+      "build": {
+        "medianMs": 17.338500008918345,
+        "minMs": 17.210499965585768,
+        "maxMs": 18.55720009189099,
+        "samplesMs": [
+          18.55720009189099,
+          17.31969998218119,
+          18.545900005847216,
+          17.338500008918345,
+          17.210499965585768
+        ]
+      },
+      "read": {
+        "medianMs": 2.16749997343868,
+        "minMs": 2.150299958884716,
+        "maxMs": 2.266200026497245,
+        "samplesMs": [
+          2.1663999650627375,
+          2.16749997343868,
+          2.175800036638975,
+          2.150299958884716,
+          2.266200026497245
+        ]
+      },
+      "filtered": {
+        "medianMs": 0.41809992399066687,
+        "minMs": 0.4146000137552619,
+        "maxMs": 0.4638000391423702,
+        "samplesMs": [
+          0.45689998660236597,
+          0.4173999186605215,
+          0.4146000137552619,
+          0.41809992399066687,
+          0.4638000391423702
+        ]
+      },
+      "peakPythonBytes": {
+        "build": 704230,
+        "read": 13332,
+        "filtered": 13332
+      }
+    },
+    {
+      "rows": 10000,
+      "format": "json",
+      "sourceBytes": 834884,
+      "originalSha256": "ae14ebe56cb2baf0ad34fa625782a3c51298ac6cb20d9165971d0b9163caa2ca",
+      "rowsSha256": "2499158c85035dc535b93fdb6bda864f39a2f7e760946435b2aa91d1ac7a9037",
+      "projectionBytes": 1603166,
+      "bundleBytes": 2438626,
+      "filterMatches": 100,
+      "build": {
+        "medianMs": 62.64099990949035,
+        "minMs": 60.71049999445677,
+        "maxMs": 67.45730002876371,
+        "samplesMs": [
+          60.71049999445677,
+          62.03930010087788,
+          67.45730002876371,
+          63.56500007677823,
+          62.64099990949035
+        ]
+      },
+      "read": {
+        "medianMs": 12.250400031916797,
+        "minMs": 11.83520001359284,
+        "maxMs": 12.889400008134544,
+        "samplesMs": [
+          12.889400008134544,
+          11.848800000734627,
+          12.435799930244684,
+          12.250400031916797,
+          11.83520001359284
+        ]
+      },
+      "filtered": {
+        "medianMs": 11.149600031785667,
+        "minMs": 10.729299974627793,
+        "maxMs": 11.384000070393085,
+        "samplesMs": [
+          11.149600031785667,
+          10.99189999513328,
+          10.729299974627793,
+          11.304300045594573,
+          11.384000070393085
+        ]
+      },
+      "peakPythonBytes": {
+        "build": 7012216,
+        "read": 10098373,
+        "filtered": 10098373
+      }
+    },
+    {
+      "rows": 10000,
+      "format": "ndjson",
+      "sourceBytes": 834884,
+      "originalSha256": "ae14ebe56cb2baf0ad34fa625782a3c51298ac6cb20d9165971d0b9163caa2ca",
+      "rowsSha256": "2499158c85035dc535b93fdb6bda864f39a2f7e760946435b2aa91d1ac7a9037",
+      "projectionBytes": 1603158,
+      "bundleBytes": 2438622,
+      "filterMatches": 100,
+      "build": {
+        "medianMs": 46.66770005133003,
+        "minMs": 46.378100058063865,
+        "maxMs": 49.09320001024753,
+        "samplesMs": [
+          47.2793000517413,
+          49.09320001024753,
+          46.378100058063865,
+          46.66770005133003,
+          46.40880005899817
+        ]
+      },
+      "read": {
+        "medianMs": 18.79689993802458,
+        "minMs": 18.58639996498823,
+        "maxMs": 20.51729999948293,
+        "samplesMs": [
+          18.637400004081428,
+          20.51729999948293,
+          18.79689993802458,
+          18.58639996498823,
+          18.97769991774112
+        ]
+      },
+      "filtered": {
+        "medianMs": 17.59539998602122,
+        "minMs": 17.440800089389086,
+        "maxMs": 18.09929998125881,
+        "samplesMs": [
+          17.85039994865656,
+          18.09929998125881,
+          17.440800089389086,
+          17.4428999889642,
+          17.59539998602122
+        ]
+      },
+      "peakPythonBytes": {
+        "build": 1064715,
+        "read": 56460,
+        "filtered": 57311
+      }
+    },
+    {
+      "rows": 10000,
+      "format": "ndjson-gzip",
+      "sourceBytes": 834884,
+      "originalSha256": "ae14ebe56cb2baf0ad34fa625782a3c51298ac6cb20d9165971d0b9163caa2ca",
+      "rowsSha256": "2499158c85035dc535b93fdb6bda864f39a2f7e760946435b2aa91d1ac7a9037",
+      "projectionBytes": 178086,
+      "bundleBytes": 1013558,
+      "filterMatches": 100,
+      "build": {
+        "medianMs": 104.3115999782458,
+        "minMs": 101.91490000579506,
+        "maxMs": 107.95929993037134,
+        "samplesMs": [
+          103.54439995717257,
+          101.91490000579506,
+          107.95929993037134,
+          105.77100003138185,
+          104.3115999782458
+        ]
+      },
+      "read": {
+        "medianMs": 21.201000083237886,
+        "minMs": 20.501299994066358,
+        "maxMs": 21.364300046116114,
+        "samplesMs": [
+          21.364300046116114,
+          20.580000011250377,
+          21.201000083237886,
+          20.501299994066358,
+          21.315199905075133
+        ]
+      },
+      "filtered": {
+        "medianMs": 19.437700044363737,
+        "minMs": 19.13489995058626,
+        "maxMs": 20.235600066371262,
+        "samplesMs": [
+          20.235600066371262,
+          19.83559993095696,
+          19.437700044363737,
+          19.36419995035976,
+          19.13489995058626
+        ]
+      },
+      "peakPythonBytes": {
+        "build": 1062424,
+        "read": 341400,
+        "filtered": 341341
+      }
+    },
+    {
+      "rows": 10000,
+      "format": "sqlite",
+      "sourceBytes": 834884,
+      "originalSha256": "ae14ebe56cb2baf0ad34fa625782a3c51298ac6cb20d9165971d0b9163caa2ca",
+      "rowsSha256": "2499158c85035dc535b93fdb6bda864f39a2f7e760946435b2aa91d1ac7a9037",
+      "projectionBytes": 1409024,
+      "bundleBytes": 2244541,
+      "filterMatches": 100,
+      "build": {
+        "medianMs": 55.51999993622303,
+        "minMs": 53.87049994897097,
+        "maxMs": 62.56049999501556,
+        "samplesMs": [
+          56.63119989912957,
+          55.51999993622303,
+          54.917900008149445,
+          53.87049994897097,
+          62.56049999501556
+        ]
+      },
+      "read": {
+        "medianMs": 18.45169998705387,
+        "minMs": 18.217700067907572,
+        "maxMs": 18.62550002988428,
+        "samplesMs": [
+          18.62550002988428,
+          18.45169998705387,
+          18.53479992132634,
+          18.217700067907572,
+          18.352099927142262
+        ]
+      },
+      "filtered": {
+        "medianMs": 0.7296000840142369,
+        "minMs": 0.7097000489011407,
+        "maxMs": 0.811800011433661,
+        "samplesMs": [
+          0.811800011433661,
+          0.7599999662488699,
+          0.7248999318107963,
+          0.7296000840142369,
+          0.7097000489011407
+        ]
+      },
+      "peakPythonBytes": {
+        "build": 1064712,
+        "read": 13340,
+        "filtered": 13340
+      }
+    }
+  ],
+  "csvReference": [
+    {
+      "rows": 1000,
+      "sourceBytes": 82568,
+      "read": {
+        "medianMs": 1.1615999974310398,
+        "minMs": 1.159599982202053,
+        "maxMs": 1.170799951069057,
+        "samplesMs": [
+          1.170799951069057,
+          1.1615999974310398,
+          1.168999937362969,
+          1.159899984486401,
+          1.159599982202053
+        ]
+      },
+      "filtered": {
+        "medianMs": 1.023000106215477,
+        "minMs": 1.0118000209331512,
+        "maxMs": 1.145699992775917,
+        "samplesMs": [
+          1.0204999707639217,
+          1.0118000209331512,
+          1.023000106215477,
+          1.0252000065520406,
+          1.145699992775917
+        ]
+      },
+      "peakPythonBytes": {
+        "read": 62195,
+        "filtered": 63200
+      }
+    },
+    {
+      "rows": 10000,
+      "sourceBytes": 834884,
+      "read": {
+        "medianMs": 10.465699946507812,
+        "minMs": 9.981999988667667,
+        "maxMs": 10.544899967499077,
+        "samplesMs": [
+          10.30620001256466,
+          10.544899967499077,
+          9.981999988667667,
+          10.539300041273236,
+          10.465699946507812
+        ]
+      },
+      "filtered": {
+        "medianMs": 8.783399942331016,
+        "minMs": 8.469599997624755,
+        "maxMs": 9.024200029671192,
+        "samplesMs": [
+          9.024200029671192,
+          8.783399942331016,
+          8.730000001378357,
+          9.020900004543364,
+          8.469599997624755
+        ]
+      },
+      "peakPythonBytes": {
+        "read": 62084,
+        "filtered": 63097
+      }
+    }
+  ],
+  "unavailable": [],
+  "sources": {
+    "io_lab.py": "1b425afb230b7722762d87a9a59aaac4ffa599f0ee7498a7ed0b5904fbdf121a",
+    "test_io_lab.py": "ee1fb8bfd5b0ab1f267bad3ccc9e2f6400b4b73787d785af824395aa71bac12d",
+    "run_benchmarks.py": "86f92ddfbcaa7d506e989f7416e9f20bf1a452d2deb79657f43b7eb2a0f34845"
+  }
+}

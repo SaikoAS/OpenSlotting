@@ -1,0 +1,33 @@
+{
+  "verifiedUtc": "2026-10-04T10:34:45.537607+00:00",
+  "baselineCommit": "59525a447004396b47747f587c7ba14511357719",
+  "nodeTests": {
+    "production": 248,
+    "newLab": 71,
+    "oldLab": 11
+  },
+  "pythonTests": {
+    "newLab": 6,
+    "oldLab": 2
+  },
+  "syntax": {
+    "javascriptFiles": 37,
+    "pythonFiles": 7,
+    "failures": 0
+  },
+  "edge": {
+    "completedRuns": 3,
+    "rendererChecksEachRun": 3,
+    "visibleWorkflowChecks": 8,
+    "fullAppAcceptance": false
+  },
+  "newDependenciesInstalled": false,
+  "newModulesIntegrated": false,
+  "ownLabListenerStopped": true,
+  "ownLabBrowserTabClosed": true,
+  "cleanupException": "Owned synthetic Temp directory retained after automatic deletion review rejected with blocked by policy; see Python IO report",
+  "ownedLabTestPortsStopped": [
+    58659,
+    57381
+  ]
+}

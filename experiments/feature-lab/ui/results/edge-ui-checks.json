@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-10-04T10:21:23.200Z",
+  "scope": "Manual browser actions and read-only DOM observations in the isolated laboratory; not full-app acceptance",
+  "checks": [
+    {
+      "check": "duplicate target positions block confirmation",
+      "passed": true
+    },
+    {
+      "check": "language and mapping draft retained",
+      "passed": true
+    },
+    {
+      "check": "empty search state",
+      "passed": true
+    },
+    {
+      "check": "keyboard selection preserves focused article and leading zeros",
+      "passed": true
+    },
+    {
+      "check": "article and query retained across locale change",
+      "passed": true
+    },
+    {
+      "check": "invalid period hides metrics",
+      "passed": true
+    },
+    {
+      "check": "overlapping periods and unknown dates visible",
+      "passed": true
+    },
+    {
+      "check": "mapping retained across views",
+      "passed": true
+    }
+  ],
+  "logs": []
+}

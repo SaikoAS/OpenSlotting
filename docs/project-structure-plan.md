@@ -3,7 +3,10 @@
 Stand: 2026-10-04. Ausgangspunkt: `codex/localhost-development`, Commit
 `23148a5d2548080d6d253ee9ae66bd4cb5494f5f`.
 Auf Wunsch wird dieser Plan **noch nicht als Dateiumzug ausgeführt**.
-Neue Funktionsvarianten stehen ausschließlich im [Localhost-Labor](../experiments/localhost-lab/README.md).
+Neue Funktionsvarianten stehen ausschließlich im [Localhost-Labor](../experiments/localhost-lab/README.md)
+und im [Feature-Labor](../experiments/feature-lab/README.md). Letzteres ergänzt
+Import/Export, erklärbare Quellspalten, mathematische Analyse, Suche, Lager,
+Editorhistorie, UI und Python-Dateiformate mit getrennten Bewertungen.
 
 ## Umfang der Prüfung
 
@@ -91,7 +94,8 @@ OpenSlotting/
 │   ├── packaging/
 │   └── benchmarks/                   # bestätigte Entwicklungsbenchmarks
 ├── experiments/
-│   └── localhost-lab/                # unbestätigte Varianten und eigene Ergebnisse
+│   ├── localhost-lab/                # Worker, Rohspeicher und Sicherungen
+│   └── feature-lab/                  # weitere unbestätigte Funktionsvarianten
 ├── dist/                            # ignorierte Kandidaten, nach Commit geordnet
 └── .github/workflows/
 ```

@@ -1,0 +1,13 @@
+{
+  "capturedUtc": "2026-10-04T10:38:13.387935+00:00",
+  "scope": "Exact source bytes during final Edge run 3; no concurrent source changes",
+  "sha256": {
+    "terminal.js": "14c8e8d05478ecdc6be2c4c83a4ebf8a8d7aed6ecf250b959398fa52f384250e",
+    "experiments/feature-lab/ui/table-model.mjs": "d6722177db1d5ce459ee190203149db06caa72dcdd8854418353c3d013d8a085",
+    "experiments/feature-lab/ui/renderers.mjs": "cb59c612af0c6ee2208c5ec7e2d452618e963c2ccfb55cfc4fbde0ddd9854c43",
+    "experiments/feature-lab/ui/browser-benchmark.mjs": "f60b7c0ca60e79c4be458958498372c64b3e5a8c07a58840b5e90a69ee3d6869",
+    "experiments/feature-lab/ui/app.mjs": "0e6244fe0e1b368090790bdc82e12d252929d8beb5e0af2121908b1a0a99ade7",
+    "experiments/feature-lab/ui/styles.css": "8d8982912e4bc6730240f6acdcbbfbe0b1153fe20a96aad5a201239d439dddfe",
+    "experiments/feature-lab/ui/index.html": "3041268f59e655c97790789b2cd18e13c7f2d52823427312fe9acdc77185edf8"
+  }
+}

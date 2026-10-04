@@ -1,0 +1,149 @@
+{
+  "createdUtc": "2026-10-04T10:24:33.091Z",
+  "syntheticOnly": true,
+  "environment": {
+    "node": "v24.18.1",
+    "platform": "win32",
+    "arch": "x64",
+    "cpu": "12th Gen Intel(R) Core(TM) i9-12900F"
+  },
+  "layoutObjects": 150,
+  "layoutSlots": 2025,
+  "layoutJsonBytes": 350255,
+  "actualHistoryLimit": 20,
+  "edits": 50,
+  "undo": 20,
+  "redo": 20,
+  "method": "5 warm trials, rotated order; current JSON-clone snapshot representation versus ID-bound before/after object deltas. Both call the original normalizeLayout and lockedEditConflict before mock persistence confirmation. No IndexedDB, browser, DOM or network.",
+  "samples": {
+    "snapshots": [
+      {
+        "initializationMs": 1.5471000000000004,
+        "edit50Ms": 308.4143999999999,
+        "undo20Ms": 120.05799999999999,
+        "redo20Ms": 124.38049999999998,
+        "totalPipelineMs": 554.3999999999999,
+        "retainedHistoryJsonBytes": 7005848,
+        "heldHeapDeltaBytes": 14068920,
+        "heldRssDeltaBytes": 385024
+      },
+      {
+        "initializationMs": 1.597099999999955,
+        "edit50Ms": 307.16640000000007,
+        "undo20Ms": 120.91769999999997,
+        "redo20Ms": 123.2156,
+        "totalPipelineMs": 552.8968,
+        "retainedHistoryJsonBytes": 7005848,
+        "heldHeapDeltaBytes": 14071352,
+        "heldRssDeltaBytes": -81920
+      },
+      {
+        "initializationMs": 1.5303000000003522,
+        "edit50Ms": 300.2869999999998,
+        "undo20Ms": 117.77880000000005,
+        "redo20Ms": 123.10410000000047,
+        "totalPipelineMs": 542.7002000000007,
+        "retainedHistoryJsonBytes": 7005848,
+        "heldHeapDeltaBytes": 14073848,
+        "heldRssDeltaBytes": 225280
+      },
+      {
+        "initializationMs": 1.7271999999993568,
+        "edit50Ms": 302.03959999999915,
+        "undo20Ms": 118.77890000000025,
+        "redo20Ms": 121.5005000000001,
+        "totalPipelineMs": 544.0461999999989,
+        "retainedHistoryJsonBytes": 7005848,
+        "heldHeapDeltaBytes": 14068504,
+        "heldRssDeltaBytes": 413696
+      },
+      {
+        "initializationMs": 1.5918000000001484,
+        "edit50Ms": 302.79150000000027,
+        "undo20Ms": 118.76310000000012,
+        "redo20Ms": 124.28089999999975,
+        "totalPipelineMs": 547.4273000000003,
+        "retainedHistoryJsonBytes": 7005848,
+        "heldHeapDeltaBytes": 14069552,
+        "heldRssDeltaBytes": 147456
+      }
+    ],
+    "deltas": [
+      {
+        "initializationMs": 1.5669000000000324,
+        "edit50Ms": 354.2333000000001,
+        "undo20Ms": 114.02659999999969,
+        "redo20Ms": 113.75790000000006,
+        "totalPipelineMs": 583.5846999999999,
+        "retainedHistoryJsonBytes": 158416,
+        "heldHeapDeltaBytes": 2621648,
+        "heldRssDeltaBytes": 36864
+      },
+      {
+        "initializationMs": 1.5398999999997613,
+        "edit50Ms": 351.35450000000037,
+        "undo20Ms": 111.33719999999994,
+        "redo20Ms": 113.80599999999959,
+        "totalPipelineMs": 578.0375999999997,
+        "retainedHistoryJsonBytes": 158416,
+        "heldHeapDeltaBytes": 2621544,
+        "heldRssDeltaBytes": 57344
+      },
+      {
+        "initializationMs": 1.6527999999998428,
+        "edit50Ms": 348.22049999999945,
+        "undo20Ms": 109.42280000000028,
+        "redo20Ms": 110.77009999999973,
+        "totalPipelineMs": 570.0661999999993,
+        "retainedHistoryJsonBytes": 158416,
+        "heldHeapDeltaBytes": 2628240,
+        "heldRssDeltaBytes": -102400
+      },
+      {
+        "initializationMs": 1.4778999999998632,
+        "edit50Ms": 345.53809999999976,
+        "undo20Ms": 111.34599999999955,
+        "redo20Ms": 111.29670000000078,
+        "totalPipelineMs": 569.6587,
+        "retainedHistoryJsonBytes": 158416,
+        "heldHeapDeltaBytes": 2623232,
+        "heldRssDeltaBytes": -245760
+      },
+      {
+        "initializationMs": 1.6428999999998268,
+        "edit50Ms": 348.20610000000033,
+        "undo20Ms": 110.04709999999977,
+        "redo20Ms": 111.19340000000011,
+        "totalPipelineMs": 571.0895,
+        "retainedHistoryJsonBytes": 158416,
+        "heldHeapDeltaBytes": 2635472,
+        "heldRssDeltaBytes": -8192
+      }
+    ]
+  },
+  "medians": {
+    "snapshots": {
+      "initializationMs": 1.5918000000001484,
+      "edit50Ms": 302.79150000000027,
+      "undo20Ms": 118.77890000000025,
+      "redo20Ms": 123.2156,
+      "totalPipelineMs": 547.4273000000003,
+      "retainedHistoryJsonBytes": 7005848,
+      "heldHeapDeltaBytes": 14069552,
+      "heldRssDeltaBytes": 225280
+    },
+    "deltas": {
+      "initializationMs": 1.5669000000000324,
+      "edit50Ms": 348.22049999999945,
+      "undo20Ms": 111.33719999999994,
+      "redo20Ms": 111.29670000000078,
+      "totalPipelineMs": 571.0895,
+      "retainedHistoryJsonBytes": 158416,
+      "heldHeapDeltaBytes": 2623232,
+      "heldRssDeltaBytes": -8192
+    }
+  },
+  "processPeakRssBytes": 256200704,
+  "memoryNote": "Retained history JSON bytes are exact serialization size, not JS heap size. Heap/RSS deltas include driver current layout and temporary retained equality snapshots, are GC-dependent; process peak includes both variants.",
+  "exactUndoRedoSelectionPassed": true
+}

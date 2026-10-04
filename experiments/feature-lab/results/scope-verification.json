@@ -1,0 +1,590 @@
+{
+  "verifiedUtc": "2026-10-04T10:40:25.223891+00:00",
+  "baselineCommit": "59525a447004396b47747f587c7ba14511357719",
+  "branch": "codex/localhost-development",
+  "productionFilesUnchanged": 37,
+  "comparison": {
+    "Install-OpenSlotting-Localhost.cmd": "line-endings-only",
+    "Install-OpenSlotting-Localhost.ps1": "line-endings-only",
+    "Install-OpenSlotting.cmd": "line-endings-only",
+    "Install-OpenSlotting.ps1": "line-endings-only",
+    "OpenSlotting.Localhost.Windows.psm1": "line-endings-only",
+    "OpenSlotting.Windows.psm1": "line-endings-only",
+    "OpenSlotting.ico": "byte-equal",
+    "Remove-OpenSlotting-Localhost.cmd": "line-endings-only",
+    "Remove-OpenSlotting-Localhost.ps1": "line-endings-only",
+    "Remove-OpenSlotting.cmd": "line-endings-only",
+    "Remove-OpenSlotting.ps1": "line-endings-only",
+    "Start-OpenSlotting-Localhost.cmd": "line-endings-only",
+    "Start-OpenSlotting-Localhost.ps1": "line-endings-only",
+    "Start-OpenSlotting-Localhost.py": "line-endings-only",
+    "Start-OpenSlotting.cmd": "line-endings-only",
+    "Start-OpenSlotting.ps1": "line-endings-only",
+    "Stop-OpenSlotting-Localhost.cmd": "line-endings-only",
+    "Stop-OpenSlotting-Localhost.ps1": "line-endings-only",
+    "Stop-OpenSlotting.cmd": "byte-equal",
+    "Stop-OpenSlotting.ps1": "byte-equal",
+    "app.css": "byte-equal",
+    "app.js": "byte-equal",
+    "csv.js": "line-endings-only",
+    "encoding.js": "line-endings-only",
+    "index.html": "line-endings-only",
+    "periods.js": "byte-equal",
+    "runtime.js": "line-endings-only",
+    "storage.js": "line-endings-only",
+    "terminal-theme.css": "byte-equal",
+    "terminal.js": "byte-equal",
+    "warehouse-analysis.js": "byte-equal",
+    "warehouse-editor.css": "byte-equal",
+    "warehouse-editor.js": "byte-equal",
+    "warehouse-scene.js": "byte-equal",
+    "warehouse-webgl.js": "byte-equal",
+    "warehouse.js": "byte-equal",
+    "workspace.js": "line-endings-only"
+  },
+  "productionWorktreeSha256": {
+    "Install-OpenSlotting-Localhost.cmd": "9264499858836dbcb95412a9a8490d534d05c1803ae7fb57cdbf2b6a96a095e9",
+    "Install-OpenSlotting-Localhost.ps1": "df715916eca3f90913f50a6e50d6cb0cde6fd9095aaee88b1b7f30e0f1dbc43e",
+    "Install-OpenSlotting.cmd": "094bd2fd2186ee6b6b0a5c459e602329b51cd15987ef3036e0acb07d3b89c61d",
+    "Install-OpenSlotting.ps1": "baba1ae52913163075c3f52a9dd5f4e389219d08bbbbd2cbea6d715e04f6c970",
+    "OpenSlotting.Localhost.Windows.psm1": "731e956b1aaa08f7e07ad60135cae923f27ffe240c97c797537d003475e0de3f",
+    "OpenSlotting.Windows.psm1": "c02caf5afb18e1039da7c909ce3e9247950367b16ded1428e3f8d1c0385a4d21",
+    "OpenSlotting.ico": "7d590b6fac34db11675b36c381f7af45ceacb7774e2a6d414665e4de1b9ddbcd",
+    "Remove-OpenSlotting-Localhost.cmd": "4d35c92f06581988ab3a552ebfb713d6c7d330bc2eb439e32163489d7d2c21b6",
+    "Remove-OpenSlotting-Localhost.ps1": "73c3a0328cf13e033c47805a709ffb971c1d650ce8918e3f9a9cce737136def7",
+    "Remove-OpenSlotting.cmd": "bb08241d3409f0c7f58dac75173f8cfbc464e83404dfbd9db8e52f28407ac00b",
+    "Remove-OpenSlotting.ps1": "ca31b1d6f6fb4aa5ca20882d4f611378619846809ec8ffd037935fecfcde15a2",
+    "Start-OpenSlotting-Localhost.cmd": "bb318237bf01ba26d5906ab020986bcacd507fed5ac0dcc817928eac298cdda3",
+    "Start-OpenSlotting-Localhost.ps1": "9a66c65d6f370156661cd2d43cfc1aef8851c37a5451cf7cfc0fd21fd1cf6c39",
+    "Start-OpenSlotting-Localhost.py": "292b12372861f2396407fc1958cf6a44b8a1a8098f43720f944c3cff7a05654f",
+    "Start-OpenSlotting.cmd": "0b29d913c17d90f311b7c2479d9f8eaabd7c163a548d1f59c4f25ef3e0aa621d",
+    "Start-OpenSlotting.ps1": "da64d36e9ed54f38691f94d9c10dcb872b29c5a474bae6710a5e5e4950ba9b4f",
+    "Stop-OpenSlotting-Localhost.cmd": "f2dbf618e2e1926efce4d66bbbff591e327bc17b55a4a59822bdb36beea601c9",
+    "Stop-OpenSlotting-Localhost.ps1": "c8a7ac7c9af8b259549d17a8cbc9b3eb52e6820eb4d273ce787d5c8963cfb299",
+    "Stop-OpenSlotting.cmd": "14fa89cce88b1be524878c66bf4fe9560387c5ed2880f4531a31d4bc9413bd95",
+    "Stop-OpenSlotting.ps1": "42b3afde9fca0984d7fbddb351c01ce4ee847290d6fde11c3f96b8aeacbe7544",
+    "app.css": "0eb36952d1fbd37385cabd428e731b519630dc1229d1e2737ccdbd74df992051",
+    "app.js": "32eda8b185605d3b13182805313d83869009fb723d21f81d239c140190ab7ff5",
+    "csv.js": "dba677eaacdf5b07063a25b97d659a48aebfe26bfa406f3f463ed5c5f95d644c",
+    "encoding.js": "2d7e9de10b404ae380fee7361f2ad66eb5f53fe4d2ac6ddfb510d682f9f84020",
+    "index.html": "f1364d1e716a3deb10483e3c5e97519bf7277d586a1972d63f5aaf7d6fa4c2b3",
+    "periods.js": "a2e306f6ba6b7a625644839d2c2c05f7cb65d46fbba1dfadb2b3378b226c429c",
+    "runtime.js": "6448929509849d2e4177088bbeeb0bed4059c36415997ddbbbf0f7c72839d669",
+    "storage.js": "af3d31f297b3d2ddecb4d2f279f2b280d96051e84dc721b4acbb7b33c63cfbed",
+    "terminal-theme.css": "38d47616968a717a5c7bba43efb44ae0e3ece475f14d3fcbd8cbff692b3f8eb5",
+    "terminal.js": "14c8e8d05478ecdc6be2c4c83a4ebf8a8d7aed6ecf250b959398fa52f384250e",
+    "warehouse-analysis.js": "2760ff5593523222deda1c793b72dd61e24ba288bf71be667ab471f991f44f60",
+    "warehouse-editor.css": "c5715f3265ece02933b790fb4531b1a991b31941841e0e08fc6c1607f8cddd70",
+    "warehouse-editor.js": "113510321f20bd7fe23a8a3e102356e3ece0a96d7ff105cc24ba38f510233fa1",
+    "warehouse-scene.js": "96fbb1409ee4831c0c5e655dbdc13aaa5e092378967bb3c9822854f547305313",
+    "warehouse-webgl.js": "4ca2c5f8fcfc204e72502fda55d18a20e693a4f8a221d07b64f3510da1c2cadd",
+    "warehouse.js": "e95c48380d066da4d961159bff36ded448d9ccba65ad60d0c96e616a13cbe308",
+    "workspace.js": "37ec66f675011c0ffda408650e77a902ba7e7c8fc7a54d942dcf674a87091679"
+  },
+  "productionHttpAssets": 18,
+  "packageFileCount": 55,
+  "experimentsServedByProduction": false,
+  "experimentsPackaged": false,
+  "newExecutableOrPackageDependency": false,
+  "localMarkdownLinks": [
+    {
+      "source": "CONTRIBUTING.md",
+      "target": "docs/acceptance-localhost.md",
+      "exists": true
+    },
+    {
+      "source": "CONTRIBUTING.md",
+      "target": "docs/portable-mode-paused.md",
+      "exists": true
+    },
+    {
+      "source": "CONTRIBUTING.md",
+      "target": "SECURITY.md",
+      "exists": true
+    },
+    {
+      "source": "docs/acceptance-period-comparison.md",
+      "target": "acceptance-localhost.md",
+      "exists": true
+    },
+    {
+      "source": "docs/acceptance-v0.2.1.md",
+      "target": "portable-mode-paused.md",
+      "exists": true
+    },
+    {
+      "source": "docs/acceptance-v0.2.md",
+      "target": "portable-mode-paused.md",
+      "exists": true
+    },
+    {
+      "source": "docs/acceptance-workspaces.md",
+      "target": "acceptance-localhost.md",
+      "exists": true
+    },
+    {
+      "source": "docs/architecture.md",
+      "target": "runtime.md",
+      "exists": true
+    },
+    {
+      "source": "docs/architecture.md",
+      "target": "localhost-start.md",
+      "exists": true
+    },
+    {
+      "source": "docs/architecture.md",
+      "target": "data-format.md",
+      "exists": true
+    },
+    {
+      "source": "docs/architecture.md",
+      "target": "workspace-format.md",
+      "exists": true
+    },
+    {
+      "source": "docs/architecture.md",
+      "target": "portable-mode-paused.md",
+      "exists": true
+    },
+    {
+      "source": "docs/data-format.md",
+      "target": "portable-mode-paused.md",
+      "exists": true
+    },
+    {
+      "source": "docs/data-format.md",
+      "target": "workspace-format.md",
+      "exists": true
+    },
+    {
+      "source": "docs/data-format.md",
+      "target": "../SECURITY.md",
+      "exists": true
+    },
+    {
+      "source": "docs/data-format.md",
+      "target": "period-comparison.md",
+      "exists": true
+    },
+    {
+      "source": "docs/localhost-start.md",
+      "target": "workspace-format.md",
+      "exists": true
+    },
+    {
+      "source": "docs/localhost-start.md",
+      "target": "portable-mode-paused.md",
+      "exists": true
+    },
+    {
+      "source": "docs/project-structure-plan.md",
+      "target": "../experiments/localhost-lab/README.md",
+      "exists": true
+    },
+    {
+      "source": "docs/project-structure-plan.md",
+      "target": "../experiments/feature-lab/README.md",
+      "exists": true
+    },
+    {
+      "source": "docs/release-notes-v0.1.0.md",
+      "target": "portable-mode-paused.md",
+      "exists": true
+    },
+    {
+      "source": "docs/runtime.md",
+      "target": "portable-mode-paused.md",
+      "exists": true
+    },
+    {
+      "source": "docs/runtime.md",
+      "target": "localhost-start.md",
+      "exists": true
+    },
+    {
+      "source": "docs/runtime.md",
+      "target": "architecture.md",
+      "exists": true
+    },
+    {
+      "source": "docs/runtime.md",
+      "target": "acceptance-localhost.md",
+      "exists": true
+    },
+    {
+      "source": "docs/trading-desk.md",
+      "target": "portable-mode-paused.md",
+      "exists": true
+    },
+    {
+      "source": "docs/warehouse-editor.md",
+      "target": "portable-mode-paused.md",
+      "exists": true
+    },
+    {
+      "source": "docs/workspace-format.md",
+      "target": "portable-mode-paused.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/analysis/ANALYSIS-EVALUATION.md",
+      "target": "results/node-benchmark.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/analysis/ANALYSIS-EVALUATION.md",
+      "target": "results/distinct-benchmark.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/analysis/ANALYSIS-EVALUATION.md",
+      "target": "README.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/analysis/README.md",
+      "target": "ANALYSIS-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/EVALUATION.md",
+      "target": "../../docs/project-structure-plan.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/EVALUATION.md",
+      "target": "ui/UI-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/EVALUATION.md",
+      "target": "search/EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/EVALUATION.md",
+      "target": "python-io/PYTHON-IO-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/EVALUATION.md",
+      "target": "warehouse/WAREHOUSE-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/EVALUATION.md",
+      "target": "history/HISTORY-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/EVALUATION.md",
+      "target": "results/validation.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/EVALUATION.md",
+      "target": "results/scope-verification.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/EVALUATION.md",
+      "target": "python-io/PYTHON-IO-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/history/HISTORY-EVALUATION.md",
+      "target": "results/node-benchmark.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/history/README.md",
+      "target": "HISTORY-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/io/IO-EVALUATION.md",
+      "target": "results/node-io.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/io/README.md",
+      "target": "IO-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/python-io/PYTHON-IO-EVALUATION.md",
+      "target": "results/python-io.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/README.md",
+      "target": "EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/README.md",
+      "target": "io/IO-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/README.md",
+      "target": "analysis/ANALYSIS-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/README.md",
+      "target": "warehouse/WAREHOUSE-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/README.md",
+      "target": "ui/UI-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/README.md",
+      "target": "python-io/PYTHON-IO-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/README.md",
+      "target": "search/EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/README.md",
+      "target": "history/HISTORY-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/README.md",
+      "target": "../localhost-lab/EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/README.md",
+      "target": "../../docs/project-structure-plan.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/search/EVALUATION.md",
+      "target": "results/node-search.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/search/README.md",
+      "target": "EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/search/README.md",
+      "target": "results/node-search.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/ui/UI-EVALUATION.md",
+      "target": "../README.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/ui/UI-EVALUATION.md",
+      "target": "results/edge-ui-run-1.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/ui/UI-EVALUATION.md",
+      "target": "results/edge-ui-run-2.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/ui/UI-EVALUATION.md",
+      "target": "results/edge-ui-run-3.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/ui/UI-EVALUATION.md",
+      "target": "results/final-run-sources.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/ui/UI-EVALUATION.md",
+      "target": "results/edge-ui-checks.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/ui/UI-EVALUATION.md",
+      "target": "results/article-detail.jpg",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/ui/UI-EVALUATION.md",
+      "target": "results/import-review.jpg",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/ui/UI-EVALUATION.md",
+      "target": "results/period-comparison.jpg",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/ui/UI-EVALUATION.md",
+      "target": "results/benchmark-complete.jpg",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/warehouse/README.md",
+      "target": "WAREHOUSE-EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/warehouse/README.md",
+      "target": "results/node-warehouse.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/feature-lab/warehouse/WAREHOUSE-EVALUATION.md",
+      "target": "results/node-warehouse.json",
+      "exists": true
+    },
+    {
+      "source": "experiments/localhost-lab/EVALUATION.md",
+      "target": "../../docs/project-structure-plan.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/localhost-lab/README.md",
+      "target": "../../docs/project-structure-plan.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/localhost-lab/README.md",
+      "target": "../feature-lab/README.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/localhost-lab/README.md",
+      "target": "../../docs/project-structure-plan.md",
+      "exists": true
+    },
+    {
+      "source": "experiments/localhost-lab/README.md",
+      "target": "EVALUATION.md",
+      "exists": true
+    },
+    {
+      "source": "README.md",
+      "target": "docs/warehouse-editor.md",
+      "exists": true
+    },
+    {
+      "source": "README.md",
+      "target": "docs/data-format.md",
+      "exists": true
+    },
+    {
+      "source": "README.md",
+      "target": "docs/trading-desk.md",
+      "exists": true
+    },
+    {
+      "source": "README.md",
+      "target": "docs/period-comparison.md",
+      "exists": true
+    },
+    {
+      "source": "README.md",
+      "target": "docs/large-imports.md",
+      "exists": true
+    },
+    {
+      "source": "README.md",
+      "target": "docs/search-performance.md",
+      "exists": true
+    },
+    {
+      "source": "README.md",
+      "target": "docs/workspace-format.md",
+      "exists": true
+    },
+    {
+      "source": "README.md",
+      "target": "docs/portable-mode-paused.md",
+      "exists": true
+    },
+    {
+      "source": "README.md",
+      "target": "docs/localhost-start.md",
+      "exists": true
+    },
+    {
+      "source": "README.md",
+      "target": "docs/runtime.md",
+      "exists": true
+    },
+    {
+      "source": "README.md",
+      "target": "docs/architecture.md",
+      "exists": true
+    },
+    {
+      "source": "README.md",
+      "target": "CONTRIBUTING.md",
+      "exists": true
+    },
+    {
+      "source": "SECURITY.md",
+      "target": "docs/portable-mode-paused.md",
+      "exists": true
+    }
+  ],
+  "labSourceSha256": {
+    "analysis/benchmark.cjs": "5d5edb456432180ec2820bbe0f37f82fc26f9e2d03ce9a1814f1849d3778b974",
+    "analysis/distinct-benchmark.cjs": "b9def1b7359b080105977d8fe4fd46d2dd1e0243c4eecf91f8d01a8e84952e10",
+    "analysis/distinct-engine.cjs": "7633d48f84fa9c155bd9c0cf1217ee66311e02643e3501c330985b69627370d0",
+    "analysis/exact-kernel.cjs": "3d5607c3a9f18b848045e0669968ec60210a89e0e6255547a1049ee0905878f3",
+    "analysis/fixtures.cjs": "27764015786d23092c2736643462dcca8ce0760c7c202a378ae6a15008bb34af",
+    "analysis/range-engine.cjs": "ee50d1a66052a5e041041b6112e1602fe1e029a7db8d5698e7f29b96db619797",
+    "analysis/tests.test.cjs": "590b23821c25fd56a2858c307cf49d0c15ac15951f39045a62dacc1f50af64eb",
+    "history/benchmark.cjs": "3505943f1e0a5a31f9dcb0e91f74cd8e6a52fcbf9432cf1dce66832e41604ad7",
+    "history/fixtures.cjs": "e2ad997d548eb114e5a8a9d26df1bb4b09bce8ad2fb405e1f118dae3bb7aa1d8",
+    "history/history.cjs": "f6860d9d7e874d5b2b05d028cacd5011c27cae0d9084998555b9b9dc11b51149",
+    "history/tests.test.cjs": "89077ca00b4da5d3145facdcb2fcb3ebac59cd292ba4595dc53bf57e63638882",
+    "io/benchmarks/fixtures.cjs": "deb5ab3466ada05d9a0038512294206117000f7cddbb69080de40928a13cdc33",
+    "io/benchmarks/run.cjs": "5b1167c03607f2dcff95615861dcd8f69e31710c2fa8c897730fc9e6e6f83b5b",
+    "io/fixtures/interpretation-ground-truth.cjs": "0d00677930864fb737769b722138ef2ee0a3e8511fd72ec2ec03a49350fc37a0",
+    "io/modules/exports.cjs": "7bab725cac67dcf8d5b9eabc85509aafb2bc557f2fbab91b1ffb8f4774db3801",
+    "io/modules/imports.cjs": "3aba0139a672e72d1e380838d5081b29a5a76b70ba920cffc0367d939d0a5bd7",
+    "io/modules/interpretation.cjs": "082f67940e046b6c9df9b00a9242eaa3fec3fb780977515e459fd30edc8d2655",
+    "io/tests/io.test.cjs": "c98f798116738f3e54e1e1492f72e2e1d594d146d4d88b9b4a059edb71e3f144",
+    "python-io/io_lab.py": "1b425afb230b7722762d87a9a59aaac4ffa599f0ee7498a7ed0b5904fbdf121a",
+    "python-io/run_benchmarks.py": "86f92ddfbcaa7d506e989f7416e9f20bf1a452d2deb79657f43b7eb2a0f34845",
+    "python-io/test_io_lab.py": "ee1fb8bfd5b0ab1f267bad3ccc9e2f6400b4b73787d785af824395aa71bac12d",
+    "python-io/write_evaluation.py": "ccb401736a4b4b3824e44c0dbecadc8a85062a8b7b4e12bc16b93cc19a0ea54e",
+    "search/benchmarks/fixtures.cjs": "870f25365bbfb2f57f6b795731bc3935fab7fc4a1dfee583b46d3b59b6183bf3",
+    "search/benchmarks/run.cjs": "d0cbe8d373f928dc646f2b0f005e998d0c3d74dcb41e86c6a968499f7e4b577b",
+    "search/modules/search-session.cjs": "ec36392a279cd1ae6144be19bd4399919af1df56341e36fbd7f3d08dd0b6a00a",
+    "search/tests/search.test.cjs": "978f2a8ead25bdb23f6c7fe86b2a076b1eec8fe4c2e4745f96b37dc2e90e293f",
+    "serve.py": "dde0276837e9686b364c94ce0328d435d9c513a84b9f14c31fe84086a5857d2e",
+    "shared/task-gate.mjs": "bcaf908b4b51e15d082255e6a329d9cfb0e4f27f89970b0cdb0c224131ffd8c1",
+    "shared/task-gate.test.mjs": "6cf16abdf21682bb401175a295a69bcd7ee59e5d21206ea2ed6733d1fd62d601",
+    "tests/test_server.py": "dfa9ccc027e617d21e5bda11739b16ff54a76f3b805c011794652b0cfd9cdefc",
+    "tools/verify.py": "190c373410743724ebcf9c37fe7005179a712af870f81877898aa85dabe3edc0",
+    "ui/app.mjs": "0e6244fe0e1b368090790bdc82e12d252929d8beb5e0af2121908b1a0a99ade7",
+    "ui/browser-benchmark.mjs": "f60b7c0ca60e79c4be458958498372c64b3e5a8c07a58840b5e90a69ee3d6869",
+    "ui/data/generate.cjs": "aa57082e9c7aebebe20dc82b15c26d6070b64ad1326c5ff1089cf7f6aa50f312",
+    "ui/data/interpretation-example.mjs": "173bb06fdc86c309e328b2e425cfd1aa1dbd703b9de9a2df5fa052fa88c8150f",
+    "ui/data-fixture.test.cjs": "c3b21d5dab6a9bada14a93d49f53b018271c3717044fcfe13329940afc42c8d3",
+    "ui/index.html": "3041268f59e655c97790789b2cd18e13c7f2d52823427312fe9acdc77185edf8",
+    "ui/renderers.mjs": "cb59c612af0c6ee2208c5ec7e2d452618e963c2ccfb55cfc4fbde0ddd9854c43",
+    "ui/styles.css": "8d8982912e4bc6730240f6acdcbbfbe0b1153fe20a96aad5a201239d439dddfe",
+    "ui/table-model.mjs": "d6722177db1d5ce459ee190203149db06caa72dcdd8854418353c3d013d8a085",
+    "ui/table-model.test.mjs": "e8cf8b316f614239d1e9f4a065570818099539715fc43e8adc1497448b2969bb",
+    "warehouse/fixtures.mjs": "1f3d8043bf895b4bb79966a49451c95024243a8ee5d4b43a5ad7a0ea7cc07cbd",
+    "warehouse/modules.mjs": "4c109e468f8531fc50b91757cfa21756a1cb51ce12945a90b0fb353b2656c4cb",
+    "warehouse/run-benchmarks.mjs": "e9466f32a91efc0be37c5662bff9afc1d0b12bc1116a834e96eb2db9dca069fe",
+    "warehouse/tests.test.mjs": "da958bbb888c2affa7e10ff1ef731f4cafcde6f05ada02a42b16a4e0d7697a8a",
+    "warehouse/write-evaluation.mjs": "762c192a52e4c115d5554b9bd19528559ec497dd3cab84c07d40b90870f980c8"
+  },
+  "scope": "isolated experiments; no application integration or data migration"
+}

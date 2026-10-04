@@ -56,3 +56,10 @@ The repository-only `experiments/localhost-lab/README.md` describes
 separate worker, source-byte storage, backup and Base64 validation candidates,
 benchmarks and their evaluation. These files are not loaded by the application,
 served by its Python runtime or included in the release package.
+
+The repository-only `experiments/feature-lab/README.md` extends this work with
+import/export adapters, explainable column suggestions, exact mathematical
+indexes, search, warehouse geometry, editor history, native UI prototypes and
+Python standard-library file roundtrips. Its `EVALUATION.md` maps the current
+feature families to experiments and explicitly records untested boundaries.
+No candidate changes the production workspace schema or runtime dependencies.

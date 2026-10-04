@@ -1,0 +1,305 @@
+{
+  "name": "doppelter-header-typkonflikt",
+  "headers": [
+    "ArtNr",
+    "Menge",
+    "Menge",
+    "Datum"
+  ],
+  "rows": [
+    [
+      "SKU1",
+      "defekt",
+      "1,5",
+      "2026-09-01"
+    ],
+    [
+      "SKU2",
+      "defekt",
+      "2,5",
+      "2026-09-02"
+    ]
+  ],
+  "catalog": [
+    {
+      "position": 0,
+      "header": "ArtNr",
+      "normalizedHeader": "artnr",
+      "occurrence": 1,
+      "isDuplicate": false,
+      "sourceFileId": "synthetic-io",
+      "sourceFileName": "synthetic-io.csv",
+      "sourceFileLabel": "synthetic-io.csv",
+      "profile": {
+        "totalRows": 2,
+        "nonEmptyCount": 2,
+        "emptyCount": 0,
+        "numericCompatibleCount": 0,
+        "dateCompatibleCount": 0,
+        "textCompatibleCount": 2,
+        "incompatibleCount": 2,
+        "distinctValueCount": 2,
+        "distinctValueCountExact": true,
+        "distinctValueLimit": 256,
+        "sampleValues": [
+          {
+            "value": "SKU1",
+            "truncated": false
+          },
+          {
+            "value": "SKU2",
+            "truncated": false
+          }
+        ],
+        "frequentValues": [
+          {
+            "value": "SKU1",
+            "truncated": false,
+            "count": 1,
+            "countIsEstimate": false
+          },
+          {
+            "value": "SKU2",
+            "truncated": false,
+            "count": 1,
+            "countIsEstimate": false
+          }
+        ]
+      }
+    },
+    {
+      "position": 1,
+      "header": "Menge",
+      "normalizedHeader": "menge",
+      "occurrence": 1,
+      "isDuplicate": false,
+      "sourceFileId": "synthetic-io",
+      "sourceFileName": "synthetic-io.csv",
+      "sourceFileLabel": "synthetic-io.csv",
+      "profile": {
+        "totalRows": 2,
+        "nonEmptyCount": 2,
+        "emptyCount": 0,
+        "numericCompatibleCount": 0,
+        "dateCompatibleCount": 0,
+        "textCompatibleCount": 2,
+        "incompatibleCount": 2,
+        "distinctValueCount": 1,
+        "distinctValueCountExact": true,
+        "distinctValueLimit": 256,
+        "sampleValues": [
+          {
+            "value": "defekt",
+            "truncated": false
+          }
+        ],
+        "frequentValues": [
+          {
+            "value": "defekt",
+            "truncated": false,
+            "count": 2,
+            "countIsEstimate": false
+          }
+        ]
+      }
+    },
+    {
+      "position": 2,
+      "header": "Menge",
+      "normalizedHeader": "menge",
+      "occurrence": 2,
+      "isDuplicate": true,
+      "sourceFileId": "synthetic-io",
+      "sourceFileName": "synthetic-io.csv",
+      "sourceFileLabel": "synthetic-io.csv",
+      "profile": {
+        "totalRows": 2,
+        "nonEmptyCount": 2,
+        "emptyCount": 0,
+        "numericCompatibleCount": 2,
+        "dateCompatibleCount": 0,
+        "textCompatibleCount": 2,
+        "incompatibleCount": 0,
+        "distinctValueCount": 2,
+        "distinctValueCountExact": true,
+        "distinctValueLimit": 256,
+        "sampleValues": [
+          {
+            "value": "1,5",
+            "truncated": false
+          },
+          {
+            "value": "2,5",
+            "truncated": false
+          }
+        ],
+        "frequentValues": [
+          {
+            "value": "1,5",
+            "truncated": false,
+            "count": 1,
+            "countIsEstimate": false
+          },
+          {
+            "value": "2,5",
+            "truncated": false,
+            "count": 1,
+            "countIsEstimate": false
+          }
+        ]
+      }
+    },
+    {
+      "position": 3,
+      "header": "Datum",
+      "normalizedHeader": "datum",
+      "occurrence": 1,
+      "isDuplicate": false,
+      "sourceFileId": "synthetic-io",
+      "sourceFileName": "synthetic-io.csv",
+      "sourceFileLabel": "synthetic-io.csv",
+      "profile": {
+        "totalRows": 2,
+        "nonEmptyCount": 2,
+        "emptyCount": 0,
+        "numericCompatibleCount": 0,
+        "dateCompatibleCount": 2,
+        "textCompatibleCount": 2,
+        "incompatibleCount": 0,
+        "distinctValueCount": 2,
+        "distinctValueCountExact": true,
+        "distinctValueLimit": 256,
+        "sampleValues": [
+          {
+            "value": "2026-09-01",
+            "truncated": false
+          },
+          {
+            "value": "2026-09-02",
+            "truncated": false
+          }
+        ],
+        "frequentValues": [
+          {
+            "value": "2026-09-01",
+            "truncated": false,
+            "count": 1,
+            "countIsEstimate": false
+          },
+          {
+            "value": "2026-09-02",
+            "truncated": false,
+            "count": 1,
+            "countIsEstimate": false
+          }
+        ]
+      }
+    }
+  ],
+  "suggestions": [
+    {
+      "targetField": "article_id",
+      "topK": [
+        {
+          "targetField": "article_id",
+          "position": 0,
+          "sourceFileId": "synthetic-io",
+          "header": "ArtNr",
+          "occurrence": 1,
+          "score": 100,
+          "reasons": [
+            "exact_alias"
+          ],
+          "automaticApplicationSafe": false,
+          "profileRows": 2,
+          "compatibility": 1,
+          "profileIsSample": false,
+          "semanticEvidence": true,
+          "noSemanticEvidence": false
+        }
+      ],
+      "uncertain": false,
+      "confidence": "strong-suggestion",
+      "margin": 100,
+      "conflictingPositions": [],
+      "requiresUserConfirmation": true,
+      "automaticApplicationSafe": false
+    },
+    {
+      "targetField": "quantity",
+      "topK": [
+        {
+          "targetField": "quantity",
+          "position": 2,
+          "sourceFileId": "synthetic-io",
+          "header": "Menge",
+          "occurrence": 2,
+          "score": 100,
+          "reasons": [
+            "exact_alias",
+            "numeric_format_support"
+          ],
+          "automaticApplicationSafe": false,
+          "profileRows": 2,
+          "compatibility": 1,
+          "profileIsSample": false,
+          "semanticEvidence": true,
+          "noSemanticEvidence": false
+        },
+        {
+          "targetField": "quantity",
+          "position": 1,
+          "sourceFileId": "synthetic-io",
+          "header": "Menge",
+          "occurrence": 1,
+          "score": 45,
+          "reasons": [
+            "exact_alias",
+            "value_type_conflicts_with_header"
+          ],
+          "automaticApplicationSafe": false,
+          "profileRows": 2,
+          "compatibility": 0,
+          "profileIsSample": false,
+          "semanticEvidence": true,
+          "noSemanticEvidence": false
+        }
+      ],
+      "uncertain": false,
+      "confidence": "strong-suggestion",
+      "margin": 55,
+      "conflictingPositions": [],
+      "requiresUserConfirmation": true,
+      "automaticApplicationSafe": false
+    },
+    {
+      "targetField": "delivery_date",
+      "topK": [
+        {
+          "targetField": "delivery_date",
+          "position": 3,
+          "sourceFileId": "synthetic-io",
+          "header": "Datum",
+          "occurrence": 1,
+          "score": 100,
+          "reasons": [
+            "exact_alias",
+            "date_format_support"
+          ],
+          "automaticApplicationSafe": false,
+          "profileRows": 2,
+          "compatibility": 1,
+          "profileIsSample": false,
+          "semanticEvidence": true,
+          "noSemanticEvidence": false
+        }
+      ],
+      "uncertain": false,
+      "confidence": "strong-suggestion",
+      "margin": 100,
+      "conflictingPositions": [],
+      "requiresUserConfirmation": true,
+      "automaticApplicationSafe": false
+    }
+  ]
+}

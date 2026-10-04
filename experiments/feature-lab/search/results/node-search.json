@@ -1,0 +1,2991 @@
+{
+  "timestamp": "2026-10-04T10:27:16.092Z",
+  "node": "v24.18.1",
+  "platform": "win32",
+  "cpu": "12th Gen Intel(R) Core(TM) i9-12900F",
+  "baselineCommit": "59525a447004396b47747f587c7ba14511357719",
+  "repeats": 5,
+  "warmup": 1,
+  "input": "synthetic only",
+  "baseline": "prepared article search_text and tools/benchmark-search-sort comparator; current terminal rankEntities and watchlist label+secondary lowercase, one-query view cache retained in every variant",
+  "timing": "shared fixture generation excluded; setData build includes preparation/ranking/index; five timed query workload repeats after warmup; cold flushes only query caches, not projections/index; warm primes same or eight queries outside timing; outputs fully hashed/asserted outside timing",
+  "memory": "retainedHeapDeltaMiB is one explicit-GC before/after build snapshot; RSS covers whole child including fixture and later correctness baseline; not browser memory evidence",
+  "results": [
+    {
+      "count": 1000,
+      "scope": "article",
+      "variant": "cached-linear",
+      "buildMs": 11.0351,
+      "retainedHeapDeltaMiB": 0.25439453125,
+      "peakRssMiB": 49.9453125,
+      "structuralMemory": {
+        "indexedTexts": 1000,
+        "distinctGrams": 0,
+        "postingReferences": 0,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 2.7698999999999927,
+          "samplesMs": [
+            2.7698999999999927,
+            2.7749000000000024,
+            2.9739999999999895,
+            2.6088000000000022,
+            2.5655
+          ],
+          "verifiedSamples": [
+            49000,
+            49000,
+            49000,
+            49000,
+            49000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "5e87291def6be9a6d4f8ada259bb306822be512911b5c6fc29e331efd8f54ed4"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.010800000000003251,
+          "samplesMs": [
+            0.010800000000003251,
+            0.04290000000000305,
+            0.008299999999991314,
+            0.01829999999999643,
+            0.008599999999987062
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "2b6ec7dc7309e533f8b7a6cb1c03671cacde6263a3794f06eff08d250056e531"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 4.496000000000009,
+          "samplesMs": [
+            4.610599999999991,
+            4.496000000000009,
+            4.4698999999999955,
+            4.526900000000012,
+            4.461199999999991
+          ],
+          "verifiedSamples": [
+            80000,
+            80000,
+            80000,
+            80000,
+            80000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "6365e54056fce8fa203b95f70f90f50ddcc21015acb58452868e5edde42160b8"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "article",
+      "variant": "projected-linear",
+      "buildMs": 11.216000000000001,
+      "retainedHeapDeltaMiB": 0.2546234130859375,
+      "peakRssMiB": 50.5625,
+      "structuralMemory": {
+        "indexedTexts": 1000,
+        "distinctGrams": 0,
+        "postingReferences": 0,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 2.769900000000007,
+          "samplesMs": [
+            2.769900000000007,
+            2.778499999999994,
+            2.8299999999999983,
+            2.5698000000000008,
+            2.6636000000000024
+          ],
+          "verifiedSamples": [
+            49000,
+            49000,
+            49000,
+            49000,
+            49000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "5e87291def6be9a6d4f8ada259bb306822be512911b5c6fc29e331efd8f54ed4"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.013300000000000978,
+          "samplesMs": [
+            0.010500000000007503,
+            0.017700000000004934,
+            0.00920000000000698,
+            0.03100000000000591,
+            0.013300000000000978
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "2b6ec7dc7309e533f8b7a6cb1c03671cacde6263a3794f06eff08d250056e531"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 4.492999999999995,
+          "samplesMs": [
+            4.67049999999999,
+            4.492999999999995,
+            4.508499999999998,
+            4.408299999999997,
+            4.477199999999982
+          ],
+          "verifiedSamples": [
+            80000,
+            80000,
+            80000,
+            80000,
+            80000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "6365e54056fce8fa203b95f70f90f50ddcc21015acb58452868e5edde42160b8"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "article",
+      "variant": "bigram",
+      "buildMs": 17.4675,
+      "retainedHeapDeltaMiB": 0.9266586303710938,
+      "peakRssMiB": 54.171875,
+      "structuralMemory": {
+        "indexedTexts": 1000,
+        "distinctGrams": 219,
+        "postingReferences": 64363,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 1.522900000000007,
+          "samplesMs": [
+            1.6774999999999949,
+            1.4971000000000032,
+            1.5330000000000013,
+            1.522900000000007,
+            1.3833000000000055
+          ],
+          "verifiedSamples": [
+            7458,
+            7458,
+            7458,
+            7458,
+            7458
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "5e87291def6be9a6d4f8ada259bb306822be512911b5c6fc29e331efd8f54ed4"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.02409999999999002,
+          "samplesMs": [
+            0.02409999999999002,
+            0.09950000000000614,
+            0.019099999999994566,
+            0.0478999999999985,
+            0.018900000000002137
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "2b6ec7dc7309e533f8b7a6cb1c03671cacde6263a3794f06eff08d250056e531"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 2.2182999999999993,
+          "samplesMs": [
+            3.3228999999999758,
+            1.9960000000000093,
+            2.106099999999998,
+            3.7391000000000076,
+            2.2182999999999993
+          ],
+          "verifiedSamples": [
+            10500,
+            10500,
+            10500,
+            10500,
+            10500
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "6365e54056fce8fa203b95f70f90f50ddcc21015acb58452868e5edde42160b8"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "article",
+      "variant": "bigram-lru",
+      "buildMs": 18.501599999999996,
+      "retainedHeapDeltaMiB": 0.9257888793945312,
+      "peakRssMiB": 54,
+      "structuralMemory": {
+        "indexedTexts": 1000,
+        "distinctGrams": 219,
+        "postingReferences": 64363,
+        "retainedLruQueries": 8,
+        "retainedLruResultReferences": 8,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 1.3359999999999985,
+          "samplesMs": [
+            1.5550000000000068,
+            1.3359999999999985,
+            1.3249999999999886,
+            1.4624000000000024,
+            1.2864000000000004
+          ],
+          "verifiedSamples": [
+            7458,
+            7458,
+            7458,
+            7458,
+            7458
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "5e87291def6be9a6d4f8ada259bb306822be512911b5c6fc29e331efd8f54ed4"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.0163999999999902,
+          "samplesMs": [
+            0.0163999999999902,
+            0.02360000000000184,
+            0.012199999999992883,
+            0.026800000000008595,
+            0.015100000000003888
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "2b6ec7dc7309e533f8b7a6cb1c03671cacde6263a3794f06eff08d250056e531"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 0.023299999999977672,
+          "samplesMs": [
+            0.022999999999996135,
+            0.027899999999988268,
+            0.03109999999998081,
+            0.023299999999977672,
+            0.022599999999982856
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "resultSha256": "6365e54056fce8fa203b95f70f90f50ddcc21015acb58452868e5edde42160b8"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "customer",
+      "variant": "cached-linear",
+      "buildMs": 7.730800000000002,
+      "retainedHeapDeltaMiB": 0.1266632080078125,
+      "peakRssMiB": 50.3046875,
+      "structuralMemory": {
+        "indexedTexts": 0,
+        "distinctGrams": 0,
+        "postingReferences": 0,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 114.04769999999996,
+          "samplesMs": [
+            166.17199999999997,
+            181.5106,
+            114.04769999999996,
+            93.79590000000007,
+            95.7989
+          ],
+          "verifiedSamples": [
+            49000,
+            49000,
+            49000,
+            49000,
+            49000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "1c5092cc89da43da7002bb1dc30bb50d9973835f6bc2d05cf60a962ec5333c4b"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.028500000000008185,
+          "samplesMs": [
+            0.02940000000000964,
+            0.031099999999923966,
+            0.011899999999968713,
+            0.028500000000008185,
+            0.005899999999996908
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "e26a2e43a954f887194eee62426e0a279fbb95959f1ab734fdc49ad06b897940"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 152.14179999999988,
+          "samplesMs": [
+            153.288,
+            154.2387000000001,
+            149.32230000000004,
+            149.76679999999988,
+            152.14179999999988
+          ],
+          "verifiedSamples": [
+            80000,
+            80000,
+            80000,
+            80000,
+            80000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "c10a6e5695a9520634308ea99cf5c7fc089027a3f7f730578db8f6eac14ae01b"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "customer",
+      "variant": "projected-linear",
+      "buildMs": 9.4356,
+      "retainedHeapDeltaMiB": 0.1871490478515625,
+      "peakRssMiB": 50.48046875,
+      "structuralMemory": {
+        "indexedTexts": 1000,
+        "distinctGrams": 0,
+        "postingReferences": 0,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 1.644599999999997,
+          "samplesMs": [
+            1.644599999999997,
+            1.7017000000000166,
+            1.669300000000021,
+            1.480700000000013,
+            1.4750999999999976
+          ],
+          "verifiedSamples": [
+            49000,
+            49000,
+            49000,
+            49000,
+            49000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "1c5092cc89da43da7002bb1dc30bb50d9973835f6bc2d05cf60a962ec5333c4b"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.022600000000011278,
+          "samplesMs": [
+            0.022600000000011278,
+            0.027000000000015234,
+            0.009899999999987585,
+            0.023500000000012733,
+            0.009800000000012687
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "e26a2e43a954f887194eee62426e0a279fbb95959f1ab734fdc49ad06b897940"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 2.995400000000018,
+          "samplesMs": [
+            2.995400000000018,
+            2.972499999999968,
+            3.0498000000000047,
+            3.0398999999999887,
+            2.9891000000000076
+          ],
+          "verifiedSamples": [
+            80000,
+            80000,
+            80000,
+            80000,
+            80000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "c10a6e5695a9520634308ea99cf5c7fc089027a3f7f730578db8f6eac14ae01b"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "customer",
+      "variant": "bigram",
+      "buildMs": 12.518900000000002,
+      "retainedHeapDeltaMiB": 0.41774749755859375,
+      "peakRssMiB": 56.36328125,
+      "structuralMemory": {
+        "indexedTexts": 1000,
+        "distinctGrams": 173,
+        "postingReferences": 19487,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 0.5728000000000009,
+          "samplesMs": [
+            0.9408999999999992,
+            0.683400000000006,
+            0.5728000000000009,
+            0.5547000000000253,
+            0.507300000000015
+          ],
+          "verifiedSamples": [
+            6074,
+            6074,
+            6074,
+            6074,
+            6074
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "1c5092cc89da43da7002bb1dc30bb50d9973835f6bc2d05cf60a962ec5333c4b"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.01099999999999568,
+          "samplesMs": [
+            0.01099999999999568,
+            0.028099999999994907,
+            0.026999999999986812,
+            0.00929999999999609,
+            0.008800000000007913
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "e26a2e43a954f887194eee62426e0a279fbb95959f1ab734fdc49ad06b897940"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 1.245299999999986,
+          "samplesMs": [
+            1.2409000000000106,
+            1.341700000000003,
+            1.2592000000000212,
+            1.245299999999986,
+            1.20089999999999
+          ],
+          "verifiedSamples": [
+            10400,
+            10400,
+            10400,
+            10400,
+            10400
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "c10a6e5695a9520634308ea99cf5c7fc089027a3f7f730578db8f6eac14ae01b"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "customer",
+      "variant": "bigram-lru",
+      "buildMs": 12.609200000000001,
+      "retainedHeapDeltaMiB": 0.41861724853515625,
+      "peakRssMiB": 55.296875,
+      "structuralMemory": {
+        "indexedTexts": 1000,
+        "distinctGrams": 173,
+        "postingReferences": 19487,
+        "retainedLruQueries": 8,
+        "retainedLruResultReferences": 8,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 0.555499999999995,
+          "samplesMs": [
+            0.7486000000000104,
+            0.555499999999995,
+            0.5317999999999756,
+            0.5588999999999942,
+            0.5006999999999948
+          ],
+          "verifiedSamples": [
+            6074,
+            6074,
+            6074,
+            6074,
+            6074
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "1c5092cc89da43da7002bb1dc30bb50d9973835f6bc2d05cf60a962ec5333c4b"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.018900000000002137,
+          "samplesMs": [
+            0.01470000000000482,
+            0.026600000000001955,
+            0.018900000000002137,
+            0.02030000000002019,
+            0.008499999999997954
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "e26a2e43a954f887194eee62426e0a279fbb95959f1ab734fdc49ad06b897940"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 0.028400000000033288,
+          "samplesMs": [
+            0.06080000000002883,
+            0.022999999999967713,
+            0.03879999999998063,
+            0.028099999999994907,
+            0.028400000000033288
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "resultSha256": "c10a6e5695a9520634308ea99cf5c7fc089027a3f7f730578db8f6eac14ae01b"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "order",
+      "variant": "cached-linear",
+      "buildMs": 7.371600000000001,
+      "retainedHeapDeltaMiB": 0.1726837158203125,
+      "peakRssMiB": 50.1796875,
+      "structuralMemory": {
+        "indexedTexts": 0,
+        "distinctGrams": 0,
+        "postingReferences": 0,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 92.29960000000005,
+          "samplesMs": [
+            92.24070000000003,
+            91.14929999999998,
+            92.36710000000005,
+            92.29960000000005,
+            93.28660000000002
+          ],
+          "verifiedSamples": [
+            49000,
+            49000,
+            49000,
+            49000,
+            49000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "eace3f2a82f4b978ec6af74c4cad84cfe66ca70ce406b36cfb40de6bdfbdb15f"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.02179999999998472,
+          "samplesMs": [
+            0.025700000000028922,
+            0.03380000000004202,
+            0.011300000000005639,
+            0.02179999999998472,
+            0.005100000000084037
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "bdfb6be5c65f1cb866d0b946eefb70610036a95ff636ee73de3b3ecbbe770652"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 149.31140000000005,
+          "samplesMs": [
+            153.22479999999996,
+            150.41910000000007,
+            148.16189999999983,
+            149.31140000000005,
+            147.6005
+          ],
+          "verifiedSamples": [
+            80000,
+            80000,
+            80000,
+            80000,
+            80000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "93ca9b7be5099a636a8f726b2d850d1dd29c15f16e9a45fe75300b162924ca49"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "order",
+      "variant": "projected-linear",
+      "buildMs": 9.1875,
+      "retainedHeapDeltaMiB": 0.2333526611328125,
+      "peakRssMiB": 50.5703125,
+      "structuralMemory": {
+        "indexedTexts": 1000,
+        "distinctGrams": 0,
+        "postingReferences": 0,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 1.5688000000000102,
+          "samplesMs": [
+            1.5591000000000008,
+            1.6835000000000093,
+            1.5981000000000165,
+            1.5688000000000102,
+            1.514099999999985
+          ],
+          "verifiedSamples": [
+            49000,
+            49000,
+            49000,
+            49000,
+            49000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "eace3f2a82f4b978ec6af74c4cad84cfe66ca70ce406b36cfb40de6bdfbdb15f"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.02379999999999427,
+          "samplesMs": [
+            0.02379999999999427,
+            0.043500000000022965,
+            0.012399999999985312,
+            0.034300000000001774,
+            0.009399999999999409
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "bdfb6be5c65f1cb866d0b946eefb70610036a95ff636ee73de3b3ecbbe770652"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 2.9266000000000076,
+          "samplesMs": [
+            3.1639000000000124,
+            2.899499999999989,
+            2.876100000000008,
+            2.9266000000000076,
+            2.958499999999958
+          ],
+          "verifiedSamples": [
+            80000,
+            80000,
+            80000,
+            80000,
+            80000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "93ca9b7be5099a636a8f726b2d850d1dd29c15f16e9a45fe75300b162924ca49"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "order",
+      "variant": "bigram",
+      "buildMs": 12.043399999999998,
+      "retainedHeapDeltaMiB": 0.46659088134765625,
+      "peakRssMiB": 55.90234375,
+      "structuralMemory": {
+        "indexedTexts": 1000,
+        "distinctGrams": 173,
+        "postingReferences": 19487,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 0.5778000000000247,
+          "samplesMs": [
+            0.7664000000000044,
+            0.6055000000000064,
+            0.5778000000000247,
+            0.5390999999999906,
+            0.5549999999999784
+          ],
+          "verifiedSamples": [
+            6074,
+            6074,
+            6074,
+            6074,
+            6074
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "eace3f2a82f4b978ec6af74c4cad84cfe66ca70ce406b36cfb40de6bdfbdb15f"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.017500000000012506,
+          "samplesMs": [
+            0.017500000000012506,
+            0.024400000000014188,
+            0.023300000000006094,
+            0.01079999999998904,
+            0.01290000000000191
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "bdfb6be5c65f1cb866d0b946eefb70610036a95ff636ee73de3b3ecbbe770652"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 1.2497999999999934,
+          "samplesMs": [
+            1.261099999999999,
+            1.2497999999999934,
+            1.2410999999999603,
+            1.2448999999999728,
+            1.423400000000015
+          ],
+          "verifiedSamples": [
+            10400,
+            10400,
+            10400,
+            10400,
+            10400
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "93ca9b7be5099a636a8f726b2d850d1dd29c15f16e9a45fe75300b162924ca49"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "order",
+      "variant": "bigram-lru",
+      "buildMs": 12.168700000000001,
+      "retainedHeapDeltaMiB": 0.46698760986328125,
+      "peakRssMiB": 55.41015625,
+      "structuralMemory": {
+        "indexedTexts": 1000,
+        "distinctGrams": 173,
+        "postingReferences": 19487,
+        "retainedLruQueries": 8,
+        "retainedLruResultReferences": 8,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 0.5279999999999916,
+          "samplesMs": [
+            0.7432000000000016,
+            0.5501999999999896,
+            0.4855000000000018,
+            0.5279999999999916,
+            0.47119999999998186
+          ],
+          "verifiedSamples": [
+            6074,
+            6074,
+            6074,
+            6074,
+            6074
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "eace3f2a82f4b978ec6af74c4cad84cfe66ca70ce406b36cfb40de6bdfbdb15f"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.017300000000005866,
+          "samplesMs": [
+            0.017300000000005866,
+            0.023099999999999454,
+            0.02019999999998845,
+            0.008300000000019736,
+            0.007300000000014961
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "bdfb6be5c65f1cb866d0b946eefb70610036a95ff636ee73de3b3ecbbe770652"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 0.023099999999999454,
+          "samplesMs": [
+            0.02339999999998099,
+            0.02250000000003638,
+            0.037099999999952615,
+            0.023099999999999454,
+            0.021299999999996544
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "resultSha256": "93ca9b7be5099a636a8f726b2d850d1dd29c15f16e9a45fe75300b162924ca49"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "article",
+      "variant": "projected-linear",
+      "buildMs": 55.6582,
+      "retainedHeapDeltaMiB": 2.4084701538085938,
+      "peakRssMiB": 80.1171875,
+      "structuralMemory": {
+        "indexedTexts": 10000,
+        "distinctGrams": 0,
+        "postingReferences": 0,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 32.596000000000004,
+          "samplesMs": [
+            32.4033,
+            33.08949999999999,
+            32.82940000000002,
+            32.5342,
+            32.596000000000004
+          ],
+          "verifiedSamples": [
+            490000,
+            490000,
+            490000,
+            490000,
+            490000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "0549ba89f90c38be06bf7818bc07fb65d2f98f74994464be15b413279bfc095a"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.006399999999985084,
+          "samplesMs": [
+            0.006200000000035288,
+            0.019800000000032014,
+            0.006700000000023465,
+            0.0061999999999216016,
+            0.006399999999985084
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "6f53387a22775489ac8daec5108f765932a81260cd6d8f5f9c0fa310ca19274f"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 59.87110000000007,
+          "samplesMs": [
+            63.41650000000004,
+            62.003799999999956,
+            58.90070000000003,
+            59.58590000000004,
+            59.87110000000007
+          ],
+          "verifiedSamples": [
+            800000,
+            800000,
+            800000,
+            800000,
+            800000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "80efeff7f017c2c1d14d5efc639277b339402d8d306ec4b9bbc4b2d7d6641f1e"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "article",
+      "variant": "bigram",
+      "buildMs": 104.26429999999999,
+      "retainedHeapDeltaMiB": 7.652534484863281,
+      "peakRssMiB": 106.42578125,
+      "structuralMemory": {
+        "indexedTexts": 10000,
+        "distinctGrams": 219,
+        "postingReferences": 654549,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 10.656200000000013,
+          "samplesMs": [
+            11.115700000000004,
+            11.268200000000036,
+            10.656200000000013,
+            10.4101,
+            10.351599999999962
+          ],
+          "verifiedSamples": [
+            73894,
+            73894,
+            73894,
+            73894,
+            73894
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "0549ba89f90c38be06bf7818bc07fb65d2f98f74994464be15b413279bfc095a"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.021399999999971442,
+          "samplesMs": [
+            0.021399999999971442,
+            0.05440000000004375,
+            0.020999999999958163,
+            0.030399999999985994,
+            0.015100000000074942
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "6f53387a22775489ac8daec5108f765932a81260cd6d8f5f9c0fa310ca19274f"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 14.139100000000099,
+          "samplesMs": [
+            14.139100000000099,
+            14.034899999999993,
+            14.02209999999991,
+            14.284199999999942,
+            14.142700000000104
+          ],
+          "verifiedSamples": [
+            100590,
+            100590,
+            100590,
+            100590,
+            100590
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "80efeff7f017c2c1d14d5efc639277b339402d8d306ec4b9bbc4b2d7d6641f1e"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "article",
+      "variant": "bigram-lru",
+      "buildMs": 105.2894,
+      "retainedHeapDeltaMiB": 7.652915954589844,
+      "peakRssMiB": 105.99609375,
+      "structuralMemory": {
+        "indexedTexts": 10000,
+        "distinctGrams": 219,
+        "postingReferences": 654549,
+        "retainedLruQueries": 8,
+        "retainedLruResultReferences": 8,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 10.017499999999984,
+          "samplesMs": [
+            11.278500000000008,
+            11.222300000000018,
+            10.017499999999984,
+            9.947400000000016,
+            9.99090000000001
+          ],
+          "verifiedSamples": [
+            73894,
+            73894,
+            73894,
+            73894,
+            73894
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "0549ba89f90c38be06bf7818bc07fb65d2f98f74994464be15b413279bfc095a"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.017299999999977445,
+          "samplesMs": [
+            0.015500000000031378,
+            0.033299999999997,
+            0.013499999999908141,
+            0.036400000000071486,
+            0.017299999999977445
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "6f53387a22775489ac8daec5108f765932a81260cd6d8f5f9c0fa310ca19274f"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 0.020599999999944885,
+          "samplesMs": [
+            0.02470000000005257,
+            0.019499999999993634,
+            0.018000000000029104,
+            0.020599999999944885,
+            0.02189999999995962
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "resultSha256": "80efeff7f017c2c1d14d5efc639277b339402d8d306ec4b9bbc4b2d7d6641f1e"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "article",
+      "variant": "cached-linear",
+      "buildMs": 54.66760000000001,
+      "retainedHeapDeltaMiB": 2.4084701538085938,
+      "peakRssMiB": 80.0703125,
+      "structuralMemory": {
+        "indexedTexts": 10000,
+        "distinctGrams": 0,
+        "postingReferences": 0,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 32.12360000000007,
+          "samplesMs": [
+            32.45010000000002,
+            35.10849999999999,
+            32.01400000000001,
+            31.597199999999987,
+            32.12360000000007
+          ],
+          "verifiedSamples": [
+            490000,
+            490000,
+            490000,
+            490000,
+            490000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "0549ba89f90c38be06bf7818bc07fb65d2f98f74994464be15b413279bfc095a"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.005300000000033833,
+          "samplesMs": [
+            0.01310000000000855,
+            0.019499999999993634,
+            0.005300000000033833,
+            0.0050999999999703505,
+            0.005300000000033833
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "6f53387a22775489ac8daec5108f765932a81260cd6d8f5f9c0fa310ca19274f"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 59.3288,
+          "samplesMs": [
+            59.89319999999998,
+            59.3288,
+            57.85559999999998,
+            58.16899999999998,
+            59.68780000000004
+          ],
+          "verifiedSamples": [
+            800000,
+            800000,
+            800000,
+            800000,
+            800000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "80efeff7f017c2c1d14d5efc639277b339402d8d306ec4b9bbc4b2d7d6641f1e"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "customer",
+      "variant": "projected-linear",
+      "buildMs": 31.446600000000004,
+      "retainedHeapDeltaMiB": 1.63946533203125,
+      "peakRssMiB": 89.5390625,
+      "structuralMemory": {
+        "indexedTexts": 10000,
+        "distinctGrams": 0,
+        "postingReferences": 0,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 13.471099999999979,
+          "samplesMs": [
+            13.439100000000053,
+            13.425500000000056,
+            13.471099999999979,
+            13.610300000000052,
+            13.521400000000085
+          ],
+          "verifiedSamples": [
+            490000,
+            490000,
+            490000,
+            490000,
+            490000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "7e3b311494e3c9267485ebad72fe5be52d9fadf3eef1ef95ba1506a4025e62a1"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.007399999999961437,
+          "samplesMs": [
+            0.007399999999961437,
+            0.019699999999829743,
+            0.005800000000135697,
+            0.007399999999961437,
+            0.00839999999993779
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "7b333e5dea259eeb66d115a08161188c281bf99a2fa68fef7f4faa59c6181881"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 27.08040000000028,
+          "samplesMs": [
+            26.82039999999961,
+            27.08040000000028,
+            27.28710000000001,
+            27.143999999999778,
+            26.9061999999999
+          ],
+          "verifiedSamples": [
+            800000,
+            800000,
+            800000,
+            800000,
+            800000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "253b2010d45339f80ad638df32f0b6cdc874f5a46535a4f5ef08ef7cefb0e57d"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "customer",
+      "variant": "bigram",
+      "buildMs": 50.1691,
+      "retainedHeapDeltaMiB": 3.339874267578125,
+      "peakRssMiB": 93.27734375,
+      "structuralMemory": {
+        "indexedTexts": 10000,
+        "distinctGrams": 173,
+        "postingReferences": 204500,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 4.369900000000143,
+          "samplesMs": [
+            4.371200000000044,
+            4.369900000000143,
+            4.388500000000022,
+            4.0474999999999,
+            3.890100000000075
+          ],
+          "verifiedSamples": [
+            60232,
+            60232,
+            60232,
+            60232,
+            60232
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "7e3b311494e3c9267485ebad72fe5be52d9fadf3eef1ef95ba1506a4025e62a1"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.025799999999890133,
+          "samplesMs": [
+            0.015799999999899228,
+            0.02769999999986794,
+            0.03099999999994907,
+            0.025799999999890133,
+            0.015399999999999636
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "7b333e5dea259eeb66d115a08161188c281bf99a2fa68fef7f4faa59c6181881"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 9.341100000000097,
+          "samplesMs": [
+            10.403499999999894,
+            9.109400000000278,
+            9.186300000000301,
+            9.599700000000212,
+            9.341100000000097
+          ],
+          "verifiedSamples": [
+            100420,
+            100420,
+            100420,
+            100420,
+            100420
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "253b2010d45339f80ad638df32f0b6cdc874f5a46535a4f5ef08ef7cefb0e57d"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "customer",
+      "variant": "bigram-lru",
+      "buildMs": 50.41779999999999,
+      "retainedHeapDeltaMiB": 3.34100341796875,
+      "peakRssMiB": 93.69140625,
+      "structuralMemory": {
+        "indexedTexts": 10000,
+        "distinctGrams": 173,
+        "postingReferences": 204500,
+        "retainedLruQueries": 8,
+        "retainedLruResultReferences": 8,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 4.054000000000087,
+          "samplesMs": [
+            4.371399999999994,
+            4.079500000000053,
+            3.769800000000032,
+            4.054000000000087,
+            3.937400000000025
+          ],
+          "verifiedSamples": [
+            60232,
+            60232,
+            60232,
+            60232,
+            60232
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "7e3b311494e3c9267485ebad72fe5be52d9fadf3eef1ef95ba1506a4025e62a1"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.02779999999984284,
+          "samplesMs": [
+            0.016200000000026193,
+            0.03949999999986176,
+            0.02779999999984284,
+            0.027800000000070213,
+            0.02549999999996544
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "7b333e5dea259eeb66d115a08161188c281bf99a2fa68fef7f4faa59c6181881"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 0.017699999999877036,
+          "samplesMs": [
+            0.016200000000026193,
+            0.018399999999928696,
+            0.017699999999877036,
+            0.017299999999977445,
+            0.01890000000003056
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "resultSha256": "253b2010d45339f80ad638df32f0b6cdc874f5a46535a4f5ef08ef7cefb0e57d"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "customer",
+      "variant": "cached-linear",
+      "buildMs": 12.5184,
+      "retainedHeapDeltaMiB": 1.0189971923828125,
+      "peakRssMiB": 89.85546875,
+      "structuralMemory": {
+        "indexedTexts": 0,
+        "distinctGrams": 0,
+        "postingReferences": 0,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 923.9838999999997,
+          "samplesMs": [
+            923.9838999999997,
+            925.5254,
+            937.6340999999998,
+            921.0513000000001,
+            923.4013000000004
+          ],
+          "verifiedSamples": [
+            490000,
+            490000,
+            490000,
+            490000,
+            490000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "7e3b311494e3c9267485ebad72fe5be52d9fadf3eef1ef95ba1506a4025e62a1"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.011999999999716238,
+          "samplesMs": [
+            0.02999999999974534,
+            0.021800000000439468,
+            0.011999999999716238,
+            0.009399999999914144,
+            0.009500000000116415
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "7b333e5dea259eeb66d115a08161188c281bf99a2fa68fef7f4faa59c6181881"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 1517.295000000002,
+          "samplesMs": [
+            1516.7150000000001,
+            1543.0203999999994,
+            1515.9793000000009,
+            1555.3479000000007,
+            1517.295000000002
+          ],
+          "verifiedSamples": [
+            800000,
+            800000,
+            800000,
+            800000,
+            800000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "253b2010d45339f80ad638df32f0b6cdc874f5a46535a4f5ef08ef7cefb0e57d"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "order",
+      "variant": "projected-linear",
+      "buildMs": 32.8075,
+      "retainedHeapDeltaMiB": 2.0964813232421875,
+      "peakRssMiB": 90.12109375,
+      "structuralMemory": {
+        "indexedTexts": 10000,
+        "distinctGrams": 0,
+        "postingReferences": 0,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 13.511600000000044,
+          "samplesMs": [
+            13.734899999999925,
+            13.99799999999982,
+            13.477499999999964,
+            13.511600000000044,
+            13.467300000000023
+          ],
+          "verifiedSamples": [
+            490000,
+            490000,
+            490000,
+            490000,
+            490000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "39672bc04b5567296bae1273f5bdfaa05e0f34dd7399d36404751011e7922a15"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.01939999999990505,
+          "samplesMs": [
+            0.02980000000002292,
+            0.03050000000007458,
+            0.005999999999858119,
+            0.005999999999858119,
+            0.01939999999990505
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "880730c6634a910a52505ad4830d961400c7839d7a10ccdb6c394af57788eb78"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 26.91720000000032,
+          "samplesMs": [
+            26.293099999999868,
+            26.976799999999912,
+            26.91720000000032,
+            27.26189999999997,
+            26.272899999999936
+          ],
+          "verifiedSamples": [
+            800000,
+            800000,
+            800000,
+            800000,
+            800000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "d7d642ff0a3585d5255f645883afcd9fcacbae682ece6d290aa9ea5906f1181c"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "order",
+      "variant": "bigram",
+      "buildMs": 51.577799999999996,
+      "retainedHeapDeltaMiB": 3.8001556396484375,
+      "peakRssMiB": 94.85546875,
+      "structuralMemory": {
+        "indexedTexts": 10000,
+        "distinctGrams": 173,
+        "postingReferences": 204500,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 4.08420000000001,
+          "samplesMs": [
+            4.08420000000001,
+            4.520100000000184,
+            3.9122999999999593,
+            4.037700000000086,
+            4.093299999999999
+          ],
+          "verifiedSamples": [
+            60232,
+            60232,
+            60232,
+            60232,
+            60232
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "39672bc04b5567296bae1273f5bdfaa05e0f34dd7399d36404751011e7922a15"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.012600000000020373,
+          "samplesMs": [
+            0.012500000000045475,
+            0.02529999999978827,
+            0.012100000000145883,
+            0.032000000000152795,
+            0.012600000000020373
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "880730c6634a910a52505ad4830d961400c7839d7a10ccdb6c394af57788eb78"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 9.71140000000014,
+          "samplesMs": [
+            10.43179999999984,
+            9.53670000000011,
+            10.050200000000132,
+            9.71140000000014,
+            9.352700000000368
+          ],
+          "verifiedSamples": [
+            100420,
+            100420,
+            100420,
+            100420,
+            100420
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "d7d642ff0a3585d5255f645883afcd9fcacbae682ece6d290aa9ea5906f1181c"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "order",
+      "variant": "bigram-lru",
+      "buildMs": 51.799400000000006,
+      "retainedHeapDeltaMiB": 3.8001556396484375,
+      "peakRssMiB": 94.84765625,
+      "structuralMemory": {
+        "indexedTexts": 10000,
+        "distinctGrams": 173,
+        "postingReferences": 204500,
+        "retainedLruQueries": 8,
+        "retainedLruResultReferences": 8,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 3.9844000000000506,
+          "samplesMs": [
+            4.228399999999965,
+            4.037399999999934,
+            3.9844000000000506,
+            3.828999999999951,
+            3.9097999999999047
+          ],
+          "verifiedSamples": [
+            60232,
+            60232,
+            60232,
+            60232,
+            60232
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "39672bc04b5567296bae1273f5bdfaa05e0f34dd7399d36404751011e7922a15"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.01319999999986976,
+          "samplesMs": [
+            0.01319999999986976,
+            0.02719999999999345,
+            0.013099999999894862,
+            0.029399999999895954,
+            0.012500000000045475
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "880730c6634a910a52505ad4830d961400c7839d7a10ccdb6c394af57788eb78"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 0.02109999999993306,
+          "samplesMs": [
+            0.057299999999941065,
+            0.027599999999893043,
+            0.02109999999993306,
+            0.01679999999987558,
+            0.01569999999992433
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "resultSha256": "d7d642ff0a3585d5255f645883afcd9fcacbae682ece6d290aa9ea5906f1181c"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "order",
+      "variant": "cached-linear",
+      "buildMs": 13.534799999999997,
+      "retainedHeapDeltaMiB": 1.4771881103515625,
+      "peakRssMiB": 92.19140625,
+      "structuralMemory": {
+        "indexedTexts": 0,
+        "distinctGrams": 0,
+        "postingReferences": 0,
+        "retainedLruQueries": 0,
+        "retainedLruResultReferences": 0,
+        "queryLimit": 64,
+        "referenceLimit": 4096
+      },
+      "measurements": [
+        {
+          "workload": "cold-distinct",
+          "queryCount": 50,
+          "distinctQueries": 50,
+          "medianMs": 926.5289000000002,
+          "samplesMs": [
+            928.6303999999998,
+            917.0098000000003,
+            931.3064000000004,
+            926.5289000000002,
+            915.8620000000001
+          ],
+          "verifiedSamples": [
+            490000,
+            490000,
+            490000,
+            490000,
+            490000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "39672bc04b5567296bae1273f5bdfaa05e0f34dd7399d36404751011e7922a15"
+        },
+        {
+          "workload": "warm-same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.012200000000120781,
+          "samplesMs": [
+            0.03169999999954598,
+            0.02510000000074797,
+            0.012200000000120781,
+            0.009500000000116415,
+            0.009900000000016007
+          ],
+          "verifiedSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lastHitsSamples": [
+            80,
+            80,
+            80,
+            80,
+            80
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "880730c6634a910a52505ad4830d961400c7839d7a10ccdb6c394af57788eb78"
+        },
+        {
+          "workload": "warm-alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 1547.6191,
+          "samplesMs": [
+            1501.7006000000001,
+            1547.6191,
+            1550.8312999999998,
+            1556.1683999999987,
+            1544.2390999999989
+          ],
+          "verifiedSamples": [
+            800000,
+            800000,
+            800000,
+            800000,
+            800000
+          ],
+          "lastHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "lruHitsSamples": [
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "resultSha256": "d7d642ff0a3585d5255f645883afcd9fcacbae682ece6d290aa9ea5906f1181c"
+        }
+      ]
+    }
+  ]
+}
