@@ -18,6 +18,8 @@
 
 * { box-sizing: border-box; }
 
+.runtime-start-notice { max-width: 760px; margin: 8vh auto; padding: 24px; }
+
 html, body { max-width: 100%; overflow-x: clip; }
 
 body {

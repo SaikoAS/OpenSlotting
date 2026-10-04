@@ -6,14 +6,14 @@ The current development branch also contains a [warehouse editor and separate 3D
 
 The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The latest published application release is `0.2.1`; current development continues the local-workspace, article-master, and period-comparison foundation. Future versions are planned to expand this foundation through ABC/XYZ classification, slotting scores, and warehouse slotting recommendations.
 
-> **Project status:** The latest published release is `0.2.1`. `main` contains unreleased development after that release, including persistent workspaces, article-master imports and registry preparation, period comparison, runtime profiles, and large-import performance work. No next release version has been assigned yet.
+> **Project status:** The latest published release is `0.2.1`. `main` contains unreleased development after that release, including persistent workspaces, article-master imports and registry preparation, period comparison and large-import performance work. Active development on this continuation branch now targets localhost only; Portable Mode is paused indefinitely. No next release version has been assigned yet.
 
 ## Current development implementation
 
 OpenSlotting provides a browser-local workflow for creating separate workspaces,
 importing order-line and article-master CSV files, analyzing order-line data,
 and reopening the saved state.
-Open `index.html` directly in a supported browser, select a workspace from the
+Start `Start-OpenSlotting.cmd` on Windows (Python 3.8 or newer), select a workspace from the
 metadata-first start overview or create a new one, explicitly open it,
 choose one or more CSV files, review the detected column mapping for each file,
 and start the combined analysis.
@@ -73,15 +73,15 @@ The current implementation includes:
 
 The complete import, normalization, validation, and analysis-export contract is documented in [`docs/data-format.md`](docs/data-format.md). The analysis desk's grouping and chart semantics are documented in [`docs/trading-desk.md`](docs/trading-desk.md). Period coverage and comparison semantics are documented in [`docs/period-comparison.md`](docs/period-comparison.md). Large-import measurements and the synthetic benchmark are documented in [`docs/large-imports.md`](docs/large-imports.md). Search and sort projection measurements are documented in [`docs/search-performance.md`](docs/search-performance.md). Persistent storage, backup, restore, and migration are documented in [`docs/workspace-format.md`](docs/workspace-format.md).
 
-The published V0.1 and V0.2.1 releases were accepted in Microsoft Edge Desktop on Windows with `index.html` opened directly through `file:///`; the V0.2 multi-export acceptance record remains historical. Current `main` development still requires a fresh exact-candidate Edge run before a future release claim. Other browsers may work but are not part of the compatibility claim unless tested separately.
+The published V0.1 and V0.2.1 releases were accepted in Microsoft Edge Desktop on Windows with `index.html` opened directly through `file:///`; the V0.2 multi-export acceptance record remains historical. Current localhost development requires a fresh exact-candidate Edge run through the local launcher before a future release claim. Other browsers may work but are not part of the compatibility claim unless tested separately.
 
 Workspace source data is stored locally in IndexedDB in the current browser
 profile and origin. Startup loads only small workspace metadata; the selected
 payload is read and the derived article analysis is rebuilt from retained source
 state only after the user opens that workspace. Heavy preparation runs in an
 offline worker where supported. OpenSlotting does not upload files or
-require a server, backend, Node.js, Python, account, telemetry, or internet
-connection.
+require an external backend, Node.js, account, telemetry, or internet
+connection. Python serves the local interface files only; imported data stays in the browser.
 
 ## Windows start
 
@@ -113,20 +113,29 @@ shortcut, open Start, search for `OpenSlotting`, right-click it, and choose
 this reminder but does not modify taskbar policy or attempt unsupported shell
 automation.
 
-## Direct offline start and storage
+## Localhost development and Portable pause
 
-Opening `index.html` directly through `file:///` remains independently
-supported and requires no server or Python. It uses a separate browser storage
-origin from the standard localhost start, so existing workspaces are not
-automatically shared between them. Use workspace backup and restore to move
-data between the two modes.
+Localhost is the only actively developed runtime. OpenSlotting processes and
+stores imported data locally in the browser. Python is the only additional
+runtime dependency; its standard library serves the bundled interface files.
+There are no Python packages to install, no OpenSlotting executable, no cloud
+account, and no required internet access.
 
-`Start-OpenSlotting-Localhost.cmd` remains available as an explicitly named
-localhost launcher. Run `Stop-OpenSlotting-Localhost.cmd` to stop its background
-server. Requirements and security boundaries are documented in
-[`docs/localhost-experiment.md`](docs/localhost-experiment.md); the two runtime
-profiles and their storage boundary are described in
-[`docs/runtime-profiles.md`](docs/runtime-profiles.md).
+Use `Stop-OpenSlotting.cmd` to stop the verified local server. Existing
+`*-OpenSlotting-Localhost.cmd` names remain compatibility commands for existing
+shortcuts. They reach the same fixed `http://127.0.0.1:8765/index.html` origin.
+
+Portable Mode is deliberately paused indefinitely. Its complete development
+basis remains at commit `cb193338342cd23f5cb89814c33bee0bf65cc77e` on
+`codex/parametric-warehouse-editor`. Interested contributors can resume it
+independently. The current branch displays a start instruction on direct
+`file:///` access before opening workspace storage.
+
+Existing Portable browser data is preserved at its original origin. Export a
+workspace backup from the previous application copy and restore it in localhost
+to transfer it. Existing localhost workspaces keep their storage origin and
+database. See [Portable pause and migration](docs/portable-mode-paused.md),
+[localhost startup](docs/localhost-start.md), and [runtime](docs/runtime.md).
 
 The application interface is English by default. Users can switch the visible
 interface, validation messages, labels, and number formatting to German at any
@@ -279,17 +288,20 @@ and origin rather than to the folder containing `index.html`. The supported way
 to transfer a workspace between profiles or origins is to export and restore its
 complete local backup.
 
-Direct local file execution is a core compatibility requirement. The application must remain usable by opening `index.html` directly from the local filesystem through a `file:///` URL in a supported browser.
+Active use requires Python 3.8 or newer and a local browser. The Python
+standard-library server binds only to `127.0.0.1` and serves an explicit list of
+interface assets. It accepts no operational-data upload, stores no workspace,
+and makes no external requests. Browser policy blocks application connection
+requests; analysis and storage remain browser-local.
 
-Portable Mode and every core business workflow must not require:
+Normal use requires no npm/pip packages, OpenSlotting installer or `.exe`,
+administrator privileges, telemetry, remote backend, or internet connection.
+The Windows shortcut setup is optional and affects only the current user.
+Use a company-approved Python/browser installation and a local application
+folder. Device and organization policies remain authoritative.
 
-- A local web server or `localhost`
-- A backend service
-- Node.js, Python, or another runtime to start the application
-- An internet connection for core functionality
-- Administrator privileges or a system-wide installation
-
-GitHub Pages may be used for a public demo, but hosted deployment must remain optional and must not become a runtime requirement for the core application.
+Direct-file compatibility belongs to the indefinitely paused Portable line.
+Hosted public demos are outside the active localhost support claim.
 
 This makes it possible to use the tool for local analysis while keeping imported operational data on the user's device.
 
@@ -332,7 +344,7 @@ The public project and demo data must not contain real company, customer, articl
 - Create current-user Start menu and/or Desktop shortcuts without administrator rights
 - Discover common Microsoft Edge installation locations automatically
 - Use an optional local icon and remove only OpenSlotting-managed shortcuts safely
-- Preserve direct `file:///` startup as the independent core runtime
+- Historical release: direct `file:///` startup; Portable development is now paused
 
 ### V0.3 — Local Workspaces (implemented and included in published 0.2.1)
 
@@ -344,12 +356,12 @@ The public project and demo data must not contain real company, customer, articl
 - Export or restore exactly one complete workspace per backup file
 - Restore a backup as a new workspace or explicitly replace one existing workspace
 - Never merge or mix two workspaces during restore
-- Portable workspace backups for migration between browser profiles or `file:///` origins
+- Transferable workspace backups for migration between browser profiles or origins
 - No mandatory cloud storage, backend, account, or network connection
 
 The implementation is on `main` and was included in the published 0.2.1
 release. Current `main` may contain later workspace improvements that still
-require exact-candidate automated checks and manual Microsoft Edge `file:///`
+require exact-candidate automated checks and manual Microsoft Edge localhost
 acceptance before a future release claim.
 
 ### V0.4 — Period Comparison (implemented on `main`; release claim pending)
@@ -445,17 +457,16 @@ Current implementation:
 - CSS
 - JavaScript
 - Client-side data processing
-- One shared browser runtime with centralized profile and capability detection
-- Portable Mode through direct `file:///` execution without a local web server
-- Optional Enhanced Local Mode through a loopback-only Python standard-library server
-- Local browser storage where compatible with `file:///`
-- No runtime backend requirement
-- No internet connection required for core functionality
-- GitHub Pages for an optional public demo
+- One active localhost runtime with centralized capability detection
+- Python 3.8+ standard-library loopback server as the only additional runtime
+- Local IndexedDB workspaces and transferable JSON backups
+- Bundled WebGL2 warehouse rendering
+- No internet connection or third-party runtime packages
 
-Technology choices and dependencies must preserve direct local-file compatibility for normal use. Features that require HTTP-only browser APIs must not become mandatory for the core workflow unless a compatible local-file fallback is provided.
-
-The technical architecture may evolve as the project develops, but the direct `file:///` execution requirement should remain a core design constraint.
+Technology choices must preserve local processing, local storage, existing
+business functions, and the Python-only deployment contract. Direct-file
+fallbacks are no longer an active-development requirement.
+See the [project map](docs/architecture.md) for code and contributor tools.
 
 ## Contributing
 

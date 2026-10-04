@@ -1,4 +1,4 @@
-/* Trading desk variant. All visual assets stay local so file:/// keeps working. */
+/* Analysis desk. All visual assets are bundled for offline localhost use. */
 :root {
   color-scheme: dark;
   --ink: #e6ebf2;

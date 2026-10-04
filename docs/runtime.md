@@ -1,0 +1,71 @@
+# Active localhost runtime
+
+Localhost is the only actively developed runtime. Python 3.8+ serves bundled
+interface files using only its standard library. Imports, preparation rules,
+validation, article/master analysis, the analysis desk, period comparison,
+warehouse editing and 3D analysis, IndexedDB workspaces, exports and backups
+remain in the browser.
+
+## Requirements and origin
+
+- Existing Microsoft Edge Desktop on Windows for official acceptance.
+- Company-approved Python 3.8 or newer; no pip packages.
+- A complete local application folder; no OpenSlotting installer or executable.
+- Existing Windows PowerShell for optional launchers and shortcuts.
+- Normal URL: `http://127.0.0.1:8765/index.html`.
+
+Node.js is a contributor test/benchmark tool only. There are no remote assets,
+accounts, telemetry, administrator actions, or required internet access.
+Company policies remain authoritative.
+
+## Runtime contract
+
+`runtime.js` exposes immutable `OpenSlottingRuntime` state:
+
+| Property | Meaning |
+| --- | --- |
+| `mode` | `localhost` or `unsupported` |
+| `reason` | `null`, `portable-paused`, or `unsupported-origin` |
+| `origin` | Current browser storage origin |
+| `capabilities`, `supports()` | Browser API detection without activation |
+| `startupNotice()` | Localized start instructions for rejected origins |
+
+Only HTTP(S) loopback hosts are classified as active. The shipped Python server
+binds to IPv4 `127.0.0.1` only. Direct-file and non-loopback hosted access show
+start instructions before controllers initialize or workspace storage opens.
+There is no automatic redirect or cross-origin data access.
+
+Optional browser capabilities and worker fallbacks remain available in the
+localhost application. SQLite stays unavailable; no SQLite runtime is bundled.
+Detection does not change calculations, storage or backup semantics.
+
+## Data and privacy
+
+Python serves an explicit interface-file allowlist; it has no upload, database
+or business-calculation endpoint. Source CSVs, backups, repository files,
+documentation and scripts are excluded. Browser Content Security Policy blocks
+application connection requests with `connect-src 'none'`, while allowing
+local Blob workers, styles and rendering.
+
+Original bytes, normalized rows, mappings, validation, provenance and layouts
+stay in IndexedDB in the current browser profile. The existing database name,
+database version, workspace schema, backup format and default localhost origin
+are unchanged by this separation. Existing localhost workspaces stay available.
+Changing profile, host or port requires explicit backup/restore.
+
+Portable data stays untouched at its original origin. Export from the previous
+working copy before migrating, as described in
+[portable-mode-paused.md](portable-mode-paused.md).
+
+## Distribution
+
+The package contains the active application, Python service, Windows helpers
+and current documentation. Existing `*-Localhost` entry points and the version-1
+health marker `experimental-python` are retained for launcher compatibility;
+the server is the active runtime rather than an optional experiment.
+
+See [localhost-start.md](localhost-start.md) and [architecture.md](architecture.md).
+Portable is indefinitely paused at a preserved Git commit and is excluded from
+active feature/release acceptance. Interested contributors can resume it.
+Current candidates need fresh automated and Edge localhost checks from
+[acceptance-localhost.md](acceptance-localhost.md).

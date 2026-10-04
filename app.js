@@ -1,13 +1,28 @@
 (function () {
   'use strict';
 
+  const runtime = window.OpenSlottingRuntime;
+  if (runtime.mode !== 'localhost') {
+    const notice = runtime.startupNotice(window.navigator && window.navigator.language);
+    document.documentElement.lang = notice.language;
+    document.title = notice.title;
+    const main = document.createElement('main');
+    main.className = 'panel runtime-start-notice';
+    [notice.title, notice.message, notice.instruction].forEach(function (text, index) {
+      const element = document.createElement(index === 0 ? 'h1' : 'p');
+      element.textContent = text;
+      main.appendChild(element);
+    });
+    document.body.replaceChildren(main);
+    return;
+  }
+
   const core = window.OpenSlottingCsv;
   const periods = window.OpenSlottingPeriods;
   const encoding = window.OpenSlottingEncoding;
   const workspaceModel = window.OpenSlottingWorkspace;
   const warehouseModel = window.OpenSlottingWarehouse;
   const storageApi = window.OpenSlottingStorage;
-  const runtime = window.OpenSlottingRuntime;
   const terminalModel = window.OpenSlottingTerminal;
   const workspaceRepository = storageApi.createRepository();
   const TRANSLATIONS = {
@@ -19,15 +34,13 @@
       language_label: 'Language',
       language_english: 'English',
       language_german: 'German',
-      runtime_badge_portable: 'Runtime · Portable',
-      runtime_badge_enhanced_local: 'Runtime · Enhanced Local',
+      runtime_badge_localhost: 'Runtime · Localhost',
       runtime_badge_unsupported: 'Runtime · Unsupported',
       runtime_diagnostics_title: 'Runtime diagnostics',
       runtime_mode_label: 'Mode',
       runtime_origin_label: 'Origin',
       runtime_capabilities_label: 'Browser capabilities',
-      runtime_mode_portable: 'Portable Mode',
-      runtime_mode_enhanced_local: 'Enhanced Local Mode',
+      runtime_mode_localhost: 'Localhost',
       runtime_mode_unsupported: 'Unsupported origin',
       runtime_capability_available: '{{name}} available',
       runtime_capability_unavailable: '{{name}} unavailable',
@@ -716,15 +729,13 @@
       language_label: 'Sprache',
       language_english: 'Englisch',
       language_german: 'Deutsch',
-      runtime_badge_portable: 'Runtime · Portabel',
-      runtime_badge_enhanced_local: 'Runtime · Erweitert lokal',
+      runtime_badge_localhost: 'Runtime · Localhost',
       runtime_badge_unsupported: 'Runtime · Nicht unterstützt',
       runtime_diagnostics_title: 'Runtime-Diagnose',
       runtime_mode_label: 'Modus',
       runtime_origin_label: 'Ursprung',
       runtime_capabilities_label: 'Browser-Fähigkeiten',
-      runtime_mode_portable: 'Portabler Modus',
-      runtime_mode_enhanced_local: 'Erweiterter lokaler Modus',
+      runtime_mode_localhost: 'Localhost',
       runtime_mode_unsupported: 'Nicht unterstützter Ursprung',
       runtime_capability_available: '{{name}} verfügbar',
       runtime_capability_unavailable: '{{name}} nicht verfügbar',
@@ -1472,13 +1483,9 @@
   const SOURCE_TABLE_WINDOW_STEP = 6;
 
   const RUNTIME_MODE_TRANSLATION_KEYS = {
-    portable: {
-      badge: 'runtime_badge_portable',
-      mode: 'runtime_mode_portable'
-    },
-    'enhanced-local': {
-      badge: 'runtime_badge_enhanced_local',
-      mode: 'runtime_mode_enhanced_local'
+    localhost: {
+      badge: 'runtime_badge_localhost',
+      mode: 'runtime_mode_localhost'
     },
     unsupported: {
       badge: 'runtime_badge_unsupported',

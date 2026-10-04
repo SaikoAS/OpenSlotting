@@ -75,8 +75,8 @@ The controls and labels are available in English and German.
   change imports, stored records, or the authoritative quantity field.
 
 The desk uses local CSS and SVG. The standard Windows launcher uses the Python
-loopback server and opens Edge maximized. Direct Edge `file:///` remains an
-independent runtime that does not require Python for import or analysis.
+loopback server and opens Edge maximized. The active development runtime is localhost; Portable Mode is indefinitely
+paused with its source basis preserved in [portable-mode-paused.md](portable-mode-paused.md).
 
 ## Verification boundary
 
@@ -84,4 +84,5 @@ independent runtime that does not require Python for import or analysis.
 and existing workflows. A synthetic CSV was also exercised in the Codex
 in-app browser through a local loopback server. This is visual and interaction
 evidence for that browser only; the exact branch has not yet been accepted in
-Microsoft Edge with `file:///` or on a real warehouse export.
+Microsoft Edge through the localhost launcher for the current candidate.
+Historical browser evidence does not establish current acceptance.

@@ -16,9 +16,9 @@ test('release version is defined centrally for the UI and package', () => {
   assert.doesNotMatch(appSource, /eyebrow: 'OpenSlotting · V0\.2'/);
 });
 
-test('runtime source has no mandatory network dependency', () => {
+test('browser runtime has no remote assets or data transmission', () => {
   const runtimeFiles = ['index.html', 'app.css', 'terminal-theme.css', 'warehouse-editor.css', 'runtime.js', 'app.js', 'terminal.js', 'warehouse-webgl.js', 'warehouse-scene.js', 'warehouse-editor.js', 'warehouse-analysis.js', 'warehouse.js', 'encoding.js', 'csv.js', 'periods.js', 'workspace.js', 'storage.js'];
-  const forbiddenPattern = /https?:\/\/|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\blocalhost\b|127\.0\.0\.1/;
+  const forbiddenPattern = /https?:\/\/|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b/;
 
   runtimeFiles.forEach((fileName) => {
     const source = fs.readFileSync(path.join(__dirname, '..', fileName), 'utf8');
@@ -262,9 +262,9 @@ test('release packaging includes persistent workspace runtime and documentation'
   });
 });
 
-test('release packaging includes both runtime profiles from one codebase', () => {
+test('release packaging includes the active localhost runtime and the paused Portable handoff', () => {
   const packagingSource = fs.readFileSync(path.join(__dirname, '..', 'tools', 'package-release.ps1'), 'utf8');
-  const enhancedLocalFiles = [
+  const localhostFiles = [
     'runtime.js',
     'OpenSlotting.Localhost.Windows.psm1',
     'Start-OpenSlotting-Localhost.cmd',
@@ -276,13 +276,18 @@ test('release packaging includes both runtime profiles from one codebase', () =>
     'Install-OpenSlotting-Localhost.ps1',
     'Remove-OpenSlotting-Localhost.cmd',
     'Remove-OpenSlotting-Localhost.ps1',
-    'docs/runtime-profiles.md',
-    'docs/localhost-experiment.md',
-    'docs/acceptance-runtime-profiles.md'
+    'Stop-OpenSlotting.cmd',
+    'Stop-OpenSlotting.ps1',
+    'docs/architecture.md',
+    'docs/portable-mode-paused.md',
+    'docs/runtime.md',
+    'docs/localhost-start.md',
+    'docs/acceptance-localhost.md'
   ];
 
-  enhancedLocalFiles.forEach((fileName) => {
+  localhostFiles.forEach((fileName) => {
     assert.match(packagingSource, new RegExp("'" + fileName.replaceAll('.', '\\.') + "'"), fileName);
+    assert.ok(fs.existsSync(path.join(__dirname, '..', fileName)), 'Packaged file must exist: ' + fileName);
   });
 });
 

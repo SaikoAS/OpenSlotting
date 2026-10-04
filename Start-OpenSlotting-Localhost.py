@@ -64,6 +64,13 @@ class OpenSlottingRequestHandler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Cross-Origin-Resource-Policy", "same-origin")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self' blob:; worker-src 'self' blob:; "
+            "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+            "connect-src 'none'; object-src 'none'; base-uri 'none'; "
+            "frame-ancestors 'none'; form-action 'none'",
+        )
         super().end_headers()
 
     def _requested_file(self) -> Optional[Path]:

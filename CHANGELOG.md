@@ -12,7 +12,7 @@ All notable changes to OpenSlotting are documented in this file.
 - optional selling-unit / cases and quantity-per-selling-unit import fields
 - exact selling-unit comparison and per-article conflict indicators without replacing authoritative total quantity
 - workspace schema version 2 for persisted period settings and migration from schema version 1
-- portable and optional Enhanced Local runtime profiles with capability diagnostics
+- localhost runtime and browser capability diagnostics
 - chunked IndexedDB workspace persistence and reduced normalized-row memory usage
 - chunked CSV decoding, streaming normalization, incremental analysis, and lazy article details
 - single-pass period aggregation and cached article search/sort projections
@@ -26,6 +26,11 @@ All notable changes to OpenSlotting are documented in this file.
 - structured article-master and cross-source quality findings with source-row evidence
 
 ### Changed
+
+- active development now targets localhost only; Portable Mode is deliberately paused indefinitely with its complete source basis and migration/resumption instructions preserved
+- removed direct-file launcher APIs and added an early startup notice before workspace access on unsupported origins
+- Python standard-library serving remains the sole additional runtime dependency; all import, analysis, workspace, backup, desk, and warehouse functions remain browser-local
+- added a standard stop command, browser connection restrictions, and current localhost documentation/acceptance gates
 
 - the interface now uses a compact five-step workflow rail and clearer required/optional mapping labels
 - zero selling units and partial sales are valid; invalid optional unit values are advisory-only, while unit quantities above total quantity remain visible review notes

@@ -23,6 +23,12 @@ node --check periods.js
 node --check runtime.js
 node --check workspace.js
 node --check storage.js
+node --check terminal.js
+node --check warehouse.js
+node --check warehouse-webgl.js
+node --check warehouse-scene.js
+node --check warehouse-editor.js
+node --check warehouse-analysis.js
 node --test tests/*.test.cjs
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows-launcher.test.ps1
 pwsh -NoProfile -File tests/windows-launcher.test.ps1
@@ -30,19 +36,35 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/localhost-windows-
 pwsh -NoProfile -File tests/localhost-windows-launcher.test.ps1
 ```
 
-Runtime or UI changes that may affect local execution also require a manual Microsoft Edge Desktop check on Windows by opening `index.html` directly through `file:///`. Compilation and automated tests do not replace this runtime acceptance.
+Runtime or UI changes require a manual Microsoft Edge Desktop check on
+Windows through `Start-OpenSlotting.cmd` at the stable localhost origin.
+Automated tests do not replace visible browser acceptance. Use
+[`docs/acceptance-localhost.md`](docs/acceptance-localhost.md) and record the
+exact candidate commit, Python/Windows/Edge versions, and extracted folder.
 
-Runtime-profile changes additionally require both profile checks in
-[`docs/acceptance-runtime-profiles.md`](docs/acceptance-runtime-profiles.md).
+Windows launcher or shortcut changes require both PowerShell launcher suites
+and the current localhost acceptance checklist. Use temporary copies and
+synthetic data; do not modify unrelated user shortcuts.
 
-Windows launcher or shortcut changes additionally require the checks in
-[`docs/acceptance-v0.2.1.md`](docs/acceptance-v0.2.1.md). Use a temporary test
-copy and synthetic CSV data. Do not overwrite or remove unrelated user
-shortcuts during acceptance.
+## Runtime and dependency contract
 
-## Local-first compatibility
+Localhost is the only actively developed runtime. Python 3.8 or newer and its
+standard library are the only additional end-user runtime dependency. Windows
+PowerShell and the user's existing browser supply the launcher and interface.
+Node.js is a contributor test/benchmark tool; it is not shipped or required
+to use OpenSlotting. Do not add npm/pip runtime packages, an OpenSlotting
+installer, executable, mandatory cloud service, telemetry, external assets,
+or operational-data transmission.
 
-Normal use must continue to work without a local server, backend, internet connection, installer, Node.js, or Python. Do not add mandatory runtime network requests, CDNs, remote fonts, telemetry, or cloud services. If a proposed capability cannot preserve direct local-file compatibility, discuss it in an issue before implementation.
+Preserve all business workflows, original source bytes, provenance, IndexedDB
+workspace isolation, backup compatibility, and the fixed loopback origin.
+Python serves interface files only; it does not become a data backend.
+Company device policies take precedence over launcher convenience.
+
+Portable Mode is intentionally paused indefinitely. The preserved basis and
+resumption instructions are in [docs/portable-mode-paused.md](docs/portable-mode-paused.md).
+Direct-file fallback and dual-profile acceptance are no longer contribution
+requirements on this line.
 
 ## Synthetic data only
 

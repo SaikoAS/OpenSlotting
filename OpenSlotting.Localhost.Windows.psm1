@@ -176,7 +176,7 @@ function Find-OpenSlottingPythonCommand {
         }
     }
 
-    throw 'Python 3.8 or newer was not found. Install Python once or use the independent file:/// launcher.'
+    throw 'Python 3.8 or newer was not found. Ask your company IT team to provide an approved Python runtime. OpenSlotting installs no packages or executable files.'
 }
 
 function Start-OpenSlottingLocalhostServer {

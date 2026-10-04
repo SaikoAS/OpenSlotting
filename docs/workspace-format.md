@@ -4,7 +4,7 @@ This document defines the persistent local-workspace contract used by the curren
 
 ## Runtime and origin boundary
 
-Workspaces are stored in IndexedDB in the current browser profile and browser origin. OpenSlotting does not use `localStorage` for workspace payloads. Normal operation remains compatible with direct `file:///` execution and requires no backend, localhost server, account, telemetry, or network connection.
+Workspaces are stored in IndexedDB in the current browser profile and browser origin. OpenSlotting does not use `localStorage` for workspace payloads. Active operation uses the fixed localhost origin through the Python standard-library server, with no upload, remote backend, account, telemetry, or external network connection. The database name, schema, and backup contract are unchanged by the runtime separation. Existing Portable workspaces can be transferred with backups exported from the previous application; see [portable-mode-paused.md](portable-mode-paused.md).
 
 Browser-local data is not an application file beside `index.html`. Moving the application, changing the browser profile, clearing browser site data, using private browsing, or changing from `file:///` to an HTTP origin may expose a different or empty storage area. A workspace backup is the supported transfer path between browser profiles or origins.
 
@@ -103,8 +103,8 @@ selection, IndexedDB returns the manifest and independently stored source,
 byte, row, and issue chunks asynchronously. Validation, source
 decoding, CSV parsing, normalization, and article aggregation run in a dedicated
 worker created from a local `blob:` URL. The worker source is assembled from the
-already loaded local module factories, so direct `file:///` execution does not
-need a server or fetch another resource. Source `ArrayBuffer` objects are
+already loaded local module factories, so preparation needs no additional
+resource request. Source `ArrayBuffer` objects are
 transferred into and back from the worker rather than copied. If workers are
 unavailable, the same validated preparation path remains as a visible
 main-thread fallback.

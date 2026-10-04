@@ -1,3 +1,4 @@
+# Shared Edge discovery and managed-shortcut helpers for the localhost launchers.
 Set-StrictMode -Version Latest
 
 $script:OpenSlottingShortcutName = 'OpenSlotting'
@@ -17,22 +18,6 @@ function Get-OpenSlottingIndexPath {
     }
 
     return $indexPath
-}
-
-function ConvertTo-OpenSlottingFileUri {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$IndexPath
-    )
-
-    $resolvedPath = [System.IO.Path]::GetFullPath($IndexPath)
-    $uri = [System.Uri]::new($resolvedPath)
-    if (-not $uri.IsFile) {
-        throw "The OpenSlotting path could not be converted to a local file URL: $resolvedPath"
-    }
-
-    return $uri.AbsoluteUri
 }
 
 function Get-OpenSlottingEdgeCandidates {
@@ -84,21 +69,6 @@ function Find-OpenSlottingEdgePath {
     throw 'Microsoft Edge was not found. Install Edge in a supported per-machine or per-user location, then run setup again.'
 }
 
-function New-OpenSlottingEdgeArguments {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$FileUri
-    )
-
-    $parsedUri = $null
-    if (-not [System.Uri]::TryCreate($FileUri, [System.UriKind]::Absolute, [ref]$parsedUri) -or -not $parsedUri.IsFile) {
-        throw 'Edge app mode requires an absolute local file URL.'
-    }
-
-    return '--app="{0}"' -f $parsedUri.AbsoluteUri
-}
-
 function Get-OpenSlottingShortcutDirectories {
     [CmdletBinding()]
     param(
@@ -121,47 +91,6 @@ function Get-OpenSlottingShortcutDirectories {
     }
 
     return $directories
-}
-
-function Get-OpenSlottingShortcutPlan {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$ApplicationRoot,
-
-        [Parameter(Mandatory = $true)]
-        [string]$EdgePath,
-
-        [Parameter(Mandatory = $true)]
-        [string[]]$ShortcutDirectories
-    )
-
-    $indexPath = Get-OpenSlottingIndexPath -ApplicationRoot $ApplicationRoot
-    $fileUri = ConvertTo-OpenSlottingFileUri -IndexPath $indexPath
-    $resolvedEdgePath = [System.IO.Path]::GetFullPath($EdgePath)
-    if (-not (Test-Path -LiteralPath $resolvedEdgePath -PathType Leaf)) {
-        throw "Microsoft Edge was not found at the selected path: $resolvedEdgePath"
-    }
-
-    $resolvedRoot = [System.IO.Path]::GetFullPath($ApplicationRoot)
-    $iconPath = Join-Path $resolvedRoot 'OpenSlotting.ico'
-    $iconLocation = if (Test-Path -LiteralPath $iconPath -PathType Leaf) {
-        "$iconPath,0"
-    } else {
-        "$resolvedEdgePath,0"
-    }
-
-    return @($ShortcutDirectories | ForEach-Object {
-        $directory = [System.IO.Path]::GetFullPath($_)
-        [pscustomobject]@{
-            ShortcutPath = Join-Path $directory "$script:OpenSlottingShortcutName.lnk"
-            TargetPath = $resolvedEdgePath
-            Arguments = New-OpenSlottingEdgeArguments -FileUri $fileUri
-            WorkingDirectory = $resolvedRoot
-            IconLocation = $iconLocation
-            Description = $script:OpenSlottingShortcutDescription
-        }
-    })
 }
 
 function Assert-OpenSlottingWindows {
@@ -240,29 +169,11 @@ function Remove-OpenSlottingShortcuts {
     }
 }
 
-function Start-OpenSlotting {
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$ApplicationRoot
-    )
-
-    $indexPath = Get-OpenSlottingIndexPath -ApplicationRoot $ApplicationRoot
-    $fileUri = ConvertTo-OpenSlottingFileUri -IndexPath $indexPath
-    $edgePath = Find-OpenSlottingEdgePath
-    $arguments = New-OpenSlottingEdgeArguments -FileUri $fileUri
-    Start-Process -FilePath $edgePath -ArgumentList $arguments -WorkingDirectory ([System.IO.Path]::GetFullPath($ApplicationRoot))
-}
-
 Export-ModuleMember -Function @(
-    'ConvertTo-OpenSlottingFileUri',
     'Find-OpenSlottingEdgePath',
     'Get-OpenSlottingEdgeCandidates',
     'Get-OpenSlottingIndexPath',
     'Get-OpenSlottingShortcutDirectories',
-    'Get-OpenSlottingShortcutPlan',
-    'New-OpenSlottingEdgeArguments',
     'New-OpenSlottingShortcuts',
-    'Remove-OpenSlottingShortcuts',
-    'Start-OpenSlotting'
+    'Remove-OpenSlottingShortcuts'
 )

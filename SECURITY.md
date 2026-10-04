@@ -2,7 +2,7 @@
 
 OpenSlotting is a local-first warehouse data analysis tool.
 
-Security and data privacy are core project requirements. The application is designed to process imported operational data locally in the user's browser without uploading that data to a server.
+Security and data privacy are core project requirements. The application is designed to process imported operational data locally in the user's browser without uploading that data to any service. The Python loopback server delivers interface files only; it does not receive operational data or store workspaces.
 
 ## Supported Versions
 
@@ -67,23 +67,24 @@ If sensitive data is accidentally committed, treat it as a security incident and
 
 The core OpenSlotting workflow is designed to operate locally.
 
-Normal use must not require:
+Normal use requires the existing browser and a company-approved Python 3.8+
+runtime. Python uses only its standard library. It binds to `127.0.0.1`, serves
+an explicit runtime-file allowlist, checks HTTP Host authorities, and accepts
+no upload or data-storage request. The browser Content Security Policy uses
+`connect-src 'none'` to block application connection requests; Blob workers
+continue to process data locally. No CDN, telemetry, remote API, account,
+additional package installation, OpenSlotting executable, or administrator
+rights are part of normal use.
 
-- uploading imported files to a remote server
-- a backend service
-- telemetry
-- analytics services
-- an internet connection
-- a local HTTP server
-- administrator privileges
+Imported CSV data remains in the user's browser profile unless the user
+explicitly exports or transfers it. Localhost traffic is confined to the same
+device. This is a local interface-file service, not a central database or
+multi-user backend.
 
-Imported CSV data should remain on the user's device unless the user explicitly exports or transfers the data themselves.
-
-Core functionality must remain compatible with direct local execution through:
-
-```text
-file:///.../index.html
-```
+Active development supports localhost only. Portable Mode is deliberately
+paused indefinitely and preserved at the commit described in
+[docs/portable-mode-paused.md](docs/portable-mode-paused.md). Direct-file startup
+in the current application shows instructions before workspace access.
 
 Changes that introduce network communication, remote storage, telemetry, external APIs, or other data transmission must be clearly documented and reviewed before becoming part of the core workflow.
 
@@ -109,10 +110,14 @@ path.
 
 ## Optional Windows Launcher
 
-The optional Windows launcher and shortcut setup only resolve the adjacent local
-`index.html`, locate a local Microsoft Edge installation, and start Edge with a
-local `file:///` URL. They do not read imported CSV files, transmit data, install
-system-wide components, modify Edge settings, or require administrator rights.
+The Windows launcher locates Edge and an existing Python runtime, starts or
+reuses only the independently verified OpenSlotting loopback process belonging
+to this folder, and opens the fixed localhost URL. A port occupied by another
+application or OpenSlotting folder is rejected. Stop and failure cleanup act
+only on verified owned processes. The launcher does not read imported CSV
+files, install packages/services, change Edge settings or machine policies,
+or require administrator rights. Use an approved local folder; the Windows
+launcher rejects remote roots.
 
 Shortcut setup operates only in the current user's Start menu and Desktop. It
 marks generated shortcuts with an OpenSlotting ownership description. Setup must
@@ -122,7 +127,7 @@ data.
 
 ## External Resources and Dependencies
 
-Runtime dependencies should be kept to a minimum.
+Python 3.8+ with its standard library is the sole additional end-user runtime dependency. Browser and Windows PowerShell are existing platform components. Contributor Node.js tests do not change this deployment contract.
 
 Core functionality should not depend on:
 

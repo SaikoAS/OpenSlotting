@@ -39,9 +39,7 @@ function requestStatusWithHost(url, host) {
 
 test('accepts the default HTTP Host form when configured for port 80', () => {
   const python = findPython();
-  if (!python) {
-    return;
-  }
+  assert.ok(python, 'Python 3.8 or newer is required for localhost runtime tests.');
   const scriptPath = path.join(__dirname, '..', 'Start-OpenSlotting-Localhost.py');
   const check = spawnSync(
     python.command,
@@ -55,12 +53,9 @@ test('accepts the default HTTP Host form when configured for port 80', () => {
   assert.equal(check.status, 0, check.stderr || check.stdout);
 });
 
-test('experimental Python server is loopback-only and serves only runtime files', { timeout: 15000 }, async (context) => {
+test('Python server is loopback-only, blocks data transmission, and serves only runtime files', { timeout: 15000 }, async (context) => {
   const python = findPython();
-  if (!python) {
-    context.skip('Python 3 is not available on this test host.');
-    return;
-  }
+  assert.ok(python, 'Python 3.8 or newer is required for localhost runtime tests.');
 
   const scriptPath = path.join(__dirname, '..', 'Start-OpenSlotting-Localhost.py');
   const child = spawn(
@@ -106,6 +101,10 @@ test('experimental Python server is loopback-only and serves only runtime files'
   assert.match(indexResponse.headers.get('content-type'), /^text\/html/);
   assert.equal(indexResponse.headers.get('cache-control'), 'no-store');
   assert.equal(indexResponse.headers.get('x-content-type-options'), 'nosniff');
+  const policy = indexResponse.headers.get('content-security-policy');
+  assert.match(policy, /connect-src 'none'/);
+  assert.match(policy, /worker-src 'self' blob:/);
+  assert.match(policy, /frame-ancestors 'none'/);
   assert.match(await indexResponse.text(), /<title>OpenSlotting[^<]*<\/title>/);
 
   const origin = new URL(url).origin;
@@ -159,9 +158,17 @@ test('experimental Python server is loopback-only and serves only runtime files'
   assert.equal(headResponse.status, 200);
   assert.equal(await headResponse.text(), '');
 
-  for (const blockedPath of ['/README.md', '/.git/config', '/%2e%2e/README.md']) {
+  for (const blockedPath of ['/README.md', '/.git/config', '/%2e%2e/README.md',
+    '/test-data/basic-orders.csv', '/workspace.workspace.json', '/Start-OpenSlotting-Localhost.py', '/docs/portable-mode-paused.md']) {
     const blockedResponse = await fetch(origin + blockedPath);
     assert.equal(blockedResponse.status, 404);
     await blockedResponse.arrayBuffer();
+  }
+  for (const method of ['POST', 'PUT', 'DELETE']) {
+    const response = await fetch(origin + '/index.html', {
+      method, body: 'synthetic upload must not be accepted'
+    });
+    assert.equal(response.status, 501, method);
+    await response.arrayBuffer();
   }
 });

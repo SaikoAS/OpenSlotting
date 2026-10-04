@@ -1,5 +1,8 @@
 # OpenSlotting v0.1.0 — Order-Line Analysis
 
+> Historical record: the runtime and checks below apply to that release.
+> Active development now uses localhost only; [Portable Mode is paused indefinitely](portable-mode-paused.md).
+
 OpenSlotting 0.1.0 is the first public functional release of the local-first warehouse order-line analysis tool.
 
 ## Included

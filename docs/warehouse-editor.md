@@ -1,6 +1,6 @@
 # Warehouse editor prototype
 
-The **Warehouse editor / 3D-Editor** and **3D analysis / 3D-Auswertung** are separate workspace views. The editor builds the technical layout and assigns position codes. The analysis view reads the same saved layout and current article-master data without changing geometry or codes. The layout is stored in the workspace's IndexedDB metadata and included in the existing workspace backup. Both views use the same local assets through the standard loopback start or by opening `index.html` directly through `file:///`; no network asset or additional service is required.
+The **Warehouse editor / 3D-Editor** and **3D analysis / 3D-Auswertung** are separate workspace views. The editor builds the technical layout and assigns position codes. The analysis view reads the same saved layout and current article-master data without changing geometry or codes. The layout is stored in the workspace's IndexedDB metadata and included in the existing workspace backup. Both views use the same bundled assets through the standard Python loopback start; no remote asset or additional package is required. Portable Mode is paused; see [portable-mode-paused.md](portable-mode-paused.md).
 
 ## Recipes and dimensions
 
@@ -28,4 +28,4 @@ The separate, read-only **3D analysis** view uses only the current `location` fr
 
 Schema version `12` adds an empty plan to earlier workspaces during validated activation. Layout edits, including completed top-view drags, use metadata-only revision-checked writes, so they do not rewrite original CSV bytes or normalized row chunks. Backup export and restore include the plan. The plan is limited to 150 objects and 5,000 positions; this first version is intended for layout and code validation rather than building-code assessment or large-facility CAD editing. Overlapping objects are allowed with the warnings described above.
 
-The renderer is bundled with the other local files for both direct `file:///` use and the loopback localhost launcher. It sends no geometry or workspace data to a service. Browser storage still belongs to the origin: direct file use and localhost use keep separate IndexedDB workspaces, so moving an existing plan between them requires workspace backup export and restore.
+The renderer is bundled with the other local files for the localhost launcher. It sends no geometry or workspace data to a service. Browser storage still belongs to the origin: direct file use and localhost use keep separate IndexedDB workspaces, so moving an existing plan between them requires workspace backup export and restore.
