@@ -1,0 +1,259 @@
+{
+  "date": "2026-10-04T06:16:44.561Z",
+  "baselineCommit": "23148a5d2548080d6d253ee9ae66bd4cb5494f5f",
+  "environment": {
+    "platform": "win32",
+    "node": "v24.18.1",
+    "architecture": "x64",
+    "cpu": "12th Gen Intel(R) Core(TM) i9-12900F",
+    "logicalCpus": 24,
+    "ramGiB": 63.86315155029297
+  },
+  "methodology": {
+    "rows": 20000,
+    "repeats": 7,
+    "processes": "one fresh process per variant",
+    "warmup": 1,
+    "fixtureState": "analyzed; original bytes, normalized rows, issues, column profiles, registry",
+    "warning": "Node and Python codec timings are separate engines; neither is an Edge result. Does not include JSON construction or process startup."
+  },
+  "results": [
+    {
+      "engine": "Node native CompressionStream",
+      "format": "identity",
+      "rows": 20000,
+      "repeats": 7,
+      "warmup": 1,
+      "fixtureState": "analyzed; original bytes, normalized rows, issues, profiles, registry",
+      "inputBytes": 32276141,
+      "encodedBytes": 32276141,
+      "ratio": 1,
+      "encode": {
+        "samplesMs": [
+          5.227,
+          7.443,
+          5.142,
+          4.914,
+          7.977,
+          7.356,
+          9.242
+        ],
+        "medianMs": 7.356,
+        "minMs": 4.914,
+        "maxMs": 9.242
+      },
+      "decode": {
+        "samplesMs": [
+          7.823,
+          8.46,
+          4.864,
+          5.582,
+          7.752,
+          7.566,
+          9.428
+        ],
+        "medianMs": 7.752,
+        "minMs": 4.864,
+        "maxMs": 9.428
+      },
+      "integrity": "SHA-256 and production parseBackup passed",
+      "peakRssMiB": 597.20703125,
+      "peakScope": "whole process including fixture, validation and codec; not codec-only allocation"
+    },
+    {
+      "engine": "Node native CompressionStream",
+      "format": "gzip",
+      "rows": 20000,
+      "repeats": 7,
+      "warmup": 1,
+      "fixtureState": "analyzed; original bytes, normalized rows, issues, profiles, registry",
+      "inputBytes": 32276141,
+      "encodedBytes": 826965,
+      "ratio": 0.025621557422245738,
+      "encode": {
+        "samplesMs": [
+          90.33,
+          90.685,
+          94.11,
+          98.634,
+          90.504,
+          89.024,
+          88.515
+        ],
+        "medianMs": 90.504,
+        "minMs": 88.515,
+        "maxMs": 98.634
+      },
+      "decode": {
+        "samplesMs": [
+          70.024,
+          69.867,
+          74.301,
+          75.698,
+          70.525,
+          67.859,
+          67.516
+        ],
+        "medianMs": 70.024,
+        "minMs": 67.516,
+        "maxMs": 75.698
+      },
+      "integrity": "SHA-256 and production parseBackup passed",
+      "peakRssMiB": 730.796875,
+      "peakScope": "whole process including fixture, validation and codec; not codec-only allocation"
+    },
+    {
+      "engine": "Node native CompressionStream",
+      "format": "deflate",
+      "rows": 20000,
+      "repeats": 7,
+      "warmup": 1,
+      "fixtureState": "analyzed; original bytes, normalized rows, issues, profiles, registry",
+      "inputBytes": 32276141,
+      "encodedBytes": 826953,
+      "ratio": 0.025621185630587004,
+      "encode": {
+        "samplesMs": [
+          94.553,
+          90.753,
+          98.806,
+          85.854,
+          85.891,
+          86.264,
+          86.466
+        ],
+        "medianMs": 86.466,
+        "minMs": 85.854,
+        "maxMs": 98.806
+      },
+      "decode": {
+        "samplesMs": [
+          70.808,
+          76.035,
+          69.943,
+          65.904,
+          63.581,
+          69.744,
+          64.547
+        ],
+        "medianMs": 69.744,
+        "minMs": 63.581,
+        "maxMs": 76.035
+      },
+      "integrity": "SHA-256 and production parseBackup passed",
+      "peakRssMiB": 722.515625,
+      "peakScope": "whole process including fixture, validation and codec; not codec-only allocation"
+    },
+    {
+      "engine": "Python stdlib gzip",
+      "python": "3.13.14",
+      "level": 1,
+      "repeats": 7,
+      "inputBytes": 32276141,
+      "encodedBytes": 1274640,
+      "ratio": 0.039491709990980645,
+      "encode": {
+        "samplesMs": [
+          52.95839998871088,
+          52.94960003811866,
+          52.89910000283271,
+          52.66099993605167,
+          55.20619999151677,
+          53.5631999373436,
+          53.59240004327148
+        ],
+        "medianMs": 52.95839998871088
+      },
+      "decode": {
+        "samplesMs": [
+          89.91720003541559,
+          89.5196000346914,
+          89.13559990469366,
+          89.7060000570491,
+          91.01009997539222,
+          90.03379999194294,
+          100.30779999215156
+        ],
+        "medianMs": 89.91720003541559
+      },
+      "warmup": 1,
+      "integrity": "SHA-256 passed",
+      "memory": "not measured",
+      "scope": "codec only; process startup, stdin and JSON validation outside timings"
+    },
+    {
+      "engine": "Python stdlib gzip",
+      "python": "3.13.14",
+      "level": 6,
+      "repeats": 7,
+      "inputBytes": 32276141,
+      "encodedBytes": 828019,
+      "ratio": 0.025654213122938085,
+      "encode": {
+        "samplesMs": [
+          133.16199998371303,
+          133.1462999805808,
+          129.74229990504682,
+          127.08020000718534,
+          128.1040000030771,
+          129.4608999742195,
+          129.35189995914698
+        ],
+        "medianMs": 129.4608999742195
+      },
+      "decode": {
+        "samplesMs": [
+          111.92769999615848,
+          112.1505000628531,
+          88.99980003479868,
+          86.50550001766533,
+          87.70630008075386,
+          88.44720001798123,
+          87.40910002961755
+        ],
+        "medianMs": 88.44720001798123
+      },
+      "warmup": 1,
+      "integrity": "SHA-256 passed",
+      "memory": "not measured",
+      "scope": "codec only; process startup, stdin and JSON validation outside timings"
+    },
+    {
+      "engine": "Python stdlib gzip",
+      "python": "3.13.14",
+      "level": 9,
+      "repeats": 7,
+      "inputBytes": 32276141,
+      "encodedBytes": 703396,
+      "ratio": 0.021793063799045866,
+      "encode": {
+        "samplesMs": [
+          293.77770004794,
+          295.42040009982884,
+          294.2013000138104,
+          297.67400003038347,
+          295.8694000262767,
+          299.38799992669374,
+          295.73110002093017
+        ],
+        "medianMs": 295.73110002093017
+      },
+      "decode": {
+        "samplesMs": [
+          101.1701999232173,
+          87.18409994617105,
+          90.49430000595748,
+          99.56319991033524,
+          90.55039996746927,
+          86.51080005802214,
+          85.54879995062947
+        ],
+        "medianMs": 90.49430000595748
+      },
+      "warmup": 1,
+      "integrity": "SHA-256 passed",
+      "memory": "not measured",
+      "scope": "codec only; process startup, stdin and JSON validation outside timings"
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "baselineCommit": "23148a5d2548080d6d253ee9ae66bd4cb5494f5f",
+  "unchangedRuntimeFiles": 37,
+  "productionTests": 248,
+  "laboratoryNodeTests": 11,
+  "laboratoryPythonTests": 2,
+  "syntax": "passed",
+  "documentationLinks": "passed",
+  "scope": "separate experiment; no application integration",
+  "sources": {
+    ".gitignore": "706985eb3184dcb79e94a5ac065da7c19651b327cc158a54f98e7dcdf003f1da",
+    "benchmarks/browser.mjs": "00d21b54774987d94de07ed0a6e66c900995b42b48182a61ad6a81acd63b2888",
+    "benchmarks/fixtures.mjs": "2f6d844713e4c519f62701d8f86846c4f262604c9d1b9088fcfd8f6770610645",
+    "benchmarks/node-sample.mjs": "4f9becacc00539dd7e0bf34660310f9e36f9892d5a3195abd4554f5b551ffdd8",
+    "benchmarks/python-sample.py": "77d74094492fc508b03a9d9b7419093973c755ac661ab97596192be7ac101cd0",
+    "benchmarks/run-node.cjs": "8caa5c73d4d42e1443f228626f1e699f51780ab36b0c37b74ada42b7ff1d4bd7",
+    "EVALUATION.md": "63d37a217915ad27dff61b7d07659155a429704f0ec073fb71998a774551160f",
+    "generated/kernel-metadata.json": "fb9b01f14fd370afcb77569767f455f80f8a0f9bd83e2ec9ea8674dfa5ca3917",
+    "generated/preparation-kernel.mjs": "6ae2013611408447c1341c865b7b39b25ac595ee14a5fa43f9122291412c09b9",
+    "generated/workspace-base64-candidate.mjs": "7b288bf44ff2601513f9a7a855b2c4c4c9b2b8b598997329c6752be645030d97",
+    "index.html": "cb2072bc0bf57809957fdb1209010134e60853e54645425fa2e0fba087bfbecd",
+    "modules/backup-codec.mjs": "2a3056fe9a3aa45412240cda7e599c170ccf8f0d32c846deeb2ba130ddca0e9b",
+    "modules/backup_codec.py": "a07570a7b5f4735031e3630bad599590d525ae4d8f1782dd824aa840ea733814",
+    "modules/base64-validation.mjs": "29d20f63a07f6cb52a2e6a80adb77c31640fbea43a7235e0cf0c05bfe124ac4a",
+    "modules/source-stores.mjs": "3217d982744459c228c84db04f63fe9d50262492a83904fbc723cb3f9d5a7d9f",
+    "modules/worker-session.mjs": "301587157b1616f62ae668b67297be2da0777dda73c6c4fcf88790e981c0031e",
+    "README.md": "c916739c182ee8bb42beedf2c65c6da520bf99ee11607dc5d7679b0b3ea5a14c",
+    "serve.py": "7b9c2a1ee9843fadf782953357935347c55b326fde82c00f0e5530ddfd8d0e40",
+    "tests/modules.test.cjs": "687ed83ec2b2ffa2f54338f9895def1037f06b5ffcbc822cd95bca726ee356b0",
+    "tests/test_python.py": "27a2416f5950d983337e93c77408d4608fe1d1321d1b1684d4043ff06443f70b",
+    "tools/audit-project.py": "424adc0259772fc85849df9642cdb47ba2daeb7101ece26fb765f200fab29646",
+    "tools/build-kernel.py": "f832eba9d8d6bedb64728ad5b201431a4d79c1d43ba7e17a921c29bd45136f18",
+    "workers/opfs-worker.mjs": "821aed53438400eb002e5401aef7c0e114ef94135292e023933fa827f4dd87dc",
+    "workers/workspace-worker.mjs": "31261a146b3f9427fc4e171abacf22fded11aef9f8337e68f3d8d768da01b8f5"
+  },
+  "windowsLauncherChecks": {
+    "PowerShell5.1": "both suites passed",
+    "PowerShell7": "both suites passed"
+  },
+  "browserCompletedRuns": 4,
+  "separateFailedBaselineRun": "edge-run-3-failed.json; large Base64 parser stack failure",
+  "laboratoryCleanup": "owned listener stopped; browser test tab closed; per-run storage cleanup completed"
+}

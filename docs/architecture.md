@@ -47,3 +47,12 @@ installer, compiled OpenSlotting executable, or cloud account are required.
 [Runtime](runtime.md), [startup](localhost-start.md), [data contract](data-format.md),
 [workspace contract](workspace-format.md), and [Portable handoff](portable-mode-paused.md)
 describe the supported boundaries in more detail.
+
+## Structure proposal and isolated experiments
+
+The repository-only `docs/project-structure-plan.md` maps the current files
+to a possible future layout. No application files have been moved for that plan.
+The repository-only `experiments/localhost-lab/README.md` describes
+separate worker, source-byte storage, backup and Base64 validation candidates,
+benchmarks and their evaluation. These files are not loaded by the application,
+served by its Python runtime or included in the release package.
