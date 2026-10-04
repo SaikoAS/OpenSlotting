@@ -8,6 +8,8 @@
   const FACES = [[4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]];
   const EDGES = [[0, 1], [1, 2], [2, 3], [3, 0], [4, 5], [5, 6], [6, 7], [7, 4], [0, 4], [1, 5], [2, 6], [3, 7]];
   const FLOOR_TYPES = ['aisle', 'goods-in', 'goods-out'];
+  const SHADES = [1, .78, .66, .86, .72];
+  const NO_PICK = [0, 0, 0];
   const VERTEX_SOURCE = '#version 300 es\n' +
     'in vec3 aPosition; in vec4 aColor; in vec3 aPick;\n' +
     'uniform bool uPicking; out vec4 vColor;\n' +
@@ -22,13 +24,18 @@
     }).concat(alpha);
   }
   function idColor(id) { return [(id & 255) / 255, ((id >> 8) & 255) / 255, ((id >> 16) & 255) / 255]; }
+  function vertexBuffer(vertexCount) { return { values: new Float32Array(vertexCount * STRIDE), offset: 0 }; }
   function pushVertex(target, point, rgba, pick, bias) {
-    target.push(point.x, point.y, point.z + (bias || 0), rgba[0], rgba[1], rgba[2], rgba[3], pick[0], pick[1], pick[2]);
+    const values = target.values;
+    let index = target.offset;
+    values[index++] = point.x; values[index++] = point.y; values[index++] = point.z + (bias || 0);
+    values[index++] = rgba[0]; values[index++] = rgba[1]; values[index++] = rgba[2]; values[index++] = rgba[3];
+    values[index++] = pick[0]; values[index++] = pick[1]; values[index++] = pick[2];
+    target.offset = index;
   }
   function pushLine(target, first, second, rgba, bias) {
-    const none = [0, 0, 0];
-    pushVertex(target, first, rgba, none, bias);
-    pushVertex(target, second, rgba, none, bias);
+    pushVertex(target, first, rgba, NO_PICK, bias);
+    pushVertex(target, second, rgba, NO_PICK, bias);
   }
 
   function panTarget(target, yaw, pitch, dx, dy, scale) {
@@ -44,13 +51,26 @@
   function projectScene(boxes, camera, width, height, selectedId, selectedSlotId, collisionIds, wallMode) {
     const visible = boxes.filter(function (item) { return wallMode !== 'hidden' || item.object.type !== 'wall'; });
     const yaw = camera.yaw, pitch = camera.pitch;
+    const yawCosine = Math.cos(yaw), yawSine = Math.sin(yaw);
+    const pitchCosine = Math.cos(pitch), pitchSine = Math.sin(pitch);
+    // Frame-local transforms/palette never survive a layout, camera or style change.
+    const rotations = new Map(), palette = new Map();
+    function frameColor(hex, factor, alpha) {
+      const key = hex + ':' + factor + ':' + alpha;
+      if (!palette.has(key)) palette.set(key, color(hex, factor, alpha));
+      return palette.get(key);
+    }
     function transform(object, x, y, z) {
-      const angle = object.rotation * Math.PI / 180;
-      const wx = object.x + Math.cos(angle) * x - Math.sin(angle) * z;
-      const wz = object.z + Math.sin(angle) * x + Math.cos(angle) * z;
-      const rx = Math.cos(yaw) * wx - Math.sin(yaw) * wz;
-      const rz = Math.sin(yaw) * wx + Math.cos(yaw) * wz;
-      return { x: rx, y: rz * Math.sin(pitch) - y * Math.cos(pitch), depth: rz * Math.cos(pitch) + y * Math.sin(pitch) };
+      let rotation = rotations.get(object);
+      if (!rotation) {
+        const angle = object.rotation * Math.PI / 180;
+        rotation = { cosine: Math.cos(angle), sine: Math.sin(angle) }; rotations.set(object, rotation);
+      }
+      const wx = object.x + rotation.cosine * x - rotation.sine * z;
+      const wz = object.z + rotation.sine * x + rotation.cosine * z;
+      const rx = yawCosine * wx - yawSine * wz;
+      const rz = yawSine * wx + yawCosine * wz;
+      return { x: rx, y: rz * pitchSine - y * pitchCosine, depth: rz * pitchCosine + y * pitchSine };
     }
     const projected = visible.map(function (item) {
       const corners = [
@@ -97,19 +117,26 @@
         y: 1 - ((p.y - centerY) * scale + height / 2) / height * 2,
         z: (near - p.depth) / (near - far) * 2 - 1 };
     }
-    const opaque = [], transparent = [], edges = [], grid = [], pickMap = [null];
+    function transparentBox(item) { return FLOOR_TYPES.includes(item.object.type) || (wallMode === 'transparent' && item.object.type === 'wall'); }
+    let opaqueCount = 0, edgeCount = 0;
+    projected.forEach(function (entry) {
+      const isTransparent = transparentBox(entry.item);
+      if (!isTransparent) opaqueCount += 1;
+      if (!isTransparent || entry.item.object.id === selectedId) edgeCount += 1;
+    });
+    const opaque = vertexBuffer(opaqueCount * FACES.length * 6), edges = vertexBuffer(edgeCount * EDGES.length * 2);
+    const transparent = [], pickMap = [null];
     projected.forEach(function (entry) {
       const item = entry.item;
-      const isTransparent = FLOOR_TYPES.includes(item.object.type) || (wallMode === 'transparent' && item.object.type === 'wall');
+      const isTransparent = transparentBox(item);
       const alpha = item.object.type === 'wall' ? .28 : .32;
-      const vertices = [];
+      const vertices = isTransparent ? vertexBuffer(FACES.length * 6) : opaque;
       const corners = entry.corners.map(clip);
       const pickId = pickMap.length;
       pickMap.push(item.slotRef || { objectId: item.object.id });
       const pick = idColor(pickId);
       FACES.forEach(function (face, faceIndex) {
-        const shade = [1, .78, .66, .86, .72][faceIndex];
-        const rgba = color(item.color, shade, isTransparent ? alpha : 1);
+        const rgba = frameColor(item.color, SHADES[faceIndex], isTransparent ? alpha : 1);
         [face[0], face[1], face[2], face[0], face[2], face[3]].forEach(function (index) {
           pushVertex(vertices, corners[index], rgba, pick);
         });
@@ -117,11 +144,11 @@
       if (isTransparent) {
         const averageDepth = entry.corners.reduce(function (sum, p) { return sum + p.depth; }, 0) / 8;
         transparent.push({ depth: averageDepth, vertices: vertices });
-      } else opaque.push.apply(opaque, vertices);
+      }
       if (!isTransparent || item.object.id === selectedId) {
         const selected = item.slotRef && item.slotRef.slotId === selectedSlotId;
         const conflict = collisionIds.has(item.object.id);
-        const edgeColor = color(selected ? '#fff2a3' : conflict ? '#ff9c72' :
+        const edgeColor = frameColor(selected ? '#fff2a3' : conflict ? '#ff9c72' :
           item.object.id === selectedId ? '#79f2de' : '#273844', 1, 1);
         EDGES.forEach(function (edge) { pushLine(edges, corners[edge[0]], corners[edge[1]], edgeColor, -.0003); });
       }
@@ -129,6 +156,7 @@
     transparent.sort(function (a, b) { return a.depth - b.depth; });
     const floorSize = Math.max(10000, Math.ceil(Math.max(maxX - minX, maxY - minY) / 5000) * 5000);
     const gridStep = Math.max(1000, Math.ceil(floorSize / 60000) * 1000);
+    const grid = vertexBuffer((Math.floor(floorSize * 2 / gridStep) + 1) * 4);
     const floor = { x: 0, z: 0, rotation: 0 };
     const gridColor = color('#23323d', 1, 1);
     function gridPoint(x, z) {
@@ -144,8 +172,8 @@
       pushLine(grid, a, b, gridColor);
       pushLine(grid, c, d, gridColor);
     }
-    return { opaque: new Float32Array(opaque), transparent: transparent.map(function (item) { return new Float32Array(item.vertices); }),
-      edges: new Float32Array(edges), grid: new Float32Array(grid), pickMap: pickMap,
+    return { opaque: opaque.values, transparent: transparent.map(function (item) { return item.vertices.values; }),
+      edges: edges.values, grid: grid.values, pickMap: pickMap,
       view: { fitTarget: fitTarget, fitScale: fitScale, scale: scale } };
   }
 

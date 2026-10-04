@@ -31,6 +31,19 @@ All notable changes to OpenSlotting are documented in this file.
 - removed direct-file launcher APIs and added an early startup notice before workspace access on unsupported origins
 - Python standard-library serving remains the sole additional runtime dependency; all import, analysis, workspace, backup, desk, and warehouse functions remain browser-local
 - added a standard stop command, browser connection restrictions, and current localhost documentation/acceptance gates
+- replaced generated Blob workers with fixed local modules and a cancellable sequential session; source profiling and reanalysis now run in the background
+- reused bounded source/desk table rows and terminal search projections; added an adaptive date index with unchanged exact aggregation and source references
+- prepared warehouse collision geometry once per pass and wrote WebGL projection buffers directly, preserving collision order and geometry bytes
+- added revalidated interface-asset caching and reproducible production benchmarks with documented limits
+
+### Fixed
+
+- large backup Base64 validation no longer exhausts the regular-expression stack
+- unknown dates do not contribute false zero rows to period coverage
+- cancelled pre-dispatch tasks, imports and language refreshes cannot publish incomplete sources or mixed-language diagnostics
+- workspace opening and cancellation restore enabled mapping/file controls
+
+### Changed (continued)
 
 - the interface now uses a compact five-step workflow rail and clearer required/optional mapping labels
 - zero selling units and partial sales are valid; invalid optional unit values are advisory-only, while unit quantities above total quantity remain visible review notes

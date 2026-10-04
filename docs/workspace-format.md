@@ -102,12 +102,22 @@ last-used workspace without automatically reading its payload. After explicit
 selection, IndexedDB returns the manifest and independently stored source,
 byte, row, and issue chunks asynchronously. Validation, source
 decoding, CSV parsing, normalization, and article aggregation run in a dedicated
-worker created from a local `blob:` URL. The worker source is assembled from the
-already loaded local module factories, so preparation needs no additional
-resource request. Source `ArrayBuffer` objects are
+worker loaded from the bundled `src/workers/workspace-worker.mjs` entrypoint.
+It imports the same local core modules used by the main-thread fallback. A
+sequential session reuses that worker; task IDs and workspace revisions reject
+late responses, cancellation/error terminates it, and 30 seconds idle disposes
+it. Only allowlisted interface files are requested. Source `ArrayBuffer` objects are
 transferred into and back from the worker rather than copied. If workers are
 unavailable, the same validated preparation path remains as a visible
 main-thread fallback.
+
+New-file profiling and reanalysis also use this worker. They transfer copies of
+the current buffers so cancellation retains the active view's original bytes.
+Completed calculations replace the runtime view only for the current workspace,
+revision and language. No full or metadata autosave captures a source while its
+file read/profile is incomplete. A cancelled/failed language calculation rolls
+back the language and leaves the earlier diagnostics consistent. Cancellation
+ends before the existing atomic IndexedDB write starts.
 
 The opening path performs one analysis and one storage estimate. Trusted
 in-memory snapshots can retain already validated payload references until the
@@ -117,6 +127,9 @@ original source bytes are transferred to the worker, because that result is
 rebuilt from those bytes; its durable IndexedDB record is not changed by this
 runtime optimization.
 Backup input continues to use the strict copying and validation path.
+Base64 validation uses bounded character checks instead of an unbounded grouped
+regular expression; padding and tagged-value validation remain strict and the
+JSON format is unchanged. This fixes stack exhaustion on large source buffers.
 
 ## Exact number representation
 

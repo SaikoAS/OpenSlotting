@@ -60,7 +60,7 @@ The current implementation includes:
 - automatic storage of original source bytes, mappings, normalized rows, validation results, and provenance
 - workspace creation, selection, rename, confirmed clearing, and confirmed deletion
 - metadata-first workspace overview without automatically loading the last large payload
-- cancellable background validation, CSV preparation, and analysis in an offline `blob:` worker
+- cancellable background validation, CSV profiling, preparation, and analysis in a reusable local module worker
 - last-used workspace marker and per-workspace source/row overview
 - approximate browser usage/quota display with a clear unavailable fallback
 - complete single-workspace JSON backup and validated restore as new or explicit replacement
@@ -114,6 +114,13 @@ this reminder but does not modify taskbar policy or attempt unsupported shell
 automation.
 
 ## Localhost development and Portable pause
+
+The current performance work uses fixed local worker files, bounded table-row
+reuse, cached entity search, an adaptive date index and prepared warehouse
+geometry. Original source bytes, exact quantities, source references, browser
+storage and the backup format remain compatible. Python still only serves
+interface files; operational data is processed in the browser.
+See [performance decisions, measurements and limits](docs/performance/README.md).
 
 Localhost is the only actively developed runtime. OpenSlotting processes and
 stores imported data locally in the browser. Python is the only additional

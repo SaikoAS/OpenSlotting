@@ -1340,8 +1340,21 @@
     return btoa(binary);
   }
 
+  // Bounded character classes avoid the grouped-regexp stack overflow on
+  // large original sources. Padding and accepted syntax remain unchanged.
+  function isBase64(value) {
+    if (typeof value !== 'string' || value.length % 4 !== 0) return false;
+    let end = value.length;
+    if (value.endsWith('==')) end -= 2;
+    else if (value.endsWith('=')) end -= 1;
+    for (let index = 0; index < end; index += 16384) {
+      if (/[^A-Za-z0-9+/]/.test(value.slice(index, Math.min(end, index + 16384)))) return false;
+    }
+    return true;
+  }
+
   function base64ToBuffer(value) {
-    if (typeof value !== 'string' || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) {
+    if (!isBase64(value)) {
       validationError('invalid_backup_encoding', 'Backup contains invalid binary data.');
     }
     if (typeof Buffer !== 'undefined') {

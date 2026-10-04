@@ -45,7 +45,20 @@ Python serves an explicit interface-file allowlist; it has no upload, database
 or business-calculation endpoint. Source CSVs, backups, repository files,
 documentation and scripts are excluded. Browser Content Security Policy blocks
 application connection requests with `connect-src 'none'`, while allowing
-local Blob workers, styles and rendering.
+bundled same-origin module workers, styles and rendering.
+
+The worker entrypoint is `src/workers/workspace-worker.mjs`. A sequential session
+reuses one worker, tags responses with a task ID, terminates cancelled/failed
+tasks and disposes after 30 seconds idle. New source profiling and reanalysis run
+there too. Their input buffer copies keep the active view recoverable on cancel;
+opening, restore and backup use transferable loaded buffers. The same core
+calculation remains the explicit fallback if worker creation fails.
+
+The Python server caches only allowed interface bytes and their ETags. Asset
+changes invalidate that entry. HTML/health/errors are `no-store`; other assets
+are `no-cache` with conditional `304` responses. This reduces repeated transfers
+without changing the storage origin. Restart the server after updating its code,
+then reload Edge so every module uses the same candidate.
 
 Original bytes, normalized rows, mappings, validation, provenance and layouts
 stay in IndexedDB in the current browser profile. The existing database name,

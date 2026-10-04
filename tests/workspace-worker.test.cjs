@@ -25,7 +25,7 @@ function extractFunction(source, name, nextName) {
   return source.slice(start + 2, end);
 }
 
-test('offline worker preparation validates, parses, and analyzes a workspace', () => {
+test('shared local worker preparation validates, parses, and analyzes a workspace', () => {
   const messages = [];
   const context = vm.createContext({
     ArrayBuffer,
@@ -47,24 +47,9 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   vm.runInContext(read('warehouse.js'), context);
   vm.runInContext(read('workspace.js'), context);
 
-  const appSource = read('app.js');
-  const workerFunctions = [
-    extractFunction(appSource, 'decodeFileEntry', 'handleFileChange'),
-    extractFunction(appSource, 'runtimeFileFromStored', 'prepareWorkspaceRecord'),
-    extractFunction(appSource, 'prepareWorkspaceRecord', 'workspaceWorkerMain'),
-    extractFunction(appSource, 'workspaceWorkerMain', 'workspaceLoadError')
-  ].join('\n');
-  const generatedWorkerSource = [
-    "'use strict';",
-    'const encoding = (' + context.OpenSlottingEncodingFactory.toString() + ')();',
-    'const core = (' + context.OpenSlottingCsvFactory.toString() + ')();',
-    'const warehouseModel = (' + context.OpenSlottingWarehouseFactory.toString() + ')();',
-    'const workspaceModel = (' + context.OpenSlottingWorkspaceFactory.toString() + ')(warehouseModel);',
-    workerFunctions,
-    '(' + extractFunction(appSource, 'workspaceWorkerMain', 'workspaceLoadError') + ')();'
-  ].join('\n');
-  assert.doesNotThrow(() => new vm.Script(generatedWorkerSource));
-  vm.runInContext(generatedWorkerSource, context);
+  vm.runInContext(read('src/application/workspace-preparation.js'), context);
+  context.OpenSlottingWorkspacePreparation.workspaceWorkerMain(context.self);
+  vm.runInContext('const workspaceModel = OpenSlottingWorkspace;', context);
 
   const text = 'order_id;article_id;quantity;delivery_date\nO-1; sku-worker ;0.3;2026-09-12\nO-2;;1;2026-09-12\n';
   vm.runInContext([
@@ -116,7 +101,7 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.deepEqual(Array.from(completed.prepared.files[0].parsed.headers), ['order_id', 'article_id', 'quantity', 'delivery_date']);
 
   const fallbackPrepared = vm.runInContext(
-    "prepareWorkspaceRecord(workerRecord, 'en', function () {})",
+    "OpenSlottingWorkspacePreparation.prepareWorkspaceRecord(workerRecord, 'en', function () {})",
     context
   );
   assert.equal(fallbackPrepared.files[0].result.rows[0].article_id, 'SKU-WORKER');

@@ -71,8 +71,8 @@ Normal use requires the existing browser and a company-approved Python 3.8+
 runtime. Python uses only its standard library. It binds to `127.0.0.1`, serves
 an explicit runtime-file allowlist, checks HTTP Host authorities, and accepts
 no upload or data-storage request. The browser Content Security Policy uses
-`connect-src 'none'` to block application connection requests; Blob workers
-continue to process data locally. No CDN, telemetry, remote API, account,
+`connect-src 'none'` to block application connection requests; bundled same-origin
+module workers process data locally. No CDN, telemetry, remote API, account,
 additional package installation, OpenSlotting executable, or administrator
 rights are part of normal use.
 
@@ -80,6 +80,12 @@ Imported CSV data remains in the user's browser profile unless the user
 explicitly exports or transfers it. Localhost traffic is confined to the same
 device. This is a local interface-file service, not a central database or
 multi-user backend.
+
+Only explicitly allowed interface assets enter the server's private byte/ETag
+cache. HTML, health and error responses remain `no-store`; other interface files
+use `no-cache` and must be revalidated. CSVs, backups, IndexedDB records and
+repository contents never enter that cache. Worker tasks release their handlers
+on completion, stop after 30 seconds idle, and terminate on cancellation or error.
 
 Active development supports localhost only. Portable Mode is deliberately
 paused indefinitely and preserved at the commit described in

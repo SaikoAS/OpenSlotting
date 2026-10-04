@@ -5,6 +5,8 @@ const assert = require('node:assert/strict');
 const core = require('../../../csv.js');
 const periods = require('../../../periods.js');
 const terminal = require('../../../terminal.js');
+const { execFileSync } = require('node:child_process');
+const path = require('node:path');
 const { INT64_MAX, movementEntries, mapTotals, createColumnSnapshot } = require('./exact-kernel.cjs');
 const { createRangeEngine } = require('./range-engine.cjs');
 const { syntheticRows, queries } = require('./fixtures.cjs');
@@ -192,18 +194,22 @@ test('Exact dictionary-bitset distinct counts preserve different core and termin
   assert.equal(popcount(0), 0);
 });
 
-test('Current unknown-date coverage discrepancy is visible, not silently changed by full adapter', () => {
+test('Historical unknown-date coverage discrepancy remains reproducible from its frozen Git baseline', () => {
   const rows = syntheticRows(2);
   rows[0].delivery_date = null;
   rows[1].delivery_date = '2025-01-03';
   const settings = { periodA: { start: '2025-01-01', end: '2025-01-07' }, periodB: { start: '2025-01-08', end: '2025-01-14' } };
-  const baseline = periods.comparePeriods(rows, settings, core.analyzeRows);
+  const source = execFileSync('git', ['show', 'db39ffaca31ebeddec884413c38725f4fd38a5a0:periods.js'],
+    { cwd: path.resolve(__dirname, '../../..'), encoding: 'utf8' });
+  const historicalModule = { exports: {} };
+  new Function('module', source)(historicalModule);
+  const baseline = historicalModule.exports.comparePeriods(rows, settings, core.analyzeRows);
   const engine = createRangeEngine(rows, { revision: 'unknown' });
   assert.equal(baseline.analysisA.total_lines, 1);
   assert.equal(baseline.coverageA.rowCount, 2);
   assert.equal(baseline.analysisB.total_lines, 0);
   assert.equal(baseline.coverageB.rowCount, 1);
-  assert.deepEqual(engine.compareFull(settings), baseline);
+  assert.deepEqual(engine.compareFull(settings), periods.comparePeriods(rows, settings, core.analyzeRows));
   assert.equal(engine.metadata.unknownDateRows, 1);
   assert.equal(engine.queryRange('2025-01-01', '2025-01-07').lines, 1);
 });

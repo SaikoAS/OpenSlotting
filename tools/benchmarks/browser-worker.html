@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenSlotting – Produktionsworker vergleichen</title>
+  <style>
+    body { font: 16px/1.5 system-ui,sans-serif; margin: 2rem auto; max-width: 1100px; padding: 0 1rem; color: #172a3b; background: #f4f6f8; }
+    h1 { font-size: 1.7rem; } button { font: inherit; padding: .5rem .8rem; margin: .3rem .4rem .3rem 0; }
+    button:focus-visible,input:focus-visible { outline: 3px solid #087cc1; outline-offset: 3px; }
+    pre { background: #fff; border: 1px solid #bdcbd6; padding: 1rem; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 65vh; overflow: auto; }
+    .controls { background: #fff; padding: 1rem; border: 1px solid #bdcbd6; } label { display: block; margin: .5rem 0; }
+    code { overflow-wrap: anywhere; } a { color: #005b93; }
+  </style>
+</head>
+<body>
+  <h1>OpenSlotting: Produktionsworker im Browser</h1>
+  <p>Vergleich mit dem tatsächlichen Blob-Worker aus <code>db39ffa</code>, einem frischen aktuellen Modul-Worker und der aktuellen <code>WorkerSession</code> mit Wiederverwendung. Ausschließlich synthetische 1000/10000 CSV-Zeilen; kein Zugriff auf Arbeitsbereiche oder Nutzerdaten.</p>
+  <p>Erster Aufruf separat; anschließend ein Warmup und fünf Samples in wechselnder Reihenfolge. Die Zeit umfasst Bufferkopie, Start und Nachrichtenübertragung bis zum vollständigen Ergebnis. Ganze Ergebnis- und Quelldaten werden außerhalb der Messung verglichen. Browsercache bleibt aktiv; „frisch“ bedeutet eine neue Workerinstanz.</p>
+  <div class="controls">
+    <label><input id="responsiveness" type="checkbox" checked> Profiling/Analyse zusätzlich direkt gegen wiederverwendeten Worker messen (mit rAF-/Timer-Beobachtung)</label>
+    <button id="start" type="button">Vergleich starten</button>
+    <button id="cancel" type="button" disabled>Abbrechen</button>
+    <button id="download" type="button" disabled>JSON herunterladen</button>
+    <p id="status" role="status" aria-live="polite">Bereit. Während des Laufs diese Seite im Vordergrund halten und keine weiteren Benchmarks starten.</p>
+  </div>
+  <h2>Messdaten</h2>
+  <pre id="output" tabindex="0" aria-label="Vollständige JSON-Messdaten">Noch keine Messung.</pre>
+  <p>Die Zusatzmessung beobachtet die Reaktionsfähigkeit des Browserthreads. Sie misst keine Tabellen-, Layout- oder vollständigen Anwendungsabläufe. Keine automatische Aussage über einen Geschwindigkeitsgewinn; alle Einzelsamples, Aufbaukosten und Vertragsprüfungen stehen im JSON.</p>
+  <script src="/encoding.js"></script>
+  <script src="/csv.js"></script>
+  <script src="/warehouse.js"></script>
+  <script src="/workspace.js"></script>
+  <script src="/src/application/workspace-preparation.js"></script>
+  <script src="/src/application/worker-session.js"></script>
+  <script src="/dist/performance-browser/baseline-worker.js"></script>
+  <script src="/tools/benchmarks/browser-worker.js"></script>
+</body>
+</html>

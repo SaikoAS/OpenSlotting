@@ -36,6 +36,10 @@ Confirm that the commit printed by the script exactly matches the recorded candi
 - [ ] `node --check runtime.js`
 - [ ] `node --check workspace.js`
 - [ ] `node --check storage.js`
+- [ ] `node --check src/application/workspace-preparation.js`
+- [ ] `node --check src/application/worker-session.js`
+- [ ] `node --check src/ui/shared/windowed-dom.js`
+- [ ] `node --check src/workers/workspace-worker.mjs`
 - [ ] `node --test tests/*.test.cjs`
 - [ ] `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows-launcher.test.ps1`
 - [ ] `pwsh -NoProfile -File tests/windows-launcher.test.ps1`

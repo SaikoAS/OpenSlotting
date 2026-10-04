@@ -46,7 +46,7 @@ paused and is not a second current runtime acceptance target.
 ## Privacy and migration
 
 - [ ] External network access is disabled or monitored; all assets load locally.
-- [ ] DevTools shows no data request; CSP connection blocking is present and Blob workers work.
+- [ ] DevTools shows no data request; CSP connection blocking is present and local module workers work.
 - [ ] The listener is loopback-only and serves neither repository nor CSV/backup/script files.
 - [ ] Upload/write HTTP methods are rejected.
 - [ ] Existing localhost workspaces reopen at the same origin/profile.
@@ -61,3 +61,18 @@ paused and is not a second current runtime acceptance target.
 - [ ] Python syntax and commit-bound ZIP packaging pass.
 - [ ] Actual Edge versions, synthetic screenshots and untested capabilities are recorded.
 - [ ] Automated, in-app-browser and historical results are not presented as current Edge acceptance.
+
+## Performance candidate checks
+
+- [ ] Source profiling and analysis leave navigation responsive; Cancel keeps original source bytes and the last committed workspace.
+- [ ] Cancellation before worker dispatch cannot occupy the next task; import/custom-field actions never save an incomplete source.
+- [ ] Language change refreshes diagnostics; cancelled/failed refresh restores the previous language.
+- [ ] Opening, finishing or cancelling a task re-enables file/mapping controls.
+- [ ] Source and desk tables keep bounded rows, correct source-line/ARIA indexes, focus and selected columns through scrolling/filtering/language changes.
+- [ ] Repeated narrow and broad period comparisons equal the scan result, including overlapping dates and unknown coverage.
+- [ ] Large backup restore succeeds above 8 MiB source bytes; corrupt Base64 leaves existing workspaces intact.
+- [ ] ETags return `304` for unchanged assets and new bytes after edits; unlisted nested paths are blocked.
+
+Current developer evidence and its browser/version limits are recorded in
+[performance/workspace-ui.md](performance/workspace-ui.md). These checks remain
+pending until an exact packaged candidate passes in the company Edge profile.

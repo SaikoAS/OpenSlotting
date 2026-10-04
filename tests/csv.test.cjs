@@ -17,7 +17,7 @@ test('release version is defined centrally for the UI and package', () => {
 });
 
 test('browser runtime has no remote assets or data transmission', () => {
-  const runtimeFiles = ['index.html', 'app.css', 'terminal-theme.css', 'warehouse-editor.css', 'runtime.js', 'app.js', 'terminal.js', 'warehouse-webgl.js', 'warehouse-scene.js', 'warehouse-editor.js', 'warehouse-analysis.js', 'warehouse.js', 'encoding.js', 'csv.js', 'periods.js', 'workspace.js', 'storage.js'];
+  const runtimeFiles = ['index.html', 'app.css', 'terminal-theme.css', 'warehouse-editor.css', 'runtime.js', 'app.js', 'terminal.js', 'warehouse-webgl.js', 'warehouse-scene.js', 'warehouse-editor.js', 'warehouse-analysis.js', 'warehouse.js', 'encoding.js', 'csv.js', 'periods.js', 'workspace.js', 'storage.js', 'src/application/workspace-preparation.js', 'src/application/worker-session.js', 'src/ui/shared/windowed-dom.js', 'src/workers/workspace-worker.mjs'];
   const forbiddenPattern = /https?:\/\/|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b/;
 
   runtimeFiles.forEach((fileName) => {
@@ -32,7 +32,7 @@ test('persistent workspace runtime uses IndexedDB without localStorage payloads'
   const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
   const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8');
 
-  assert.match(indexSource, /<script src="runtime\.js"><\/script>\s*<script src="encoding\.js"><\/script>\s*<script src="csv\.js"><\/script>\s*<script src="periods\.js"><\/script>\s*<script src="warehouse\.js"><\/script>\s*<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="terminal\.js"><\/script>\s*<script src="warehouse-webgl\.js"><\/script>\s*<script src="warehouse-scene\.js"><\/script>\s*<script src="warehouse-editor\.js"><\/script>\s*<script src="warehouse-analysis\.js"><\/script>\s*<script src="app\.js"><\/script>/);
+  assert.match(indexSource, /<script src="runtime\.js"><\/script>\s*<script src="encoding\.js"><\/script>\s*<script src="csv\.js"><\/script>\s*<script src="periods\.js"><\/script>\s*<script src="warehouse\.js"><\/script>\s*<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="terminal\.js"><\/script>\s*<script src="warehouse-webgl\.js"><\/script>\s*<script src="warehouse-scene\.js"><\/script>\s*<script src="warehouse-editor\.js"><\/script>\s*<script src="warehouse-analysis\.js"><\/script>\s*<script src="src\/application\/workspace-preparation\.js"><\/script>\s*<script src="src\/application\/worker-session\.js"><\/script>\s*<script src="src\/ui\/shared\/windowed-dom\.js"><\/script>\s*<script src="app\.js"><\/script>/);
   assert.match(storageSource, /indexedDb\.open\(databaseName, DATABASE_VERSION\)/);
   assert.match(appSource, /workspaceRepository\.updateWorkspace/);
   assert.match(appSource, /workspaceRepository\.createWorkspace/);
@@ -40,7 +40,7 @@ test('persistent workspace runtime uses IndexedDB without localStorage payloads'
   assert.doesNotMatch([appSource, storageSource, workspaceSource].join('\n'), /\blocalStorage\b/);
 });
 
-test('workspace startup is metadata-first and heavy preparation is delegated to an offline blob worker', () => {
+test('workspace startup is metadata-first and heavy preparation is delegated to a reusable local module worker', () => {
   const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
   const cssSource = fs.readFileSync(path.join(__dirname, '..', 'app.css'), 'utf8');
@@ -51,8 +51,10 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   const initializeBody = appSource.match(/async function initializeWorkspaces\(\) \{([\s\S]*?)\n  function exportResults/);
   const activateBody = appSource.match(/async function activateWorkspace\(id, successKey, options\) \{([\s\S]*?)\n  async function createWorkspace/);
   const controlsBody = appSource.match(/function renderWorkspaceControls\(\) \{([\s\S]*?)\n  function renderStorageStatus/);
-  const fileChangeBody = appSource.match(/async function handleFileChange\(\) \{([\s\S]*?)\n  function analyze/);
-  const workerBody = appSource.match(/function workspaceWorkerMain\(\) \{([\s\S]*?)\n  function workspaceLoadError/);
+  const fileChangeBody = appSource.match(/async function handleFileChange\(\) \{([\s\S]*?)\n  async function analyze/);
+  const preparationSource = fs.readFileSync(path.join(__dirname, '..', 'src/application/workspace-preparation.js'), 'utf8');
+  const workerSessionSource = fs.readFileSync(path.join(__dirname, '..', 'src/application/worker-session.js'), 'utf8');
+  const workerBody = preparationSource.match(/function workspaceWorkerMain\(scope\) \{([\s\S]*?)\n  return Object.freeze/);
   const cancelBody = appSource.match(/function cancelWorkspaceLoading\(\) \{([\s\S]*?)\n  function clearWorkspaceView/);
   const backupBody = appSource.match(/async function exportWorkspaceBackup\(\) \{([\s\S]*?)\n  function readBackupFile/);
   const restoreBody = appSource.match(/async function restoreWorkspaceBackup\(file, mode\) \{([\s\S]*?)\n  async function initializeWorkspaces/);
@@ -84,8 +86,8 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.ok(clearViewBody);
   assert.ok(overviewClickBody);
   assert.doesNotMatch(clearViewBody[1].split('  async function recoverWorkspaceCatalogAfterMissing')[0], /state\.customFields\s*=\s*\[\]/);
-  assert.match(appSource, /rename\.disabled\s*=\s*state\.workspaceLoading/);
-  assert.match(appSource, /remove\.disabled\s*=\s*state\.workspaceLoading/);
+  assert.match(appSource, /rename\.disabled\s*=\s*editsLocked/);
+  assert.match(appSource, /remove\.disabled\s*=\s*editsLocked/);
   assert.match(appSource, /activeCustomFieldIds/);
   assert.match(appSource, /state\.articleRegistry = core\.buildArticleRegistry\(retainedRows, \{ activeCustomFieldIds: activeCustomFieldIds \}\)/);
   assert.match(removeCustomFieldBody[1], /await persistActiveWorkspace\(\);/);
@@ -93,7 +95,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(removeCustomFieldBody[1], /state\.result\.qualityFindings = core\.buildDataQualityFindings/);
   assert.match(removeCustomFieldBody[1], /state\.issueRows = \(state\.result\.issues \|\| \[\]\)\.concat/);
   assert.match(removeCustomFieldBody[1], /renderIssues\(state\.issueRows\)/);
-  assert.match(appSource, /stored\.confirmedCustomFieldMapping === null \|\| stored\.confirmedCustomFieldMapping === undefined/);
+  assert.match(preparationSource, /stored\.confirmedCustomFieldMapping === null \|\| stored\.confirmedCustomFieldMapping === undefined/);
   assert.match(indexSource, /id="workspace-overview"/);
   assert.match(indexSource, /class="workspace-selector-layout"/);
   assert.match(indexSource, /id="workspace-selected-name"/);
@@ -109,9 +111,9 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   assert.match(cssSource, /\.workspace-picker-mode \.workflow-rail, \.workspace-picker-mode \.page-context \{ display: none !important; \}/);
   assert.match(appSource, /workspaceRepository\.loadWorkspaceRaw/);
   assert.match(activateBody[1], /loadWorkspaceRaw\(workspaceId, \{ includeResults: false \}\)/);
-  assert.match(appSource, /new Worker\(url\)/);
-  assert.match(appSource, /new Blob\(\[source\]/);
-  assert.match(appSource, /task\.worker\.terminate\(\)/);
+  assert.match(appSource, /new Worker\('src\/workers\/workspace-worker\.mjs', \{ type: 'module' \}\)/);
+  assert.doesNotMatch(appSource, /new Blob\(\[source\]|Factory\.toString\(\)/);
+  assert.match(workerSessionSource, /worker\.terminate\(\)/);
   assert.match(activateBody[1], /runWorkspaceWorker/);
   assert.match(activateBody[1], /await workspaceSaveChain;/);
   assert.doesNotMatch(activateBody[1], /workspaceSaveChain\.catch/);
@@ -321,10 +323,10 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(storageSource, /workspaceRowChunks/);
   assert.match(storageSource, /workspaceIssueChunks/);
   assert.match(storageSource, /workspaceRegistryChunks/);
-  assert.match(appSource, /decodeBufferChunksDetailed/);
-  assert.match(appSource, /importCsvStreamingChunks/);
-  assert.match(appSource, /profileCsvStreamingChunks/);
-  assert.match(appSource, /profileParsedCsv/);
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'src/application/workspace-preparation.js'), 'utf8'), /decodeBufferChunksDetailed/);
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'src/application/workspace-preparation.js'), 'utf8'), /importCsvStreamingChunks/);
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'src/application/workspace-preparation.js'), 'utf8'), /profileCsvStreamingChunks/);
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'src/application/workspace-preparation.js'), 'utf8'), /profileParsedCsv/);
   assert.match(appSource, /function refreshColumnCatalogOwnership\(file\)/);
   assert.match(appSource, /refreshColumnCatalogOwnership\(file\)/);
   assert.match(indexSource, /id="imported-files"/);
@@ -350,7 +352,7 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(appSource, /const pageSize = 50/);
   assert.match(appSource, /function renderSourceColumnOverview\(file, section\)/);
   assert.match(appSource, /refreshColumnCatalogOwnership\(state\.files\[index\]\)/);
-  assert.match(appSource, /createAnalysisAccumulator/);
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'src/application/workspace-preparation.js'), 'utf8'), /createAnalysisAccumulator/);
   assert.match(appSource, /buildMappingSuggestions/);
   assert.match(appSource, /source-column-overview/);
   assert.match(appSource, /source_column_ambiguous/);

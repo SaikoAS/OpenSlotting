@@ -5,6 +5,45 @@
 })(typeof window !== 'undefined' ? window : null, function () {
   'use strict';
 
+  const entitySearchProjections = new WeakMap();
+
+  function entitySearchLocale(locale) {
+    return locale === 'de' ? 'de-DE' : 'en-US';
+  }
+
+  function entitySearchText(entity, locale) {
+    const languageTag = entitySearchLocale(locale);
+    const previous = entitySearchProjections.get(entity);
+    if (previous && previous.languageTag === languageTag &&
+        previous.label === entity.label && previous.secondary === entity.secondary) {
+      return previous.text;
+    }
+    const text = (entity.label + ' ' + entity.secondary).toLocaleLowerCase(languageTag);
+    entitySearchProjections.set(entity, {
+      languageTag: languageTag, label: entity.label, secondary: entity.secondary, text: text
+    });
+    return text;
+  }
+
+  function prepareEntitySearchProjections(entities, locale) {
+    const values = entities || [];
+    values.forEach(function (entity) { entitySearchText(entity, locale); });
+    return values;
+  }
+
+  function entityMatchesNormalizedQuery(entity, normalizedQuery, locale) {
+    return !normalizedQuery || entitySearchText(entity, locale).includes(normalizedQuery);
+  }
+
+  function filterEntities(entities, rawQuery, locale) {
+    const values = entities || [];
+    const query = String(rawQuery === undefined || rawQuery === null ? '' : rawQuery)
+      .trim().toLocaleLowerCase(entitySearchLocale(locale));
+    return query ? values.filter(function (entity) {
+      return entityMatchesNormalizedQuery(entity, query, locale);
+    }) : values;
+  }
+
   function entityKey(row, scope) {
     if (scope === 'article') return row.article_id || null;
     if (scope === 'customer') return row.customer_id || null;
@@ -325,6 +364,8 @@
   return { buildIndex: buildIndex, entityKey: entityKey, rangeStart: rangeStart,
     selectedSummary: selectedSummary, selectedLines: selectedLines, visibleLineWindow: visibleLineWindow,
     rankEntities: rankEntities, filterLines: filterLines, sortLines: sortLines, exportLinesCsv: exportLinesCsv,
+    prepareEntitySearchProjections: prepareEntitySearchProjections,
+    entityMatchesNormalizedQuery: entityMatchesNormalizedQuery, filterEntities: filterEntities,
     chartDateAtX: chartDateAtX, chartDateRange: chartDateRange,
     summarizeSelection: summarizeSelection, chartGranularity: chartGranularity,
     aggregateChart: aggregateChart, coverageCounts: coverageCounts };

@@ -25,6 +25,7 @@
   const storageApi = window.OpenSlottingStorage;
   const terminalModel = window.OpenSlottingTerminal;
   const workspaceRepository = storageApi.createRepository();
+  const workspacePreparation = window.OpenSlottingWorkspacePreparation;
   const TRANSLATIONS = {
     en: {
       page_title: 'OpenSlotting – CSV Analysis',
@@ -1750,6 +1751,8 @@
     resetButton: document.getElementById('reset-button')
   };
 
+  const sourceRowCache = window.OpenSlottingWindowedDom.createRowCache();
+  const terminalRowCache = window.OpenSlottingWindowedDom.createRowCache();
   let workspaceSaveChain = Promise.resolve();
   const terminalView = { rows: null, indexes: {}, scope: 'article', selected: { article: null, customer: null, order: null },
     lineMode: 'recent', columns: new Set(), lineContext: null, allLines: null, filteredLines: null,
@@ -1765,6 +1768,8 @@
   }
   let workspaceLoadRevision = 0;
   let workspaceWorkerTask = null;
+  const workspaceWorkerSession = window.OpenSlottingWorkerSession.createSession(createWorkspaceWorker);
+  window.addEventListener('pagehide', function () { workspaceWorkerSession.cancel(); });
   let storageEstimateTimer = null;
 
   function translate(key, replacements) {
@@ -1936,8 +1941,9 @@
   }
 
   function renderCustomFields() {
+    const editsLocked = state.workspaceLoading || state.files.some(function (file) { return file.reading; });
     const fields = Array.isArray(state.customFields) ? state.customFields : [];
-    elements.customFieldCreate.disabled = !state.activeWorkspace || state.workspaceLoading;
+    elements.customFieldCreate.disabled = !state.activeWorkspace || editsLocked;
     elements.customFieldsList.replaceChildren();
     if (!fields.length) {
       const empty = document.createElement('p');
@@ -1955,11 +1961,11 @@
       if (field.active !== false) {
         const rename = document.createElement('button');
         rename.type = 'button'; rename.className = 'text-button'; rename.dataset.renameCustomField = field.id;
-        rename.disabled = state.workspaceLoading;
+        rename.disabled = editsLocked;
         setText(rename, translate('custom_field_rename'));
         const remove = document.createElement('button');
         remove.type = 'button'; remove.className = 'text-button danger-button'; remove.dataset.removeCustomField = field.id;
-        remove.disabled = state.workspaceLoading;
+        remove.disabled = editsLocked;
         setText(remove, translate('custom_field_remove'));
         row.appendChild(rename); row.appendChild(remove);
       }
@@ -2068,6 +2074,7 @@
   }
 
   function persistActiveWorkspace(successKey, options) {
+    if (state.files.some(function (file) { return file.reading; })) return Promise.resolve();
     if (!state.storageReady || (state.workspaceLoading && !(options && options.allowWhileLoading)) || !state.activeWorkspace) {
       return Promise.resolve(null);
     }
@@ -3456,6 +3463,7 @@
     const columnCount = file.sourceTableColumnCount;
     const filteredIndexes = sourceTableFilteredIndexes(file);
     if (filteredIndexes === undefined) {
+      sourceRowCache.clear();
       elements.sourceTableBody.replaceChildren();
       return;
     }
@@ -3472,10 +3480,20 @@
       (file.sourceTableRenderVersion || 0) + ':' + (file.sourceTableIssueVersion || 0) + ':' + state.language;
     if (!force && state.sourceTableRenderKey === renderKey) return;
     state.sourceTableRenderKey = renderKey;
-    const body = document.createDocumentFragment();
-    if (start > 0) body.appendChild(sourceTableSpacer(start * SOURCE_TABLE_ROW_HEIGHT, columnCount));
+    sourceRowCache.begin(index, JSON.stringify([headerKey, state.sourceTableFilter,
+      file.sourceTableRenderVersion, file.sourceTableIssueVersion, file.sourceTableEffectSignature,
+      columnCount, state.language, state.customFields, file.result && file.result.blocking]));
+    const body = [];
+    if (start > 0) body.push(sourceTableSpacer(start * SOURCE_TABLE_ROW_HEIGHT, columnCount));
     for (let filteredIndex = start; filteredIndex < end; filteredIndex += 1) {
       const dataIndex = filteredIndexes ? filteredIndexes[filteredIndex] : filteredIndex;
+      const retained = sourceRowCache.get(dataIndex);
+      if (retained) {
+        retained.setAttribute('aria-rowindex', String(filteredIndex + 2));
+        sourceRowCache.retain(dataIndex, retained);
+        body.push(retained);
+        continue;
+      }
       const record = core.readIndexedSourceRow(file.buffer, index.encoding, index.records[dataIndex + 1], state.language);
       const prepared = core.prepareProfileValues(
         record.values, file.mapping, file.customFieldMapping, state.customFields, file.preparationRules
@@ -3501,6 +3519,8 @@
       });
       const row = document.createElement('tr');
       row.className = 'source-data-row';
+      row.dataset.sourceFileId = file.id;
+      row.dataset.sourceLine = String(record.sourceLine);
       row.setAttribute('aria-rowindex', String(filteredIndex + 2));
       const blocking = Boolean(file.result && file.result.blocking) ||
         (file.result ? rowIssues.some(core.issueIsBlocking) : rowIssues.length > 0);
@@ -3568,10 +3588,12 @@
         cell.appendChild(content);
         row.appendChild(cell);
       }
-      body.appendChild(row);
+      sourceRowCache.retain(dataIndex, row);
+      body.push(row);
     }
-    if (end < total) body.appendChild(sourceTableSpacer((total - end) * SOURCE_TABLE_ROW_HEIGHT, columnCount));
-    elements.sourceTableBody.replaceChildren(body);
+    if (end < total) body.push(sourceTableSpacer((total - end) * SOURCE_TABLE_ROW_HEIGHT, columnCount));
+    window.OpenSlottingWindowedDom.reconcile(elements.sourceTableBody, body, elements.sourceTableScroll);
+    sourceRowCache.end();
     setText(elements.sourceTableStatus, total
       ? translate(filteredIndexes ? 'source_table_filter_position' : 'source_table_position',
         { file: file.label, first: start + 1, last: end, total: total })
@@ -3726,8 +3748,9 @@
     if (state.files.length > 0) {
       renderMapping();
     }
+    let refreshed = null;
     if (state.result && !(options && options.skipAnalysisRefresh)) {
-      refreshAnalyzedResults(true);
+      refreshed = refreshAnalyzedResults(true);
     } else if (state.result) {
       renderCoverage();
       renderComparison();
@@ -3736,6 +3759,7 @@
     }
     renderSourceStatus();
     renderWorkflow();
+    return refreshed;
   }
 
   function renderMetricCards(container, metrics) {
@@ -4579,7 +4603,7 @@
       showPeriodMessage('period_invalid', 'warning-message');
       return;
     }
-    state.comparison = periods.comparePeriods(state.result.rows, settings, core.analyzeRows, state.result.featureReadiness, state.articleRegistry);
+    state.comparison = periods.comparePeriods(state.result.rows, settings, core.analyzeRows, state.result.featureReadiness, state.articleRegistry, { indexRevision: state.result });
     core.prepareArticleSearchProjections(state.comparison.articles, state.language);
     invalidateViewCaches();
     state.comparisonPage = 1;
@@ -4873,10 +4897,11 @@
 
   function renderTerminalWatchlist(list, selected) {
     const query = elements.terminalSearch.value.trim().toLocaleLowerCase(state.language === 'de' ? 'de-DE' : 'en-US');
-    if (terminalView.watchMatchList !== list || terminalView.watchQuery !== query) {
-      terminalView.watchMatches = query ? list.filter(function (entity) { return (entity.label + ' ' + entity.secondary).toLocaleLowerCase(state.language === 'de' ? 'de-DE' : 'en-US').includes(query); }) : list;
+    if (terminalView.watchMatchList !== list || terminalView.watchQuery !== query || terminalView.watchLocale !== state.language) {
+      terminalView.watchMatches = terminalModel.filterEntities(list, elements.terminalSearch.value, state.language);
       terminalView.watchMatchList = list;
       terminalView.watchQuery = query;
+      terminalView.watchLocale = state.language;
       terminalView.watchWindow = null;
       elements.terminalWatchlistRows.scrollTop = 0;
     }
@@ -4954,6 +4979,8 @@
 
   function terminalLineRow(line, columns) {
     const row = document.createElement('tr');
+    row.dataset.sourceFileId = line.source_file_id || '';
+    row.dataset.sourceLine = Number.isInteger(line.source_line) ? String(line.source_line) : '';
     columns.forEach(function (column) {
       if (column.key === 'article_id' && line.article_id) {
         const cell = document.createElement('td');
@@ -5015,15 +5042,18 @@
       ? { start: 0, end: lines.length, before: 0, after: 0 }
       : terminalModel.visibleLineWindow(lines.length, elements.terminalLinesScroll.scrollTop,
         elements.terminalLinesScroll.clientHeight, TERMINAL_LINE_ROW_HEIGHT, 8);
+    const signature = JSON.stringify([columns.map(function (column) { return column.key; }), state.language]);
     const rendered = terminalView.renderedWindow;
     if (rendered && rendered.lines === lines && rendered.start === visible.start && rendered.end === visible.end &&
-        rendered.columnCount === columns.length) return;
-    const fragment = document.createDocumentFragment();
-    if (visible.before) fragment.appendChild(terminalLineSpacer(visible.before, columns.length));
+        rendered.signature === signature) return;
+    terminalRowCache.begin(lines, signature);
+    const fragment = [];
+    if (visible.before) fragment.push(terminalLineSpacer(visible.before, columns.length));
     for (let index = visible.start; index < visible.end; index += 1) {
-      fragment.appendChild(terminalLineRow(lines[index], columns));
+      const line = lines[index];
+      fragment.push(terminalRowCache.retain(index, terminalRowCache.get(index) || terminalLineRow(line, columns)));
     }
-    if (visible.after) fragment.appendChild(terminalLineSpacer(visible.after, columns.length));
+    if (visible.after) fragment.push(terminalLineSpacer(visible.after, columns.length));
     if (lines.length === 0) {
       const empty = document.createElement('tr');
       empty.className = 'empty-row';
@@ -5031,10 +5061,11 @@
       cell.colSpan = columns.length;
       setText(cell, translate('terminal_no_period_rows'));
       empty.appendChild(cell);
-      fragment.appendChild(empty);
+      fragment.push(empty);
     }
-    elements.terminalLinesBody.replaceChildren(fragment);
-    terminalView.renderedWindow = { lines: lines, start: visible.start, end: visible.end, columnCount: columns.length };
+    window.OpenSlottingWindowedDom.reconcile(elements.terminalLinesBody, fragment, elements.terminalLinesScroll);
+    terminalRowCache.end();
+    terminalView.renderedWindow = { lines: lines, start: visible.start, end: visible.end, signature: signature };
   }
 
   function renderTerminalLineTable(resetScroll) {
@@ -5588,7 +5619,7 @@
     invalidateViewCaches();
     state.periodSettings = settingsForDetectedCalendarWeeks(state.periodSettings, result.rows);
     if (state.comparison) {
-      state.comparison = periods.comparePeriods(result.rows, state.periodSettings, core.analyzeRows, result.featureReadiness, state.articleRegistry);
+      state.comparison = periods.comparePeriods(result.rows, state.periodSettings, core.analyzeRows, result.featureReadiness, state.articleRegistry, { indexRevision: result });
       core.prepareArticleSearchProjections(state.comparison.articles, state.language);
       invalidateViewCaches();
     }
@@ -5638,12 +5669,7 @@
   }
 
   function sourceContext(file) {
-    return {
-      id: file.id,
-      name: file.name,
-      label: file.label,
-      sourceType: workspaceModel.normalizeSourceType(file.sourceType)
-    };
+    return workspacePreparation.sourceContext(file);
   }
 
   function analysisRowCount(result) {
@@ -5822,44 +5848,62 @@
     }).filter(function (row) { return Boolean(row); });
   }
 
-  function refreshAnalyzedResults(preserveView) {
-    const analysisAccumulator = core.createAnalysisAccumulator();
-    const batchFiles = state.files.map(function (file) {
-      if (file.parsed && !file.errorKey) {
-        const mapping = file.confirmedMapping || file.mapping;
-        const customFieldMapping = file.confirmedCustomFieldMapping || file.customFieldMapping || {};
-        file.result = file.content === null || file.content === undefined
-          ? importBufferStreaming(file, mapping, {
-            locale: state.language,
-            sourceFile: sourceContext(file),
-            customFields: state.customFields,
-            customFieldMapping: customFieldMapping,
-            preparationRules: file.preparationRules,
-            sourceRules: file.sourceRules
-          })
-          : core.importCsvStreaming(file.content, mapping, {
-            locale: state.language,
-            sourceFile: sourceContext(file),
-            customFields: state.customFields,
-            customFieldMapping: customFieldMapping,
-            preparationRules: file.preparationRules,
-            sourceRules: file.sourceRules
-          });
-        if (file.result && Array.isArray(file.result.rawColumnCatalog)) {
-          file.columnCatalog = file.result.rawColumnCatalog;
-        }
-      } else {
-        file.result = null;
+  function calculationFile(file) {
+    return {
+      id: file.id, name: file.name, label: file.label, size: file.size, lastModified: file.lastModified,
+      buffer: file.buffer ? file.buffer.slice(0) : null,
+      encodingMode: file.encodingMode, activeEncoding: file.activeEncoding, detectedEncoding: file.detectedEncoding,
+      sourceType: file.sourceType, errorKey: file.errorKey, content: null,
+      parsed: file.parsed, headers: file.headers, mapping: file.mapping, confirmedMapping: file.confirmedMapping,
+      customFieldMapping: file.customFieldMapping, confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
+      preparationRules: file.preparationRules, sourceRules: file.sourceRules, columnCatalog: file.columnCatalog,
+      dataRowCount: file.dataRowCount, hasParseErrors: file.hasParseErrors, result: null
+    };
+  }
+
+  async function refreshAnalyzedResults(preserveView) {
+    if (!state.activeWorkspace || state.workspaceLoading || state.files.some(function (file) { return file.reading; })) return;
+    let committed = false;
+    const revision = ++workspaceLoadRevision;
+    const language = state.language;
+    const workspaceId = state.activeWorkspace.id;
+    state.workspaceLoading = true;
+    state.workspaceLoadCancellable = true;
+    renderWorkspaceControls();
+    updateWorkspaceLoadProgress({ phase: 'analysis' }, state.activeWorkspace.name);
+    try {
+      await nextBrowserPaint();
+      if (revision !== workspaceLoadRevision) return;
+      let prepared;
+      try {
+        prepared = await runWorkspaceWorker(null, language, revision, state.activeWorkspace.name, {
+          analysisFiles: state.files.map(calculationFile), customFields: state.customFields
+        });
+      } catch (error) {
+        if (!error || error.code !== 'worker_unavailable') throw error;
+        if (revision !== workspaceLoadRevision) return;
+        setWorkspaceMessage('workspace_worker_fallback', {}, 'warning');
+        prepared = workspacePreparation.analyzeFiles(state.files, language, state.customFields);
       }
-      return file;
-    });
-    const result = core.combineImportResults(batchFiles, {
-      analysisAccumulator: analysisAccumulator,
-      locale: state.language,
-      customFields: state.customFields
-    });
-    renderMapping();
-    renderResults(result, { preserveView: preserveView, analysis: analysisAccumulator.finish({ locale: state.language }) });
+      if (revision !== workspaceLoadRevision || !state.activeWorkspace || state.activeWorkspace.id !== workspaceId || state.language !== language) return;
+      prepared.files.forEach(function (file, index) { Object.assign(state.files[index], file); });
+      renderResults(prepared.result, { preserveView: preserveView, analysis: prepared.analysis });
+      committed = true;
+      state.workspaceLoadCancellable = false;
+      renderWorkspaceControls();
+      await persistActiveWorkspace(undefined, { allowWhileLoading: true });
+    } catch (error) {
+      if (revision === workspaceLoadRevision && (!error || error.code !== 'workspace_load_cancelled')) showWorkspaceError(error);
+    } finally {
+      if (revision === workspaceLoadRevision) {
+        state.workspaceLoading = false;
+        state.workspaceLoadCancellable = false;
+        updateWorkspaceLoadProgress(null);
+        renderMapping();
+        renderWorkspaceControls();
+      }
+    }
+    return committed;
   }
 
   function clearAnalysis(options) {
@@ -5913,111 +5957,11 @@
   }
 
   function decodeFileEntry(file, options) {
-    const streaming = Boolean(options && options.streaming);
-    function fingerprint(text) {
-      let first = 2166136261;
-      let second = 2246822519;
-      for (let index = 0; index < text.length; index += 1) {
-        const code = text.charCodeAt(index);
-        first = Math.imul(first ^ code, 16777619) >>> 0;
-        second = Math.imul(second ^ (code + index), 3266489917) >>> 0;
-      }
-      return text.length + ':' + first.toString(16) + ':' + second.toString(16);
-    }
-    file.errorKey = null;
-    file.content = null;
-    file.contentFingerprint = null;
-    file.parsed = null;
-    file.headers = [];
-    file.mapping = {};
-    file.customFieldMapping = {};
-    file.confirmedMapping = null;
-    file.columnCatalog = [];
-    file.dataRowCount = 0;
-    file.hasParseErrors = false;
-    file.result = null;
-    file.activeEncoding = null;
-    file.sourceRecordIndex = null;
-    file.sourceRecordIndexToken = (file.sourceRecordIndexToken || 0) + 1;
-    file.sourceRecordIndexBuilding = false;
-    file.sourceRecordIndexError = null;
-    file.sourceTableIssueResult = null;
-    file.sourceTableIssuesByLine = null;
-    try {
-      const decoded = streaming
-        ? encoding.decodeBufferChunksDetailed(file.buffer, file.encodingMode || 'auto', { chunkSize: 64 * 1024 })
-        : encoding.decodeBufferDetailed(file.buffer, file.encodingMode || 'auto');
-      let parsed;
-      let contentFingerprint = null;
-      if (streaming) {
-        let first = 2166136261;
-        let second = 2246822519;
-        let length = 0;
-        const chunks = (function* () {
-          for (const chunk of decoded.chunks) {
-            for (let index = 0; index < chunk.length; index += 1) {
-              const code = chunk.charCodeAt(index);
-              first = Math.imul(first ^ code, 16777619) >>> 0;
-              second = Math.imul(second ^ (code + length), 3266489917) >>> 0;
-              length += 1;
-            }
-            yield chunk;
-          }
-        }());
-        const profiled = core.profileCsvStreamingChunks(chunks, {
-          sourceFile: { id: file.id, name: file.name, label: file.label, sourceType: file.sourceType }
-        });
-        parsed = { rows: [], headers: profiled.headers, errors: profiled.errors, dataRowCount: profiled.dataRowCount };
-        file.columnCatalog = profiled.columnCatalog;
-        contentFingerprint = length + ':' + first.toString(16) + ':' + second.toString(16);
-      } else {
-        parsed = core.parseCsv(decoded.text);
-        file.columnCatalog = core.profileParsedCsv(parsed, {
-          id: file.id, name: file.name, label: file.label, sourceType: file.sourceType
-        }).columnCatalog;
-        contentFingerprint = fingerprint(decoded.text);
-      }
-      const headers = streaming
-        ? (parsed.headers || []).map(function (header) { return String(header).trim(); })
-        : (parsed.rows.length > 0 ? parsed.rows[0].values.map(function (header) { return String(header).trim(); }) : []);
-      if (headers.length === 0) {
-        const emptyError = new Error('The selected CSV file is empty or has no header row.');
-        emptyError.translationKey = 'empty_file';
-        throw emptyError;
-      }
-      file.content = streaming ? null : decoded.text;
-      file.contentFingerprint = contentFingerprint;
-      file.activeEncoding = decoded.encoding;
-      if (decoded.automatic) {
-        file.detectedEncoding = decoded.encoding;
-      }
-      file.parsed = parsed;
-      file.headers = headers;
-      if (!Array.isArray(file.columnCatalog) || file.columnCatalog.length !== file.headers.length) {
-        file.columnCatalog = core.buildColumnCatalog(file.headers, {
-          id: file.id,
-          name: file.name,
-          label: file.label,
-          sourceType: file.sourceType
-        });
-      }
-      file.mapping = core.detectMapping(file.headers, file.sourceType);
-      file.dataRowCount = streaming
-        ? Number(parsed.dataRowCount || 0)
-        : Math.max(0, parsed.rows.length - 1);
-      file.hasParseErrors = parsed.errors.length > 0;
-    } catch (error) {
-      file.errorKey = error && error.translationKey ? error.translationKey : 'invalid_encoding';
-    }
+    return workspacePreparation.decodeFileEntry(file, options);
   }
 
   function importBufferStreaming(file, mapping, options) {
-    const decoded = encoding.decodeBufferChunksDetailed(file.buffer, file.encodingMode || 'auto', { chunkSize: 64 * 1024 });
-    file.activeEncoding = decoded.encoding;
-    if (decoded.automatic) {
-      file.detectedEncoding = decoded.encoding;
-    }
-    return core.importCsvStreamingChunks(decoded.chunks, mapping, options);
+    return workspacePreparation.importBufferStreaming(file, mapping, options);
   }
 
   async function handleFileChange() {
@@ -6092,19 +6036,28 @@
     renderMapping();
     renderWorkspaceControls();
 
-    await Promise.all(newEntries.map(async function (file) {
+    for (const file of newEntries) {
       try {
         file.buffer = await readFileBuffer(file.browserFile);
         if (selectionVersion !== state.fileSelectionVersion) {
           return;
         }
-        decodeFileEntry(file, { streaming: true });
+        try {
+          const prepared = await runWorkspaceWorker(null, state.language, workspaceLoadRevision, file.label, {
+            profileFile: calculationFile(file)
+          });
+          if (selectionVersion !== state.fileSelectionVersion || !state.files.includes(file)) return;
+          Object.assign(file, prepared.file);
+        } catch (error) {
+          if (!error || error.code !== 'worker_unavailable') throw error;
+          decodeFileEntry(file, { streaming: true });
+        }
       } catch (error) {
         file.errorKey = error && error.translationKey ? error.translationKey : 'file_read_error';
       } finally {
         file.reading = false;
       }
-    }));
+    }
 
     if (selectionVersion !== state.fileSelectionVersion) {
       renderWorkspaceControls();
@@ -6125,7 +6078,7 @@
     persistActiveWorkspace().catch(function () {});
   }
 
-  function analyze() {
+  async function analyze() {
     const preparedFiles = state.files.filter(function (file) { return Boolean(file.parsed) && !file.errorKey; });
     if (preparedFiles.length === 0) {
       showMappingMessage(translate('no_prepared_files'));
@@ -6136,8 +6089,7 @@
       file.confirmedCustomFieldMapping = Object.assign({}, file.customFieldMapping || {});
     });
     showMappingMessage('');
-    refreshAnalyzedResults(false);
-    persistActiveWorkspace().catch(function () {});
+    await refreshAnalyzedResults(false);
   }
 
   function workspaceMetadata(record) {
@@ -6160,251 +6112,17 @@
   }
 
   function runtimeFileFromStored(stored) {
-    const savedMapping = Object.assign({}, stored.mapping || {});
-    const savedCustomFieldMapping = workspaceModel.normalizeCustomFieldMapping(stored.customFieldMapping);
-    const savedConfirmedCustomFieldMapping = stored.confirmedCustomFieldMapping === null || stored.confirmedCustomFieldMapping === undefined
-      ? null
-      : workspaceModel.normalizeCustomFieldMapping(stored.confirmedCustomFieldMapping);
-    const savedConfirmedMapping = stored.confirmedMapping ? Object.assign({}, stored.confirmedMapping) : null;
-    const file = {
-      id: stored.id,
-      name: stored.name,
-      label: stored.label,
-      size: stored.size,
-      lastModified: stored.lastModified,
-      browserFile: null,
-      buffer: stored.buffer,
-      reading: false,
-      errorKey: stored.errorKey,
-      encodingMode: stored.encodingMode || 'auto',
-      activeEncoding: stored.activeEncoding,
-      detectedEncoding: stored.detectedEncoding,
-      content: null,
-      contentFingerprint: null,
-      parsed: null,
-      headers: [],
-      mapping: {},
-      preparationRules: workspaceModel.normalizePreparationRules(stored.preparationRules),
-      sourceRules: workspaceModel.normalizeSourceRules(stored.sourceRules),
-      customFieldMapping: {},
-      confirmedCustomFieldMapping: null,
-      confirmedMapping: null,
-      columnCatalog: Array.isArray(stored.columnCatalog) ? stored.columnCatalog : [],
-      dataRowCount: 0,
-      hasParseErrors: false,
-      result: null,
-      sourceType: workspaceModel.normalizeSourceType(stored.sourceType)
-    };
-    if (file.buffer) {
-      decodeFileEntry(file, { streaming: true });
-      if (file.parsed && !file.errorKey) {
-        file.mapping = workspaceModel.validateMappingRange(savedMapping, file.headers.length);
-        file.customFieldMapping = workspaceModel.validateCustomFieldMappingRange(savedCustomFieldMapping, file.headers.length);
-        file.confirmedCustomFieldMapping = savedConfirmedCustomFieldMapping
-          ? workspaceModel.validateCustomFieldMappingRange(savedConfirmedCustomFieldMapping, file.headers.length)
-          : null;
-        file.confirmedMapping = savedConfirmedMapping
-          ? workspaceModel.validateMappingRange(savedConfirmedMapping, file.headers.length)
-          : null;
-      } else {
-        file.mapping = savedMapping;
-        file.customFieldMapping = savedCustomFieldMapping;
-        file.confirmedCustomFieldMapping = savedConfirmedCustomFieldMapping;
-        file.confirmedMapping = savedConfirmedMapping;
-      }
-    }
-    return file;
+    return workspacePreparation.runtimeFileFromStored(stored);
   }
 
   function persistPreparedWorkspace(prepared) {
-    const files = prepared.files.map(function (file) {
-      return {
-        id: file.id,
-        name: file.name,
-        label: file.label,
-        size: file.size,
-        lastModified: file.lastModified,
-        buffer: file.buffer,
-        encodingMode: file.encodingMode,
-        activeEncoding: file.activeEncoding,
-        detectedEncoding: file.detectedEncoding,
-        errorKey: file.errorKey,
-        mapping: file.mapping,
-        preparationRules: file.preparationRules,
-        sourceRules: file.sourceRules,
-        customFieldMapping: file.customFieldMapping,
-        confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
-        confirmedMapping: file.confirmedMapping,
-        columnCatalog: file.columnCatalog,
-        result: file.result,
-        sourceType: workspaceModel.normalizeSourceType(file.sourceType)
-      };
-    });
-    return workspaceModel.validateWorkspace(Object.assign({}, prepared.workspace, { files: files }), {
-      clonePayload: false
-    });
+    return workspacePreparation.persistPreparedWorkspace(prepared);
   }
 
   function prepareWorkspaceRecord(record, language, reportProgress) {
-    function sourceContext(file) {
-      return {
-        id: file.id,
-        name: file.name,
-        label: file.label,
-        sourceType: workspaceModel.normalizeSourceType(file.sourceType)
-      };
-    }
-    reportProgress({ phase: 'validating' });
-    const validated = workspaceModel.migrateWorkspace(record, { clonePayload: false });
-    const files = validated.files.map(function (stored, index) {
-      reportProgress({
-        phase: 'file',
-        current: index + 1,
-        total: validated.files.length,
-        file: stored.label || stored.name
-      });
-      return runtimeFileFromStored(stored);
-    });
-    let result = null;
-    let analysis = null;
-    if (validated.analyzed) {
-      reportProgress({ phase: 'analysis' });
-      const analysisAccumulator = core.createAnalysisAccumulator();
-      const batchFiles = files.map(function (file) {
-        if (file.parsed && !file.errorKey) {
-          const mapping = file.confirmedMapping || file.mapping;
-          const customFieldMapping = file.confirmedCustomFieldMapping || file.customFieldMapping || {};
-          file.result = file.content
-            ? core.importCsvStreaming(file.content, mapping, {
-              locale: language,
-              sourceFile: sourceContext(file),
-              customFields: validated.customFields,
-              customFieldMapping: customFieldMapping,
-              preparationRules: file.preparationRules,
-              sourceRules: file.sourceRules
-            })
-            : importBufferStreaming(file, mapping, {
-              locale: language,
-              sourceFile: sourceContext(file),
-              customFields: validated.customFields,
-              customFieldMapping: customFieldMapping,
-              preparationRules: file.preparationRules,
-              sourceRules: file.sourceRules
-            });
-          if (file.result && Array.isArray(file.result.rawColumnCatalog)) {
-            file.columnCatalog = file.result.rawColumnCatalog;
-          }
-        }
-        return file;
-      });
-      result = core.combineImportResults(batchFiles, {
-        analysisAccumulator: analysisAccumulator,
-        locale: language,
-        customFields: validated.customFields
-      });
-      analysis = analysisAccumulator.finish({ locale: language });
-    }
-    files.forEach(function (file) {
-      // The source bytes remain the durable source of truth. Do not retain a
-      // second decoded text copy after the worker has extracted its metadata
-      // and, where applicable, built the normalized result.
-      file.content = null;
-      if (file.parsed && Array.isArray(file.parsed.rows)) {
-        file.parsed.rows = [];
-      }
-    });
-    return {
-      workspace: {
-        id: validated.id,
-        schemaVersion: validated.schemaVersion,
-        name: validated.name,
-        createdAt: validated.createdAt,
-        updatedAt: validated.updatedAt,
-        language: validated.language,
-        analyzed: validated.analyzed,
-        periodSettings: validated.periodSettings,
-        customFields: validated.customFields,
-        importProfiles: validated.importProfiles,
-        warehouseLayout: validated.warehouseLayout,
-        articleRegistry: result && Array.isArray(result.articleRegistry)
-          ? result.articleRegistry
-          : validated.articleRegistry,
-        sourceCount: files.length,
-        sourceBytes: files.reduce(function (sum, file) {
-          return sum + (file.buffer instanceof ArrayBuffer ? file.buffer.byteLength : 0);
-        }, 0),
-        normalizedRowCount: files.reduce(function (sum, file) {
-          return sum + (file.result && Array.isArray(file.result.rows) ? file.result.rows.length : 0);
-        }, 0)
-      },
-      files: files,
-      result: result,
-      analysis: analysis
-    };
+    return workspacePreparation.prepareWorkspaceRecord(record, language, reportProgress);
   }
 
-  function workspaceWorkerMain() {
-    self.onmessage = function (event) {
-      try {
-        const input = event.data || {};
-        if (input.backupExport) {
-          const sourceSchemaVersion = Number(input.backupExport.schemaVersion);
-          const validatedExport = workspaceModel.migrateWorkspace(input.backupExport, { clonePayload: false });
-          let backupWorkspace = validatedExport;
-          // Schema 11 only adds profile metadata; older data migrations still need a refreshed registry.
-          if (sourceSchemaVersion < 10 && validatedExport.analyzed) {
-            const prepared = prepareWorkspaceRecord(input.backupExport, validatedExport.language, function (progress) {
-              self.postMessage({ type: 'progress', progress: progress });
-            });
-            backupWorkspace = Object.assign({}, validatedExport, {
-              articleRegistry: prepared.workspace.articleRegistry
-            });
-          }
-          const backupText = workspaceModel.stringifyBackup(backupWorkspace, { validated: true });
-          self.postMessage({
-            type: 'backup',
-            text: backupText,
-            filename: workspaceModel.backupFilename(input.backupExport.name)
-          });
-          return;
-        }
-        let record = input.record;
-        let language = input.language;
-        if (typeof input.backupText === 'string') {
-          const parsed = workspaceModel.parseBackup(input.backupText);
-          record = workspaceModel.prepareRestore(parsed, input.mode === 'replace'
-            ? { mode: 'replace', targetId: input.targetId }
-            : { mode: input.mode, newId: input.newId });
-          language = record.language;
-        }
-        const prepared = prepareWorkspaceRecord(record, language, function (progress) {
-          self.postMessage({ type: 'progress', progress: progress });
-        });
-        const preparedPayload = typeof input.backupText === 'string'
-          ? {
-            workspace: prepared.workspace,
-            persistedWorkspace: persistPreparedWorkspace(prepared),
-            runtime: prepared
-          }
-          : prepared;
-        const buffers = [];
-        const seenBuffers = new Set();
-        prepared.files.forEach(function (file) {
-          if (file.buffer instanceof ArrayBuffer && !seenBuffers.has(file.buffer)) {
-            seenBuffers.add(file.buffer);
-            buffers.push(file.buffer);
-          }
-        });
-        self.postMessage({ type: 'complete', prepared: preparedPayload }, buffers);
-      } catch (error) {
-        self.postMessage({
-          type: 'error',
-          code: error && (error.code || error.translationKey) || 'worker_failed',
-          message: error && error.message ? error.message : 'Workspace background processing failed.'
-        });
-      }
-    };
-  }
 
   function workspaceLoadError(code, message) {
     const error = new Error(message || code);
@@ -6454,121 +6172,44 @@
   }
 
   function createWorkspaceWorker() {
-    if (
-      typeof Worker !== 'function' ||
-      typeof Blob !== 'function' ||
-      !window.OpenSlottingEncodingFactory ||
-      !window.OpenSlottingCsvFactory ||
-      !window.OpenSlottingWarehouseFactory ||
-      !window.OpenSlottingWorkspaceFactory
-    ) {
+    if (typeof Worker !== 'function') {
       throw workspaceLoadError('worker_unavailable', 'Background workers are unavailable.');
     }
-    const source = [
-      "'use strict';",
-      'const encoding = (' + window.OpenSlottingEncodingFactory.toString() + ')();',
-      'const core = (' + window.OpenSlottingCsvFactory.toString() + ')();',
-      'const warehouseModel = (' + window.OpenSlottingWarehouseFactory.toString() + ')();',
-      'const workspaceModel = (' + window.OpenSlottingWorkspaceFactory.toString() + ')(warehouseModel);',
-      decodeFileEntry.toString(),
-      importBufferStreaming.toString(),
-      sourceContext.toString(),
-      runtimeFileFromStored.toString(),
-      persistPreparedWorkspace.toString(),
-      prepareWorkspaceRecord.toString(),
-      '(' + workspaceWorkerMain.toString() + ')();'
-    ].join('\n');
-    const url = URL.createObjectURL(new Blob([source], { type: 'application/javascript' }));
-    try {
-      return { worker: new Worker(url), url: url };
-    } catch (error) {
-      URL.revokeObjectURL(url);
-      throw workspaceLoadError('worker_unavailable', error && error.message);
-    }
+    return new Worker('src/workers/workspace-worker.mjs', { type: 'module' });
   }
 
-  function runWorkspaceWorker(record, language, revision, workspaceName, options) {
-    const created = createWorkspaceWorker();
+  async function runWorkspaceWorker(record, language, revision, workspaceName, options) {
+    if (revision !== workspaceLoadRevision) throw workspaceLoadError('workspace_load_cancelled');
+    if (workspaceWorkerTask) throw workspaceLoadError('worker_busy');
+    const settings = options || {};
     const transfer = [];
     const seenBuffers = new Set();
-    ((record && record.files) || []).forEach(function (file) {
-      if (file.buffer instanceof ArrayBuffer && !seenBuffers.has(file.buffer)) {
-        seenBuffers.add(file.buffer);
-        transfer.push(file.buffer);
-      }
+    [record, settings.backupExport, settings.analysisFiles ? { files: settings.analysisFiles } : null, settings.profileFile ? { files: [settings.profileFile] } : null].forEach(function (workspace) {
+      ((workspace && workspace.files) || []).forEach(function (file) {
+        if (file.buffer instanceof ArrayBuffer && !seenBuffers.has(file.buffer)) {
+          seenBuffers.add(file.buffer);
+          transfer.push(file.buffer);
+        }
+      });
     });
-    const settings = options || {};
-    ((settings.backupExport && settings.backupExport.files) || []).forEach(function (file) {
-      if (file.buffer instanceof ArrayBuffer && !seenBuffers.has(file.buffer)) {
-        seenBuffers.add(file.buffer);
-        transfer.push(file.buffer);
-      }
-    });
-    return new Promise(function (resolve, reject) {
-      const task = {
-        worker: created.worker,
-        url: created.url,
-        revision: revision,
-        reject: reject
-      };
-      workspaceWorkerTask = task;
-      function dispose() {
-        task.worker.terminate();
-        URL.revokeObjectURL(task.url);
-        if (workspaceWorkerTask === task) {
-          workspaceWorkerTask = null;
-        }
-      }
-      task.worker.onmessage = function (event) {
-        if (revision !== workspaceLoadRevision) {
-          dispose();
-          reject(workspaceLoadError('workspace_load_cancelled'));
-          return;
-        }
-        const message = event.data || {};
-        if (message.type === 'progress') {
-          updateWorkspaceLoadProgress(message.progress, workspaceName);
-          return;
-        }
-        if (message.type === 'backup') {
-          dispose();
-          resolve({ backupText: message.text, filename: message.filename });
-          return;
-        }
-        if (message.type === 'complete') {
-          dispose();
-          resolve(message.prepared);
-          return;
-        }
-        if (message.type === 'error') {
-          dispose();
-          reject(workspaceLoadError(message.code || 'worker_failed', message.message));
-        }
-      };
-      task.worker.onerror = function (event) {
-        dispose();
-        reject(workspaceLoadError('worker_unavailable', event && event.message));
-      };
-      try {
-        let message;
-        if (settings.backupExport) {
-          message = { backupExport: settings.backupExport };
-        } else if (settings.backupText === undefined) {
-          message = { record: record, language: language };
-        } else {
-          message = {
-            backupText: settings.backupText,
-            mode: settings.mode,
-            targetId: settings.targetId,
-            newId: settings.newId
-          };
-        }
-        task.worker.postMessage(message, transfer);
-      } catch (error) {
-        dispose();
-        reject(workspaceLoadError('worker_unavailable', error && error.message));
-      }
-    });
+    const input = settings.profileFile ? { profileFile: settings.profileFile }
+      : settings.analysisFiles ? { analysisFiles: settings.analysisFiles, customFields: settings.customFields, language: language }
+      : settings.backupExport ? { backupExport: settings.backupExport }
+      : settings.backupText === undefined ? { record: record, language: language }
+      : { backupText: settings.backupText, mode: settings.mode, targetId: settings.targetId, newId: settings.newId };
+    const task = { revision: revision };
+    workspaceWorkerTask = task;
+    try {
+      const message = await workspaceWorkerSession.run(input, {
+        transfer: transfer,
+        isCurrent: function () { return revision === workspaceLoadRevision; },
+        onProgress: function (progress) { updateWorkspaceLoadProgress(progress, workspaceName); }
+      });
+      if (revision !== workspaceLoadRevision) throw workspaceLoadError('workspace_load_cancelled');
+      return message.type === 'backup' ? { backupText: message.text, filename: message.filename } : message.prepared;
+    } finally {
+      if (workspaceWorkerTask === task) workspaceWorkerTask = null;
+    }
   }
 
   function cancelWorkspaceLoading() {
@@ -6577,16 +6218,14 @@
     }
     workspaceLoadRevision += 1;
     if (workspaceWorkerTask) {
-      const task = workspaceWorkerTask;
       workspaceWorkerTask = null;
-      task.worker.terminate();
-      URL.revokeObjectURL(task.url);
-      task.reject(workspaceLoadError('workspace_load_cancelled'));
     }
+    workspaceWorkerSession.cancel();
     state.workspaceLoading = false;
     state.workspaceLoadCancellable = false;
     updateWorkspaceLoadProgress(null);
     setWorkspaceMessage('workspace_loading_cancelled', {}, 'warning');
+    renderMapping();
     renderWorkspaceControls();
   }
 
@@ -6657,6 +6296,8 @@
   }
 
   function clearWorkspaceView() {
+    sourceRowCache.clear();
+    terminalRowCache.clear();
     state.files = [];
     state.selectedMappingFileId = null;
     state.importProfiles = [];
@@ -6757,6 +6398,7 @@
           : record.language;
         await nextBrowserPaint();
         try {
+          if (revision !== workspaceLoadRevision) throw workspaceLoadError('workspace_load_cancelled');
           prepared = await runWorkspaceWorker(record, targetLanguage, revision, listedWorkspace.name);
         } catch (error) {
           if (error && error.code === 'workspace_load_cancelled') {
@@ -6853,6 +6495,7 @@
         state.workspaceLoading = false;
         state.workspaceLoadCancellable = false;
         updateWorkspaceLoadProgress(null);
+        renderMapping();
         renderWorkspaceControls();
       }
     }
@@ -6917,6 +6560,7 @@
   }
 
   async function createCustomField() {
+    if (state.files.some(function (file) { return file.reading; })) return;
     if (!state.activeWorkspace) return;
     const name = window.prompt(translate('custom_field_name_prompt'));
     if (name === null) return;
@@ -6936,6 +6580,7 @@
   }
 
   async function createCustomFieldFromFile(fileId) {
+    if (state.files.some(function (file) { return file.reading; })) return;
     if (!state.activeWorkspace) return;
     const file = state.files.find(function (item) { return item.id === fileId; });
     if (!file || !Array.isArray(file.headers)) return;
@@ -6965,7 +6610,7 @@
   }
 
   async function renameCustomField(fieldId) {
-    if (!state.activeWorkspace || state.workspaceLoading) return;
+    if (!state.activeWorkspace || state.workspaceLoading || state.files.some(function (file) { return file.reading; })) return;
     const field = state.customFields.find(function (item) { return item.id === fieldId; });
     if (!field) return;
     const name = window.prompt(translate('custom_field_name_prompt'), field.name);
@@ -6982,7 +6627,7 @@
   }
 
   async function removeCustomField(fieldId) {
-    if (!state.activeWorkspace || state.workspaceLoading) return;
+    if (!state.activeWorkspace || state.workspaceLoading || state.files.some(function (file) { return file.reading; })) return;
     const field = state.customFields.find(function (item) { return item.id === fieldId; });
     if (!field || !window.confirm(translate('custom_field_remove_confirm', { name: field.name }))) return;
     try {
@@ -7894,10 +7539,24 @@
     if (!button || !elements.mappingGrid.contains(button)) return;
     removeImportedFile(button.dataset.removeFileId);
   });
-  elements.languageSelect.addEventListener('change', function () {
-    state.language = elements.languageSelect.value === 'de' ? 'de' : 'en';
+  elements.languageSelect.addEventListener('change', async function () {
+    const previousLanguage = state.language;
+    const nextLanguage = elements.languageSelect.value === 'de' ? 'de' : 'en';
+    const workspaceId = state.activeWorkspace && state.activeWorkspace.id;
+    const hadResult = Boolean(state.result);
+    state.language = nextLanguage;
     invalidateViewCaches();
-    applyLanguage();
+    const committed = await applyLanguage();
+    if (!state.activeWorkspace || state.activeWorkspace.id !== workspaceId || state.language !== nextLanguage) return;
+    if (hadResult && !committed) {
+      state.language = previousLanguage;
+      elements.languageSelect.value = previousLanguage;
+      invalidateViewCaches();
+      applyLanguage({ skipAnalysisRefresh: true });
+      renderArticleSearch();
+      if (state.selectedArticleId && selectedArticle()) renderArticleDetail();
+      return;
+    }
     persistActiveWorkspace(undefined, { metadataOnly: true }).catch(function () {});
   });
   elements.analyzeButton.addEventListener('click', analyze);

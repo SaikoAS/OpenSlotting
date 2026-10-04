@@ -124,6 +124,18 @@ test('Python server is loopback-only, blocks data transmission, and serves only 
   const scriptResponse = await fetch(origin + '/app.js');
   assert.equal(scriptResponse.status, 200);
   assert.match(scriptResponse.headers.get('content-type'), /^text\/javascript/);
+  assert.equal(scriptResponse.headers.get('cache-control'), 'no-cache');
+  const scriptEtag = scriptResponse.headers.get('etag');
+  assert.match(scriptEtag, /^"[a-f0-9]{64}"$/);
+  const unchangedScript = await fetch(origin + '/app.js', { headers: { 'If-None-Match': scriptEtag } });
+  assert.equal(unchangedScript.status, 304);
+  assert.equal(await unchangedScript.text(), '');
+  assert.equal(unchangedScript.headers.get('etag'), scriptEtag);
+  const weakEtag = await fetch(origin + '/app.js', { headers: { 'If-None-Match': 'W/' + scriptEtag } });
+  assert.equal(weakEtag.status, 304);
+  const wrongEtag = await fetch(origin + '/app.js', { headers: { 'If-None-Match': '"other"' } });
+  assert.equal(wrongEtag.status, 200);
+  await wrongEtag.arrayBuffer();
   const periodsResponse = await fetch(origin + '/periods.js');
   assert.equal(periodsResponse.status, 200);
   assert.match(periodsResponse.headers.get('content-type'), /^text\/javascript/);
@@ -148,6 +160,14 @@ test('Python server is loopback-only, blocks data transmission, and serves only 
     assert.equal(response.status, 200, asset);
     await response.arrayBuffer();
   }
+  for (const asset of ['src/application/workspace-preparation.js', 'src/application/worker-session.js',
+    'src/ui/shared/windowed-dom.js', 'src/workers/workspace-worker.mjs']) {
+    const response = await fetch(origin + '/' + asset);
+    assert.equal(response.status, 200, asset);
+    assert.match(response.headers.get('content-type'), /^text\/javascript/);
+    const source = await response.text();
+    assert.ok(source.length > 100);
+  }
 
   const faviconResponse = await fetch(origin + '/favicon.ico');
   assert.equal(faviconResponse.status, 200);
@@ -159,7 +179,9 @@ test('Python server is loopback-only, blocks data transmission, and serves only 
   assert.equal(await headResponse.text(), '');
 
   for (const blockedPath of ['/README.md', '/.git/config', '/%2e%2e/README.md',
-    '/test-data/basic-orders.csv', '/workspace.workspace.json', '/Start-OpenSlotting-Localhost.py', '/docs/portable-mode-paused.md']) {
+    '/test-data/basic-orders.csv', '/workspace.workspace.json', '/Start-OpenSlotting-Localhost.py', '/docs/portable-mode-paused.md',
+    '/src/application/private.js', '/src/../README.md', '/src/workers/../../.git/config',
+    '/experiments/feature-lab/index.html', '/tools/benchmarks/browser.html']) {
     const blockedResponse = await fetch(origin + blockedPath);
     assert.equal(blockedResponse.status, 404);
     await blockedResponse.arrayBuffer();

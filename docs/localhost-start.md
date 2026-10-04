@@ -52,6 +52,11 @@ runtime-file allowlist. It provides no directory listing, upload API, workspace
 database or telemetry. Browser policy blocks application connection requests.
 CSV input and workspace persistence stay in the browser.
 
+The server revalidates cached interface assets with ETags; the entry HTML and
+health response are never stored. After replacing application/server files, stop
+this folder's server, restart it, and reload Edge. Keep the port and browser
+profile stable to retain the existing IndexedDB workspace origin.
+
 Windows launchers verify the listener PID, Python executable, script entrypoint
 and canonical application root before reuse or shutdown. A foreign application
 or different OpenSlotting folder on the port is rejected. Failure cleanup stops

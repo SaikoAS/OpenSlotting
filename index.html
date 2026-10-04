@@ -169,7 +169,7 @@
                     <button id="terminal-lines-export" type="button" data-i18n="terminal_export_filtered">Export filtered CSV</button>
                   </div>
                   <div class="terminal-lines-filters"><label><span data-i18n="terminal_from">From</span><input id="terminal-filter-from" type="date"></label><label><span data-i18n="terminal_to">To</span><input id="terminal-filter-to" type="date"></label><label><span data-i18n="terminal_customer">Customer</span><input id="terminal-filter-customer" type="search" autocomplete="off"></label><label><span data-i18n="terminal_scope_order">Order</span><input id="terminal-filter-order" type="search" autocomplete="off"></label><label><span data-i18n="terminal_source">Source</span><input id="terminal-filter-source" type="search" autocomplete="off"></label><button id="terminal-filter-clear" type="button" data-i18n="terminal_clear_filters">Clear filters</button></div>
-                  <div id="terminal-lines-scroll" class="table-scroll terminal-lines-scroll"><table><thead><tr id="terminal-lines-head"></tr></thead><tbody id="terminal-lines-body"></tbody></table></div>
+                  <div id="terminal-lines-scroll" class="table-scroll terminal-lines-scroll" tabindex="0" role="region" aria-labelledby="terminal-lines-title"><table><thead><tr id="terminal-lines-head"></tr></thead><tbody id="terminal-lines-body"></tbody></table></div>
                 </section>
               </div>
               <aside class="terminal-watchlist" aria-label="Entity list" data-i18n-aria-label="terminal_watchlist"><div class="terminal-watchlist-heading"><div><strong data-i18n="terminal_watchlist">Watchlist</strong><small id="terminal-watchlist-count"></small></div><span aria-hidden="true">☷</span></div><label class="terminal-watchlist-rank"><span data-i18n="terminal_rank_basis">Ranking</span><select id="terminal-watchlist-rank"><option value="all" data-i18n="terminal_rank_all">All data</option><option value="period" data-i18n="terminal_rank_period">Selected period</option></select></label><label class="terminal-watchlist-search"><span aria-hidden="true">⌕</span><input id="terminal-search" type="search" autocomplete="off" data-i18n-placeholder="terminal_search" placeholder="Search ID or name" aria-label="Search entities" data-i18n-aria-label="terminal_search"></label><div id="terminal-watchlist-rows" class="terminal-watchlist-rows" tabindex="0" role="region" aria-label="Watchlist entries" data-i18n-aria-label="terminal_watchlist"></div><div class="terminal-watchlist-footer"><span id="terminal-source-note" data-i18n="terminal_source_note">Valid normalized order lines · local data</span></div></aside>
@@ -667,6 +667,9 @@
     <script src="warehouse-scene.js"></script>
     <script src="warehouse-editor.js"></script>
     <script src="warehouse-analysis.js"></script>
+    <script src="src/application/workspace-preparation.js"></script>
+    <script src="src/application/worker-session.js"></script>
+    <script src="src/ui/shared/windowed-dom.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

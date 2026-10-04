@@ -1,12 +1,24 @@
 # Projektprüfung und Strukturplan
 
-Stand: 2026-10-04. Ausgangspunkt: `codex/localhost-development`, Commit
-`23148a5d2548080d6d253ee9ae66bd4cb5494f5f`.
-Auf Wunsch wird dieser Plan **noch nicht als Dateiumzug ausgeführt**.
-Neue Funktionsvarianten stehen ausschließlich im [Localhost-Labor](../experiments/localhost-lab/README.md)
-und im [Feature-Labor](../experiments/feature-lab/README.md). Letzteres ergänzt
-Import/Export, erklärbare Quellspalten, mathematische Analyse, Suche, Lager,
-Editorhistorie, UI und Python-Dateiformate mit getrennten Bewertungen.
+Stand: 2026-10-04. Inventar-Ausgangspunkt: `codex/localhost-development`, Commit
+`23148a5d2548080d6d253ee9ae66bd4cb5494f5f`. Die damaligen Größen und Zählungen
+bleiben unten als Referenz gekennzeichnet.
+
+Der vollständige Ordnerumzug ist weiterhin **nicht ausgeführt**. Nach der
+getrennten Laborphase wurden ausgewählte Änderungen in die aktive
+Localhost-Anwendung integriert: statischer Modul-Worker, exportierte
+Workspace-Vorgänge, Workerwiederverwendung, Profilierung/Neuanalyse im Worker,
+begrenzte Zeilenwiederverwendung, Base64-Korrektur, Periodenindex,
+Terminal-Suchtexte, Lagerprüfung/-Framepuffer und statische HTTP-Caches.
+Die [aktuelle Architektur](architecture.md) und
+[Produktions-Funktionsmatrix](performance/README.md) beschreiben diesen Stand.
+
+Das [Localhost-Labor](../experiments/localhost-lab/README.md) und
+[Feature-Labor](../experiments/feature-lab/README.md) bewahren die getrennten
+Varianten und ihre ursprünglichen Messungen. Historische „nicht integriert“-
+Aussagen gelten für die damalige Laborphase. Weitere Import-/Exportformate,
+Spalteninterpretation, Vollindizes, Speicher-/History-Alternativen und neue
+UI-Entwürfe bleiben eigenständige Experimente.
 
 ## Umfang der Prüfung
 
@@ -26,7 +38,7 @@ betriebliche Dateien außerhalb dieses Ordners gehören nicht zum Prüfumfang.
 Dies ist eine Struktur- und Modulprüfung, keine abgeschlossene Sicherheitsprüfung
 jeder möglichen Eingabe oder eine Freigabe aller Oberflächenabläufe.
 
-## Befund zum Ausgangsstand
+## Befund zum inventarisierten Ausgangsstand
 
 | Bereich | Befund | Konsequenz |
 | --- | --- | --- |
@@ -44,10 +56,33 @@ jeder möglichen Eingabe oder eine Freigabe aller Oberflächenabläufe.
 | Auslieferung | Explizite Python-Dateifreigabe und explizite Git-Paketliste. Tests/Fixtures/Labor sind ausgeschlossen. | Umzüge müssen HTML-Verweise, Imports, Freigabe, Launcher, Paketliste und Tests zusammen ändern. |
 
 Die Inventargrößen gehören zum genannten Commit; zusätzliche Labor- und
-Berichtsdateien verändern die spätere Gesamtzahl. Der aktuelle Audit kann
-jederzeit wiederholt werden.
+Produktionsmodule sowie Berichtsdateien verändern die spätere Gesamtzahl.
+Insbesondere beschreibt die Blob-Worker-Zeile den früheren Aufbau; der aktuelle
+Worker hat einen festen Modulpfad. Der Audit kann jederzeit wiederholt werden.
+
+## Bereits ergänzte Produktionsstruktur
+
+| Aktueller Pfad | Integrierte Verantwortung | Grenze des Schritts |
+| --- | --- | --- |
+| `src/application/workspace-preparation.js` | Profilierung, Vorbereitung/Restore und Neuanalyse als direkte Exporte; vorhandene Fachkerne gemeinsam nutzen | Keine zweite Parser-/Mengenlogik; Workspace-Vertrag bleibt im bisherigen `workspace.js` |
+| `src/application/worker-session.js` | Einen Task mit Task-ID/Revision ausführen; Worker wiederverwenden und bei Leerlauf, Fehler oder Abbruch freigeben | Keine alternative Speichertransaktion oder unbegrenzte Workerflotte |
+| `src/workers/workspace-worker.mjs` | Statischer, lokaler Modul-Einstieg statt aus Funktionsquellen erzeugtem Blob | Fachmodule liegen weiterhin in der Wurzel; ihre Imports sind ausdrücklich freigegeben/verpackt |
+| `src/ui/shared/windowed-dom.js` | Nur sichtbare Quell-/Terminalzeilen nach Eingabe und Darstellung wiederverwenden | Bestehende Virtualisierung bleibt; keine vollständige UI-Verlagerung |
+| `periods.js`, `terminal.js` | Begrenzter Datumsindex und private Locale-Suchprojektionen | Vollständige Fachkennzahlen, alte Exporte und bestehende Viewcaches erhalten |
+| `warehouse.js`, `warehouse-webgl.js` | Geometrie je Prüfung und Puffer je Frame vorbereiten | Layout/Sperren/Historie unverändert; keine über Aufrufe gehaltenen Geometriecaches |
+| `workspace.js`, `Start-OpenSlotting-Localhost.py` | Stapelsichere Base64-Prüfung; ETag-Revalidierung erlaubter statischer Dateien | Schema 13, IndexedDB-Version 3 und Origin unverändert; Python verarbeitet keine Nutzerdaten |
+| `docs/performance/` | Aktuelle Produktionsentscheidungen, Einzelberichte und synthetische Rohmessungen | Historische Labore behalten ihre eigenen Quellen und Referenzstände |
+
+Diese Schritte schaffen die ersten Zielgrenzen, ohne sämtliche vorhandenen
+Dateien zu verschieben. `app.js` bleibt der Controller und enthält weiterhin
+große UI-/Lifecycle-Bereiche. Python mit Standardbibliothek bleibt die einzige
+zusätzliche Nutzerabhängigkeit; ein Framework-/Build-Schritt wurde nicht nötig.
 
 ## Vorgeschlagene Zielstruktur
+
+Die folgende Gesamtstruktur ist das weitere Ziel. Bereits vorhanden sind
+einzelne `src/application`-, `src/workers`- und `src/ui/shared`-Module sowie
+`docs/performance`; die übrigen Umzüge werden dadurch nicht als erledigt markiert.
 
 ```text
 OpenSlotting/
@@ -81,6 +116,7 @@ OpenSlotting/
 │   ├── user/                         # Start, Bedienung, Backup/Umzug
 │   ├── contracts/                    # Daten-, Workspace-, Runtime-Verträge
 │   ├── development/                  # Architektur, Benchmarks, Strukturentscheidungen
+│   ├── performance/                  # aktuelle Produktionsberichte + synthetische Messwerte
 │   ├── acceptance/                   # aktuelle Prüflisten
 │   └── history/                      # versionierte Nachweise und Portable-Pause
 ├── tests/
@@ -94,8 +130,8 @@ OpenSlotting/
 │   ├── packaging/
 │   └── benchmarks/                   # bestätigte Entwicklungsbenchmarks
 ├── experiments/
-│   ├── localhost-lab/                # Worker, Rohspeicher und Sicherungen
-│   └── feature-lab/                  # weitere unbestätigte Funktionsvarianten
+│   ├── localhost-lab/                # historische Worker-/Rohspeicher-/Sicherungsvarianten
+│   └── feature-lab/                  # historische und noch nicht übernommene Varianten
 ├── dist/                            # ignorierte Kandidaten, nach Commit geordnet
 └── .github/workflows/
 ```
@@ -111,7 +147,8 @@ Leere Verzeichnisse und vorsorgliche Frameworks werden nicht angelegt.
 | Heute | Geplanter Ort / Aufteilung |
 | --- | --- |
 | `index.html` | Bleibt als Hülle in der Wurzel; neue lokale Skript-/Stilpfade. |
-| `app.js` | `src/ui/shell`, UI-Features und `src/application`; Workspace-Worker-Vorgänge nach `src/workers`. |
+| `app.js` | Weitere UI-/Lifecycle-Bereiche nach `src/ui/shell`, UI-Features und `src/application`; erste Workspace-Vorgänge und Worker-Einstieg sind bereits exportiert. |
+| `src/application/*`, `src/workers/*`, `src/ui/shared/windowed-dom.js` | Bereits passende Zielgrenzen; Verantwortung ausbauen, nicht erneut für einen rein kosmetischen Umzug verlagern. |
 | `app.css`, `terminal-theme.css` | `src/ui/shared` bzw. `src/ui/features/analysis-desk`. |
 | `encoding.js`, `csv.js` | `src/domain/import` und `src/domain/analysis`; keine Änderung an Mengen/Provenienz. |
 | `periods.js`, `terminal.js` | `src/domain/analysis`. |
@@ -126,7 +163,7 @@ Leere Verzeichnisse und vorsorgliche Frameworks werden nicht angelegt.
 | `OpenSlotting*.psm1`, alle `.ps1` | `runtime/windows`; vier Standard-`.cmd` bleiben einfache Weiterleitungen. |
 | `*-Localhost.cmd` und bekannte alte Einstiegspfade | Für bestehende Firmenverknüpfungen zunächst kompatible Weiterleitungen; erst nach dokumentierter Ablösung entfernen. |
 | Root-Dokumente / Icon / Lizenz / `.gitignore` | Bleiben in der Wurzel. |
-| `docs/*` | Bedienung → `user`; Verträge → `contracts`; Architektur/Import-/Suchleistung/Plan → `development`; aktuelle `acceptance-*` → `acceptance`; versionierte Abnahmen/Release-Notes/Portable → `history`. |
+| `docs/*` | Bedienung → `user`; Verträge → `contracts`; Architektur/Import-/Suchleistung/Plan → `development`; aktuelle `acceptance-*` → `acceptance`; versionierte Abnahmen/Release-Notes/Portable → `history`; aktuelle Produktionsmessungen verbleiben in `performance`. |
 | `tests/*.test.cjs`, `*.test.ps1` | Entsprechende Domain-/Application-/Persistence-/Runtime-/UI-Gruppen. |
 | `tests/fake-indexeddb.cjs`, `tests/fixtures/*`, `test-data/*` | `tests/fixtures`; Nachbildung weiterhin ausdrücklich keine echte Browsermessung. |
 | `tools/package-release.ps1`, `tools/benchmark-*.cjs` | `tools/packaging`, `tools/benchmarks`; relative Root-Ermittlung aktualisieren. |
@@ -150,6 +187,17 @@ Leere Verzeichnisse und vorsorgliche Frameworks werden nicht angelegt.
    Die HTTP-Pfadänderung alleine benötigt keine IndexedDB-Migration.
 8. Portable bleibt am dokumentierten Ausgangscommit pausiert. Der aktive Baum
    enthält keine zweite portable Featurekopie.
+9. Neue Optimierungen behalten den vollständigen Fachvertrag. Eingabeidentität,
+   Locale, Revision, Invalidierung und Speicherbudget gehören zur Modulgrenze;
+   enge Laborkerne dürfen nicht still vollständige Features ersetzen.
+
+Heute gelten ausdrücklich: maximal ein aktiver Workspace-Worker, Freigabe nach
+30 Sekunden Leerlauf, 20 Historieneinträge, 150 Lagerobjekte und 5.000
+Stellplätze. Der reine Periodenindex beginnt ab dem zweiten revisionierten
+Vergleich und ist auf 512..250.000 Zeilen / 4.096 Datumsschlüssel begrenzt;
+breite Abfragen scannen. Diese Grenzen und ausgeschlossene Varianten sind in
+der [Funktionsmatrix](performance/README.md) begründet. Keine Änderung verlagert
+Importdaten oder Arbeitsbereiche in eine Python-Daten-API.
 
 ## Reihenfolge eines späteren Umzugs
 
@@ -157,13 +205,19 @@ Leere Verzeichnisse und vorsorgliche Frameworks werden nicht angelegt.
 2. Windows/Python-Interna bewegen, bekannte Benutzerbefehle/Shortcuts erhalten;
    Ownership-, Port-, Allowlist- und Start-/Stopprüfungen ausführen.
 3. Unveränderte Fachmodule bewegen; Imports, HTML, Testpfade und Paketliste anpassen.
-4. Workspace-Anwendungsvorgänge aus `app.js` herauslösen, direkt testbare Exporte schaffen.
+4. Weitere Workspace-/UI-Anwendungsvorgänge aus `app.js` herauslösen;
+   die bereits direkt exportierten Vorbereitungs-/Worker-Module als Grenze nutzen.
 5. UI/Übersetzungen nach Feature teilen; vorhandene Bedienabläufe in Edge abnehmen.
 6. Dokumentation/Fixtures/Tools umziehen, lokale Links und ZIP aus dem Kandidaten prüfen.
-7. Erst nach eigener Auswahl eine Laborvariante übernehmen; diese nicht nebenbei
-   mit dem reinen Dateiumzug vermischen.
+7. Weitere Laborvarianten nur mit eigener Auswahl, vollständigem Vertrag und
+   Messnachweis übernehmen; vom reinen Dateiumzug getrennt prüfen.
 
 Jede Stufe bleibt ein separat nachvollziehbarer Commit. Ein Umzug gilt erst als
 abgeschlossen, wenn Starten/Stoppen, bestehende Workspace-Sicherungen, Import/
 Regeln, Analyseschreibtisch, Perioden, Lagereditor/3D und ZIP-Auslieferung auf dem
-Kandidaten funktionieren. Die heutige Arbeit führt diese Stufen noch nicht aus.
+Kandidaten funktionieren. Die Gesamtverlagerung ist noch offen; die oben
+genannten gezielten Module und Optimierungen sind bereits Produktionscode.
+Node-/Logiktests und vorhandene Labor-Edge-Messungen ersetzen keine vollständige
+Abnahme dieses Kandidaten auf Firmen-PC/Edge. Diese bleibt in den aktuellen
+Abnahme-/Release-Checklisten und im [Workspace-/UI-Nachweis](performance/workspace-ui.md)
+separat ausgewiesen.

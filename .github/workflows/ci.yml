@@ -53,6 +53,10 @@ jobs:
           node --check warehouse-scene.js
           node --check warehouse-editor.js
           node --check warehouse-analysis.js
+          node --check src/application/workspace-preparation.js
+          node --check src/application/worker-session.js
+          node --check src/ui/shared/windowed-dom.js
+          node --check src/workers/workspace-worker.mjs
 
       - name: Check Python runtime availability and syntax
         run: |

@@ -378,15 +378,86 @@
 
   function findCollisions(layout) {
     const objects = layout.objects || [];
+    const records = [];
+    const byIndex = new Array(objects.length);
+    objects.forEach(function (object, index) {
+      // Intentional goods-in/out overlays never participate in collision checks.
+      if (object.type === 'goods-in' || object.type === 'goods-out') return;
+      const corners = footprintCorners(object);
+      const axes = corners.map(function (start, cornerIndex) {
+        const end = corners[(cornerIndex + 1) % corners.length];
+        const x = start.z - end.z, z = end.x - start.x;
+        return { x: x, z: z, length: Math.hypot(x, z) };
+      });
+      const record = { object: object, index: index, corners: corners, axes: axes,
+        minX: Math.min.apply(null, corners.map(function (point) { return point.x; })),
+        maxX: Math.max.apply(null, corners.map(function (point) { return point.x; })),
+        minZ: Math.min.apply(null, corners.map(function (point) { return point.z; })),
+        maxZ: Math.max.apply(null, corners.map(function (point) { return point.z; })) };
+      records.push(record); byIndex[index] = record;
+    });
     const collisions = [];
-    for (let first = 0; first < objects.length; first += 1) {
-      for (let second = first + 1; second < objects.length; second += 1) {
-        const kind = collisionKind(objects[first], objects[second]);
-        if (kind && footprintsOverlap(objects[first], objects[second])) {
-          collisions.push({ firstId: objects[first].id, secondId: objects[second].id, kind: kind });
+    function check(first, second) {
+      if (first.minX > second.maxX || first.maxX < second.minX ||
+          first.minZ > second.maxZ || first.maxZ < second.minZ) return;
+      const kind = collisionKind(first.object, second.object);
+      if (!kind) return;
+      // Same SAT axes, arithmetic and 0.001 mm contact tolerance. Corners and
+      // axes are prepared once per invocation; no cross-layout cache exists.
+      for (const polygon of [first, second]) {
+        for (const axis of polygon.axes) {
+          let firstMin = Infinity, firstMax = -Infinity, secondMin = Infinity, secondMax = -Infinity;
+          for (let corner = 0; corner < first.corners.length; corner += 1) {
+            const firstValue = first.corners[corner].x * axis.x + first.corners[corner].z * axis.z;
+            const secondValue = second.corners[corner].x * axis.x + second.corners[corner].z * axis.z;
+            firstMin = Math.min(firstMin, firstValue); firstMax = Math.max(firstMax, firstValue);
+            secondMin = Math.min(secondMin, secondValue); secondMax = Math.max(secondMax, secondValue);
+          }
+          if (Math.min(firstMax, secondMax) - Math.max(firstMin, secondMin) <= axis.length * 0.001) return;
         }
       }
+      collisions.push({ firstId: first.object.id, secondId: second.object.id, kind: kind });
     }
+    function allPairs() {
+      for (let first = 0; first < records.length; first += 1) {
+        for (let second = first + 1; second < records.length; second += 1) check(records[first], records[second]);
+      }
+    }
+    // Very small/dense scenes use prepared all-pairs without candidate buffers.
+    if (records.length < 24) { allPairs(); return collisions; }
+    function sweepPlan(min, max) {
+      const sorted = records.slice().sort(function (first, second) { return first[min] - second[min] || first.index - second.index; });
+      let candidateCount = 0;
+      sorted.forEach(function (record, index) {
+        let low = index + 1, high = sorted.length;
+        while (low < high) {
+          const middle = Math.floor((low + high) / 2);
+          if (sorted[middle][min] <= record[max]) low = middle + 1;
+          else high = middle;
+        }
+        candidateCount += low - index - 1;
+      });
+      return { sorted: sorted, min: min, max: max, candidateCount: candidateCount };
+    }
+    const xPlan = sweepPlan('minX', 'maxX'), zPlan = sweepPlan('minZ', 'maxZ');
+    const plan = xPlan.candidateCount <= zPlan.candidateCount ? xPlan : zPlan;
+    if (plan.candidateCount > records.length * (records.length - 1) / 6) {
+      allPairs(); return collisions;
+    }
+    const candidates = [];
+    plan.sorted.forEach(function (first, index) {
+      for (let next = index + 1; next < plan.sorted.length && plan.sorted[next][plan.min] <= first[plan.max]; next += 1) {
+        const second = plan.sorted[next];
+        if (first.minX > second.maxX || first.maxX < second.minX || first.minZ > second.maxZ || first.maxZ < second.minZ) continue;
+        const low = Math.min(first.index, second.index), high = Math.max(first.index, second.index);
+        candidates.push(low * objects.length + high);
+      }
+    });
+    // Restore the exact original input-pair ordering (including omitted overlays).
+    candidates.sort(function (first, second) { return first - second; });
+    candidates.forEach(function (pair) {
+      check(byIndex[Math.floor(pair / objects.length)], byIndex[pair % objects.length]);
+    });
     return collisions;
   }
 

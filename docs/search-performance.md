@@ -32,3 +32,13 @@ The exact values are machine-specific; rerun the command on the target
 workstation for a release baseline. Correctness is covered by the CSV and
 period-comparison tests, including description variants and locale projection
 refresh.
+
+## Terminal entity projections
+
+The localhost continuation also keeps weakly referenced, locale-specific label
+and secondary-text projections for the analysis desk. It preserves full-string
+substring matching for articles, customers and orders, leading zeros and the
+current ranking. Entity mutations and locale changes rebuild projections; the
+existing cache for an identical repeated query remains in place. See
+[terminal-search.md](performance/terminal-search.md) for separate preparation
+costs, varied-query measurements and exact-result checks.
