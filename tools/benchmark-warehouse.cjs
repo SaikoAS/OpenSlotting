@@ -34,7 +34,8 @@ function compare(first, second, iterations) {
 }
 const report = { generatedAt: new Date().toISOString(), baselineCommit, syntheticOnly: true,
   environment: { node: process.version, platform: process.platform, cpu: os.cpus()[0].model },
-  methodology: 'Actual frozen production baseline versus modified production functions; 2 warmups, 7 samples, alternating order; cold invocation costs included. Node CPU only, no GPU/FPS claim.',
+  methodology: 'Frozen collision/projection functions versus current functions on the same current layout-v2 geometry and picking input; 2 warmups, 7 samples, alternating order; preparation included. This isolates algorithm changes, not old versus new scene colors or migration. Node CPU only, no GPU/FPS claim.',
+  layoutVersion: current.LAYOUT_VERSION,
   limits: { objects: 150, slots: 5000 }, collisions: [], projection: [], history: {
     decision: 'Keep existing snapshot history. Experimental object deltas retained less JSON but took longer for complete validated edit/undo/redo pipelines.',
     reference: 'experiments/feature-lab/history/results/node-benchmark.json',
@@ -73,7 +74,7 @@ for (const file of ['warehouse.js', 'warehouse-webgl.js', 'warehouse-scene.js', 
 }
 report.memory = { wholeRunPeakRssKiB: process.resourceUsage().maxRSS, finalRssBytes: process.memoryUsage().rss,
   caveat: 'Cumulative whole-run Node RSS; no isolated per-variant peak. Direct Float32 buffers remove transient number-array staging; final geometry size unchanged.', sink };
-const output = path.resolve(process.argv[2] || path.join(__dirname, '..', 'docs', 'performance', 'results', 'warehouse.json'));
+const output = path.resolve(process.argv[2] || path.join(__dirname, '..', 'docs', 'performance', 'results', 'warehouse-layout-v2.json'));
 fs.mkdirSync(path.dirname(output), { recursive: true });
 fs.writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
 console.log('Saved ' + output);

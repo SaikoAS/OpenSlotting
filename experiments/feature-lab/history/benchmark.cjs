@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { performance } = require('node:perf_hooks');
-const warehouse = require('../../../warehouse.js');
+const warehouse = require('../../../tests/fixtures/warehouse-baseline.cjs');
 const { LIMIT, clone } = require('./history.cjs');
 const { layoutFor, driver } = require('./fixtures.cjs');
 

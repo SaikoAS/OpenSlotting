@@ -6,6 +6,7 @@
 
   const LABELS = {
     en: {
+      unassigned: 'Unassigned', picking: 'Picking', reserve: 'Reserve',
       title: '3D warehouse analysis', intro: 'Inspect modeled locations and current article-master assignments.',
       fit: 'Fit view', focus: 'Focus selection', search: 'Find location code', find: 'Find',
       selected: 'Selected position', selectHint: 'Click a position marker or search its exact code.',
@@ -18,6 +19,7 @@
       unavailable: '3D is unavailable in this browser context. Code search and assignment details remain available.'
     },
     de: {
+      unassigned: 'Nicht zugewiesen', picking: 'Kommissionierung', reserve: 'Reserve',
       title: '3D-Lagerauswertung', intro: 'Modellierte Stellplätze und aktuelle Zuordnungen aus dem Artikelstamm prüfen.',
       fit: 'Einpassen', focus: 'Auswahl fokussieren', search: 'Stellplatzcode suchen', find: 'Finden',
       selected: 'Ausgewählter Stellplatz', selectHint: 'Stellplatzmarkierung anklicken oder exakten Code suchen.',
@@ -64,7 +66,7 @@
     function data(refresh) {
       if (!refresh && currentInfo) return currentInfo;
       const layout = options.getLayout();
-      currentInfo = { layout: layout, slots: model.listSlots(layout), matches: model.matchArticles(layout, options.getRegistry()) };
+      currentInfo = { layout: layout, slots: model.listLocations(layout), matches: model.matchArticles(layout, options.getRegistry()) };
       return currentInfo;
     }
     function boxes(info) { return window.OpenSlottingWarehouseScene.buildBoxes(model, info.layout, info.matches); }
@@ -103,13 +105,16 @@
         '<div class="wh-analysis-viewport"></div>' +
         '<p class="wh-view-hint">' + esc(renderer && renderer.available() ? t.hint : t.unavailable) + '</p>' +
         '<div class="wh-legend"><span><i class="matched"></i>' + esc(t.linked) + '</span><span><i class="coded"></i>' +
-        esc(t.coded) + '</span><span><i class="empty"></i>' + esc(t.empty) + '</span></div>' +
+        esc(t.coded) + '</span><span><i class="empty"></i>' + esc(t.empty) + '</span>' + model.USAGES.map(function (usage) {
+          return '<span><i style="background:' + model.USAGE_COLORS[usage] + '"></i>' + esc(t[usage]) + '</span>';
+        }).join('') + '</div>' +
         '<div class="wh-analysis-details"><section class="wh-card wh-slot-inspector"><div class="wh-slot-search"><label class="wh-field"><span>' +
         esc(t.search) + '</span><input type="search" data-field="search" value="' + esc(search) + '" maxlength="80"></label>' +
         '<button type="button" class="wh-small-button" data-action="find">' + esc(t.find) + '</button></div>' +
         '<h4>' + esc(t.selected) + '</h4>' + (slot ? '<div class="wh-selected-code">' + esc(slot.code || t.noCode) +
           '</div><p class="wh-slot-path">' + esc(slot.objectName) + ' · ' + esc(t.bay) + ' ' + (slot.bayIndex + 1) +
-          ' · ' + esc(t.level) + ' ' + (slot.levelIndex + 1) + ' · ' + esc(t.position) + ' ' + (slot.positionIndex + 1) + '</p>' +
+          ' · ' + esc(t.level) + ' ' + (slot.levelIndex + 1) + ' · ' + esc(t.position) + ' ' + (slot.positionIndex + 1) +
+          ' · ' + esc(t[slot.usage] || slot.usage) + '</p>' +
           (articles.length ? '<div class="wh-selected-articles"><strong>' + esc(t.articles) + '</strong>' +
             articles.map(function (article) { return '<div>' + esc(article.articleId) + (article.name ? ' · ' + esc(article.name) : '') + '</div>'; }).join('') +
             '</div>' : '<p class="wh-empty">' + esc(t.noArticles) + '</p>') : '<p class="wh-empty">' + esc(t.selectHint) + '</p>') +

@@ -69,3 +69,11 @@ node tools/benchmark-warehouse.cjs
 ```
 
 Der Runner schreibt standardmäßig `docs/performance/results/warehouse.json`; ein optionaler erster Parameter bestimmt einen anderen Ausgabeort. Nach dieser Messung wurde ausschließlich dieser Standardausgabeort angepasst. Der historische Runner-Hash im Messprotokoll bezeichnet den ausgeführten Runner, die gemessenen Produktionsdateien blieben danach unverändert. Weitere Vergleichsläufe bei ruhender Benchmarkarbeit durchführen. Manuelle Edge-/Geräteabnahme bleibt eine getrennte Prüfung.
+
+## Historischer Stand und aktuelle Wiederholung
+
+Dieser Bericht und seine JSON-Dateien beziehen sich auf die Integration vor
+Layout-Schema 2. Der aktuelle Runner schreibt neue Dateien `warehouse-layout-v2.json`
+und `warehouse-memory-layout-v2.json`; die früheren Daten werden nicht überschrieben.
+Die erneute Prüfung und gemeinsame aktuelle Geometrie beschreibt der
+[Layout-2-Bericht](warehouse-layout-v2.md).

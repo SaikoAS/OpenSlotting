@@ -4,6 +4,14 @@ Datum: 2026-10-04. Ausgangscommit: `23148a5d2548080d6d253ee9ae66bd4cb5494f5f`.
 **Keine Variante ist in die Anwendung oder das Release-Paket eingebunden.**
 Der [Strukturplan](../../docs/project-structure-plan.md) ist ebenfalls noch kein Dateiumzug.
 
+Einordnung vom 2026-10-09: Diese Ergebnisse und Entscheidungsvorschläge bleiben
+historisch. Ausgewählte Optimierungen sind inzwischen im Localhost-Zweig
+integriert; Workspace-Schema 14 / Lagerlayout 2 werden in den
+[aktuellen Integrationsnachweisen](../../docs/performance/warehouse-layout-v2.md)
+bewertet. Der Generator der historischen Parser-/Modultests verwendet jetzt
+eingefrorene Quellen aus `db39ffa` mit Hashnachweis. Die alten Messdateien wurden
+weder überschrieben noch als neue Browsermessungen ausgegeben.
+
 ## Entscheidungsvorschlag
 
 | Entwurf | Bewertung | Sinnvoller nächster Schritt nach ausdrücklicher Auswahl |

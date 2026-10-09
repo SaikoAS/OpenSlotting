@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const warehouse = require('../../../warehouse.js');
+const warehouse = require('../../../tests/fixtures/warehouse-baseline.cjs');
 const { LIMIT, clone, createDelta, applyDelta } = require('./history.cjs');
 const { layoutFor, driver } = require('./fixtures.cjs');
 

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "objects": [{
+    "id": "legacy-rack", "type": "shelf-rack", "name": "Synthetic legacy rack",
+    "x": 1000, "z": 2000, "rotation": 0,
+    "bays": [{ "id": "legacy-bay", "width": 1000, "depth": 450,
+      "levels": [
+        { "id": "legacy-lower", "clearHeight": 450, "thickness": 35, "deck": true, "deckThickness": 25,
+          "positions": [{ "id": "legacy-location-a", "code": "R01-03-02-01" }, { "id": "legacy-location-b", "code": "A-002" }] },
+        { "id": "legacy-upper", "clearHeight": 450, "thickness": 35, "deck": true, "deckThickness": 25,
+          "positions": [{ "id": "legacy-location-c", "code": "" }] }
+      ] }],
+    "uprights": [
+      { "id": "legacy-upright-a", "width": 45, "depth": 450, "height": 2400 },
+      { "id": "legacy-upright-b", "width": 45, "depth": 450, "height": 2400 }
+    ]
+  }]
+}

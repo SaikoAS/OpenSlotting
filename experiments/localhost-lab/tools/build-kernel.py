@@ -5,10 +5,16 @@ Only writes laboratory/generated files. Does not transform production source.
 import hashlib
 import json
 import re
+import subprocess
 from pathlib import Path
 
 LAB = Path(__file__).resolve().parents[1]
 ROOT = LAB.parents[1]
+BASELINE = 'db39ffa'
+
+def historical_source(name):
+    return subprocess.run(['git', 'show', BASELINE + ':' + name], cwd=ROOT, check=True,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE).stdout
 
 
 def extract(source, name, next_name):
@@ -20,7 +26,7 @@ def extract(source, name, next_name):
 
 
 def build():
-    raw = (ROOT / 'app.js').read_bytes()
+    raw = historical_source('app.js')
     source = raw.decode('utf-8').replace('\r\n', '\n')
     pairs = [('decodeFileEntry', 'handleFileChange'),
              ('runtimeFileFromStored', 'prepareWorkspaceRecord'),
@@ -33,7 +39,7 @@ def build():
               'export function installKernel({encoding, core, warehouseModel, workspaceModel}) {\n' +
               functions + '\nworkspaceWorkerMain();\n}\n')
     (output / 'preparation-kernel.mjs').write_bytes(module.encode('utf-8'))
-    workspace_raw = (ROOT / 'workspace.js').read_bytes()
+    workspace_raw = historical_source('workspace.js')
     workspace_source = workspace_raw.decode('utf-8').replace('\r\n', '\n')
     validator_source = (LAB / 'modules/base64-validation.mjs').read_text('utf-8')
     validator = validator_source[validator_source.index('export function isBase64Chunked'):].replace('export function', 'function', 1)
@@ -47,12 +53,13 @@ def build():
     candidate += '\nexport const workspaceCandidate = globalThis.OpenSlottingWorkspaceCandidate;\n'
     (output / 'workspace-base64-candidate.mjs').write_bytes(candidate.encode('utf-8'))
     (output / 'kernel-metadata.json').write_text(json.dumps(dict(
+        sourceCommit=subprocess.run(['git', 'rev-parse', BASELINE], cwd=ROOT, check=True, stdout=subprocess.PIPE).stdout.decode().strip(),
         appSha256=hashlib.sha256(raw).hexdigest(),
         workspaceSha256=hashlib.sha256(workspace_raw).hexdigest(),
         candidateSha256=hashlib.sha256(candidate.encode()).hexdigest(),
         moduleSha256=hashlib.sha256(module.encode()).hexdigest(),
         functions=[pair[0] for pair in pairs]), indent=2) + '\n', encoding='utf-8')
-    print('Laboratory kernel generated from current app.js; production files unchanged.')
+    print('Historical laboratory kernel generated from ' + BASELINE + '; production files unchanged. For schema-14 worker comparisons use tools/benchmarks/serve.py.')
 
 
 if __name__ == '__main__':

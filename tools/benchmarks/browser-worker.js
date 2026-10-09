@@ -352,7 +352,7 @@
         timing: 'source copy + actual production worker construction/session + postMessage transfer + processing + complete response',
         prepareCopy: 'structuredClone of same fixture included for every method; IndexedDB loading not measured',
         profileAnalyzeCopy: 'same narrow production calculation snapshot and ArrayBuffer.slice copy, included for both direct and worker',
-        baseline: 'original db39ffa factory namespace, Blob construction and runWorkspaceWorker functions; fresh worker every call',
+        baseline: 'historical db39ffa Blob construction/runWorkspaceWorker with the same current shared domain factories; fresh worker every call; not the full historical application',
         current: 'actual src/workers/workspace-worker.mjs and src/application/worker-session.js; fresh/reused differentiated',
         cache: 'HTTP cache active with ETag revalidation; cold means new worker, not cleared browser/OS cache',
         verification: 'entire canonical output string equality, BigInt tagged exactly, array order preserved; each returned source byte compared to retained original',

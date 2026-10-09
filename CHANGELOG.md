@@ -2,10 +2,14 @@
 
 All notable changes to OpenSlotting are documented in this file.
 
-## Unreleased (next release; version not assigned)
+## Unreleased
+
+- Integrate warehouse structure/zones/locations into localhost with schema-14 migration, per-pass scope lookups and retained rack-wide code generation. Preserve optimized SAT/Float32 rendering and add integration/layout-2 performance evidence. (next release; version not assigned)
 
 ### Added
 
+- warehouse Structure / Zones / Locations modes with per-level Picking, Reserve, or Unassigned use, explicit location creation, and edit-impact warnings
+- workspace schema 14 / layout schema 2 migration preserving legacy position IDs, codes, and article-master matches
 - visible date coverage with expected-weekday configuration and unknown-day warnings
 - inclusive Period A / Period B comparison with summary metrics, article filters, detail links, and CSV export
 - automatic ISO-calendar-week detection with selectable comparison weeks and an optional custom-period mode

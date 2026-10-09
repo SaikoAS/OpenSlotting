@@ -1,6 +1,6 @@
 'use strict';
 
-const warehouse = require('../../../warehouse.js');
+const warehouse = require('../../../tests/fixtures/warehouse-baseline.cjs');
 const LIMIT = 20; // Current warehouse-editor.js keepRecent limit.
 const clone = value => JSON.parse(JSON.stringify(value));
 const rootFields = layout => Object.fromEntries(Object.entries(layout).filter(([key]) => key !== 'objects'));

@@ -168,3 +168,12 @@ am konkreten ausgepackten Git-Kandidaten offen: genehmigter Python-/Edge-Pfad,
 normale Start-/Stop-/Shortcutabläufe, echte Dateidialoge und Downloads, vollständige
 Mapping-/Stamm-/Mehrtab-/3D-Bedienung sowie realistische Spalten-/Dateibreiten.
 Die historischen Portable-Abnahmen sind weiterhin ihrem alten Stand zugeordnet.
+
+## Nach der Lagerübernahme (2026-10-09)
+
+Die obigen Messungen und Prüfzahlen gehören zum Stand vom 2026-10-05. Die aktuelle
+Schema-14-Migration wird zusätzlich durch den gemeinsamen Workerpfad für Öffnen,
+Backup und Restore mit einem befüllten Schema-13-Plan geprüft. Der Browservergleich
+verwendet jetzt gemeinsame aktuelle Fachfabriken mit historischer Blob-Steuerung;
+er darf die alten Whole-Application-Ergebnisse nicht überschreiben. Details im
+[Layout-2-Bericht](warehouse-layout-v2.md).

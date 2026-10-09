@@ -221,3 +221,11 @@ Node-/Logiktests und vorhandene Labor-Edge-Messungen ersetzen keine vollständig
 Abnahme dieses Kandidaten auf Firmen-PC/Edge. Diese bleibt in den aktuellen
 Abnahme-/Release-Checklisten und im [Workspace-/UI-Nachweis](performance/workspace-ui.md)
 separat ausgewiesen.
+
+## Fortschreibung: Lagerübernahme, 2026-10-09
+
+Die Schema-13-Angaben in der ursprünglichen Bestandsaufnahme und der ersten
+Optimierungsphase sind historisch. Aktuell gilt Workspace-Schema 14 mit
+Layout-Schema 2 (objects, zones, locations). Dies ist eine fachliche Migration,
+kein Ordnerumzug. Die Modulpfade, Datenbankversion 3 und feste Origin bleiben
+erhalten. Neue Nachweise: `docs/performance/warehouse-layout-v2.md`.

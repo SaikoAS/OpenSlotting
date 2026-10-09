@@ -1,5 +1,5 @@
 'use strict';
-const warehouse = require('../../../warehouse.js');
+const warehouse = require('../../../tests/fixtures/warehouse-baseline.cjs');
 const { clone } = require('./history.cjs');
 
 function layoutFor(count = 150) {

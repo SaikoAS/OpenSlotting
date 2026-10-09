@@ -172,3 +172,11 @@ Ausführung:
 node --test experiments/feature-lab/history/tests.test.cjs
 node --expose-gc experiments/feature-lab/history/benchmark.cjs
 ```
+
+## Reproduktion nach Layout-Schema 2
+
+Dieses historische Labor bleibt auf Layout-Schema 1. Seine Runner und Tests
+verwenden jetzt die bereits vorhandene, hashgesicherte Warehouse-Baseline
+`db39ffa` unter `tests/fixtures/warehouse-baseline.cjs`. Die damaligen Messdateien
+bleiben unverändert. Sie bewerten keine neue Zonen-/Location-Historie; produktiv
+bleiben vollständige, bestätigte Layout-Snapshots mit 20 Schritten maßgeblich.

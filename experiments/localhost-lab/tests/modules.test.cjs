@@ -76,10 +76,16 @@ test('lab has no production entry, storage database, package or endpoint integra
   assert.match(stores, /openslotting-lab-/);
 });
 
-test('generated kernel provenance matches current app.js', () => {
+test('historical generated kernels retain frozen Git provenance and exact snapshot hashes', () => {
   const crypto = require('node:crypto');
   const metadata = JSON.parse(fs.readFileSync(path.join(lab, 'generated/kernel-metadata.json'), 'utf8'));
-  assert.equal(metadata.appSha256, crypto.createHash('sha256').update(fs.readFileSync(path.join(root, 'app.js'))).digest('hex'));
+  assert.equal(metadata.sourceCommit, execFileSync('git', ['rev-parse', 'db39ffa'], { cwd: root, encoding: 'utf8' }).trim());
+  for (const [file, key] of [['app.js', 'appSha256'], ['workspace.js', 'workspaceSha256']]) {
+    assert.equal(metadata[key], crypto.createHash('sha256').update(execFileSync('git', ['show', 'db39ffa:' + file], { cwd: root })).digest('hex'));
+  }
+  for (const [file, key] of [['preparation-kernel.mjs', 'moduleSha256'], ['workspace-base64-candidate.mjs', 'candidateSha256']]) {
+    assert.equal(metadata[key], crypto.createHash('sha256').update(fs.readFileSync(path.join(lab, 'generated', file))).digest('hex'));
+  }
 });
 
 test('worker session reuse, cancellation, timeout and error cleanup', async () => {
@@ -165,14 +171,17 @@ test('both stack-safe Base64 variants accept exactly the existing syntax on boun
 
 test('candidate parser changes only Base64 validation and retains migration/safety checks', async () => {
   const { makeWorkspace, populateImportResults } = await load('benchmarks/fixtures.mjs');
-  const workspace = require(path.join(root, 'workspace.js'));
-  const fixture = populateImportResults(makeWorkspace(1000, workspace), require(path.join(root, 'csv.js')), require(path.join(root, 'encoding.js')));
-  const original = workspace.stringifyBackup(fixture, { now: '2026-10-04T12:00:00.000Z' });
   const context = vm.createContext({ TextEncoder, TextDecoder, ArrayBuffer, Uint8Array,
     btoa: text => Buffer.from(text, 'binary').toString('base64'), atob: text => Buffer.from(text, 'base64').toString('binary') });
-  vm.runInContext(fs.readFileSync(path.join(root, 'warehouse.js'), 'utf8'), context);
+  vm.runInContext(execFileSync('git', ['show', 'db39ffa:warehouse.js'], { cwd: root, encoding: 'utf8' }), context);
   const candidate = fs.readFileSync(path.join(lab, 'generated/workspace-base64-candidate.mjs'), 'utf8').replace(/export const workspaceCandidate = .*;\r?\n/, '');
   vm.runInContext(candidate, context);
+  // This frozen schema-13 parser must receive a schema-13 fixture, not a current schema-14 record.
+  const candidateModule = { exports: {} };
+  new Function('module', 'require', candidate)(candidateModule, () => require(path.join(root, 'tests/fixtures/warehouse-baseline.cjs')));
+  const workspace = candidateModule.exports;
+  const fixture = populateImportResults(makeWorkspace(1000, workspace), require(path.join(root, 'csv.js')), require(path.join(root, 'encoding.js')));
+  const original = workspace.stringifyBackup(fixture, { now: '2026-10-04T12:00:00.000Z' });
   context.text = original;
   const restored = vm.runInContext('OpenSlottingWorkspaceCandidate.parseBackup(text)', context);
   assert.equal(restored.files[0].result.rows.length, fixture.files[0].result.rows.length);

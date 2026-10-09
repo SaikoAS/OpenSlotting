@@ -1,6 +1,6 @@
 # Leistung: integrierte Änderungen und Nachweise
 
-Stand: 2026-10-05. Nach der getrennten Laborphase wurden ausgewählte Änderungen
+Stand: 2026-10-09. Nach der getrennten Laborphase wurden ausgewählte Änderungen
 in die aktive Localhost-Anwendung übernommen. Dieser Überblick beschreibt den
 aktuellen Produktionscode. Die Berichte unter `experiments/` dokumentieren ihre
 damaligen Varianten und Basisstände; dortige Aussagen wie „noch nicht integriert“
@@ -15,7 +15,7 @@ oder die beiden inzwischen behobenen Produktfehler sind historische Befunde.
   Backend-Daten-API, Uploads, Cloudkonten oder Übertragung von Nutzerdaten an
   Python. Import, Fachanalyse und Speicherung erfolgen weiterhin im Browser.
 - `http://127.0.0.1:8765`, IndexedDB `openslotting-workspaces`, Datenbankversion 3,
-  Workspace-Schema 13 und der Sicherungsvertrag bleiben unverändert. Abgeleitete
+  Workspace-Schema **14** migriert Lagerpläne auf Layout-Schema **2**. Der Sicherungsformat-Vertrag bleibt bei Version 1. Abgeleitete
   Caches werden nicht in Arbeitsbereichen gespeichert.
 - Originalbytes, physische Quellspalten, Quellen-/Zeilenbezüge, exakte Mengen
   und Qualitätsbefunde bleiben erhalten. Die aktive Weiterentwicklung gilt
@@ -50,15 +50,17 @@ neuen Algorithmus.
 | Speichern, Revisionen, Mehrtabschutz und Migration | Chunked IndexedDB und bestätigte atomare Speicheroperationen bleiben erhalten; Workerzustände ersetzen keine Commitbestätigung | Kein Rawstore-/OPFS-Wechsel, keine Schema- oder Originmigration; Schreibfehler bleiben sichtbar |
 | Sicherung, Restore, Validierung und Abbruch | Statischer Worker für Vorbereitung/Serialisierung; stapelsichere Base64-Prüfung mit gleichem gültigem Format | Keine neue Gzip-/Deflate-Sicherung; Abbruch beendet den Worker, vor atomarem Commit bleibt der bestehende Speichervertrag maßgeblich |
 | Hintergrundarbeit, Fortschritt und lokale Ressourcenfreigabe | `worker-session.js`: ein Task, Task-ID und Revisionsprüfung; Wiederverwendung, Freigabe nach 30 s Leerlauf, 5-min-Timeout seit letzter Antwort | Keine unbegrenzte Workerflotte oder globale Ergebnisliste; Fehler/Abbruch entsorgen den Worker; lokaler Fallback bleibt verfügbar |
-| Lagerobjekte, Rezepte, Raster, Maße, Duplizieren, Drehen, Löschen und Teilcodes | Vorhandenes Modell und Editor, gleiche Layoutnormalisierung und Codes | Höchstens 150 Objekte / 5.000 Stellplätze; keine neuen Layout-/Codeformate oder dauerhaften Inhaltscaches |
+| Lagerobjekte, Rezepte, Raster, Maße, Duplizieren, Drehen, Löschen und Teilcodes | Drei Modi: Struktur, Zonen, Locations; Migration mit erhaltenen IDs/Codes; Codeerzeugung je Ebene oder ganzem Regal | Höchstens 150 Objekte / 5.000 logische Locations; physische Ebenen verbrauchen keine Location-Kapazität; abgeleitete Indizes pro Lese-/Zeichenpass |
 | Kollisionen, blockierte Gänge und Berührungstoleranz | Geometrie und SAT-Achsen je Prüfung vorberechnen; adaptive Sweep-/Paarprüfung mit ursprünglicher Ausgabereihenfolge | Gleiche 0,001-mm-Kontaktgrenze; dichte Fälle nutzen vorbereitete Paare; kein über Aufrufe persistierender Geometriecache |
 | Verbinder, Einrasten, Hysterese und Sperren | Vorhandene Auswahl-, Snap- und Sperrsemantik | Anchorindex bleibt Labor; kalter Aufbau und Invalidierung rechtfertigen keinen pauschalen Ersatz |
-| Undo/Redo, Auswahl, Workspacewechsel und fehlgeschlagene Speicherung | Vorhandene vollständige Layoutsnapshots, 20 Historieneinträge, Historie erst nach bestätigtem Speichern | Objektgebundene Deltas sparen Labor-JSON, verlängerten dort den Gesamtlauf; keine neue History-/Locksemantik |
+| Undo/Redo, Auswahl, Workspacewechsel und fehlgeschlagene Speicherung | Vorhandene vollständige Layoutsnapshots, 20 Historieneinträge, Historie erst nach bestätigtem Speichern | Objektgebundene Deltas sparen Labor-JSON, verlängerten dort den Gesamtlauf; Locks gelten zusätzlich für referenzierte Zonen/Locations; bestätigtes Speichern bleibt maßgeblich |
 | Stellplätze, Belegung, exakte Codesuche und Nur-Lesen-Lagerauswertung | Vorhandene geordnete Treffer und lesende Artikelzuordnung; gemeinsame Szene | Slot-/Code-/Artikelindizes bleiben Labor; Analysemarker mutieren keine gespeicherten Layouts |
 | 2D/3D, Kamera, Picking, Transparenz und Kontextverlust | Gleich große Float32-Puffer direkt füllen; Trigonometrie/Farben nur innerhalb eines Frames wiederverwenden | Keine neuen Shader, Drawaufrufe oder Pickingregeln; keine GPU-/60-FPS-Zusage aus CPU-Zeiten |
 | Dokumentation, Tests, Paketierung und Zukunftsstruktur | Explizite Runtime-/Paketpfade für neue Module; Produktionsberichte hier, historische Varianten unter `experiments/` | Kein Komplettumzug, keine Laborquellen im Produktpaket; Release-/Geräteabnahme wird separat dokumentiert |
 
 ## Gemessene Produktionsänderungen
+
+Die folgende Tabelle hält die Messungen vor der Layout-2-Übernahme fest (2026-10-05). Sie ist kein neuer Schema-14-Nachweis. Die aktuellen Messungen und Integrationsprüfungen stehen im [Layout-2-Bericht](warehouse-layout-v2.md).
 
 Die folgenden Werte zitieren vorhandene Einzelberichte; hier wurde kein neuer
 Benchmark ausgeführt. Synthetische Daten, Windows, Node 24.18.1 und Intel

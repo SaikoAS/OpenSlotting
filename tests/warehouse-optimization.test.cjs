@@ -75,7 +75,7 @@ test('production collision sweep preserves input ordering in randomized, edge an
 
 test('production CPU projection preserves exact geometry/color/picking buffers and framing', () => {
   const layout = layoutFixture(model, 10), boxes = scene.buildBoxes(model, layout), before = JSON.stringify(boxes);
-  const slot = boxes.find(function (item) { return item.slotRef; });
+  const slot = boxes.find(function (item) { return item.slotRef && item.slotRef.slotId; });
   for (const mode of ['solid', 'transparent', 'hidden']) for (const yaw of [-1.2, 0, .47]) {
     const camera = { yaw, pitch: .72, zoom: 1.3, target: { x: -180000, y: 1700, z: -195000 }, baseScale: .05 };
     for (const selections of [[null, null, new Set()], [slot.object.id, slot.slotRef.slotId, new Set(['object-1', 'object-2'])]]) {
@@ -92,12 +92,12 @@ test('production changes remain exact at both supported object and slot limits',
   const layout = layoutFixture(model, 150, 'spread', true);
   assert.equal(model.listSlots(layout).length, 5000);
   assert.deepEqual(model.findCollisions(layout), original.findCollisions(layout));
-  const matches = { bySlot: new Map([[layout.objects[0].bays[0].levels[0].positions[0].id, [{ articleId: 'A' }]]]) };
+  const matches = { bySlot: new Map([[layout.locations[0].id, [{ articleId: 'A' }]]]) };
   const boxes = scene.buildBoxes(model, layout, matches);
   const args = [boxes, { yaw: -.62, pitch: .62, zoom: 1 }, 1440, 1024, 'object-0', null, new Set(['object-3']), 'transparent'];
   sameProjection(renderer.projectScene(...args), originalRenderer.projectScene(...args));
   assert.equal(layout.objects[0].locked, true);
-  assert.throws(() => model.normalizeLayout({ version: 1, objects: Array(151).fill(layout.objects[0]) }), /150 objects/);
+  assert.throws(() => model.normalizeLayout({ version: model.LAYOUT_VERSION, objects: Array(151).fill(layout.objects[0]), zones: [], locations: [] }), /150 objects/);
 });
 
 test('frame-local optimizations immediately reflect mutable inputs without requiring revisions', () => {

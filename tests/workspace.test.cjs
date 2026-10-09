@@ -729,7 +729,7 @@ test('schema-eleven migration adds an empty warehouse layout and preserves impor
   delete legacy.warehouseLayout;
   const migrated = workspace.migrateWorkspace(legacy);
   assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
-  assert.deepEqual(migrated.warehouseLayout, { version: 1, objects: [] });
+  assert.deepEqual(migrated.warehouseLayout, { version: 2, objects: [], zones: [], locations: [] });
   assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V11');
 });
 
@@ -742,6 +742,32 @@ test('schema-twelve migration adds empty source rules without altering imports',
   assert.deepEqual(migrated.files[0].sourceRules, []);
   assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V12');
 });
+
+for (const version of [12, 13]) {
+  test('schema-' + version + ' migration preserves populated legacy layout and source evidence through backup', () => {
+    const legacy = analyzedWorkspace('warehouse-v' + version, 'Legacy warehouse', 'SKU-V' + version);
+    legacy.schemaVersion = version;
+    legacy.warehouseLayout = structuredClone(require('./fixtures/warehouse-layout-v1.json'));
+    const before = structuredClone(legacy);
+    const migrated = workspace.migrateWorkspace(legacy);
+    assert.deepEqual(legacy, before);
+    assert.equal(migrated.schemaVersion, 14);
+    assert.equal(migrated.warehouseLayout.version, 2);
+    assert.deepEqual(migrated.warehouseLayout.locations.map((location) => location.id),
+      ['legacy-location-a', 'legacy-location-b', 'legacy-location-c']);
+    assert.equal(migrated.warehouseLayout.locations[0].code, 'R01-03-02-01');
+    assert.ok(migrated.warehouseLayout.zones.every((zone) => zone.usage === 'unassigned'));
+    assert.deepEqual(migrated.files[0].buffer, before.files[0].buffer);
+    assert.deepEqual(migrated.files[0].result.rows, before.files[0].result.rows);
+    const restored = workspace.parseBackup(workspace.stringifyBackup(migrated));
+    assert.deepEqual(restored.warehouseLayout, migrated.warehouseLayout);
+    assert.deepEqual(restored.files[0].result.rows, before.files[0].result.rows);
+    const encoded = workspace.createBackup(migrated);
+    encoded.workspace.schemaVersion = version;
+    encoded.workspace.warehouseLayout = before.warehouseLayout;
+    assert.equal(workspace.parseBackup(JSON.stringify(encoded)).warehouseLayout.locations[0].id, 'legacy-location-a');
+  });
+}
 
 test('named source rules survive backup and profiles remap only selected rules', () => {
   const rule = { sourcePosition: 4, type: 'exclude-empty', name: 'Missing status',

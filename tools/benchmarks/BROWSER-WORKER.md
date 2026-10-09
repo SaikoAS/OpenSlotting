@@ -26,9 +26,14 @@ führenden Nullen, sehr großen BigInt-Mengen, fehlenden Datumswerten, duplizier
 Headern, Quotes/mehrzeiligen Feldern und einer expliziten Ausschlussregel.
 Alle Verfahren erhalten denselben Record. Es gibt drei Workspace-Reihen:
 
-1. Originaler Blob-Worker: Fabriken und Funktionen aus `db39ffa:app.js` samt
-   damaligen Modulen. Originaler Konstruktor und Dispatch bleiben unverändert;
+1. Historische Blob-Worker-Steuerung aus `db39ffa:app.js`, mit denselben aktuellen
+   Fachfabriken wie der Modul-Worker. Konstruktor und Dispatch bleiben unverändert;
    der Host-Namensraum wird isoliert. Jede Aufgabe erstellt/terminiert einen Worker.
+   Seit Workspace-Schema 14 ist dies ein kontrollierter Strategievergleich, keine
+   Ausführung der gesamten historischen Anwendung mit ihrem Schema-13-Reader.
+   Das Manifest hält die gemeinsamen aktuellen Fachmodule und die historischen
+   Steuerfunktionen getrennt mit ihren SHA-256-Werten fest. Alte Messdateien vom
+   2026-10-05 behalten ihre damaligen Fabriken und werden nicht überschrieben.
 2. Aktueller statischer Modul-Worker mit tatsächlicher WorkerSession, pro Aufgabe
    eine neue Instanz einschließlich deren Beendigung.
 3. Derselbe aktuelle Worker mit tatsächlicher Session-Wiederverwendung.

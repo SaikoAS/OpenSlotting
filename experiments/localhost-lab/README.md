@@ -4,11 +4,27 @@ Status: **Experiment, nicht in OpenSlotting eingebunden**. Ausgangspunkt ist
 Commit `23148a5` auf `codex/localhost-development`. Die Anwendung, ihr
 Python-Server, ihre Workspace-Datenbank und die Release-Paketliste sind unverändert.
 
+### Einordnung nach der Integration am 2026-10-09
+
+Diese Beschreibung und die Ergebnisdateien dokumentieren das ursprüngliche
+Labor. Inzwischen wurden ausgewählte Optimierungen im Localhost-Zweig
+integriert; der heutige Stand verwendet Workspace-Schema 14 und Lagerlayout 2.
+Der Kernel-Generator extrahiert für die historischen Parser-/Modultests jetzt
+ausdrücklich den eingefrorenen Commit `db39ffa` und protokolliert Quellhashes.
+Er extrahiert nicht die inzwischen ausgelagerten Funktionen des aktuellen `app.js`.
+Die alten Browser-/Codec-Messungen bleiben unverändert und sind keine aktuellen
+Integrationsnachweise. Die vollständige alte Laboroberfläche ist nicht als
+Schema-14-Browservergleich freigegeben; ihre ursprüngliche Reproduktion verlangt
+den dokumentierten historischen Projektstand.
+
+Aktuelle Worker-Vergleiche: [Browser-Worker-Protokoll](../../tools/benchmarks/BROWSER-WORKER.md).
+Aktuelle Lagervergleiche: [Layout-2-Bericht](../../docs/performance/warehouse-layout-v2.md).
+
 ## Zweck und Grenzen
 
 | Vorhandenes Feature | Varianten im Labor | Erhaltene Grundlage |
 | --- | --- | --- |
-| Arbeitsbereich öffnen / Import und Analyse im Worker | neuer Blob-Worker pro Vorgang; neuer statischer Modul-Worker; wiederverwendeter statischer Modul-Worker | exakt die aktuellen Workspace-Vorbereitungsfunktionen und Fachmodule |
+| Arbeitsbereich öffnen / Import und Analyse im Worker | neuer Blob-Worker pro Vorgang; neuer statischer Modul-Worker; wiederverwendeter statischer Modul-Worker | exakt die Workspace-Vorbereitungsfunktionen und Fachmodule des damaligen Laborstands |
 | Originaldateien lokal speichern | IndexedDB-ArrayBuffer; OPFS über asynchronen Dateistream; OPFS über synchronen Zugriff im dedizierten Worker | vollständige Originalbytes, SHA-256-Vergleich nach jedem Lesen |
 | Arbeitsbereichssicherung | unverpackte JSON-Bytes; Browser-/Node-Gzip und Deflate; Python-Standardbibliothek Gzip Stufe 1/6/9 | bestehendes Workspace-JSON als unverändertes Innenformat |
 | Sicherungsparser / Base64-Validierung | bisheriger gruppierter RegExp; linearer Zeichenscan; begrenzte Zeichenklassenprüfung | dieselbe gültige Base64-Syntax und unveränderte Workspace-Migration |
@@ -31,7 +47,7 @@ localhost-lab/
 ├── benchmarks/                     # Browserlauf, Node/Python-Lauf, synthetische Daten
 ├── tests/                          # Labor-Logik-/Fehler-/Serverprüfungen
 ├── tools/                          # Inventar und unveränderte Kernel-Extraktion
-├── generated/                      # ignorierter Kernel aus aktuellem app.js
+├── generated/                      # ignorierter Kernel aus eingefrorenem app.js
 └── results/                        # Messreihen und sichtbare Ergebnisnachweise
 ```
 
@@ -55,7 +71,8 @@ Dann in Edge öffnen:
 `http://127.0.0.1:8876/experiments/localhost-lab/index.html`.
 Der normale Anwendungsport 8765 wird nicht verwendet. `--port 0` wählt einen
 freien Testport und gibt die konkrete URL aus. Der Server erzeugt vorher den
-Kernel aus dem aktuellen `app.js`. Beenden mit Strg+C im zugehörigen Terminal.
+Kernel aus dem eingefrorenen `app.js` (`db39ffa`). Für den gesamten historischen
+Browserlauf gilt die oben genannte Vertragsgrenze. Beenden mit Strg+C im zugehörigen Terminal.
 Er läuft ausschließlich auf `127.0.0.1`; es gibt keine Upload-/Daten-API und
 `connect-src 'none'` bleibt gesetzt.
 

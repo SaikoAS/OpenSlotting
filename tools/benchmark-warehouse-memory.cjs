@@ -17,6 +17,7 @@ const digest = value => crypto.createHash('sha256').update(value).digest('hex');
 
 function maximumGeometryFixture(model) {
   let remainingExtraLevels = 500;
+  const zones = [], locations = [];
   const objects = Array.from({ length: 150 }, (_, objectIndex) => {
     const rack = model.createRack('shelf-rack', {
       id: 'maximum-rack-' + objectIndex,
@@ -30,20 +31,22 @@ function maximumGeometryFixture(model) {
     rack.bays.forEach((bay, bayIndex) => {
       bay.id = 'maximum-bay-' + objectIndex + '-' + bayIndex;
       if (remainingExtraLevels > 0) {
-        bay.levels.push(Object.assign({}, bay.levels[0], { positions: [{ code: '' }] }));
+        bay.levels.push(Object.assign({}, bay.levels[0]));
         remainingExtraLevels -= 1;
       }
       bay.levels.forEach((level, levelIndex) => {
         level.id = 'maximum-level-' + objectIndex + '-' + bayIndex + '-' + levelIndex;
-        level.positions = [{ id: 'maximum-slot-' + objectIndex + '-' + bayIndex + '-' + levelIndex,
-          code: 'M' + objectIndex + '-B' + bayIndex + '-L' + levelIndex }];
+        const zoneId = 'maximum-zone-' + objectIndex + '-' + bayIndex + '-' + levelIndex;
+        zones.push({ id: zoneId, objectId: rack.id, bayId: bay.id, levelId: level.id, usage: 'picking' });
+        locations.push({ id: 'maximum-slot-' + objectIndex + '-' + bayIndex + '-' + levelIndex,
+          code: 'M' + objectIndex + '-B' + bayIndex + '-L' + levelIndex, zoneId, positionIndex: 0, legacy: false });
       });
     });
     rack.uprights.forEach((upright, uprightIndex) => { upright.id = 'maximum-upright-' + objectIndex + '-' + uprightIndex; });
     return rack;
   });
   assert.equal(remainingExtraLevels, 0);
-  return model.normalizeLayout({ version: model.LAYOUT_VERSION, objects });
+  return model.normalizeLayout({ version: model.LAYOUT_VERSION, objects, zones, locations });
 }
 
 function arrayBytes(scene) {
@@ -90,7 +93,8 @@ function child(variant) {
   assert.equal(typeof global.gc, 'function', 'Child must run with --expose-gc');
   assert.ok(variant === 'baseline' || variant === 'current');
   verifyFrozenBaseline();
-  const model = require(variant === 'baseline' ? '../tests/fixtures/warehouse-baseline.cjs' : '../warehouse.js');
+  // Both renderer variants receive exactly the same current domain/scene contract.
+  const model = require('../warehouse.js');
   const renderer = require(variant === 'baseline' ? '../tests/fixtures/warehouse-webgl-baseline.cjs' : '../warehouse-webgl.js');
   const sceneBuilder = require('../warehouse-scene.js');
   const started = performance.now();
@@ -146,7 +150,7 @@ function parent() {
   const report = { generatedAt: new Date().toISOString(), baselineCommit, syntheticOnly: true,
     environment: { node: process.version, platform: process.platform, cpu: os.cpus()[0].model,
       totalMemoryBytes: os.totalmem(), freeMemoryBytesBefore: os.freemem() },
-    methodology: 'One independent child process per variant, sequential baseline then current, Node --expose-gc, 1 warmup + 3 projection samples. Explicit GC before each sample and after projection; timings exclude GC. Previous output stays referenced until replacement as production render does. Peak RSS covers imports, fixture build, all warmups/samples and digest verification, not per-call allocations. No browser/GPU/FPS claim.',
+    methodology: 'Frozen versus current renderer, both using the same current warehouse/scene modules and layout-v2 input. One independent child process per variant, sequential baseline then current, Node --expose-gc, 1 warmup + 3 projection samples. Explicit GC before each sample and after projection; timings exclude GC. Previous output stays referenced until replacement as production render does. Peak RSS covers imports, fixture build, all warmups/samples and digest verification, not per-call allocations. No browser/GPU/FPS claim.',
     limits: { objects: 150, slots: 5000 },
     fixtureDescription: '150 shelf racks, each 30 bays; 500 bays have two levels and 4000 have one level; each level has one position and a deck. 4*4650 upright boxes + 4*5000 level/slot boxes = 38600 opaque boxes.',
     variants: {} };
@@ -175,7 +179,7 @@ function parent() {
     'tests/fixtures/warehouse-baseline-hashes.json', 'tools/benchmark-warehouse-memory.cjs']) {
     report.sources[file] = digest(fs.readFileSync(path.join(root, file)));
   }
-  const output = path.resolve(process.argv[2] || path.join(root, 'docs', 'performance', 'results', 'warehouse-memory.json'));
+  const output = path.resolve(process.argv[2] || path.join(root, 'docs', 'performance', 'results', 'warehouse-memory-layout-v2.json'));
   fs.mkdirSync(path.dirname(output), { recursive: true });
   fs.writeFileSync(output, JSON.stringify(report, null, 2) + '\n');
   console.log('Full geometry/picking/framing SHA-256 parity passed. Saved ' + output);

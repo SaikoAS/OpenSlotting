@@ -66,7 +66,9 @@ def digest(payload: bytes) -> str:
 
 def build_baseline() -> None:
     application = git_source("app.js")
-    factory_sources = {name: git_source(name) for name in FACTORY_FILES}
+    # Compare worker orchestration on one shared current data contract. Old
+    # schema-13 factories cannot process current schema-14/layout-2 inputs.
+    factory_sources = {name: (ROOT / name).read_text(encoding="utf-8").replace("\r\n", "\n") for name in FACTORY_FILES}
     root_selector = "typeof globalThis !== 'undefined' ? globalThis : this"
     isolated = []
     for name, source in factory_sources.items():
@@ -115,7 +117,8 @@ globalThis.OpenSlottingBrowserBaseline = Object.freeze({
     manifest = {
         "baselineRef": BASELINE,
         "baselineCommit": baseline_commit,
-        "baselineModuleSha256": {name: digest(source.encode("utf-8")) for name, source in factory_sources.items()},
+        "sharedDomainModuleSha256": {name: digest(source.encode("utf-8")) for name, source in factory_sources.items()},
+        "domainContract": "current shared factories for both variants; historical Blob orchestration only, not full historical application",
         "baselineFunctionSha256": {name: digest(value.encode("utf-8")) for name, value in zip(FUNCTION_NAMES, functions)},
         "generatedBaselineSha256": digest(combined.encode("utf-8")),
         "productionAssetSha256": {name: digest((ROOT / name).read_bytes()) for name in PRODUCTION_ASSETS},

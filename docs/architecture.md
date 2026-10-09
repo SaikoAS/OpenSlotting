@@ -20,7 +20,7 @@ keine Workspace-Datenbank, Uploadschnittstelle oder Backend-Daten-API.
 | `encoding.js`, `csv.js` | Decoder, Streaming-CSV, Mapping, Regeln, Profile, Validierung, Artikelregister und vollständige exakte Analyse |
 | `periods.js`, `terminal.js` | Abdeckung und Periodenvergleich; begrenzter Datumsindex; Analyseschreibtisch, Ranglisten und Locale-Suchprojektionen |
 | `workspace.js`, `storage.js` | Workspace-/Sicherungsvertrag, Validierung/Migration, stapelsichere Base64-Prüfung und atomare Chunk-Speicherung in IndexedDB |
-| `warehouse.js` | Layoutvalidierung, stabile IDs, Teilcodes, Artikelzuordnung und geometrische Kollisionsprüfung |
+| `warehouse.js` | Layout-Schema 2: physische Struktur, Zonen und Locations; Migration, stabile IDs, Codes, Artikelzuordnung und optimierte Kollisionsprüfung |
 | `warehouse-scene.js`, `warehouse-webgl.js` | Gemeinsame Szene, CPU-Projektion, Framepuffer und lokales WebGL2-Rendering |
 | `warehouse-editor.js`, `warehouse-editor.css` | Layoutbearbeitung, bestätigtes Speichern, Sperren, 20-stufige Undo/Redo-Historie und Draufsicht/3D |
 | `warehouse-analysis.js` | Lesende Stellplatz-/Artikelstammanalyse; verändert keine gespeicherten Layouts |
@@ -99,7 +99,7 @@ ihre bestehenden Regeln.
 ## Datenschutz, Laufzeit und Datenkompatibilität
 
 IndexedDB bleibt im aktuellen Browserprofil und Origin: Datenbank
-`openslotting-workspaces`, Datenbankversion 3, Workspace-Schema 13. Neue
+`openslotting-workspaces`, Datenbankversion 3, Workspace-Schema 14. Neue
 Module und flüchtige Caches erfordern keine Datenmigration und verändern den
 Sicherungsvertrag nicht. Originalbytes und BigInt-/Binärkodierung bleiben
 verlustlos. Die Base64-Korrektur vermeidet die rekursiv gruppierte Prüfung
@@ -158,3 +158,15 @@ geladen noch durch den Python-Produktserver ausgeliefert oder ins ZIP gepackt.
 Nur die in der aktuellen Funktionsmatrix benannten Produktionsänderungen sind
 integriert; historische Laborzahlen werden nicht als heutige Produktabnahme
 ausgegeben.
+
+## Lagerübernahme vom 2026-10-09
+
+Workspace-Schema 14 migriert Layout-Schema 1 zu 2. Die gemeinsame Worker-
+Vorbereitung ruft weiterhin den zentralen Migrator auf; Originalbytes, Quellen-
+bezüge und exakte Fachanalyse bleiben erhalten. SQLite, OPFS oder Backend-Daten-
+API werden dafür nicht eingeführt. Die neue Zonen-/Location-Verknüpfung ist
+Metadatenzustand; Indexmaps werden einmal pro Zeichenvorgang abgeleitet und nicht
+gespeichert. Die lesende 3D-Auswertung verändert keine Zonen, Codes oder Geometrie.
+Die vorbereitete SAT-Prüfung und direkten Float32-Puffer bleiben erhalten.
+
+Siehe [Lagerübernahme und neue Messungen](performance/warehouse-layout-v2.md).

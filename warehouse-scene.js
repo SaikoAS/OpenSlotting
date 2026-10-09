@@ -12,6 +12,8 @@
   function buildBoxes(model, warehouse, matches) {
     const boxes = [];
     const matchedSlots = matches && matches.bySlot ? matches.bySlot : new Map();
+    const scopeIndex = model.createScopeIndex(warehouse);
+    const zones = scopeIndex.zonesByLevel, locationsByZone = scopeIndex.locationsByZone;
     function box(object, x, y, z, width, height, depth, color, slotRef) {
       boxes.push({ object: object, x: x, y: y, z: z, width: width, height: height, depth: depth,
         color: color, slotRef: slotRef || null });
@@ -44,12 +46,16 @@
         let y = 0;
         bay.levels.forEach(function (level, levelIndex) {
           y += level.clearHeight;
-          box(object, offset, y, 0, bay.width, level.thickness, 75, '#d2a75e');
-          box(object, offset, y, bay.depth - 75, bay.width, level.thickness, 75, '#d2a75e');
-          if (level.deck) box(object, offset, y + level.thickness, 0, bay.width, level.deckThickness, bay.depth, '#8298a8');
-          const markerWidth = Math.min(180, bay.width / (level.positions.length * 3));
-          level.positions.forEach(function (slot, index) {
-            const markerX = offset + (index + 0.5) * bay.width / level.positions.length - markerWidth / 2;
+          const zone = zones.get(level.id);
+          const zoneColor = model.USAGE_COLORS[zone ? zone.usage : 'unassigned'] || model.USAGE_COLORS.unassigned;
+          const scopeRef = { objectId: object.id, bayIndex: bayIndex, levelIndex: levelIndex, zoneId: zone && zone.id };
+          box(object, offset, y, 0, bay.width, level.thickness, 75, zoneColor, scopeRef);
+          box(object, offset, y, bay.depth - 75, bay.width, level.thickness, 75, zoneColor, scopeRef);
+          if (level.deck) box(object, offset, y + level.thickness, 0, bay.width, level.deckThickness, bay.depth, zoneColor, scopeRef);
+          const locations = zone && locationsByZone.get(zone.id) || [];
+          const markerWidth = Math.min(180, bay.width / ((locations.length || 1) * 3));
+          locations.forEach(function (slot, index) {
+            const markerX = offset + (index + 0.5) * bay.width / locations.length - markerWidth / 2;
             const color = matchedSlots.has(slot.id) ? '#45d3b1' : slot.code ? '#62b3cb' : '#465b69';
             box(object, markerX, y + level.thickness + (level.deck ? level.deckThickness : 0) + 8,
               Math.max(5, bay.depth / 2 - 50), markerWidth, 18, 100, color,
