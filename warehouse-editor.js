@@ -6,16 +6,31 @@
 
   const LABELS = {
     en: {
+      structure: 'Structure', zones: 'Zones', locations: 'Locations', usage: 'Functional use',
+      unassigned: 'Unassigned', picking: 'Picking', reserve: 'Reserve', modeled: 'Modeled', assigned: 'Zone assigned',
+      structureHelp: 'Build the physical warehouse. Classify levels and create locations when each scope is ready.',
+      zonesHelp: 'Classify each level. Picking and reserve may coexist in one rack; floor areas do not determine functional use.',
+      locationsHelp: 'Create locations explicitly for the selected classified level, then enter or generate unique codes.',
+      scopeProgress: 'Progress of selected level', configured: 'locations configured', needsCodes: 'locations need codes',
+      noLocations: 'No locations in this level.', gotoZones: 'Classify this level in Zones',
+      classificationNeeded: 'Assign a functional use before creating or resizing locations. Existing locations are retained.',
+      legacyHint: 'Migrated locations keep their IDs and codes. You can edit their codes while classification is pending.',
+      spatialHint: 'This is a physical area. Functional zones are assigned to rack levels.',
+      topZonesHint: 'Floor-plan bands show levels from bottom to top; they do not represent separate floor areas.',
+      inspectHint: 'Click a level to select it · drag empty space to pan · wheel to zoom',
+      impactWarning: 'This change affects {{locations}} existing locations, {{codes}} codes and {{articles}} current article matches. {{removed}} locations will be removed. Retained IDs and codes stay attached to their scopes. Continue?',
+      deleteStructureWarning: 'Delete this physical object?', duplicate: 'Duplicate structure',
+      applyUsageBay: 'Apply to this bay', applyUsageRack: 'Apply to this rack', bulkUsage: 'Use for multiple levels',
       add: 'Add recipe', pallet: 'Pallet rack', shelf: 'Shelf rack', wall: 'Wall', gate: 'Gate', door: 'Door', exit: 'Emergency exit',
       aisle: 'Aisle / road', goodsIn: 'Goods in', goodsOut: 'Goods out', addButton: 'Add object', objects: 'Objects',
       empty: 'No objects yet. Add a recipe to start the layout.', properties: 'Properties', selected: 'Select an object to edit it.',
       name: 'Name', x: 'X position (mm)', z: 'Z position (mm)', rotation: 'Rotation (°)', width: 'Width (mm)',
       depth: 'Depth / length (mm)', height: 'Height (mm)', bays: 'Bays', levels: 'Levels in this bay',
-      positions: 'Positions in this level', applyCounts: 'Apply bay count', applyBayLevels: 'Apply levels in this bay',
-      applyLevelPositions: 'Apply positions in this level', bay: 'Bay', level: 'Level', upright: 'Upright',
+      positions: 'Locations in this level', applyCounts: 'Apply bay count', applyBayLevels: 'Apply levels in this bay',
+      applyLevelPositions: 'Apply location count', bay: 'Bay', level: 'Level', upright: 'Upright',
       clearHeight: 'Level clear height (mm)', thickness: 'Beam / shelf thickness (mm)', deck: 'Add shelf deck',
       deckThickness: 'Shelf deck thickness (mm)', code: 'Location code', codes: 'Codes for selected level',
-      codePrefix: 'Code prefix', generate: 'Fill empty codes', delete: 'Delete object', duplicate: 'Duplicate',
+      codePrefix: 'Code prefix', generate: 'Fill empty codes', delete: 'Delete object',
       copyName: 'Copy of', rotateLeft: 'Rotate left 90°', rotateRight: 'Rotate right 90°',
       undo: 'Undo', redo: 'Redo', lock: 'Lock', unlock: 'Unlock', locked: 'Locked',
       lockedHint: 'This object is locked. Select levels and positions to inspect them, or unlock it to make changes.',
@@ -30,7 +45,7 @@
       snapTo: 'Connect to',
       noSelection: 'Choose a rack level to edit its positions.', saved: 'Layout saved locally.',
       removeWarning: 'Reducing counts removes positions with codes. Continue?', deleteWarning: 'Delete this object and its location codes?',
-      slotSummary: 'positions ·', coded: 'coded', missing: 'without code', exact: 'Codes are matched exactly after trimming outer spaces. Leading zeros remain significant.',
+      slotSummary: 'locations ·', coded: 'coded', missing: 'without code', exact: 'Codes are matched exactly after trimming outer spaces. Leading zeros remain significant.',
       choose: 'Choose a recipe',
       wizardCreate: 'Build rack', wizardEdit: 'Edit rack structure', wizardBasics: '1 · Basics',
       wizardBays: '2 · Bays and uprights', wizardLevels: '3 · Levels and preview',
@@ -50,17 +65,32 @@
       wallModeHelp: 'Change wall display in the 3D view', webglUnavailable: '3D is unavailable in this browser context. The floor plan remains available.'
     },
     de: {
+      structure: 'Struktur', zones: 'Zonen', locations: 'Lagerplätze', usage: 'Funktionale Nutzung',
+      unassigned: 'Nicht zugewiesen', picking: 'Kommissionierung', reserve: 'Reserve', modeled: 'Modelliert', assigned: 'Zone zugewiesen',
+      structureHelp: 'Baue das physische Lager auf. Weise Ebenen eine Nutzung zu und lege Lagerplätze an, sobald der jeweilige Bereich bereit ist.',
+      zonesHelp: 'Klassifiziere jede Ebene. Kommissionierung und Reserve können im selben Regal liegen; Bodenflächen bestimmen die Nutzung nicht.',
+      locationsHelp: 'Lege Lagerplätze ausdrücklich für die gewählte klassifizierte Ebene an und vergib eindeutige Codes.',
+      scopeProgress: 'Fortschritt der gewählten Ebene', configured: 'Lagerplätze konfiguriert', needsCodes: 'Lagerplätze benötigen Codes',
+      noLocations: 'Keine Lagerplätze in dieser Ebene.', gotoZones: 'Diese Ebene unter Zonen klassifizieren',
+      classificationNeeded: 'Weise eine Nutzung zu, bevor du Lagerplätze anlegst oder ihre Anzahl änderst. Bestehende Lagerplätze bleiben erhalten.',
+      legacyHint: 'Migrierte Lagerplätze behalten IDs und Codes. Du kannst ihre Codes bereits vor der Klassifizierung bearbeiten.',
+      spatialHint: 'Dies ist eine physische Fläche. Funktionale Zonen werden Regalebenen zugewiesen.',
+      topZonesHint: 'Die Bänder im Grundriss zeigen Ebenen von unten nach oben; sie sind keine getrennten Bodenflächen.',
+      inspectHint: 'Ebene anklicken: auswählen · freie Fläche ziehen: Ansicht bewegen · Mausrad: zoomen',
+      impactWarning: 'Diese Änderung betrifft {{locations}} bestehende Lagerplätze, {{codes}} Codes und {{articles}} aktuelle Artikelzuordnungen. {{removed}} Lagerplätze werden entfernt. Erhaltene IDs und Codes bleiben ihren Bereichen zugeordnet. Fortfahren?',
+      deleteStructureWarning: 'Dieses physische Objekt löschen?', duplicate: 'Struktur duplizieren',
+      applyUsageBay: 'Für dieses Fach übernehmen', applyUsageRack: 'Für dieses Regal übernehmen', bulkUsage: 'Nutzung für mehrere Ebenen',
       add: 'Rezept hinzufügen', pallet: 'Palettenregal', shelf: 'Fachbodenregal', wall: 'Wand', gate: 'Tor', door: 'Tür', exit: 'Notausgang',
       aisle: 'Gang / Straße', goodsIn: 'Wareneingang', goodsOut: 'Warenausgang', addButton: 'Objekt hinzufügen', objects: 'Objekte',
       empty: 'Noch keine Objekte. Füge ein Rezept hinzu.', properties: 'Eigenschaften', selected: 'Wähle ein Objekt zur Bearbeitung.',
       name: 'Name', x: 'X-Position (mm)', z: 'Z-Position (mm)', rotation: 'Drehung (°)', width: 'Breite (mm)',
       depth: 'Tiefe / Länge (mm)', height: 'Höhe (mm)', bays: 'Fächer', levels: 'Ebenen in diesem Fach',
-      positions: 'Stellplätze in dieser Ebene', applyCounts: 'Fachanzahl übernehmen',
-      applyBayLevels: 'Ebenenzahl dieses Fachs übernehmen', applyLevelPositions: 'Stellplatzzahl dieser Ebene übernehmen',
+      positions: 'Lagerplätze in dieser Ebene', applyCounts: 'Fachanzahl übernehmen',
+      applyBayLevels: 'Ebenenzahl dieses Fachs übernehmen', applyLevelPositions: 'Lagerplatzanzahl übernehmen',
       bay: 'Fach', level: 'Ebene', upright: 'Ständer',
       clearHeight: 'Lichte Fachhöhe (mm)', thickness: 'Traverse / Regalboden (mm)', deck: 'Fachboden hinzufügen',
       deckThickness: 'Fachbodenstärke (mm)', code: 'Stellplatzcode', codes: 'Codes der gewählten Ebene',
-      codePrefix: 'Code-Präfix', generate: 'Leere Codes füllen', delete: 'Objekt löschen', duplicate: 'Duplizieren',
+      codePrefix: 'Code-Präfix', generate: 'Leere Codes füllen', delete: 'Objekt löschen',
       copyName: 'Kopie von', rotateLeft: '90° links drehen', rotateRight: '90° rechts drehen',
       undo: 'Rückgängig', redo: 'Wiederholen', lock: 'Sperren', unlock: 'Entsperren', locked: 'Gesperrt',
       lockedHint: 'Dieses Objekt ist gesperrt. Ebenen und Stellplätze bleiben einsehbar; zum Bearbeiten entsperren.',
@@ -75,7 +105,7 @@
       snapTo: 'Verbinden mit',
       noSelection: 'Wähle eine Regalebene, um die Stellplätze zu bearbeiten.', saved: 'Lagerplan lokal gespeichert.',
       removeWarning: 'Beim Verkleinern werden Stellplätze mit Codes entfernt. Fortfahren?', deleteWarning: 'Objekt und seine Stellplatzcodes löschen?',
-      slotSummary: 'Stellplätze ·', coded: 'codiert', missing: 'ohne Code', exact: 'Codes werden nach Entfernen äußerer Leerzeichen exakt abgeglichen. Führende Nullen bleiben erhalten.',
+      slotSummary: 'Lagerplätze ·', coded: 'codiert', missing: 'ohne Code', exact: 'Codes werden nach Entfernen äußerer Leerzeichen exakt abgeglichen. Führende Nullen bleiben erhalten.',
       choose: 'Rezept wählen',
       wizardCreate: 'Regal aufbauen', wizardEdit: 'Regalaufbau bearbeiten', wizardBasics: '1 · Grunddaten',
       wizardBays: '2 · Fächer und Ständer', wizardLevels: '3 · Ebenen und Vorschau',
@@ -145,6 +175,7 @@
     const topView = { ready: false, centerX: 0, centerZ: 0, scale: 1, zoom: 1 };
     const choice = { objectId: null, bay: 0, level: 0, upright: 0, slotId: null };
     let codePrefix = 'R01';
+    let mode = 'structure';
     let message = '';
     let pickFaces = [];
     let canvas = null;
@@ -180,6 +211,7 @@
         undoStack = [];
         redoStack = [];
         rackWizard = null;
+        mode = 'structure';
         camera.yaw = -0.62; camera.pitch = 0.62; camera.zoom = 1;
         camera.target = null; camera.baseScale = null;
         topView.ready = false; topView.zoom = 1;
@@ -216,7 +248,7 @@
       choice.objectId = slot.objectId;
       choice.bay = slot.bayIndex;
       choice.level = slot.levelIndex;
-      choice.slotId = slot.slotId;
+      choice.slotId = slot.slotId || null;
       message = '';
       render();
     }
@@ -234,11 +266,19 @@
           const currentLocks = new Map(before.objects.map(function (object) { return [object.id, object.locked === true]; }));
           next.objects.forEach(function (object) { object.locked = currentLocks.get(object.id) || false; });
         }
-        normalized = model.normalizeLayout(next);
+        normalized = model.reconcileLayout(next);
         if (model.lockedEditConflict(before, normalized, toggleLockId)) {
           message = labels().lockedEdit; render(); return false;
         }
         if (JSON.stringify(normalized) === JSON.stringify(before)) { render(); return false; }
+        const impact = model.layoutImpact(before, normalized, options.getRegistry ? options.getRegistry() : []);
+        if (impact.locations) {
+          const warning = labels().impactWarning.replace(/\{\{(locations|codes|articles|removed)\}\}/g,
+            function (_, key) { return impact[key]; });
+          if (!window.confirm(warning)) { render(); return false; }
+        } else if (impact.removedObjects && !window.confirm(labels().deleteStructureWarning)) {
+          render(); return false;
+        }
         saving = true;
         root.setAttribute('aria-busy', 'true');
         root.classList.add('is-saving');
@@ -290,19 +330,15 @@
       return next;
     }
     function wizardValidation() {
-      try { model.normalizeLayout(wizardLayout()); return ''; }
+      try { model.reconcileLayout(wizardLayout()); return ''; }
       catch (error) {
         const detail = error && error.message ? error.message : String(error);
         const height = /The levels exceed the height of an adjacent upright in bay (\d+)\./.exec(detail);
         if (height) return labels().wizardHeightError.replace('{{bay}}', height[1]);
-        if (detail === 'A layout can contain at most 5000 positions.') return labels().wizardTooManyPositions;
+        if (detail === 'A layout can contain at most 5000 locations.') return labels().wizardTooManyPositions;
         if (detail === 'A layout can contain at most 150 objects.') return labels().wizardTooManyObjects;
         return detail;
       }
-    }
-    function wizardRemovalWarning(before, after) {
-      const retained = new Set(model.listSlots({ objects: [after] }).map(function (slot) { return slot.slotId; }));
-      return model.listSlots({ objects: [before] }).some(function (slot) { return slot.code && !retained.has(slot.slotId); });
     }
     function wizardNumber(value, min, max) {
       const number = Number(value);
@@ -344,17 +380,12 @@
       const last = rack.uprights[rack.uprights.length - 1];
       shapes.push('<rect x="' + x + '" y="' + (216 - last.height * scaleY) + '" width="' +
         Math.max(2, last.width * scaleX) + '" height="' + last.height * scaleY + '" fill="#80a5b5"/>');
-      const positions = rack.bays.reduce(function (sum, bay) {
-        return sum + bay.levels.reduce(function (levelSum, level) { return levelSum + level.positions.length; }, 0);
-      }, 0);
-      const coded = model.listSlots({ objects: [rack] }).filter(function (slot) { return slot.code; }).length;
       const depth = Math.max.apply(null, rack.bays.map(function (bay) { return bay.depth; }).concat(rack.uprights.map(function (upright) { return upright.depth; })));
       return '<div class="wh-wizard-preview"><strong>' + esc(t.wizardFront) + '</strong><svg viewBox="0 0 800 250" role="img" aria-label="' +
         esc(t.wizardFront) + '">' + shapes.join('') + '</svg><div class="wh-wizard-metrics"><span>' +
         esc(t.wizardTotalWidth) + ': <strong>' + totalWidth + ' mm</strong></span><span>' + esc(t.wizardMaxDepth) +
         ': <strong>' + depth + ' mm</strong></span><span>' + esc(t.wizardMaxHeight) + ': <strong>' + maxHeight +
-        ' mm</strong></span><span>' + esc(t.wizardPositionCount) + ': <strong>' + positions + '</strong> · ' +
-        coded + ' ' + esc(t.wizardCodedCount) + '</span></div></div>';
+        ' mm</strong></span></div></div>';
     }
     function wizardHtml(t) {
       const state = rackWizard, rack = state.draft;
@@ -396,11 +427,11 @@
             (index === state.activeBay ? ' selected' : '') + '>' + esc(t.wizardBayNumber) + ' ' + (index + 1) + '</option>'; }).join('') +
           '</select></label><div class="wh-wizard-table-wrap"><table class="wh-wizard-table"><thead><tr><th>' +
           esc(t.wizardLevelNumber) + '</th><th>' + esc(t.clearHeight) + '</th><th>' + esc(t.thickness) + '</th><th>' +
-          esc(t.positions) + '</th><th>' + esc(t.deck) + '</th><th>' + esc(t.deckThickness) + '</th></tr></thead><tbody>' +
+          esc(t.deck) + '</th><th>' + esc(t.deckThickness) + '</th></tr></thead><tbody>' +
           bay.levels.map(function (level, index) {
             return '<tr><th scope="row">' + (index + 1) + '</th><td>' + wizardInput('level.clearHeight', level.clearHeight, 100, 8000, index) +
               '</td><td>' + wizardInput('level.thickness', level.thickness, 10, 300, index) + '</td><td>' +
-              wizardInput('level.positions', level.positions.length, 1, 4, index) + '</td><td><input type="checkbox" data-wizard-field="level.deck" data-index="' +
+              '<input type="checkbox" data-wizard-field="level.deck" data-index="' +
               index + '" aria-label="' + esc(t.deck) + ' ' + (index + 1) + '"' + (level.deck ? ' checked' : '') +
               '></td><td>' + wizardInput('level.deckThickness', level.deckThickness, 10, 200, index) + '</td></tr>';
           }).join('') + '</tbody></table></div>';
@@ -444,7 +475,7 @@
         'bay.width': t.width, 'bay.depth': t.depth, 'bay.levels': t.levels,
         'upright.width': t.width, 'upright.depth': t.depth, 'upright.height': t.height,
         'level.clearHeight': t.clearHeight, 'level.thickness': t.thickness,
-        'level.positions': t.positions, 'level.deckThickness': t.deckThickness
+        'level.deckThickness': t.deckThickness
       };
       try {
         if (field === 'type') {
@@ -461,10 +492,7 @@
           draft.name = name;
         } else if (field === 'bayCount') {
           const count = wizardNumber(input.value, 1, 30);
-          const resized = model.resizeRack(draft, count, null, null);
-          if (wizardRemovalWarning(draft, resized) && !window.confirm(labels().removeWarning)) {
-            input.value = draft.bays.length; state.error = ''; refreshWizardFeedback(); return;
-          }
+          const resized = model.resizeRack(draft, count, null);
           state.draft = resized;
           state.activeBay = Math.min(state.activeBay, count - 1);
         } else if (field === 'defaultLevels') {
@@ -480,16 +508,6 @@
           return;
         } else if (field === 'bay.levels') {
           const resized = model.resizeBayLevels(draft, index, wizardNumber(input.value, 1, 12));
-          if (wizardRemovalWarning(draft, resized) && !window.confirm(labels().removeWarning)) {
-            input.value = draft.bays[index].levels.length; state.error = ''; refreshWizardFeedback(); return;
-          }
-          state.draft = resized;
-        } else if (field === 'level.positions') {
-          const resized = model.resizeLevelPositions(draft, state.activeBay, index, wizardNumber(input.value, 1, 4));
-          if (wizardRemovalWarning(draft, resized) && !window.confirm(labels().removeWarning)) {
-            input.value = draft.bays[state.activeBay].levels[index].positions.length;
-            state.error = ''; refreshWizardFeedback(); return;
-          }
           state.draft = resized;
         } else if (field === 'level.deck') {
           draft.bays[state.activeBay].levels[index].deck = input.checked;
@@ -517,8 +535,66 @@
       refreshWizardFeedback();
     }
 
+    function scopeProgress(object, level, t) {
+      const scope = model.listScopes(layout()).find(function (item) { return item.levelId === level.id; });
+      return '<div class="wh-progress" aria-label="' + esc(t.scopeProgress) + '"><span class="complete">✓ ' + esc(t.modeled) +
+        '</span><span class="' + (scope.usage === 'unassigned' ? '' : 'complete') + '">' + esc(t[scope.usage] || scope.usage) +
+        '</span><span class="' + (scope.locationCount && scope.codedCount === scope.locationCount ? 'complete' : '') + '">' +
+        (scope.locationCount ? scope.codedCount + '/' + scope.locationCount + ' ' + esc(scope.codedCount === scope.locationCount ? t.configured : t.needsCodes) : esc(t.noLocations)) + '</span></div>';
+    }
+    function usageOptions(usage, t) {
+      const choices = model.USAGES.includes(usage) ? model.USAGES : model.USAGES.concat([usage]);
+      return choices.map(function (value) { return '<option value="' + esc(value) + '"' + (value === usage ? ' selected' : '') +
+        '>' + esc(t[value] || value) + '</option>'; }).join('');
+    }
+    function currentZone(object) {
+      return model.zoneForLevel(layout(), object.bays[choice.bay].levels[choice.level].id);
+    }
+    function scopeProperties(object, t) {
+      if (!model.RACK_TYPES.includes(object.type)) return '<p class="wh-empty">' + esc(t.spatialHint) +
+        '</p><button type="button" class="wh-small-button" data-mode="structure">' + esc(t.structure) + '</button>';
+      const bay = object.bays[choice.bay], level = bay.levels[choice.level];
+      const zone = currentZone(object);
+      const locations = model.zoneLocations(layout(), zone.id);
+      let html = '<div class="wh-property-grid">' + selectField(t.bay, 'bay', object.bays.length, choice.bay) +
+        selectField(t.level, 'level', bay.levels.length, choice.level) + '</div>' + scopeProgress(object, level, t);
+      if (mode === 'zones') {
+        html += '<div class="wh-section"><label class="wh-field"><span>' + esc(t.bulkUsage) + '</span><select data-bulk-usage>' +
+          usageOptions('picking', t) + '</select></label><button type="button" class="wh-small-button" data-action="usage-bay">' +
+          esc(t.applyUsageBay) + '</button><button type="button" class="wh-small-button" data-action="usage-rack">' + esc(t.applyUsageRack) +
+          '</button></div><div class="wh-zone-list">' + model.listScopes(layout()).filter(function (scope) { return scope.objectId === object.id; })
+          .map(function (scope) {
+            return '<div class="wh-zone-row' + (scope.levelId === level.id ? ' selected' : '') + '"><button type="button" data-scope-bay="' +
+              scope.bayIndex + '" data-scope-level="' + scope.levelIndex + '">' + esc(t.bay) + ' ' + (scope.bayIndex + 1) +
+              ' · ' + esc(t.level) + ' ' + (scope.levelIndex + 1) + '</button><label class="wh-field"><span>' + esc(t.usage) +
+              '</span><select data-zone="' + esc(scope.zoneId) + '" style="border-left:4px solid ' +
+              (model.USAGE_COLORS[scope.usage] || model.USAGE_COLORS.unassigned) + '">' + usageOptions(scope.usage, t) +
+              '</select></label><small>' + scope.codedCount + '/' + scope.locationCount + ' ' + esc(t.coded) + '</small></div>';
+          }).join('') + '</div>';
+        return html;
+      }
+      const classified = zone.usage !== 'unassigned';
+      if (!classified) html += '<p class="wh-scope-hint">' + esc(t.classificationNeeded) + '</p><button type="button" class="wh-small-button" data-mode="zones">' +
+        esc(t.gotoZones) + '</button>' + (locations.some(function (location) { return location.legacy; }) ? '<p class="wh-scope-hint">' + esc(t.legacyHint) + '</p>' : '');
+      html += '<div class="wh-section">' + numberField(t.positions, 'count.locations', locations.length, 0, 4) +
+        '<button type="button" class="wh-small-button" data-action="resize-locations"' + (!classified ? ' disabled' : '') + '>' + esc(t.applyLevelPositions) + '</button></div>';
+      html += '<div class="wh-section"><strong>' + esc(t.codes) + '</strong>' + (locations.length ? locations.map(function (location) {
+        return '<label class="wh-code-row' + (location.id === choice.slotId ? ' selected' : '') + '"><span>' + (location.positionIndex + 1) +
+          '</span><input type="text" data-location="' + esc(location.id) + '" value="' + esc(location.code) +
+          '" maxlength="80" placeholder="' + esc(t.code) + '"' + (!classified && !location.legacy ? ' disabled' : '') + '></label>';
+      }).join('') : '<p class="wh-empty">' + esc(t.noLocations) + '</p>') + '</div>';
+      html += '<div class="wh-section wh-code-generator">' + textField(t.codePrefix, 'prefix', codePrefix) +
+        '<button type="button" class="wh-small-button" data-action="generate"' + (!locations.length || (!classified && !locations.every(function (location) { return location.legacy; })) ? ' disabled' : '') +
+        '>' + esc(t.generate) + '</button><p class="wh-scope-hint">' + esc(t.exact) + '</p></div>';
+      return html;
+    }
     function properties(object, t) {
       if (!object) return '<p class="wh-empty">' + esc(t.selected) + '</p>';
+      if (model.RACK_TYPES.includes(object.type)) {
+        choice.bay = Math.min(choice.bay, object.bays.length - 1);
+        choice.level = Math.min(choice.level, object.bays[choice.bay].levels.length - 1);
+      }
+      if (mode !== 'structure') return scopeProperties(object, t);
       let html = '<div class="wh-property-grid">' + textField(t.name, 'name', object.name) +
         numberField(t.x, 'x', object.x, -500000, 500000) + numberField(t.z, 'z', object.z, -500000, 500000) +
         numberField(t.rotation, 'rotation', object.rotation, -360, 360) + '</div>';
@@ -545,9 +621,7 @@
         selectField(t.level, 'level', bay.levels.length, choice.level) +
         numberField(t.clearHeight, 'level.clearHeight', level.clearHeight, 100, 8000) +
         numberField(t.thickness, 'level.thickness', level.thickness, 10, 300) +
-        numberField(t.positions, 'count.levelPositions', level.positions.length, 1, 4) +
-        '</div><button type="button" class="wh-small-button" data-action="resize-level">' + esc(t.applyLevelPositions) +
-        '</button><label class="wh-check"><input type="checkbox" data-field="level.deck"' + (level.deck ? ' checked' : '') + '><span>' + esc(t.deck) + '</span></label>' +
+        '</div><label class="wh-check"><input type="checkbox" data-field="level.deck"' + (level.deck ? ' checked' : '') + '><span>' + esc(t.deck) + '</span></label>' +
         numberField(t.deckThickness, 'level.deckThickness', level.deckThickness, 10, 200) + '</div>';
       html += '<div class="wh-section"><div class="wh-property-grid">' +
         selectField(t.upright, 'upright', object.uprights.length, choice.upright) +
@@ -555,14 +629,7 @@
         numberField(t.depth, 'upright.depth', stand.depth, 100, 3000) +
         numberField(t.height, 'upright.height', stand.height, 200, 20000) +
         '</div></div>';
-      html += '<div class="wh-section"><strong>' + esc(t.codes) + '</strong>' +
-        level.positions.map(function (slot, index) {
-          return '<label class="wh-code-row' + (slot.id === choice.slotId ? ' selected' : '') + '"><span>' + (index + 1) + '</span><input type="text" data-field="slot.code" data-slot-index="' +
-            index + '" value="' + esc(slot.code) + '" maxlength="80" placeholder="' + esc(t.code) + '"></label>';
-        }).join('') + '</div>';
-      html += '<div class="wh-section wh-code-generator">' + textField(t.codePrefix, 'prefix', codePrefix) +
-        '<button type="button" class="wh-small-button" data-action="generate">' + esc(t.generate) + '</button></div>';
-      return html;
+      return html + scopeProgress(object, level, t);
     }
 
     function render() {
@@ -593,14 +660,17 @@
         }).join('') + '</div>' + (collisions.length > 12 ? '<p>' + (collisions.length - 12) + ' ' + esc(t.moreCollisions) + '</p>' : '') +
         '</div>' : '';
       root.innerHTML = '<div class="wh-header"><div><p class="wh-eyebrow">OpenSlotting · 3D</p><h3>' + esc(t.view) + '</h3><p>' +
-        esc(t.exact) + '</p></div><div class="wh-summary"><strong>' + warehouse.objects.length + '</strong> ' + esc(t.objects) +
+        esc(t[mode + 'Help']) + '</p></div><div class="wh-summary"><strong>' + warehouse.objects.length + '</strong> ' + esc(t.objects) +
         '<br><strong>' + slots.length + '</strong> ' + esc(t.slotSummary) + ' ' + coded + ' ' + esc(t.coded) +
         (collisions.length ? '<br><span class="wh-summary-conflicts">⚠ ' + esc(collisionSummary) + '</span>' : '') + '</div></div>' +
-        '<div class="wh-editor-grid"' + (rackWizard ? ' inert' : '') + '><aside class="wh-sidebar"><div class="wh-card"><h4>' + esc(t.add) + '</h4>' +
+        '<nav class="wh-modes" aria-label="' + esc(t.view) + '"' + (rackWizard ? ' inert' : '') + '>' + ['structure', 'zones', 'locations'].map(function (step, index) {
+          return '<button type="button" data-mode="' + step + '" aria-pressed="' + (step === mode) + '">' + (index + 1) + ' · ' + esc(t[step]) + '</button>';
+        }).join('') + '</nav>' +
+        '<div class="wh-editor-grid"' + (rackWizard ? ' inert' : '') + '><aside class="wh-sidebar">' + (mode === 'structure' ? '<div class="wh-card"><h4>' + esc(t.add) + '</h4>' +
         '<select id="wh-recipe" aria-label="' + esc(t.choose) + '">' +
         model.RACK_TYPES.concat(model.AREA_TYPES).map(function (type) {
           return '<option value="' + type + '">' + esc(t[TYPE_LABELS[type]]) + '</option>';
-        }).join('') + '</select><button type="button" class="wh-add-button" data-action="add">' + esc(t.addButton) + '</button></div>' +
+        }).join('') + '</select><button type="button" class="wh-add-button" data-action="add">' + esc(t.addButton) + '</button></div>' : '') +
         collisionPanel +
         '<div class="wh-card wh-objects"><h4>' + esc(t.objects) + '</h4>' +
         (warehouse.objects.length ? warehouse.objects.map(function (item) {
@@ -628,23 +698,27 @@
         esc(t.orbit) + '</button></div></div><div class="wh-viewport"><canvas class="wh-canvas is-top' +
         (camera.mode === 'top' ? '' : ' is-hidden') + '" role="img" aria-label="' + esc(t.planView) + '"></canvas>' +
         '<div class="wh-webgl-slot' + (camera.mode === 'orbit' ? '' : ' is-hidden') + '"></div></div>' +
-        '<div class="wh-view-hint">' + esc(camera.mode === 'top' ? t.hintTop + (magnetEnabled ? ' · ' + t.magnetHint : '') : t.hint) + '</div>' +
+        '<div class="wh-view-hint">' + esc(camera.mode === 'top' ? (mode === 'structure' ? t.hintTop + (magnetEnabled ? ' · ' + t.magnetHint : '') : t.inspectHint) + ' · ' + t.topZonesHint : t.hint) + '</div>' +
+        '<div class="wh-legend">' + model.USAGES.map(function (usage) { return '<span><i style="background:' + model.USAGE_COLORS[usage] + '"></i>' + esc(t[usage]) + '</span>'; }).join('') + '</div>' +
         '</div><aside class="wh-properties"><div class="wh-card"><div class="wh-properties-head"><h4>' + esc(t.properties) + '</h4>' +
-        (object ? '<button type="button" class="wh-delete" data-action="delete">' + esc(t.delete) + '</button>' : '') +
+        (object && mode === 'structure' ? '<button type="button" class="wh-delete" data-action="delete">' + esc(t.delete) + '</button>' : '') +
         '</div>' + (object ? '<div class="wh-object-actions"><button type="button" class="wh-lock-toggle" data-action="toggle-lock" aria-pressed="' +
           Boolean(object.locked) + '">' + (object.locked ? '🔓 ' + esc(t.unlock) : '🔒 ' + esc(t.lock)) +
-        '</button>' + (model.RACK_TYPES.includes(object.type) ? '<button type="button" data-action="edit-rack">' +
+        '</button>' + (mode === 'structure' ? (model.RACK_TYPES.includes(object.type) ? '<button type="button" data-action="edit-rack">' +
           esc(t.wizardEditButton) + '</button>' : '') + '<button type="button" data-action="duplicate">' +
           esc(t.duplicate) + '</button><button type="button" data-action="rotate-left" title="' + esc(t.rotateLeft) +
           '">↶ 90°</button><button type="button" data-action="rotate-right" title="' + esc(t.rotateRight) +
-          '">↷ 90°</button></div>' + (object.locked ? '<p class="wh-locked-hint">🔒 ' + esc(t.lockedHint) + '</p>' : '') : '') + properties(object, t) +
+          '">↷ 90°</button>' : '') + '</div>' + (object.locked ? '<p class="wh-locked-hint">🔒 ' + esc(t.lockedHint) + '</p>' : '') : '') + properties(object, t) +
         '</div></aside></div>' + (rackWizard ? wizardHtml(t) : '') +
         '<p class="wh-message" role="status" aria-live="polite">' + esc(message) + '</p>';
       if (object && object.locked) {
-        root.querySelectorAll('.wh-properties [data-field], .wh-properties [data-action]:not([data-action="toggle-lock"])')
+        root.querySelectorAll('.wh-properties [data-field], .wh-properties [data-zone], .wh-properties [data-location], .wh-properties [data-bulk-usage], .wh-properties [data-action]:not([data-action="toggle-lock"])')
           .forEach(function (control) { control.disabled = true; });
       }
       root.querySelector('.wh-webgl-slot').appendChild(glCanvas);
+      if (mode === 'locations' && object && model.RACK_TYPES.includes(object.type) && currentZone(object).usage === 'unassigned') {
+        root.querySelector('[data-field="count.locations"]').disabled = true;
+      }
       glCanvas.setAttribute('aria-label', t.view);
       canvas = root.querySelector('canvas.is-top');
       paint(warehouse, collisionIds);
@@ -737,9 +811,37 @@
           object.id === choice.objectId ? '#91f4e2' : COLORS[object.type];
         ctx.lineWidth = object.id === choice.objectId || colliding ? 3 : 1.5; ctx.stroke();
         if (model.RACK_TYPES.includes(object.type)) {
+          pickFaces.push({ objectId: object.id, polygon: polygon });
           let divider = object.uprights[0].width;
           const angle = object.rotation * Math.PI / 180;
           object.bays.forEach(function (bay, index) {
+            const local = function (x, z) { return topPoint(object.x + Math.cos(angle) * x - Math.sin(angle) * z,
+              object.z + Math.sin(angle) * x + Math.cos(angle) * z, width, height); };
+            bay.levels.forEach(function (level, levelIndex) {
+              const zone = model.zoneForLevel(warehouse, level.id);
+              const locations = zone ? model.zoneLocations(warehouse, zone.id) : [];
+              const bandDepth = bay.depth / bay.levels.length;
+              const parts = mode === 'locations' && locations.length ? locations : [null];
+              parts.forEach(function (location, positionIndex) {
+                const x = divider + positionIndex * bay.width / parts.length;
+                const z = levelIndex * bandDepth;
+                const band = [local(x, z), local(x + bay.width / parts.length, z),
+                  local(x + bay.width / parts.length, z + bandDepth), local(x, z + bandDepth)];
+                ctx.beginPath(); ctx.moveTo(band[0][0], band[0][1]);
+                band.slice(1).forEach(function (point) { ctx.lineTo(point[0], point[1]); }); ctx.closePath();
+                ctx.fillStyle = model.USAGE_COLORS[zone ? zone.usage : 'unassigned'] || model.USAGE_COLORS.unassigned;
+                ctx.globalAlpha = 0.55; ctx.fill(); ctx.globalAlpha = 1;
+                ctx.strokeStyle = object.id === choice.objectId && index === choice.bay && levelIndex === choice.level ? '#efffff' : '#253941';
+                ctx.lineWidth = 1; ctx.stroke();
+                if (bandDepth * scale > 16 && bay.width * scale / parts.length > 32) {
+                  const center = local(x + bay.width / parts.length / 2, z + bandDepth / 2);
+                  ctx.font = '10px Segoe UI, sans-serif'; ctx.fillStyle = '#10202a'; ctx.textAlign = 'center';
+                  ctx.fillText('L' + (levelIndex + 1) + (location ? ' · ' + (positionIndex + 1) : ''), center[0], center[1]);
+                }
+                pickFaces.push({ objectId: object.id, bayIndex: index, levelIndex: levelIndex,
+                  slotId: location && location.id, polygon: band });
+              });
+            });
             divider += bay.width;
             const localX = divider;
             const depth = model.objectFootprint(object).depth;
@@ -757,7 +859,7 @@
         const name = (object.locked ? '🔒 ' : '') + (colliding ? '⚠ ' : '') + object.name;
         ctx.lineWidth = 3; ctx.strokeStyle = '#0d151c'; ctx.strokeText(name, centerX, centerY);
         ctx.fillStyle = '#e4f2f2'; ctx.fillText(name, centerX, centerY);
-        pickFaces.push({ objectId: object.id, polygon: polygon });
+        if (!model.RACK_TYPES.includes(object.type)) pickFaces.push({ objectId: object.id, polygon: polygon });
       });
       if (snapPreview && magnetEnabled) {
         const point = topPoint(snapPreview.point.x, snapPreview.point.z, width, height);
@@ -829,7 +931,8 @@
           if (found) {
             const object = layout().objects.find(function (item) { return item.id === found.objectId; });
             choice.objectId = object.id; choice.slotId = null;
-            if (object.locked) drag = { mode: 'select', x: event.clientX, y: event.clientY, moved: false };
+            if (found.bayIndex !== undefined) { choice.bay = found.bayIndex; choice.level = found.levelIndex; choice.slotId = found.slotId || null; }
+            if (object.locked || mode !== 'structure') drag = { mode: 'select', x: event.clientX, y: event.clientY, moved: false };
             else {
               const next = clone(layout());
               drag = { mode: 'move', x: event.clientX, y: event.clientY, moved: false,
@@ -903,7 +1006,7 @@
         }
         if (drag.mode === 'orbit' && !drag.moved) {
           const found = webglRenderer && webglRenderer.pick(event.clientX, event.clientY);
-          if (found && found.slotId) selectSlot(found);
+          if (found && found.bayIndex !== undefined) selectSlot(found);
           else if (found) { choice.objectId = found.objectId; choice.bay = 0; choice.level = 0; choice.upright = 0; choice.slotId = null; render(); }
         }
         drag = null;
@@ -970,6 +1073,13 @@
           return;
         }
         return;
+      }
+      const modeButton = event.target.closest('[data-mode]');
+      if (modeButton) { mode = modeButton.dataset.mode; message = ''; render(); return; }
+      const scopeButton = event.target.closest('[data-scope-bay]');
+      if (scopeButton) {
+        choice.bay = Number(scopeButton.dataset.scopeBay); choice.level = Number(scopeButton.dataset.scopeLevel);
+        choice.slotId = null; render(); return;
       }
       const conflictButton = event.target.closest('[data-focus-object]');
       if (conflictButton) {
@@ -1039,6 +1149,19 @@
         commit(next, null, object.id, object.id); return;
       }
       if (object.locked) { message = labels().lockedEdit; render(); return; }
+      if (['usage-bay', 'usage-rack'].includes(action)) {
+        const usage = root.querySelector('[data-bulk-usage]').value;
+        const next = clone(layout());
+        next.zones.forEach(function (zone) {
+          if (zone.objectId === object.id && (action === 'usage-rack' || zone.bayId === object.bays[choice.bay].id)) zone.usage = usage;
+        });
+        commit(next); return;
+      }
+      if (action === 'resize-locations') {
+        try { commit(model.resizeZoneLocations(layout(), currentZone(object).id, Number(root.querySelector('[data-field="count.locations"]').value))); }
+        catch (error) { message = error.message; render(); }
+        return;
+      }
       if (action === 'edit-rack' && model.RACK_TYPES.includes(object.type)) { openRackWizard(object); return; }
       if (action === 'duplicate') {
         const next = clone(layout());
@@ -1063,37 +1186,27 @@
         commit(next); return;
       }
       if (action === 'delete') {
-        if (!window.confirm(labels().deleteWarning)) return;
         const next = clone(layout()); next.objects = next.objects.filter(function (item) { return item.id !== object.id; });
         choice.slotId = null; commit(next, null, null); return;
       }
-      if (['resize', 'resize-bay', 'resize-level'].includes(action) && model.RACK_TYPES.includes(object.type)) {
+      if (['resize', 'resize-bay'].includes(action) && model.RACK_TYPES.includes(object.type)) {
         const next = clone(layout()); const target = next.objects.find(function (item) { return item.id === object.id; });
         let resized;
         try {
-          if (action === 'resize') resized = model.resizeRack(target, Number(root.querySelector('[data-field="count.bays"]').value), null, null);
+          if (action === 'resize') resized = model.resizeRack(target, Number(root.querySelector('[data-field="count.bays"]').value), null);
           else if (action === 'resize-bay') resized = model.resizeBayLevels(target, choice.bay,
             Number(root.querySelector('[data-field="count.bayLevels"]').value));
-          else resized = model.resizeLevelPositions(target, choice.bay, choice.level,
-            Number(root.querySelector('[data-field="count.levelPositions"]').value));
         }
         catch (error) { message = error.message; render(); return; }
-        const retained = new Set(model.listSlots({ objects: [resized] }).map(function (slot) { return slot.slotId; }));
-        const removedCoded = model.listSlots({ objects: [target] }).some(function (slot) { return slot.code && !retained.has(slot.slotId); });
-        if (removedCoded && !window.confirm(labels().removeWarning)) return;
         Object.assign(target, resized); commit(next); return;
       }
       if (action === 'generate' && model.RACK_TYPES.includes(object.type)) {
         const prefix = String(codePrefix).trim();
         if (!prefix) { message = labels().codePrefix + ': 1–80'; render(); return; }
-        const next = clone(layout()); const target = next.objects.find(function (item) { return item.id === object.id; });
-        target.bays.forEach(function (bay, bayIndex) {
-          bay.levels.forEach(function (level, levelIndex) {
-            level.positions.forEach(function (slot, positionIndex) {
-              if (!slot.code) slot.code = prefix + '-' + String(bayIndex + 1).padStart(2, '0') + '-' +
-                String(levelIndex + 1).padStart(2, '0') + '-' + String(positionIndex + 1).padStart(2, '0');
-            });
-          });
+        const next = clone(layout()), zone = currentZone(object);
+        next.locations.filter(function (location) { return location.zoneId === zone.id && (zone.usage !== 'unassigned' || location.legacy); }).forEach(function (location) {
+          if (!location.code) location.code = prefix + '-' + String(choice.bay + 1).padStart(2, '0') + '-' +
+            String(choice.level + 1).padStart(2, '0') + '-' + String(location.positionIndex + 1).padStart(2, '0');
         });
         commit(next);
       }
@@ -1132,6 +1245,14 @@
     root.addEventListener('change', function (event) {
       if (saving) return;
       if (rackWizard) { changeWizardField(event.target); return; }
+      if (event.target.dataset.zone || event.target.dataset.location) {
+        try {
+          const next = event.target.dataset.zone ? model.setZoneUsage(layout(), event.target.dataset.zone, event.target.value) :
+            model.setLocationCode(layout(), event.target.dataset.location, event.target.value);
+          commit(next);
+        } catch (error) { message = error.message; render(); }
+        return;
+      }
       const selector = event.target.dataset.select;
       if (selector) {
         choice[selector] = Number(event.target.value); choice.slotId = null; render(); return;
@@ -1147,7 +1268,6 @@
       if (field.startsWith('bay.')) { holder = target.bays[choice.bay]; property = field.slice(4); }
       if (field.startsWith('level.')) { holder = target.bays[choice.bay].levels[choice.level]; property = field.slice(6); }
       if (field.startsWith('upright.')) { holder = target.uprights[choice.upright]; property = field.slice(8); }
-      if (field === 'slot.code') { holder = target.bays[choice.bay].levels[choice.level].positions[Number(event.target.dataset.slotIndex)]; property = 'code'; }
       holder[property] = event.target.type === 'checkbox' ? event.target.checked : event.target.type === 'number' ? Number(event.target.value) : event.target.value;
       commit(next);
     });

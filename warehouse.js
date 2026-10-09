@@ -8,7 +8,9 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const LAYOUT_VERSION = 1;
+  const LAYOUT_VERSION = 2;
+  const USAGES = ['unassigned', 'picking', 'reserve'];
+  const USAGE_COLORS = { unassigned: '#8795a4', picking: '#55c69c', reserve: '#c7a0ef' };
   const RACK_TYPES = ['pallet-rack', 'shelf-rack'];
   const AREA_TYPES = ['wall', 'gate', 'door', 'emergency-exit', 'aisle', 'goods-in', 'goods-out'];
   const CONNECTOR_TYPES = ['wall', 'gate', 'door', 'emergency-exit'];
@@ -54,7 +56,7 @@
     used.add(result);
     return result;
   }
-  function createLayout() { return { version: LAYOUT_VERSION, objects: [] }; }
+  function createLayout() { return { version: LAYOUT_VERSION, objects: [], zones: [], locations: [] }; }
 
   function createRack(type, options) {
     if (!RACK_TYPES.includes(type)) fail('Unsupported rack type.');
@@ -69,8 +71,7 @@
         levels: Array.from({ length: levelCount }, function () {
           return {
             id: id('level'), clearHeight: pallet ? 1500 : 450,
-            thickness: pallet ? 100 : 35, deck: !pallet, deckThickness: pallet ? 35 : 25,
-            positions: Array.from({ length: pallet ? 2 : 1 }, function () { return { id: id('slot'), code: '' }; })
+            thickness: pallet ? 100 : 35, deck: !pallet, deckThickness: pallet ? 35 : 25
           };
         })
       };
@@ -101,41 +102,25 @@
     };
   }
 
-  function resizeRack(rack, bayCount, levelCount, positionsPerLevel) {
+  function resizeRack(rack, bayCount, levelCount) {
     const count = Number(bayCount);
     const levels = levelCount === null ? null : Number(levelCount);
-    const positions = positionsPerLevel === null ? null : Number(positionsPerLevel);
     if (!Number.isInteger(count) || count < 1 || count > 30 ||
-      (levels !== null && (!Number.isInteger(levels) || levels < 1 || levels > 12)) ||
-      (positions !== null && (!Number.isInteger(positions) || positions < 1 || positions > 4))) {
-      fail('Use 1–30 bays, 1–12 levels, and 1–4 positions per level.');
+      (levels !== null && (!Number.isInteger(levels) || levels < 1 || levels > 12))) {
+      fail('Use 1–30 bays and 1–12 levels.');
     }
     const seedLevels = levels === null ? rack.bays[0].levels.length : levels;
-    const seedPositions = positions === null ? rack.bays[0].levels[0].positions.length : positions;
     const fresh = createRack(rack.type, { bayCount: count, levelCount: seedLevels });
     const updated = Object.assign({}, rack, {
       bays: Array.from({ length: count }, function (_, bayIndex) {
         const oldBay = rack.bays[bayIndex];
         const newBay = fresh.bays[bayIndex];
-        if (!oldBay) return Object.assign({}, newBay, {
-          levels: newBay.levels.map(function (level) {
-            return Object.assign({}, level, {
-              positions: Array.from({ length: seedPositions }, function (_, index) {
-                return level.positions[index] || { id: id('slot'), code: '' };
-              })
-            });
-          })
-        });
+        if (!oldBay) return newBay;
         return Object.assign({}, oldBay, {
           levels: Array.from({ length: levels === null ? oldBay.levels.length : levels }, function (_, levelIndex) {
             const oldLevel = oldBay.levels[levelIndex];
             const newLevel = newBay.levels[levelIndex] || createRack(rack.type, { bayCount: 1, levelCount: 1 }).bays[0].levels[0];
-            const chosen = oldLevel || newLevel;
-            return Object.assign({}, chosen, {
-              positions: Array.from({ length: positions === null ? chosen.positions.length : positions }, function (_, index) {
-                return chosen.positions[index] || { id: id('slot'), code: '' };
-              })
-            });
+            return oldLevel || newLevel;
           })
         });
       }),
@@ -161,36 +146,14 @@
     });
   }
 
-  function resizeLevelPositions(rack, bayIndex, levelIndex, positionCount) {
-    const bay = Number(bayIndex), level = Number(levelIndex), count = Number(positionCount);
-    if (!Number.isInteger(bay) || bay < 0 || bay >= rack.bays.length ||
-      !Number.isInteger(level) || level < 0 || level >= rack.bays[bay].levels.length ||
-      !Number.isInteger(count) || count < 1 || count > 4) fail('Choose a level and 1–4 positions.');
-    return Object.assign({}, rack, {
-      bays: rack.bays.map(function (item, bayNumber) {
-        if (bayNumber !== bay) return item;
-        return Object.assign({}, item, {
-          levels: item.levels.map(function (entry, levelNumber) {
-            if (levelNumber !== level) return entry;
-            return Object.assign({}, entry, {
-              positions: Array.from({ length: count }, function (_, positionIndex) {
-                return entry.positions[positionIndex] || { id: id('slot'), code: '' };
-              })
-            });
-          })
-        });
-      })
-    });
-  }
-
   function normalizeLayout(layout) {
-    if (!layout || typeof layout !== 'object' || Array.isArray(layout) || layout.version !== LAYOUT_VERSION || !Array.isArray(layout.objects)) {
+    if (!layout || typeof layout !== 'object' || Array.isArray(layout) || layout.version !== LAYOUT_VERSION ||
+      !Array.isArray(layout.objects) || !Array.isArray(layout.zones) || !Array.isArray(layout.locations)) {
       fail('Warehouse layout format is invalid.');
     }
     if (layout.objects.length > 150) fail('A layout can contain at most 150 objects.');
     const usedIds = new Set();
     const usedCodes = new Set();
-    let slotCount = 0;
     const objects = layout.objects.map(function (source) {
       if (!source || typeof source !== 'object' || !ALL_TYPES.includes(source.type)) fail('Warehouse object type is invalid.');
       const base = {
@@ -225,24 +188,13 @@
         if (!Array.isArray(bay.levels) || bay.levels.length < 1 || bay.levels.length > 12) fail('A bay needs 1–12 levels.');
         const levels = bay.levels.map(function (level) {
           if (!level || typeof level !== 'object' || Array.isArray(level)) fail('Rack level is invalid.');
-          if (!Array.isArray(level.positions) || level.positions.length < 1 || level.positions.length > 4) fail('A level needs 1–4 positions.');
-          const positions = level.positions.map(function (slot) {
-            if (!slot || typeof slot !== 'object' || Array.isArray(slot)) fail('Rack position is invalid.');
-            slotCount += 1;
-            if (slotCount > 5000) fail('A layout can contain at most 5000 positions.');
-            const code = String(slot.code === undefined || slot.code === null ? '' : slot.code).trim();
-            if (code.length > 80) fail('Location code is too long.');
-            if (code && usedCodes.has(code)) fail('Location codes must be unique: ' + code);
-            if (code) usedCodes.add(code);
-            return { id: objectId(slot.id, usedIds), code: code };
-          });
+          if (level.positions !== undefined) fail('Legacy positions require layout migration.');
           return {
             id: objectId(level.id, usedIds),
             clearHeight: measure(level.clearHeight, 'Level height', 100, 8000),
             thickness: measure(level.thickness, 'Beam or shelf thickness', 10, 300),
             deck: Boolean(level.deck),
-            deckThickness: measure(level.deckThickness, 'Deck thickness', 10, 200),
-            positions: positions
+            deckThickness: measure(level.deckThickness, 'Deck thickness', 10, 200)
           };
         });
         const totalHeight = levels.reduce(function (sum, level) { return sum + level.clearHeight + level.thickness; }, 0);
@@ -258,26 +210,196 @@
       });
       return Object.assign(base, { bays: bays, uprights: uprights });
     });
-    return { version: LAYOUT_VERSION, objects: objects };
+    const scopes = physicalScopes({ objects: objects });
+    const byLevel = new Map(scopes.map(function (scope) { return [scope.levelId, scope]; }));
+    const assigned = new Set();
+    const zones = layout.zones.map(function (zone) {
+      if (!zone || typeof zone !== 'object' || Array.isArray(zone)) fail('Functional zone is invalid.');
+      const scope = byLevel.get(zone.levelId);
+      if (!scope || scope.objectId !== zone.objectId || scope.bayId !== zone.bayId) fail('Functional zone references an unknown physical scope.');
+      if (assigned.has(zone.levelId)) fail('A level can have only one functional zone.');
+      assigned.add(zone.levelId);
+      const usage = String(zone.usage || '');
+      if (!/^[a-z][a-z0-9-]{0,39}$/.test(usage)) fail('Functional usage is invalid.');
+      return { id: objectId(zone.id, usedIds), objectId: scope.objectId, bayId: scope.bayId,
+        levelId: scope.levelId, usage: usage };
+    });
+    // A new physical level receives an unassigned scope, never a location.
+    scopes.forEach(function (scope) {
+      if (!assigned.has(scope.levelId)) zones.push({ id: objectId(id('zone'), usedIds),
+        objectId: scope.objectId, bayId: scope.bayId, levelId: scope.levelId, usage: 'unassigned' });
+    });
+    const byZone = new Map(zones.map(function (zone) { return [zone.id, zone]; }));
+    const indices = new Map();
+    if (layout.locations.length > 5000) fail('A layout can contain at most 5000 locations.');
+    const locations = layout.locations.map(function (location) {
+      if (!location || typeof location !== 'object' || Array.isArray(location)) fail('Location is invalid.');
+      if (!byZone.has(location.zoneId)) fail('Location references an unknown functional zone.');
+      if (!Number.isInteger(location.positionIndex) || location.positionIndex < 0 || location.positionIndex > 3) fail('A level supports up to 4 locations.');
+      if (!indices.has(location.zoneId)) indices.set(location.zoneId, new Set());
+      const used = indices.get(location.zoneId);
+      if (used.has(location.positionIndex)) fail('Location subdivisions must be unique within a zone.');
+      used.add(location.positionIndex);
+      const code = String(location.code === undefined || location.code === null ? '' : location.code).trim();
+      if (code.length > 80) fail('Location code is too long.');
+      if (code && usedCodes.has(code)) fail('Location codes must be unique: ' + code);
+      if (code) usedCodes.add(code);
+      return { id: objectId(location.id, usedIds), zoneId: location.zoneId, positionIndex: location.positionIndex,
+        code: code, legacy: location.legacy === true };
+    });
+    indices.forEach(function (used) {
+      for (let index = 0; index < used.size; index += 1) if (!used.has(index)) fail('Location subdivisions must be consecutive.');
+    });
+    return { version: LAYOUT_VERSION, objects: objects, zones: zones, locations: locations };
   }
 
-  function listSlots(layout) {
-    const slots = [];
+  function physicalScopes(layout) {
+    const scopes = [];
     (layout.objects || []).forEach(function (object) {
       if (!RACK_TYPES.includes(object.type)) return;
       object.bays.forEach(function (bay, bayIndex) {
         bay.levels.forEach(function (level, levelIndex) {
-          level.positions.forEach(function (slot, positionIndex) {
-            slots.push({
-              objectId: object.id, objectName: object.name, bayId: bay.id, levelId: level.id,
-              slotId: slot.id, code: slot.code, bayIndex: bayIndex, levelIndex: levelIndex,
-              positionIndex: positionIndex
-            });
-          });
+          scopes.push({ objectId: object.id, objectName: object.name, bayId: bay.id, levelId: level.id,
+            bayIndex: bayIndex, levelIndex: levelIndex });
         });
       });
     });
-    return slots;
+    return scopes;
+  }
+
+  function zoneForLevel(layout, levelId) {
+    return (layout.zones || []).find(function (zone) { return zone.levelId === levelId; }) || null;
+  }
+  function zoneLocations(layout, zoneId) {
+    return (layout.locations || []).filter(function (location) { return location.zoneId === zoneId; })
+      .sort(function (a, b) { return a.positionIndex - b.positionIndex; });
+  }
+  function listScopes(layout) {
+    const byLevel = new Map((layout.zones || []).map(function (zone) { return [zone.levelId, zone]; }));
+    const counts = new Map();
+    (layout.locations || []).forEach(function (location) {
+      if (!counts.has(location.zoneId)) counts.set(location.zoneId, { total: 0, coded: 0 });
+      const count = counts.get(location.zoneId); count.total += 1; if (location.code) count.coded += 1;
+    });
+    return physicalScopes(layout).map(function (scope) {
+      const zone = byLevel.get(scope.levelId);
+      const count = zone && counts.get(zone.id) || { total: 0, coded: 0 };
+      return Object.assign({}, scope, { zoneId: zone && zone.id, usage: zone ? zone.usage : 'unassigned',
+        locationCount: count.total, codedCount: count.coded });
+    });
+  }
+  function listLocations(layout) {
+    const byZone = new Map(listScopes(layout).map(function (scope) { return [scope.zoneId, scope]; }));
+    const objectOrder = new Map((layout.objects || []).map(function (object, index) { return [object.id, index]; }));
+    return (layout.locations || []).map(function (location) {
+      return Object.assign({}, byZone.get(location.zoneId), { locationId: location.id, slotId: location.id,
+        code: location.code, positionIndex: location.positionIndex, legacy: location.legacy });
+    }).sort(function (a, b) {
+      return objectOrder.get(a.objectId) - objectOrder.get(b.objectId) || a.bayIndex - b.bayIndex ||
+        a.levelIndex - b.levelIndex || a.positionIndex - b.positionIndex;
+    });
+  }
+  function setZoneUsage(layout, zoneId, usage) {
+    const next = JSON.parse(JSON.stringify(layout));
+    const zone = next.zones.find(function (item) { return item.id === zoneId; });
+    if (!zone) fail('Choose a functional zone.');
+    const object = next.objects.find(function (item) { return item.id === zone.objectId; });
+    if (object.locked) fail('Unlock the object before editing it.');
+    zone.usage = usage;
+    return normalizeLayout(next);
+  }
+  function resizeZoneLocations(layout, zoneId, count) {
+    const next = JSON.parse(JSON.stringify(layout));
+    const zone = next.zones.find(function (item) { return item.id === zoneId; });
+    if (!zone || zone.usage === 'unassigned') fail('Classify the scope before creating or resizing locations.');
+    if (next.objects.find(function (item) { return item.id === zone.objectId; }).locked) fail('Unlock the object before editing it.');
+    if (!Number.isInteger(count) || count < 0 || count > 4) fail('Choose 0–4 locations in this level.');
+    const old = zoneLocations(next, zoneId);
+    next.locations = next.locations.filter(function (item) { return item.zoneId !== zoneId; }).concat(
+      Array.from({ length: count }, function (_, index) {
+        return old[index] || { id: id('location'), zoneId: zoneId, positionIndex: index, code: '', legacy: false };
+      }));
+    return normalizeLayout(next);
+  }
+  function setLocationCode(layout, locationId, code) {
+    const next = JSON.parse(JSON.stringify(layout));
+    const location = next.locations.find(function (item) { return item.id === locationId; });
+    if (!location) fail('Choose a location.');
+    const zone = next.zones.find(function (item) { return item.id === location.zoneId; });
+    if (zone.usage === 'unassigned' && !location.legacy) fail('Classify the scope before editing locations.');
+    if (next.objects.find(function (item) { return item.id === zone.objectId; }).locked) fail('Unlock the object before editing it.');
+    location.code = code;
+    return normalizeLayout(next);
+  }
+
+  function migrateLayout(layout) {
+    if (layout && layout.version === LAYOUT_VERSION) return normalizeLayout(layout);
+    if (!layout || layout.version !== 1 || !Array.isArray(layout.objects)) fail('Warehouse layout format is invalid.');
+    const next = JSON.parse(JSON.stringify(layout));
+    next.version = LAYOUT_VERSION; next.zones = []; next.locations = [];
+    next.objects.forEach(function (object) {
+      if (!object || !RACK_TYPES.includes(object.type)) return;
+      if (!Array.isArray(object.bays)) fail('Rack bays and uprights do not match.');
+      object.bays.forEach(function (bay) {
+        if (!bay || !Array.isArray(bay.levels)) fail('A bay needs 1–12 levels.');
+        bay.levels.forEach(function (level) {
+          if (!level || !Array.isArray(level.positions) || level.positions.length < 1 || level.positions.length > 4) fail('Legacy level needs 1–4 positions.');
+          const zone = { id: id('zone'), objectId: object.id, bayId: bay.id, levelId: level.id, usage: 'unassigned' };
+          next.zones.push(zone);
+          level.positions.forEach(function (position, index) {
+            if (!position || typeof position !== 'object' || Array.isArray(position)) fail('Rack position is invalid.');
+            next.locations.push({ id: position.id, code: position.code, zoneId: zone.id, positionIndex: index, legacy: true });
+          });
+          delete level.positions;
+        });
+      });
+    });
+    return normalizeLayout(next);
+  }
+
+  // Produces a destructive candidate; the editor must confirm its impact before saving.
+  // Validation itself never drops orphaned references.
+  function reconcileLayout(layout) {
+    const levels = new Set(physicalScopes(layout).map(function (scope) { return scope.levelId; }));
+    const zones = (layout.zones || []).filter(function (zone) { return levels.has(zone.levelId); });
+    const removed = new Set((layout.zones || []).filter(function (zone) { return !levels.has(zone.levelId); })
+      .map(function (zone) { return zone.id; }));
+    return normalizeLayout(Object.assign({}, layout, { zones: zones,
+      locations: (layout.locations || []).filter(function (location) { return !removed.has(location.zoneId); }) }));
+  }
+
+  function layoutImpact(before, after, registry) {
+    function signatures(layout) {
+      const result = new Map();
+      const byLevel = new Map(listScopes(layout).map(function (scope) { return [scope.levelId, scope]; }));
+      layout.objects.filter(function (object) { return RACK_TYPES.includes(object.type); }).forEach(function (object) {
+        let x = 0;
+        object.bays.forEach(function (bay, bayIndex) {
+          x += object.uprights[bayIndex].width;
+          let y = 0;
+          bay.levels.forEach(function (level) {
+            const scope = byLevel.get(level.id);
+            result.set(level.id, JSON.stringify([object.x, object.z, object.rotation, x, y, bay.width, bay.depth,
+              level, object.uprights[bayIndex], object.uprights[bayIndex + 1], scope.usage, scope.locationCount]));
+            y += level.clearHeight + level.thickness;
+          });
+          x += bay.width;
+        });
+      });
+      return result;
+    }
+    const oldGeometry = signatures(before), newGeometry = signatures(after);
+    const proposed = new Map(listLocations(after).map(function (location) { return [location.locationId, location]; }));
+    const affected = listLocations(before).filter(function (location) {
+      const next = proposed.get(location.locationId);
+      return !next || location.zoneId !== next.zoneId || (location.code && location.code !== next.code) ||
+        location.positionIndex !== next.positionIndex || oldGeometry.get(location.levelId) !== newGeometry.get(next.levelId);
+    });
+    const matches = matchArticles(before, registry);
+    return { locations: affected.length, codes: affected.filter(function (location) { return location.code; }).length,
+      articles: affected.reduce(function (sum, location) { return sum + (matches.bySlot.get(location.locationId) || []).length; }, 0),
+      removed: affected.filter(function (location) { return !proposed.has(location.locationId); }).length,
+      removedObjects: before.objects.filter(function (object) { return !after.objects.some(function (item) { return item.id === object.id; }); }).length };
   }
 
   function objectFootprint(object) {
@@ -420,7 +542,6 @@
         bay.id = id('bay');
         bay.levels.forEach(function (level) {
           level.id = id('level');
-          level.positions.forEach(function (position) { position.id = id('slot'); position.code = ''; });
         });
       });
     }
@@ -445,7 +566,7 @@
 
   function matchArticles(layout, registry) {
     const byCode = new Map();
-    listSlots(layout).forEach(function (slot) { if (slot.code) byCode.set(slot.code, slot); });
+    listLocations(layout).forEach(function (slot) { if (slot.code) byCode.set(slot.code, slot); });
     const bySlot = new Map();
     const unmatched = [];
     let withLocation = 0;
@@ -459,13 +580,18 @@
       if (!bySlot.has(slot.slotId)) bySlot.set(slot.slotId, []);
       bySlot.get(slot.slotId).push(item);
     });
-    return { bySlot: bySlot, unmatched: unmatched, withLocation: withLocation, matched: withLocation - unmatched.length };
+    return { byLocation: bySlot, bySlot: bySlot, unmatched: unmatched, withLocation: withLocation, matched: withLocation - unmatched.length };
   }
 
   function lockedEditConflict(before, after, toggleId) {
     const previous = before.objects || [];
     const proposed = after.objects || [];
     const byId = new Map(proposed.map(function (object) { return [object.id, object]; }));
+    function assignments(layout, objectId) {
+      const zones = (layout.zones || []).filter(function (zone) { return zone.objectId === objectId; });
+      const ids = new Set(zones.map(function (zone) { return zone.id; }));
+      return JSON.stringify([zones, (layout.locations || []).filter(function (location) { return ids.has(location.zoneId); })]);
+    }
     if (toggleId && (previous.length !== proposed.length ||
       previous.some(function (object, index) { return proposed[index].id !== object.id; }))) return toggleId;
     for (const object of previous) {
@@ -474,10 +600,11 @@
       if (toggleId) {
         const beforeData = Object.assign({}, object, { locked: false });
         const afterData = Object.assign({}, next, { locked: false });
-        if (JSON.stringify(beforeData) !== JSON.stringify(afterData) ||
+        if (JSON.stringify(beforeData) !== JSON.stringify(afterData) || assignments(before, object.id) !== assignments(after, object.id) ||
           (object.id !== toggleId && object.locked !== next.locked) ||
           (object.id === toggleId && object.locked === next.locked)) return object.id;
-      } else if ((object.locked && JSON.stringify(object) !== JSON.stringify(next)) ||
+      } else if ((object.locked && (JSON.stringify(object) !== JSON.stringify(next) ||
+        assignments(before, object.id) !== assignments(after, object.id))) ||
         object.locked !== next.locked) return object.id;
     }
     if (proposed.some(function (object) { return !previous.some(function (old) { return old.id === object.id; }) && object.locked; })) {
@@ -488,12 +615,15 @@
 
   return {
     LAYOUT_VERSION: LAYOUT_VERSION, RACK_TYPES: RACK_TYPES, AREA_TYPES: AREA_TYPES,
+    USAGES: USAGES, USAGE_COLORS: USAGE_COLORS,
     CONNECTOR_TYPES: CONNECTOR_TYPES,
     WarehouseValidationError: WarehouseValidationError,
     createLayout: createLayout, createRack: createRack, createArea: createArea,
-    resizeRack: resizeRack, resizeBayLevels: resizeBayLevels, resizeLevelPositions: resizeLevelPositions,
-    normalizeLayout: normalizeLayout,
-    listSlots: listSlots, matchArticles: matchArticles,
+    resizeRack: resizeRack, resizeBayLevels: resizeBayLevels, resizeZoneLocations: resizeZoneLocations,
+    normalizeLayout: normalizeLayout, migrateLayout: migrateLayout, reconcileLayout: reconcileLayout,
+    listScopes: listScopes, zoneForLevel: zoneForLevel, zoneLocations: zoneLocations,
+    setZoneUsage: setZoneUsage, setLocationCode: setLocationCode, layoutImpact: layoutImpact,
+    listLocations: listLocations, listSlots: listLocations, matchArticles: matchArticles,
     objectFootprint: objectFootprint, footprintCorners: footprintCorners, footprintsOverlap: footprintsOverlap,
     connectionAnchors: connectionAnchors, findConnectionSnap: findConnectionSnap,
     findCollisions: findCollisions, snapCoordinate: snapCoordinate,

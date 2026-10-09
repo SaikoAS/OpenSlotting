@@ -6,6 +6,8 @@ All notable changes to OpenSlotting are documented in this file.
 
 ### Added
 
+- warehouse Structure / Zones / Locations modes with per-level Picking, Reserve, or Unassigned use, explicit location creation, and edit-impact warnings
+- workspace schema 14 / layout schema 2 migration preserving legacy position IDs, codes, and article-master matches
 - visible date coverage with expected-weekday configuration and unknown-day warnings
 - inclusive Period A / Period B comparison with summary metrics, article filters, detail links, and CSV export
 - automatic ISO-calendar-week detection with selectable comparison weeks and an optional custom-period mode

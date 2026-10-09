@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function (warehouseModel) {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 13;
+  const WORKSPACE_SCHEMA_VERSION = 14;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -1070,7 +1070,7 @@
       validationError('invalid_workspace', 'Workspace must be an object.');
     }
     const schemaVersion = Number(workspace.schemaVersion);
-    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5 || schemaVersion === 6 || schemaVersion === 7 || schemaVersion === 8 || schemaVersion === 9 || schemaVersion === 10 || schemaVersion === 11 || schemaVersion === 12) {
+    if (Number.isInteger(schemaVersion) && schemaVersion >= 0 && schemaVersion < WORKSPACE_SCHEMA_VERSION) {
       const migrated = cloneValue(workspace, options);
       const migrationTarget = options && options.clonePayload === false ? Object.assign({}, migrated) : migrated;
       if (schemaVersion === 0) {
@@ -1187,6 +1187,7 @@
           return migratedFile;
         }) : [];
       }
+      migrationTarget.warehouseLayout = warehouseModel.migrateLayout(migrationTarget.warehouseLayout);
       migrationTarget.schemaVersion = WORKSPACE_SCHEMA_VERSION;
       migrationTarget.periodSettings = normalizePeriodSettings(migrationTarget.periodSettings);
       return validateWorkspace(migrationTarget, options);

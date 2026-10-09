@@ -8330,6 +8330,7 @@
     root: document.getElementById('warehouse-editor-root'),
     model: warehouseModel,
     getLayout: function () { return state.warehouseLayout; },
+    getRegistry: function () { return state.articleRegistry; },
     getWorkspaceId: function () { return state.activeWorkspace ? state.activeWorkspace.id : null; },
     getLanguage: function () { return state.language; },
     save: async function (layout) {

@@ -9,106 +9,212 @@ const warehouse = require('../warehouse.js');
 const workspace = require('../workspace.js');
 const storage = require('../storage.js');
 const { createFakeIndexedDB } = require('./fake-indexeddb.cjs');
+const legacy = require('./fixtures/warehouse-layout-v1.json');
 
-test('object locks survive normalization and reject edits until explicitly toggled', () => {
-  const rack = warehouse.createRack('pallet-rack', { bayCount: 1, levelCount: 1 });
-  const wall = warehouse.createArea('wall');
-  assert.equal(rack.locked, false);
-  assert.equal(wall.locked, false);
-  delete wall.locked;
-  const legacy = warehouse.normalizeLayout({ version: 1, objects: [rack, wall] });
-  assert.equal(legacy.objects[1].locked, false);
-  const locked = structuredClone(legacy);
-  locked.objects[0].locked = true;
-  assert.equal(warehouse.lockedEditConflict(legacy, locked, rack.id), null);
-  const saved = warehouse.normalizeLayout(locked);
-  assert.equal(saved.objects[0].locked, true);
-  assert.equal(warehouse.lockedEditConflict(legacy, saved), rack.id);
-  const moved = structuredClone(saved);
-  moved.objects[0].x = 100;
-  assert.equal(warehouse.lockedEditConflict(saved, moved), rack.id);
-  const coded = structuredClone(saved);
-  coded.objects[0].bays[0].levels[0].positions[0].code = 'R-01';
-  assert.equal(warehouse.lockedEditConflict(saved, coded), rack.id);
-  const deleted = structuredClone(saved);
-  deleted.objects.shift();
-  assert.equal(warehouse.lockedEditConflict(saved, deleted), rack.id);
-  const unrelated = structuredClone(saved);
-  unrelated.objects[1].x = 500;
-  assert.equal(warehouse.lockedEditConflict(saved, unrelated), null);
-  const unlocked = structuredClone(saved);
-  unlocked.objects[0].locked = false;
-  assert.equal(warehouse.lockedEditConflict(saved, unlocked, rack.id), null);
-  assert.equal(warehouse.lockedEditConflict(saved, unlocked), rack.id);
-  const mixedToggle = structuredClone(unlocked);
-  mixedToggle.objects[1].x = 100;
-  assert.equal(warehouse.lockedEditConflict(saved, mixedToggle, rack.id), wall.id);
-  const copy = warehouse.duplicateObject(saved.objects[0]);
+function fresh(bays = 2, levels = 2) {
+  return warehouse.normalizeLayout({ ...warehouse.createLayout(),
+    objects: [warehouse.createRack('shelf-rack', { bayCount: bays, levelCount: levels })] });
+}
+function configure(layout, index, usage, count, prefix = '') {
+  let next = warehouse.setZoneUsage(layout, layout.zones[index].id, usage);
+  next = warehouse.resizeZoneLocations(next, layout.zones[index].id, count);
+  if (prefix) warehouse.zoneLocations(next, layout.zones[index].id).forEach((location, i) => {
+    location.code = prefix + (i + 1);
+  });
+  return warehouse.normalizeLayout(next);
+}
+
+test('fresh geometry has stable physical scopes and zero locations or codes', () => {
+  let layout = fresh();
+  assert.equal(layout.version, 2);
+  assert.equal(layout.zones.length, 4);
+  assert.deepEqual(layout.locations, []);
+  assert.ok(layout.zones.every((zone) => zone.usage === 'unassigned'));
+  assert.ok(layout.objects[0].bays.every((bay) => bay.levels.every((level) => !('positions' in level))));
+  const ids = layout.zones.map((zone) => zone.id);
+  assert.deepEqual(warehouse.normalizeLayout(layout).zones.map((zone) => zone.id), ids);
+  assert.throws(() => warehouse.resizeZoneLocations(layout, ids[0], 2), /Classify/);
+  layout = warehouse.setZoneUsage(layout, ids[0], 'picking');
+  assert.equal(layout.locations.length, 0, 'classification alone never creates locations');
+});
+
+test('mixed uses and independent subdivision allow partial completion', () => {
+  let layout = configure(fresh(), 0, 'picking', 3, 'P-');
+  layout = configure(layout, 1, 'reserve', 1, 'R-');
+  assert.deepEqual(warehouse.listScopes(layout).map((scope) => [scope.usage, scope.locationCount]),
+    [['picking', 3], ['reserve', 1], ['unassigned', 0], ['unassigned', 0]]);
+  const first = structuredClone(warehouse.zoneLocations(layout, layout.zones[0].id));
+  const expanded = warehouse.resizeZoneLocations(layout, layout.zones[1].id, 4);
+  assert.deepEqual(warehouse.zoneLocations(expanded, layout.zones[0].id), first);
+  assert.equal(warehouse.zoneLocations(expanded, layout.zones[1].id)[0].id, layout.locations[3].id);
+  assert.equal(warehouse.zoneLocations(expanded, layout.zones[1].id)[0].code, 'R-1');
+  assert.throws(() => warehouse.resizeZoneLocations(layout, layout.zones[0].id, 5), /0–4/);
+  assert.throws(() => warehouse.resizeZoneLocations(layout, layout.zones[0].id, 1.5), /0–4/);
+  assert.equal(warehouse.resizeZoneLocations(layout, layout.zones[0].id, 0).locations.length, 1);
+  assert.equal(warehouse.setZoneUsage(layout, layout.zones[2].id, 'future-use').zones[2].usage, 'future-use');
+});
+
+test('geometry growth preserves existing IDs, assignments and codes; new scopes remain empty', () => {
+  let layout = configure(fresh(), 0, 'picking', 2, 'P-');
+  layout.objects[0].bays[1].width = 1300;
+  layout.objects[0] = warehouse.resizeBayLevels(layout.objects[0], 1, 3);
+  layout = warehouse.reconcileLayout(layout);
+  const original = structuredClone(layout);
+  layout.objects[0] = warehouse.resizeRack(layout.objects[0], 3, null);
+  const grown = warehouse.reconcileLayout(layout);
+  assert.deepEqual(grown.objects[0].bays.map((bay) => bay.levels.length), [2, 3, 2]);
+  assert.deepEqual(grown.locations, original.locations);
+  assert.deepEqual(grown.zones.slice(0, original.zones.length), original.zones);
+  assert.equal(grown.objects[0].bays[1].width, 1300);
+  assert.ok(grown.zones.slice(original.zones.length).every((zone) => zone.usage === 'unassigned'));
+  assert.throws(() => warehouse.resizeBayLevels(grown.objects[0], 1, 13), /1–12/);
+});
+
+test('validation rejects duplicate codes, duplicate or orphaned references, and invalid geometry', () => {
+  const layout = configure(fresh(), 0, 'picking', 2, 'A-');
+  function invalid(change, pattern) {
+    const candidate = structuredClone(layout); change(candidate);
+    assert.throws(() => warehouse.normalizeLayout(candidate), pattern);
+  }
+  invalid((next) => { next.locations[1].code = ' A-1 '; }, /unique/);
+  invalid((next) => { next.locations[1].id = next.locations[0].id; }, /IDs must be unique/);
+  invalid((next) => { next.locations[1].positionIndex = 0; }, /unique within/);
+  invalid((next) => { next.locations.splice(0, 1); }, /consecutive/);
+  invalid((next) => { next.locations[0].zoneId = 'missing'; }, /unknown functional/);
+  invalid((next) => { next.zones[0].bayId = 'missing'; }, /unknown physical/);
+  invalid((next) => { next.zones.push({ ...next.zones[0], id: 'other-zone' }); }, /one functional/);
+  invalid((next) => { next.zones[0].usage = 'Invalid type'; }, /usage is invalid/);
+  invalid((next) => { next.objects[0].uprights[1].height = 300; }, /exceed/);
+  invalid((next) => { next.objects[0].bays[0].levels[0].positions = []; }, /migration/);
+  invalid((next) => { next.locations[0].code = 'x'.repeat(81); }, /too long/);
+  const orphan = structuredClone(layout); orphan.locations[0].zoneId = 'missing';
+  assert.throws(() => warehouse.reconcileLayout(orphan), /unknown functional/);
+  assert.throws(() => warehouse.normalizeLayout({ ...layout, version: 99 }), /format/);
+  assert.equal(warehouse.normalizeLayout({ ...warehouse.createLayout(),
+    objects: warehouse.AREA_TYPES.map((type) => warehouse.createArea(type)) }).zones.length, 0);
+});
+
+test('physical geometry is independent of the workspace-wide location limit', () => {
+  const objects = Array.from({ length: 11 }, () => warehouse.createRack('shelf-rack', { bayCount: 30, levelCount: 4 }));
+  const layout = warehouse.normalizeLayout({ ...warehouse.createLayout(), objects });
+  assert.equal(layout.zones.length, 1320);
+  assert.equal(layout.locations.length, 0);
+  layout.zones.forEach((zone) => {
+    zone.usage = 'picking';
+    for (let index = 0; index < 4; index++) layout.locations.push({ id: zone.id + '-' + index, zoneId: zone.id, positionIndex: index, code: '' });
+  });
+  assert.throws(() => warehouse.normalizeLayout(layout), /5000 locations/);
+});
+
+test('legacy migration preserves physical IDs, location IDs, codes and exact article matches without guessing usage', () => {
+  const before = JSON.stringify(legacy);
+  const layout = warehouse.migrateLayout(legacy);
+  assert.equal(JSON.stringify(legacy), before, 'input is not mutated');
+  assert.deepEqual(layout.locations.map((location) => [location.id, location.code, location.legacy]),
+    [['legacy-location-a', 'R01-03-02-01', true], ['legacy-location-b', 'A-002', true], ['legacy-location-c', '', true]]);
+  assert.ok(layout.zones.every((zone) => zone.usage === 'unassigned'));
+  assert.equal(layout.objects[0].bays[0].levels[0].id, 'legacy-lower');
+  assert.deepEqual(warehouse.migrateLayout(layout), layout, 'migration is idempotent');
+  const edited = warehouse.setLocationCode(layout, 'legacy-location-c', 'C-003');
+  assert.equal(edited.locations[2].id, 'legacy-location-c');
+  assert.equal(edited.locations[2].code, 'C-003');
+  assert.throws(() => warehouse.resizeZoneLocations(layout, layout.zones[0].id, 3), /Classify/);
+  const broken = structuredClone(legacy); broken.objects[0].bays[0].levels[0].positions[0] = null;
+  assert.throws(() => warehouse.migrateLayout(broken), /position is invalid/);
+  const source = { id: 'warehouse-master', name: 'warehouse-master.csv', label: 'warehouse-master.csv', sourceType: 'article-master' };
+  const content = fs.readFileSync(path.join(__dirname, 'fixtures', 'warehouse-master.csv'), 'utf8');
+  const result = csv.importCsv(content, { article_id: 0, article_name: 1, location: 2 }, { sourceFile: source });
+  const registry = csv.combineImportResults([{ ...source, result }]).articleRegistry;
+  const matches = warehouse.matchArticles(layout, registry);
+  assert.equal(matches.matched, 1);
+  assert.deepEqual(matches.byLocation.get('legacy-location-a').map((item) => item.articleId), ['SKU-300']);
+  assert.deepEqual(matches.unmatched.map((item) => item.code), ['OUTSIDE-01']);
+});
+
+test('impact identifies affected locations, codes and articles while preserving untouched scopes', () => {
+  const layout = configure(configure(fresh(), 0, 'picking', 2, 'P-'), 2, 'reserve', 1, 'R-');
+  const registry = [{ article_id: 'SKU-1', master_data: { location: 'P-1' } },
+    { article_id: 'SKU-2', master_data: { location: ' P-1 ' } }];
+  const changed = structuredClone(layout);
+  changed.objects[0].bays[0].levels[0].clearHeight += 100;
+  assert.deepEqual(warehouse.layoutImpact(layout, changed, registry),
+    { locations: 2, codes: 2, articles: 2, removed: 0, removedObjects: 0 });
+  changed.objects[0].name = 'Renamed';
+  assert.deepEqual(changed.locations, layout.locations);
+  const renamed = structuredClone(layout); renamed.objects[0].name = 'Only name';
+  assert.equal(warehouse.layoutImpact(layout, renamed, registry).locations, 0);
+  const uncoded = configure(fresh(1, 1), 0, 'picking', 1);
+  const firstCode = warehouse.setLocationCode(uncoded, uncoded.locations[0].id, 'NEW-001');
+  assert.equal(warehouse.layoutImpact(uncoded, firstCode, registry).locations, 0,
+    'initial code entry does not warn about replacing existing codes');
+  const replacement = warehouse.setLocationCode(firstCode, firstCode.locations[0].id, 'NEW-002');
+  assert.equal(warehouse.layoutImpact(firstCode, replacement, registry).codes, 1);
+  const resized = warehouse.resizeZoneLocations(layout, layout.zones[0].id, 1);
+  assert.equal(warehouse.layoutImpact(layout, resized, registry).removed, 1);
+  assert.equal(resized.locations.find((location) => location.code === 'R-1').id,
+    layout.locations.find((location) => location.code === 'R-1').id);
+  const removed = structuredClone(layout);
+  removed.objects[0] = warehouse.resizeRack(removed.objects[0], 1, null);
+  assert.throws(() => warehouse.normalizeLayout(removed), /unknown physical/);
+  const candidate = warehouse.reconcileLayout(removed);
+  assert.equal(warehouse.layoutImpact(layout, candidate, registry).removed, 1);
+  assert.deepEqual(candidate.locations, layout.locations.slice(0, 2));
+  const unassigned = warehouse.setZoneUsage(layout, layout.zones[0].id, 'unassigned');
+  assert.deepEqual(unassigned.locations, layout.locations);
+  assert.equal(warehouse.layoutImpact(layout, unassigned, registry).locations, 2);
+  assert.throws(() => warehouse.setLocationCode(unassigned, unassigned.locations[0].id, 'X'), /Classify/);
+});
+
+test('locks cover geometry, functional zones and locations; toggling cannot change other data', () => {
+  const layout = configure(fresh(), 0, 'picking', 2, 'P-');
+  const locked = structuredClone(layout); locked.objects[0].locked = true;
+  const rackId = layout.objects[0].id;
+  assert.equal(warehouse.lockedEditConflict(layout, locked, rackId), null);
+  assert.equal(warehouse.lockedEditConflict(layout, locked), rackId);
+  for (const change of [
+    (next) => { next.objects[0].x += 100; },
+    (next) => { next.zones[0].usage = 'reserve'; },
+    (next) => { next.locations[0].code = 'Changed'; },
+    (next) => { next.objects = []; next.zones = []; next.locations = []; }
+  ]) {
+    const next = structuredClone(locked); change(next);
+    assert.equal(warehouse.lockedEditConflict(locked, next), rackId);
+  }
+  assert.throws(() => warehouse.setZoneUsage(locked, locked.zones[0].id, 'reserve'), /Unlock/);
+  assert.throws(() => warehouse.resizeZoneLocations(locked, locked.zones[0].id, 3), /Unlock/);
+  assert.throws(() => warehouse.setLocationCode(locked, locked.locations[0].id, 'X'), /Unlock/);
+  const unlocked = structuredClone(locked); unlocked.objects[0].locked = false;
+  assert.equal(warehouse.lockedEditConflict(locked, unlocked, rackId), null);
+  unlocked.locations[0].code = 'Changed';
+  assert.equal(warehouse.lockedEditConflict(locked, unlocked, rackId), rackId);
+});
+
+test('duplicates copy geometry into independent unassigned empty scopes and retain original codes', () => {
+  const layout = configure(fresh(), 0, 'picking', 2, 'P-');
+  const original = layout.objects[0];
+  const copy = warehouse.duplicateObject({ ...original, locked: true }, { objects: layout.objects });
+  const next = warehouse.normalizeLayout({ ...layout, objects: [...layout.objects, copy] });
   assert.equal(copy.locked, false);
+  assert.notEqual(copy.id, original.id);
+  assert.equal(copy.bays[0].width, original.bays[0].width);
+  assert.ok(copy.bays.every((bay) => !original.bays.some((old) => old.id === bay.id)));
+  assert.ok(next.zones.filter((zone) => zone.objectId === copy.id).every((zone) => zone.usage === 'unassigned'));
+  assert.deepEqual(next.locations, layout.locations);
+  assert.equal(warehouse.listLocations(next).length, 2);
+  assert.equal(warehouse.rotateObject({ rotation: 360 }, 90).rotation, 90);
 });
 
-test('rack recipe keeps stable position IDs and codes when counts grow', () => {
-  const rack = warehouse.createRack('pallet-rack', { bayCount: 2, levelCount: 2 });
-  rack.bays[0].levels[0].positions[0].code = 'R01-01-01-01';
-  rack.bays[1].width = 3000;
-  rack.uprights[2].height = 6500;
-  const originalId = rack.bays[0].levels[0].positions[0].id;
-  const expanded = warehouse.resizeRack(rack, 3, 3, 3);
-  const layout = warehouse.normalizeLayout({ version: 1, objects: [expanded] });
-  assert.equal(layout.objects[0].bays[0].levels[0].positions[0].id, originalId);
-  assert.equal(layout.objects[0].bays[0].levels[0].positions[0].code, 'R01-01-01-01');
-  assert.equal(layout.objects[0].bays[1].width, 3000);
-  assert.equal(layout.objects[0].uprights[2].height, 6500);
-  assert.equal(warehouse.listSlots(layout).length, 27);
-});
-
-test('individual bay levels and level positions survive later rack resizing', () => {
-  const rack = warehouse.createRack('pallet-rack', { bayCount: 2, levelCount: 2 });
-  const firstId = rack.bays[0].levels[0].positions[0].id;
-  const secondId = rack.bays[1].levels[0].positions[0].id;
-  rack.bays[1].levels[0].positions[0].code = 'B-01';
-  const expanded = warehouse.resizeBayLevels(rack, 1, 3);
-  assert.deepEqual(expanded.bays.map((bay) => bay.levels.length), [2, 3]);
-  assert.equal(expanded.bays[0].levels[0].positions[0].id, firstId);
-  const positioned = warehouse.resizeLevelPositions(expanded, 1, 0, 3);
-  assert.equal(positioned.bays[1].levels[0].positions[0].id, secondId);
-  assert.equal(positioned.bays[1].levels[0].positions[0].code, 'B-01');
-  assert.equal(positioned.bays[1].levels[0].positions.length, 3);
-  assert.equal(positioned.bays[0].levels[0].positions.length, 2);
-  const grown = warehouse.resizeRack(positioned, 3, null, null);
-  const layout = warehouse.normalizeLayout({ version: 1, objects: [grown] });
-  assert.deepEqual(layout.objects[0].bays.map((bay) => bay.levels.length), [2, 3, 2]);
-  assert.equal(layout.objects[0].bays[1].levels[0].positions.length, 3);
-  assert.equal(layout.objects[0].bays[1].levels[0].positions[0].code, 'B-01');
-  assert.equal(layout.objects[0].bays[1].levels[0].positions[0].id, secondId);
-  const reduced = warehouse.resizeBayLevels(grown, 1, 1);
-  assert.deepEqual(reduced.bays.map((bay) => bay.levels.length), [2, 1, 2]);
-  assert.throws(() => warehouse.resizeBayLevels(grown, 1, 13), /1–12/);
-  assert.throws(() => warehouse.resizeLevelPositions(grown, 1, 0, 5), /1–4/);
-});
-
-test('layout rejects duplicate codes and levels taller than adjacent uprights', () => {
-  const rack = warehouse.createRack('shelf-rack', { bayCount: 1, levelCount: 2 });
-  rack.bays[0].levels[0].positions[0].code = 'A-01';
-  rack.bays[0].levels[1].positions[0].code = 'A-01';
-  assert.throws(() => warehouse.normalizeLayout({ version: 1, objects: [rack] }), /unique/);
-  rack.bays[0].levels[1].positions[0].code = 'A-02';
-  rack.uprights[1].height = 300;
-  assert.throws(() => warehouse.normalizeLayout({ version: 1, objects: [rack] }), /exceed/);
-});
-
-test('area recipes normalize and malformed rack parts fail as validation errors', () => {
-  const types = ['wall', 'gate', 'door', 'emergency-exit', 'aisle', 'goods-in', 'goods-out'];
-  const areas = types.map((type) => warehouse.createArea(type));
-  const layout = warehouse.normalizeLayout({ version: 1, objects: areas });
-  assert.deepEqual(layout.objects.map((object) => object.type), types);
-  assert.deepEqual([areas[2].width, areas[2].depth, areas[2].height], [1000, 160, 2100]);
-  const rack = warehouse.createRack('shelf-rack', { bayCount: 1, levelCount: 1 });
-  rack.bays[0].levels[0].positions[0] = null;
-  assert.throws(
-    () => warehouse.normalizeLayout({ version: 1, objects: [rack] }),
-    (error) => error instanceof warehouse.WarehouseValidationError && /position is invalid/.test(error.message)
-  );
+test('matching trims edges but preserves case and leading zeros', () => {
+  const layout = configure(fresh(1, 1), 0, 'picking', 1, 'A-00');
+  const result = warehouse.matchArticles(layout, [
+    { article_id: 'SKU-1', master_data: { location: ' A-001 ' } },
+    { article_id: 'SKU-2', master_data: { location: 'A-01' } },
+    { article_id: 'SKU-3', master_data: { location: 'a-001' } },
+    { article_id: 'SKU-4', master_data: {} }
+  ]);
+  assert.equal(result.withLocation, 3);
+  assert.equal(result.matched, 1);
+  assert.deepEqual(result.unmatched.map((item) => item.code), ['A-01', 'a-001']);
 });
 
 test('magnetic connectors align wall, gate and door ends without changing dimensions', () => {
@@ -161,23 +267,6 @@ test('magnetic connectors support right-angle and rotated walls', () => {
   assert.ok(Math.hypot(end.x - aligned.x, end.z - aligned.z) < 1);
 });
 
-test('floor footprints respect rack dimensions and rotation while grid moves preserve codes', () => {
-  const rack = warehouse.createRack('pallet-rack', { bayCount: 2, levelCount: 1 });
-  rack.bays[0].width = 2900;
-  rack.x = 1000; rack.z = 2000; rack.rotation = 90;
-  rack.bays[0].levels[0].positions[0].code = 'P-01';
-  assert.deepEqual(warehouse.objectFootprint(rack), { width: 5900, depth: 1100 });
-  assert.deepEqual(warehouse.footprintCorners(rack).map((point) => [Math.round(point.x), Math.round(point.z)]),
-    [[1000, 2000], [1000, 7900], [-100, 7900], [-100, 2000]]);
-  rack.x = warehouse.snapCoordinate(1234, 100);
-  rack.z = warehouse.snapCoordinate(-167, 100);
-  const moved = warehouse.normalizeLayout({ version: 1, objects: [rack] }).objects[0];
-  assert.equal(moved.x, 1200);
-  assert.equal(moved.z, -200);
-  assert.equal(moved.bays[0].levels[0].positions[0].code, 'P-01');
-  assert.throws(() => warehouse.snapCoordinate(100, 0), /Grid/);
-});
-
 test('collision checks use rotated footprints and ignore touching edges and intentional overlays', () => {
   const rack = warehouse.createRack('shelf-rack', { bayCount: 1, levelCount: 1 });
   const other = warehouse.createRack('shelf-rack', { bayCount: 1, levelCount: 1 });
@@ -200,84 +289,39 @@ test('collision checks use rotated footprints and ignore touching edges and inte
   assert.deepEqual(warehouse.findCollisions({ objects: [rack, warehouse.createArea('goods-in')] }), []);
 });
 
-test('duplicating a rack retains measurements but creates independent empty-coded positions', () => {
-  const original = warehouse.createRack('pallet-rack', { bayCount: 2, levelCount: 2 });
-  original.bays[0].width = 3200;
-  original.uprights[1].height = 6800;
-  original.bays[0].levels[0].positions[0].code = 'R01-01-01-01';
-  const copy = warehouse.duplicateObject(original, { name: 'Kopie von Palettenregal' });
-  const secondCopy = warehouse.duplicateObject(original, { objects: [original, copy] });
-  const rotated = warehouse.rotateObject(copy, 90);
-  const layout = warehouse.normalizeLayout({ version: 1, objects: [original, rotated] });
-  const originalIds = new Set([
-    original.id,
-    ...original.uprights.map((part) => part.id),
-    ...original.bays.flatMap((bay) => [bay.id, ...bay.levels.flatMap((level) =>
-      [level.id, ...level.positions.map((position) => position.id)])])
-  ]);
-  const copyIds = [rotated.id,
-    ...rotated.uprights.map((part) => part.id),
-    ...rotated.bays.flatMap((bay) => [bay.id, ...bay.levels.flatMap((level) =>
-      [level.id, ...level.positions.map((position) => position.id)])])];
-  assert.equal(copyIds.some((partId) => originalIds.has(partId)), false);
-  assert.equal(new Set(copyIds).size, copyIds.length);
-  assert.equal(layout.objects[1].bays[0].width, 3200);
-  assert.equal(layout.objects[1].uprights[1].height, 6800);
-  assert.equal(layout.objects[1].rotation, 90);
-  assert.equal(layout.objects[1].x, 6700);
-  assert.equal(secondCopy.x, 13400);
-  assert.equal(layout.objects[0].bays[0].levels[0].positions[0].code, 'R01-01-01-01');
-  assert.equal(warehouse.listSlots(layout).filter((slot) => slot.code).length, 1);
-  assert.equal(warehouse.rotateObject({ rotation: 360 }, 90).rotation, 90);
-});
 
-test('article-master locations match exactly while unmatched codes remain visible', () => {
-  const rack = warehouse.createRack('shelf-rack', { bayCount: 1, levelCount: 1 });
-  const slot = rack.bays[0].levels[0].positions[0];
-  slot.code = 'A-001';
-  const layout = warehouse.normalizeLayout({ version: 1, objects: [rack] });
-  const result = warehouse.matchArticles(layout, [
-    { article_id: 'SKU-1', article_name: 'Widget', master_data: { location: ' A-001 ' } },
-    { article_id: 'SKU-2', master_data: { location: 'A-01' } },
-    { article_id: 'SKU-3', master_data: {} }
-  ]);
-  assert.equal(result.withLocation, 2);
-  assert.equal(result.matched, 1);
-  assert.equal(result.bySlot.get(slot.id)[0].articleId, 'SKU-1');
-  assert.deepEqual(result.unmatched.map((item) => item.code), ['A-01']);
-});
-
-test('imported article-master CSV links modeled location and reports unmatched location', () => {
-  const source = { id: 'warehouse-master', name: 'warehouse-master.csv', label: 'warehouse-master.csv', sourceType: 'article-master' };
-  const content = fs.readFileSync(path.join(__dirname, 'fixtures', 'warehouse-master.csv'), 'utf8');
-  const imported = csv.importCsv(content, { article_id: 0, article_name: 1, location: 2 }, { sourceFile: source });
-  const combined = csv.combineImportResults([{ ...source, result: imported }]);
-  const rack = warehouse.createRack('pallet-rack', { bayCount: 1, levelCount: 1 });
-  rack.bays[0].levels[0].positions[0].code = 'R01-03-02-01';
-  const layout = warehouse.normalizeLayout({ version: 1, objects: [rack] });
-  const matches = warehouse.matchArticles(layout, combined.articleRegistry);
-  assert.equal(matches.matched, 1);
-  assert.deepEqual(matches.bySlot.get(rack.bays[0].levels[0].positions[0].id).map((item) => item.articleId), ['SKU-300']);
-  assert.deepEqual(matches.unmatched.map((item) => item.code), ['OUTSIDE-01']);
-});
-
-test('layout survives metadata-only save and workspace backup without rewriting sources', async () => {
+test('metadata-only save and backup retain layout, original bytes and stored analysis chunks', async () => {
   const indexedDB = createFakeIndexedDB();
   const repository = storage.createRepository({ indexedDB, databaseName: 'warehouse-layout-test' });
-  const record = workspace.createWorkspace('Warehouse', { id: 'workspace-warehouse', now: '2026-09-27T10:00:00.000Z' });
+  const record = workspace.createWorkspace('Warehouse', { id: 'workspace-warehouse', now: '2026-10-09T10:00:00.000Z' });
+  const text = `order_id;article_id;quantity;delivery_date
+O-1;SKU-1;1;2026-10-09
+`;
+  const bytes = new TextEncoder().encode(text);
+  const source = { id: 'source-1', name: 'synthetic.csv', label: 'synthetic.csv' };
+  const imported = csv.importCsv(text, { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 }, { sourceFile: source });
+  record.analyzed = true;
+  record.files.push({ ...source, size: bytes.byteLength, lastModified: 1, buffer: bytes.buffer,
+    encodingMode: 'auto', activeEncoding: 'utf-8', detectedEncoding: 'utf-8', mapping: imported.mapping,
+    confirmedMapping: imported.mapping, result: imported });
   const created = await repository.createWorkspace(record);
-  const rack = warehouse.resizeBayLevels(warehouse.createRack('pallet-rack', { bayCount: 2, levelCount: 1 }), 1, 2);
-  rack.locked = true;
-  rack.bays[1].levels[1].positions[0].code = 'P-02-02';
-  const layout = warehouse.normalizeLayout({ version: 1, objects: [rack] });
+  const sourcesBefore = structuredClone(indexedDB.inspect('warehouse-layout-test', 'workspaceSources'));
+  const bytesBefore = structuredClone(indexedDB.inspect('warehouse-layout-test', 'workspaceSourceBytes'));
+  const rowsBefore = structuredClone(indexedDB.inspect('warehouse-layout-test', 'workspaceRowChunks'));
+  assert.equal(rowsBefore.length, 1);
+  assert.equal(bytesBefore.length, 1);
+  const layout = configure(fresh(), 1, 'reserve', 2, 'R-');
+  layout.objects[0].locked = true;
   await repository.updateWorkspaceSummary(record.id, { warehouseLayout: layout }, { expectedRevision: created.storageRevision });
+  assert.deepEqual(indexedDB.inspect('warehouse-layout-test', 'workspaceSources'), sourcesBefore);
+  assert.deepEqual(indexedDB.inspect('warehouse-layout-test', 'workspaceSourceBytes'), bytesBefore);
+  assert.deepEqual(indexedDB.inspect('warehouse-layout-test', 'workspaceRowChunks'), rowsBefore);
   const loaded = await repository.loadWorkspace(record.id);
-  assert.deepEqual(loaded.warehouseLayout.objects[0].bays.map((bay) => bay.levels.length), [1, 2]);
-  assert.equal(loaded.warehouseLayout.objects[0].bays[1].levels[1].positions[0].code, 'P-02-02');
-  assert.equal(loaded.warehouseLayout.objects[0].locked, true);
-  assert.equal(indexedDB.inspect('warehouse-layout-test', 'workspaceSources').length, 0);
-  const backup = workspace.stringifyBackup(loaded, { now: '2026-09-27T10:01:00.000Z' });
-  const restored = workspace.parseBackup(backup);
+  assert.deepEqual(loaded.warehouseLayout, layout);
+  assert.deepEqual(new Uint8Array(loaded.files[0].buffer), bytes);
+  assert.equal(loaded.files[0].result.rows[0].article_id, 'SKU-1');
+  const restored = workspace.parseBackup(workspace.stringifyBackup(loaded));
   assert.deepEqual(restored.warehouseLayout, layout);
+  assert.deepEqual(new Uint8Array(restored.files[0].buffer), bytes);
   repository.close();
 });

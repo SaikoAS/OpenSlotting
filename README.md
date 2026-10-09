@@ -2,7 +2,7 @@
 
 OpenSlotting is an open-source, local-first web tool for analyzing warehouse order lines and building a data-driven foundation for warehouse slotting.
 
-The current development branch also contains a [warehouse editor and separate 3D analysis prototype](docs/warehouse-editor.md) for parametric pallet and shelf racks, layout objects, location codes, and matching current article-master locations to modeled positions.
+The current development branch also contains a [warehouse editor and separate 3D analysis prototype](docs/warehouse-editor.md). Build physical racks first, assign Picking/Reserve use per level, then create locations explicitly and match current article-master codes in the read-only analysis.
 
 The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The latest published application release is `0.2.1`; current development continues the local-workspace, article-master, and period-comparison foundation. Future versions are planned to expand this foundation through ABC/XYZ classification, slotting scores, and warehouse slotting recommendations.
 
