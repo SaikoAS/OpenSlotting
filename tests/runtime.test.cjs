@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
+const vm = require('node:vm');
 
 const runtimeApi = require('../runtime.js');
 
@@ -17,15 +18,18 @@ function createEnvironment(location, overrides) {
   }, overrides || {});
 }
 
-test('detects the direct file runtime as Portable Mode', () => {
+test('marks the paused direct-file runtime as unsupported', () => {
   const runtime = runtimeApi.detectRuntime(createEnvironment({
     protocol: 'file:',
     hostname: '',
     origin: 'null'
   }));
 
-  assert.equal(runtime.mode, runtimeApi.RUNTIME_MODES.PORTABLE);
-  assert.equal(runtime.origin, 'file:///');
+  assert.equal(runtime.mode, runtimeApi.RUNTIME_MODES.UNSUPPORTED);
+  assert.equal(runtime.reason, 'portable-paused');
+  assert.equal(runtime.origin, '—');
+  assert.match(runtime.startupNotice('de-DE').message, /unbestimmte Zeit pausiert/);
+  assert.match(runtime.startupNotice('en').instruction, /Start-OpenSlotting\.cmd/);
   assert.equal(runtime.supports('indexedDb'), true);
   assert.equal(runtime.supports('sqlite'), false);
   assert.equal(runtime.supports('unknown'), false);
@@ -39,19 +43,21 @@ test('rejects file URLs hosted on remote shares', () => {
   }));
 
   assert.equal(runtime.mode, runtimeApi.RUNTIME_MODES.UNSUPPORTED);
+  assert.equal(runtime.reason, 'unsupported-origin');
 });
 
-test('accepts the explicit local file host alias', () => {
+test('also pauses the explicit local file host alias', () => {
   const runtime = runtimeApi.detectRuntime(createEnvironment({
     protocol: 'file:',
     hostname: ['local', 'host'].join(''),
     origin: 'null'
   }));
 
-  assert.equal(runtime.mode, runtimeApi.RUNTIME_MODES.PORTABLE);
+  assert.equal(runtime.mode, runtimeApi.RUNTIME_MODES.UNSUPPORTED);
+  assert.equal(runtime.reason, 'portable-paused');
 });
 
-test('detects loopback HTTP variants as Enhanced Local Mode', () => {
+test('accepts only loopback HTTP variants as the active localhost runtime', () => {
   const loopbackHosts = [
     ['127', '0', '0', '1'].join('.'),
     ['local', 'host'].join(''),
@@ -63,11 +69,12 @@ test('detects loopback HTTP variants as Enhanced Local Mode', () => {
       hostname,
       origin: 'http://' + (hostname === '::1' ? '[' + hostname + ']' : hostname) + ':8765'
     }));
-    assert.equal(runtime.mode, runtimeApi.RUNTIME_MODES.ENHANCED_LOCAL, hostname);
+    assert.equal(runtime.mode, runtimeApi.RUNTIME_MODES.LOCALHOST, hostname);
+    assert.equal(runtime.reason, null);
   });
 });
 
-test('does not classify arbitrary hosted origins as Enhanced Local Mode', () => {
+test('rejects arbitrary hosted origins', () => {
   const runtime = runtimeApi.detectRuntime(createEnvironment({
     protocol: 'https:',
     hostname: 'example.invalid',
@@ -80,7 +87,7 @@ test('does not classify arbitrary hosted origins as Enhanced Local Mode', () => 
 
 test('builds a capability registry from available browser APIs', () => {
   const environment = createEnvironment(
-    { protocol: 'file:', hostname: '', origin: 'null' },
+    { protocol: 'http:', hostname: '127.0.0.1', origin: 'http://127.0.0.1:8765' },
     {
       navigator: {
         storage: {
@@ -107,6 +114,30 @@ test('builds a capability registry from available browser APIs', () => {
   assert.equal(Object.isFrozen(capabilities), true);
 });
 
+test('unsupported startup shows a bilingual notice before any workspace API is accessed', () => {
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  for (const [location, language] of [
+    [{ protocol: 'file:', hostname: '', origin: 'null' }, 'de-DE'],
+    [{ protocol: 'https:', hostname: 'example.invalid', origin: 'https://example.invalid' }, 'en']
+  ]) {
+    const runtime = runtimeApi.detectRuntime(createEnvironment(location));
+    const window = { OpenSlottingRuntime: runtime, navigator: { language } };
+    Object.defineProperty(window, 'OpenSlottingStorage', {
+      get() { throw new Error('Workspace storage must not be accessed on a rejected origin.'); }
+    });
+    let rendered;
+    const document = {
+      documentElement: {},
+      createElement(tag) { return { tag, children: [], appendChild(child) { this.children.push(child); } }; },
+      body: { replaceChildren(main) { rendered = main; } }
+    };
+    vm.runInNewContext(appSource, { window, document });
+    assert.equal(rendered.children.length, 3);
+    assert.equal(document.documentElement.lang, language === 'de-DE' ? 'de' : 'en');
+    assert.match(rendered.children[2].textContent, /Start-OpenSlotting\.cmd/);
+  }
+});
+
 test('browser integration uses the centralized runtime contract', () => {
   const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
@@ -117,4 +148,18 @@ test('browser integration uses the centralized runtime contract', () => {
   assert.match(appSource, /const runtime = window\.OpenSlottingRuntime/);
   assert.match(appSource, /runtime\.supports\(capabilityName\)/);
   assert.doesNotMatch(appSource, /location\.(?:protocol|hostname|origin)/);
+});
+
+test('analysis starts with article search instead of a source-file or article table', () => {
+  const indexSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
+  const analysisPage = indexSource.match(/<div id="analysis-page"[\s\S]*?<\/main>/)?.[0] || '';
+
+  assert.match(analysisPage, /id="article-filter"[^>]*type="search"|type="search"[^>]*id="article-filter"/);
+  assert.match(analysisPage, /id="article-search-results"/);
+  assert.match(analysisPage, /id="article-detail-panel"/);
+  assert.match(analysisPage, /id="article-section-evidence"/);
+  assert.doesNotMatch(analysisPage, /id="source-files-table-body"|id="article-table-body"|id="import-summary"/);
+  assert.match(appSource, /function renderArticleSearch\(\)/);
+  assert.match(appSource, /function selectArticleDetailTab\(tab\)/);
 });

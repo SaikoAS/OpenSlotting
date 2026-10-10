@@ -1,0 +1,651 @@
+{
+  "timestamp": "2026-10-04T17:00:55.389Z",
+  "baselineCommit": "db39ffaca31ebeddec884413c38725f4fd38a5a0",
+  "node": "v24.18.1",
+  "platform": "win32",
+  "cpu": "12th Gen Intel(R) Core(TM) i9-12900F",
+  "warmup": 1,
+  "repeats": 5,
+  "before": "Former app.js renderTerminalWatchlist expression; current rankEntities and existing one-query view cache retained",
+  "after": "Production terminal.js private WeakMap projections + filterEntities; existing one-query view cache retained",
+  "scope": "Node operation time; fixture/index/rank setup excluded; once measured cold projection build separate; distinct query caches cold but projections warm; same/alternating primed outside timing; full result digests asserted outside timing; explicit GC outside timing",
+  "memory": "Projection heap is one before/after-GC retained snapshot. Whole process maxRSS includes fixtures, setup and correctness checks. No Edge memory claim.",
+  "results": [
+    {
+      "count": 1000,
+      "scope": "article",
+      "variant": "before",
+      "locale": "de",
+      "preparationMs": 0.0007999999999981355,
+      "retainedProjectionHeapMiB": -0.0051422119140625,
+      "peakRssMiB": 48.2578125,
+      "measurements": [
+        {
+          "workload": "distinct",
+          "queryCount": 46,
+          "distinctQueries": 46,
+          "medianMs": 85.39029999999997,
+          "samplesMs": [
+            88.01829999999998,
+            85.39029999999997,
+            84.55419999999998,
+            85.48780000000005,
+            85.28999999999996
+          ],
+          "sha256": "666248b89857ddc8fbe1d67f32cfdf652cba87bac820ada0e0553b4f386e51b0"
+        },
+        {
+          "workload": "same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.004000000000019099,
+          "samplesMs": [
+            0.02509999999995216,
+            0.014099999999984902,
+            0.0037999999999556167,
+            0.004000000000019099,
+            0.0038999999999305146
+          ],
+          "sha256": "60e1ddff1a0e20d5075c5dab4807be26b86a19a6a4543f77df8a56af045e8415"
+        },
+        {
+          "workload": "alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 150.8246999999999,
+          "samplesMs": [
+            149.75639999999987,
+            148.75369999999998,
+            151.74469999999997,
+            151.3496,
+            150.8246999999999
+          ],
+          "sha256": "c2fa57ac9f0a46b8914e4def3cef2a96cf0c8622297c7a3455a30604529d7aa1"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "article",
+      "variant": "after",
+      "locale": "de",
+      "preparationMs": 2.362000000000002,
+      "retainedProjectionHeapMiB": 0.143829345703125,
+      "peakRssMiB": 48.85546875,
+      "measurements": [
+        {
+          "workload": "distinct",
+          "queryCount": 46,
+          "distinctQueries": 46,
+          "medianMs": 2.4650000000000034,
+          "samplesMs": [
+            2.5829000000000235,
+            2.4650000000000034,
+            2.5992999999999995,
+            2.443099999999987,
+            2.3202
+          ],
+          "sha256": "666248b89857ddc8fbe1d67f32cfdf652cba87bac820ada0e0553b4f386e51b0"
+        },
+        {
+          "workload": "same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.004500000000007276,
+          "samplesMs": [
+            0.01670000000001437,
+            0.012400000000013733,
+            0.004500000000007276,
+            0.00380000000001246,
+            0.0039000000000157797
+          ],
+          "sha256": "60e1ddff1a0e20d5075c5dab4807be26b86a19a6a4543f77df8a56af045e8415"
+        },
+        {
+          "workload": "alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 4.1965999999999894,
+          "samplesMs": [
+            4.641400000000033,
+            4.583000000000027,
+            4.149100000000033,
+            4.179299999999955,
+            4.1965999999999894
+          ],
+          "sha256": "c2fa57ac9f0a46b8914e4def3cef2a96cf0c8622297c7a3455a30604529d7aa1"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "customer",
+      "variant": "before",
+      "locale": "de",
+      "preparationMs": 0.0011999999999972033,
+      "retainedProjectionHeapMiB": -0.00506591796875,
+      "peakRssMiB": 48.3984375,
+      "measurements": [
+        {
+          "workload": "distinct",
+          "queryCount": 46,
+          "distinctQueries": 46,
+          "medianMs": 85.2081,
+          "samplesMs": [
+            90.82480000000001,
+            88.84820000000002,
+            85.1884,
+            85.2081,
+            84.62360000000001
+          ],
+          "sha256": "b0993e8f771f781a1eb01f0ccbd09622aa34dd331d9c9471dad544b8d674eec9"
+        },
+        {
+          "workload": "same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.0050999999999703505,
+          "samplesMs": [
+            0.01670000000001437,
+            0.0141999999999598,
+            0.0039000000000442014,
+            0.004599999999982174,
+            0.0050999999999703505
+          ],
+          "sha256": "e26a2e43a954f887194eee62426e0a279fbb95959f1ab734fdc49ad06b897940"
+        },
+        {
+          "workload": "alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 152.8672999999999,
+          "samplesMs": [
+            154.91409999999996,
+            152.90589999999997,
+            152.8672999999999,
+            151.67110000000002,
+            151.0313000000001
+          ],
+          "sha256": "c10a6e5695a9520634308ea99cf5c7fc089027a3f7f730578db8f6eac14ae01b"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "customer",
+      "variant": "after",
+      "locale": "de",
+      "preparationMs": 2.2241,
+      "retainedProjectionHeapMiB": 0.144775390625,
+      "peakRssMiB": 48.9609375,
+      "measurements": [
+        {
+          "workload": "distinct",
+          "queryCount": 46,
+          "distinctQueries": 46,
+          "medianMs": 2.4253999999999962,
+          "samplesMs": [
+            2.6196999999999946,
+            2.5150999999999897,
+            2.3928000000000225,
+            2.4104999999999848,
+            2.4253999999999962
+          ],
+          "sha256": "b0993e8f771f781a1eb01f0ccbd09622aa34dd331d9c9471dad544b8d674eec9"
+        },
+        {
+          "workload": "same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.007100000000008322,
+          "samplesMs": [
+            0.013700000000000045,
+            0.012299999999981992,
+            0.007100000000008322,
+            0.005000000000023874,
+            0.0053999999999803094
+          ],
+          "sha256": "e26a2e43a954f887194eee62426e0a279fbb95959f1ab734fdc49ad06b897940"
+        },
+        {
+          "workload": "alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 4.384599999999978,
+          "samplesMs": [
+            4.3525000000000205,
+            4.384599999999978,
+            4.339800000000025,
+            4.592199999999991,
+            4.750699999999995
+          ],
+          "sha256": "c10a6e5695a9520634308ea99cf5c7fc089027a3f7f730578db8f6eac14ae01b"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "order",
+      "variant": "before",
+      "locale": "de",
+      "preparationMs": 0.0007999999999981355,
+      "retainedProjectionHeapMiB": -0.005157470703125,
+      "peakRssMiB": 48.2578125,
+      "measurements": [
+        {
+          "workload": "distinct",
+          "queryCount": 46,
+          "distinctQueries": 46,
+          "medianMs": 84.36969999999997,
+          "samplesMs": [
+            84.00650000000002,
+            84.36969999999997,
+            83.60149999999999,
+            84.50710000000004,
+            84.57640000000004
+          ],
+          "sha256": "ef413efcf4af9c1b30e8acc5b85daadee7b9b15320ca1bd426c303e659707913"
+        },
+        {
+          "workload": "same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.004800000000045657,
+          "samplesMs": [
+            0.01670000000001437,
+            0.012600000000020373,
+            0.0039000000000442014,
+            0.003399999999942338,
+            0.004800000000045657
+          ],
+          "sha256": "bdfb6be5c65f1cb866d0b946eefb70610036a95ff636ee73de3b3ecbbe770652"
+        },
+        {
+          "workload": "alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 150.16560000000004,
+          "samplesMs": [
+            151.60539999999992,
+            150.16560000000004,
+            150.0616,
+            150.24579999999992,
+            149.9312
+          ],
+          "sha256": "93ca9b7be5099a636a8f726b2d850d1dd29c15f16e9a45fe75300b162924ca49"
+        }
+      ]
+    },
+    {
+      "count": 1000,
+      "scope": "order",
+      "variant": "after",
+      "locale": "de",
+      "preparationMs": 2.6629999999999967,
+      "retainedProjectionHeapMiB": 0.1445770263671875,
+      "peakRssMiB": 48.88671875,
+      "measurements": [
+        {
+          "workload": "distinct",
+          "queryCount": 46,
+          "distinctQueries": 46,
+          "medianMs": 2.4266000000000076,
+          "samplesMs": [
+            2.5172999999999774,
+            2.5498000000000047,
+            2.281800000000004,
+            2.4266000000000076,
+            2.3728000000000122
+          ],
+          "sha256": "ef413efcf4af9c1b30e8acc5b85daadee7b9b15320ca1bd426c303e659707913"
+        },
+        {
+          "workload": "same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.0036999999999807187,
+          "samplesMs": [
+            0.013899999999978263,
+            0.012200000000007094,
+            0.0036000000000058208,
+            0.003199999999992542,
+            0.0036999999999807187
+          ],
+          "sha256": "bdfb6be5c65f1cb866d0b946eefb70610036a95ff636ee73de3b3ecbbe770652"
+        },
+        {
+          "workload": "alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 4.271800000000042,
+          "samplesMs": [
+            4.11990000000003,
+            4.41519999999997,
+            4.271800000000042,
+            4.252100000000041,
+            4.373699999999985
+          ],
+          "sha256": "93ca9b7be5099a636a8f726b2d850d1dd29c15f16e9a45fe75300b162924ca49"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "article",
+      "variant": "after",
+      "locale": "de",
+      "preparationMs": 19.874399999999994,
+      "retainedProjectionHeapMiB": 1.3341903686523438,
+      "peakRssMiB": 69.7265625,
+      "measurements": [
+        {
+          "workload": "distinct",
+          "queryCount": 46,
+          "distinctQueries": 46,
+          "medianMs": 22.726799999999912,
+          "samplesMs": [
+            23.041599999999903,
+            22.726799999999912,
+            22.56749999999988,
+            22.271999999999935,
+            22.755600000000186
+          ],
+          "sha256": "1a65848bb5b16943e7c077e79ef969030af20a91512c2739808abc8cdb615332"
+        },
+        {
+          "workload": "same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.004299999999830106,
+          "samplesMs": [
+            0.01939999999990505,
+            0.013800000000173895,
+            0.004200000000082582,
+            0.004299999999830106,
+            0.004200000000082582
+          ],
+          "sha256": "73fc3ea733310af4cc8a8071c1c44e2682594035d82ad50f792c0f427b589138"
+        },
+        {
+          "workload": "alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 43.116799999999785,
+          "samplesMs": [
+            41.80410000000029,
+            42.50500000000011,
+            43.116799999999785,
+            43.30560000000014,
+            43.188300000000254
+          ],
+          "sha256": "006f0cf6c1f29832f2fe0960100d0b61fe3223fea77937e1cdea6e969329a16c"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "article",
+      "variant": "before",
+      "locale": "de",
+      "preparationMs": 0.0009000000000014552,
+      "retainedProjectionHeapMiB": -0.00428009033203125,
+      "peakRssMiB": 68.32421875,
+      "measurements": [
+        {
+          "workload": "distinct",
+          "queryCount": 46,
+          "distinctQueries": 46,
+          "medianMs": 850.3337000000001,
+          "samplesMs": [
+            856.9348,
+            845.1095,
+            849.3013000000001,
+            850.3337000000001,
+            861.0603999999994
+          ],
+          "sha256": "1a65848bb5b16943e7c077e79ef969030af20a91512c2739808abc8cdb615332"
+        },
+        {
+          "workload": "same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.006100000000515138,
+          "samplesMs": [
+            0.03870000000006257,
+            0.047700000000077125,
+            0.006100000000515138,
+            0.004899999999906868,
+            0.005100000000311411
+          ],
+          "sha256": "73fc3ea733310af4cc8a8071c1c44e2682594035d82ad50f792c0f427b589138"
+        },
+        {
+          "workload": "alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 1531.6615000000002,
+          "samplesMs": [
+            1531.6615000000002,
+            1493.1695999999993,
+            1543.1593999999986,
+            1503.8549000000003,
+            1543.8392999999996
+          ],
+          "sha256": "006f0cf6c1f29832f2fe0960100d0b61fe3223fea77937e1cdea6e969329a16c"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "customer",
+      "variant": "after",
+      "locale": "de",
+      "preparationMs": 20.705,
+      "retainedProjectionHeapMiB": 1.3329849243164062,
+      "peakRssMiB": 69.75390625,
+      "measurements": [
+        {
+          "workload": "distinct",
+          "queryCount": 46,
+          "distinctQueries": 46,
+          "medianMs": 22.970599999999877,
+          "samplesMs": [
+            24.279800000000023,
+            23.282699999999977,
+            22.970599999999877,
+            22.524400000000014,
+            22.77690000000007
+          ],
+          "sha256": "10c1451e1687ce4d1a1c3e8d5c6a6a49c2633bb720841e6ec4798bd655ec7726"
+        },
+        {
+          "workload": "same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.01700000000005275,
+          "samplesMs": [
+            0.035999999999830834,
+            0.01700000000005275,
+            0.03510000000005675,
+            0.004299999999830106,
+            0.005800000000135697
+          ],
+          "sha256": "7b333e5dea259eeb66d115a08161188c281bf99a2fa68fef7f4faa59c6181881"
+        },
+        {
+          "workload": "alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 43.879799999999705,
+          "samplesMs": [
+            46.15470000000005,
+            44.33620000000019,
+            43.26339999999982,
+            43.53890000000001,
+            43.879799999999705
+          ],
+          "sha256": "253b2010d45339f80ad638df32f0b6cdc874f5a46535a4f5ef08ef7cefb0e57d"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "customer",
+      "variant": "before",
+      "locale": "de",
+      "preparationMs": 0.0011999999999972033,
+      "retainedProjectionHeapMiB": -0.00341796875,
+      "peakRssMiB": 68.28515625,
+      "measurements": [
+        {
+          "workload": "distinct",
+          "queryCount": 46,
+          "distinctQueries": 46,
+          "medianMs": 854.1742999999997,
+          "samplesMs": [
+            851.9783,
+            916.2914000000001,
+            854.1742999999997,
+            864.3028999999997,
+            850.5261
+          ],
+          "sha256": "10c1451e1687ce4d1a1c3e8d5c6a6a49c2633bb720841e6ec4798bd655ec7726"
+        },
+        {
+          "workload": "same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.006699999999909778,
+          "samplesMs": [
+            0.017299999999522697,
+            0.01739999999972497,
+            0.005400000000008731,
+            0.006000000000312866,
+            0.006699999999909778
+          ],
+          "sha256": "7b333e5dea259eeb66d115a08161188c281bf99a2fa68fef7f4faa59c6181881"
+        },
+        {
+          "workload": "alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 1526.2774000000009,
+          "samplesMs": [
+            1516.1177000000007,
+            1536.8204999999998,
+            1526.2774000000009,
+            1515.9017999999996,
+            1560.2862000000023
+          ],
+          "sha256": "253b2010d45339f80ad638df32f0b6cdc874f5a46535a4f5ef08ef7cefb0e57d"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "order",
+      "variant": "after",
+      "locale": "de",
+      "preparationMs": 20.436799999999998,
+      "retainedProjectionHeapMiB": 1.3333663940429688,
+      "peakRssMiB": 71.16796875,
+      "measurements": [
+        {
+          "workload": "distinct",
+          "queryCount": 46,
+          "distinctQueries": 46,
+          "medianMs": 22.729100000000017,
+          "samplesMs": [
+            22.582799999999907,
+            22.729100000000017,
+            23.127300000000105,
+            22.364900000000034,
+            22.78060000000005
+          ],
+          "sha256": "8f0255c08cf0e1638fb674e7b2fa20c9a3938c41483fdec560992db9eb574b42"
+        },
+        {
+          "workload": "same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.004699999999957072,
+          "samplesMs": [
+            0.01639999999997599,
+            0.01700000000005275,
+            0.004699999999957072,
+            0.0038999999999305146,
+            0.004100000000107684
+          ],
+          "sha256": "880730c6634a910a52505ad4830d961400c7839d7a10ccdb6c394af57788eb78"
+        },
+        {
+          "workload": "alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 44.324299999999766,
+          "samplesMs": [
+            44.324299999999766,
+            45.25370000000021,
+            42.99669999999969,
+            43.34439999999995,
+            44.37960000000021
+          ],
+          "sha256": "d7d642ff0a3585d5255f645883afcd9fcacbae682ece6d290aa9ea5906f1181c"
+        }
+      ]
+    },
+    {
+      "count": 10000,
+      "scope": "order",
+      "variant": "before",
+      "locale": "de",
+      "preparationMs": 0.0008999999999943498,
+      "retainedProjectionHeapMiB": -0.0030364990234375,
+      "peakRssMiB": 69.4296875,
+      "measurements": [
+        {
+          "workload": "distinct",
+          "queryCount": 46,
+          "distinctQueries": 46,
+          "medianMs": 853.0469999999996,
+          "samplesMs": [
+            852.1636000000001,
+            867.9744000000001,
+            868.3786999999998,
+            848.9444999999996,
+            853.0469999999996
+          ],
+          "sha256": "8f0255c08cf0e1638fb674e7b2fa20c9a3938c41483fdec560992db9eb574b42"
+        },
+        {
+          "workload": "same",
+          "queryCount": 80,
+          "distinctQueries": 1,
+          "medianMs": 0.010599999999612919,
+          "samplesMs": [
+            0.024900000000343425,
+            0.026400000000649015,
+            0.010599999999612919,
+            0.006600000000617001,
+            0.005499999999301508
+          ],
+          "sha256": "880730c6634a910a52505ad4830d961400c7839d7a10ccdb6c394af57788eb78"
+        },
+        {
+          "workload": "alternating",
+          "queryCount": 80,
+          "distinctQueries": 8,
+          "medianMs": 1543.9565000000002,
+          "samplesMs": [
+            1521.7937000000002,
+            1543.9565000000002,
+            1510.8815999999988,
+            1559.1378999999997,
+            1550.5004000000008
+          ],
+          "sha256": "d7d642ff0a3585d5255f645883afcd9fcacbae682ece6d290aa9ea5906f1181c"
+        }
+      ]
+    }
+  ]
+}

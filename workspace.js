@@ -1,14 +1,14 @@
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
+    module.exports = factory(require('./warehouse.js'));
   } else {
     root.OpenSlottingWorkspaceFactory = factory;
-    root.OpenSlottingWorkspace = factory();
+    root.OpenSlottingWorkspace = factory(root.OpenSlottingWarehouse);
   }
-}(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+}(typeof globalThis !== 'undefined' ? globalThis : this, function (warehouseModel) {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 10;
+  const WORKSPACE_SCHEMA_VERSION = 16;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -19,6 +19,8 @@
   const CUSTOM_FIELD_ID_PATTERN = /^custom-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
   const CUSTOM_FIELD_TYPES = Object.freeze(['text', 'number', 'date']);
   const MAX_CUSTOM_FIELD_NAME_LENGTH = 120;
+  const MAX_IMPORT_PROFILES = 50;
+  const IMPORT_PROFILE_ID_PATTERN = /^profile-[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/;
   const MAX_SOURCE_ID_LENGTH = 128;
   const COLUMN_PROFILE_SAMPLE_LIMIT = 5;
   const COLUMN_PROFILE_DISTINCT_LIMIT = 256;
@@ -140,6 +142,39 @@
   }
 
   const PREPARATION_RULE_TYPES = Object.freeze(['trim', 'empty-to-null', 'replace-text', 'case-normalization']);
+  const SOURCE_RULE_TYPES = Object.freeze(['exclude-empty', 'exclude-equals', 'exclude-contains']);
+
+  function normalizeSourceRules(rules, columnCount) {
+    if (rules === undefined || rules === null) return [];
+    if (!Array.isArray(rules) || rules.length > 100) {
+      validationError('invalid_source_rules', 'Source rules must be a bounded list.');
+    }
+    const names = new Set();
+    return rules.map(function (rule) {
+      if (!isPlainObject(rule) || !Number.isInteger(rule.sourcePosition) || rule.sourcePosition < 0 ||
+          (Number.isInteger(columnCount) && rule.sourcePosition >= columnCount) ||
+          SOURCE_RULE_TYPES.indexOf(rule.type) < 0 ||
+          (rule.enabled !== undefined && typeof rule.enabled !== 'boolean') ||
+          (rule.includeInProfile !== undefined && typeof rule.includeInProfile !== 'boolean')) {
+        validationError('invalid_source_rules', 'Source rule type, column, or flags are invalid.');
+      }
+      const name = typeof rule.name === 'string' ? rule.name.trim() : '';
+      const description = typeof rule.description === 'string' ? rule.description.trim() : '';
+      const nameKey = name.toLocaleLowerCase('de-DE');
+      if (!name || name.length > 120 || !description || description.length > 500 ||
+          names.has(nameKey) ||
+          (rule.type !== 'exclude-empty' && (typeof rule.value !== 'string' ||
+            (rule.enabled !== false && !rule.value) || rule.value.length > 512))) {
+        validationError('invalid_source_rules', 'Source rule name, explanation, or comparison value is invalid.');
+      }
+      names.add(nameKey);
+      const output = { sourcePosition: rule.sourcePosition, type: rule.type, name: name,
+        description: description, enabled: rule.enabled !== false,
+        includeInProfile: rule.includeInProfile !== false };
+      if (rule.type !== 'exclude-empty') output.value = rule.value;
+      return output;
+    });
+  }
 
   function normalizePreparationRules(rulesByField) {
     if (rulesByField === undefined || rulesByField === null) return {};
@@ -518,6 +553,169 @@
     return normalized;
   }
 
+  function normalizeImportProfiles(profiles) {
+    if (profiles === undefined || profiles === null) return [];
+    if (!Array.isArray(profiles) || profiles.length > MAX_IMPORT_PROFILES) {
+      validationError('invalid_import_profiles', 'Import profiles must be a bounded list.');
+    }
+    const ids = new Set();
+    const names = new Set();
+    return profiles.map(function (profile) {
+      if (!isPlainObject(profile) || !IMPORT_PROFILE_ID_PATTERN.test(String(profile.id || '')) ||
+          !Array.isArray(profile.headers) || profile.headers.length > 4096 ||
+          profile.headers.some(function (header) { return typeof header !== 'string' || header.length > 1024; }) ||
+          !validIsoDate(profile.createdAt) || !validIsoDate(profile.updatedAt)) {
+        validationError('invalid_import_profile', 'Import profile metadata is invalid.');
+      }
+      const name = String(profile.name || '').trim();
+      const nameKey = name.toLocaleLowerCase('de-DE');
+      if (!name || name.length > 120 || ids.has(profile.id) || names.has(nameKey)) {
+        validationError('invalid_import_profile', 'Import profile name or ID is invalid or duplicated.');
+      }
+      ids.add(profile.id);
+      names.add(nameKey);
+      const mapping = validateMappingRange(profile.mapping || {}, profile.headers.length);
+      const customFieldMapping = validateCustomFieldMappingRange(profile.customFieldMapping || {}, profile.headers.length);
+      if (Object.keys(mapping).some(function (key) { return !/^[A-Za-z][A-Za-z0-9_-]{0,127}$/.test(key); })) {
+        validationError('invalid_import_profile', 'Import profile contains an invalid target field.');
+      }
+      const preparationRules = normalizePreparationRules(profile.preparationRules);
+      const sourceRules = normalizeSourceRules(profile.sourceRules, profile.headers.length);
+      const mappedTargets = new Set(Object.keys(mapping).filter(function (key) { return Number.isInteger(mapping[key]); })
+        .concat(Object.keys(customFieldMapping).filter(function (key) { return Number.isInteger(customFieldMapping[key]); })));
+      if (mappedTargets.size === 0 || Object.keys(preparationRules).some(function (targetId) { return !mappedTargets.has(targetId); }) ||
+          countAccessiblePreparationRules(preparationRules, mapping, customFieldMapping,
+            Object.keys(customFieldMapping).map(function (id) { return { id: id, active: true }; })) > 100) {
+        validationError('invalid_import_profile', 'Import profile rules do not match its mapped fields.');
+      }
+      return {
+        id: profile.id,
+        name: name,
+        sourceType: normalizeSourceType(profile.sourceType),
+        headers: profile.headers.slice(),
+        mapping: mapping,
+        customFieldMapping: customFieldMapping,
+        preparationRules: preparationRules,
+        sourceRules: sourceRules,
+        createdAt: profile.createdAt,
+        updatedAt: profile.updatedAt
+      };
+    });
+  }
+
+  function createImportProfile(file, name, customFields, options) {
+    if (!file || !Array.isArray(file.headers) || file.headers.length === 0) {
+      validationError('invalid_import_profile', 'A decoded source is required to save an import profile.');
+    }
+    const settings = options || {};
+    const now = settings.now || new Date().toISOString();
+    const mapping = {};
+    const customFieldMapping = {};
+    Object.keys(file.mapping || {}).forEach(function (targetId) {
+      if (Number.isInteger(file.mapping[targetId])) mapping[targetId] = file.mapping[targetId];
+    });
+    const activeCustomIds = new Set((Array.isArray(customFields) ? customFields : [])
+      .filter(function (field) { return field && field.active !== false; }).map(function (field) { return field.id; }));
+    Object.keys(file.customFieldMapping || {}).forEach(function (targetId) {
+      if (activeCustomIds.has(targetId) && Number.isInteger(file.customFieldMapping[targetId])) {
+        customFieldMapping[targetId] = file.customFieldMapping[targetId];
+      }
+    });
+    const preparationRules = {};
+    Object.keys(file.preparationRules || {}).forEach(function (targetId) {
+      if (Number.isInteger(mapping[targetId]) || Number.isInteger(customFieldMapping[targetId])) {
+        preparationRules[targetId] = file.preparationRules[targetId];
+      }
+    });
+    return normalizeImportProfiles([{
+      id: settings.id || createId('profile', settings.randomUuid),
+      name: name,
+      sourceType: file.sourceType,
+      headers: file.headers,
+      mapping: mapping,
+      customFieldMapping: customFieldMapping,
+      preparationRules: preparationRules,
+      sourceRules: normalizeSourceRules(file.sourceRules, file.headers.length).filter(function (rule) {
+        return rule.includeInProfile;
+      }),
+      createdAt: now,
+      updatedAt: now
+    }])[0];
+  }
+
+  function planImportProfile(profile, file, customFields) {
+    const source = normalizeImportProfiles([profile])[0];
+    const targetHeaders = file && Array.isArray(file.headers) ? file.headers : [];
+    const normalizeHeader = function (header) { return String(header || '').trim().toLocaleLowerCase('de-DE'); };
+    const schemaExact = source.headers.length === targetHeaders.length && source.headers.every(function (header, index) {
+      return normalizeHeader(header) === normalizeHeader(targetHeaders[index]);
+    });
+    const sourceCounts = new Map();
+    const targetPositions = new Map();
+    source.headers.forEach(function (header) {
+      const key = normalizeHeader(header);
+      sourceCounts.set(key, (sourceCounts.get(key) || 0) + 1);
+    });
+    targetHeaders.forEach(function (header, index) {
+      const key = normalizeHeader(header);
+      if (!targetPositions.has(key)) targetPositions.set(key, []);
+      targetPositions.get(key).push(index);
+    });
+    const activeCustomIds = new Set((Array.isArray(customFields) ? customFields : [])
+      .filter(function (field) { return field && field.active !== false; }).map(function (field) { return field.id; }));
+    const mapping = {};
+    const customFieldMapping = {};
+    const sourceRules = [];
+    const unresolved = [];
+    const occupied = new Set();
+    function resolve(targetId, sourcePosition, custom) {
+      if (!Number.isInteger(sourcePosition)) return;
+      const header = source.headers[sourcePosition];
+      const key = normalizeHeader(header);
+      if (custom && !activeCustomIds.has(targetId)) {
+        unresolved.push({ targetId: targetId, header: header, reason: 'custom-field-missing' });
+        return;
+      }
+      const matches = targetPositions.get(key) || [];
+      const position = schemaExact ? sourcePosition
+        : (key && sourceCounts.get(key) === 1 && matches.length === 1 ? matches[0] : null);
+      if (!Number.isInteger(position) || position >= targetHeaders.length) {
+        unresolved.push({ targetId: targetId, header: header, reason: matches.length ? 'ambiguous' : 'missing' });
+      } else if (occupied.has(position)) {
+        unresolved.push({ targetId: targetId, header: header, reason: 'collision' });
+      } else {
+        occupied.add(position);
+        (custom ? customFieldMapping : mapping)[targetId] = position;
+      }
+    }
+    Object.keys(source.mapping).forEach(function (targetId) { resolve(targetId, source.mapping[targetId], false); });
+    Object.keys(source.customFieldMapping).forEach(function (targetId) { resolve(targetId, source.customFieldMapping[targetId], true); });
+    source.sourceRules.forEach(function (rule) {
+      const header = source.headers[rule.sourcePosition];
+      const key = normalizeHeader(header);
+      const matches = targetPositions.get(key) || [];
+      const position = schemaExact ? rule.sourcePosition
+        : (key && sourceCounts.get(key) === 1 && matches.length === 1 ? matches[0] : null);
+      if (!Number.isInteger(position) || position >= targetHeaders.length) {
+        unresolved.push({ targetId: null, header: header, ruleName: rule.name,
+          reason: matches.length ? 'ambiguous' : 'missing' });
+      } else {
+        sourceRules.push(Object.assign({}, rule, { sourcePosition: position }));
+      }
+    });
+    return {
+      compatible: unresolved.length === 0,
+      schemaExact: schemaExact,
+      matchedCount: Object.keys(mapping).length + Object.keys(customFieldMapping).length,
+      unresolved: unresolved,
+      sourceType: source.sourceType,
+      mapping: mapping,
+      customFieldMapping: customFieldMapping,
+      preparationRules: source.preparationRules,
+      sourceRules: sourceRules
+    };
+  }
+
   function normalizeIssue(issue, sourceId, options) {
     if (!isPlainObject(issue)) {
       validationError('invalid_validation_issue', 'Validation issue must be an object.');
@@ -642,6 +840,10 @@
         validationError('invalid_import_result', 'Stored import result contains invalid row counts.');
       }
     });
+    if (normalized.filteredRows !== undefined && (!Number.isInteger(normalized.filteredRows) ||
+        normalized.filteredRows < 0 || normalized.filteredRows > normalized.totalRows)) {
+      validationError('invalid_import_result', 'Stored filtered row count is invalid.');
+    }
     if (normalized.preparationCounts !== undefined) {
       if (!isPlainObject(normalized.preparationCounts) || Object.keys(normalized.preparationCounts).length > 100) {
         validationError('invalid_import_result', 'Preparation counts must be a bounded object.');
@@ -692,6 +894,7 @@
     let columnCatalog = normalizeColumnCatalog(file.columnCatalog, id, options);
     let mapping = normalizeMapping(file.mapping);
     const preparationRules = normalizePreparationRules(file.preparationRules);
+    const sourceRules = normalizeSourceRules(file.sourceRules);
     let customFieldMapping = normalizeCustomFieldMapping(file.customFieldMapping);
     let confirmedCustomFieldMapping = file.confirmedCustomFieldMapping === null || file.confirmedCustomFieldMapping === undefined
       ? null
@@ -735,6 +938,7 @@
       errorKey: file.errorKey ? String(file.errorKey) : null,
       mapping: mapping,
       preparationRules: preparationRules,
+      sourceRules: sourceRules,
       customFieldMapping: customFieldMapping,
       confirmedCustomFieldMapping: confirmedCustomFieldMapping,
       confirmedMapping: confirmedMapping,
@@ -768,6 +972,8 @@
       analyzed: false,
       periodSettings: normalizePeriodSettings(settings.periodSettings),
       customFields: normalizeCustomFields(settings.customFields),
+      importProfiles: normalizeImportProfiles(settings.importProfiles),
+      warehouseLayout: warehouseModel.normalizeLayout(settings.warehouseLayout || warehouseModel.createLayout()),
       articleRegistry: normalizeArticleRegistry(settings.articleRegistry),
       files: []
     };
@@ -804,8 +1010,15 @@
       validationError('invalid_workspace', 'Workspace sources must be an array.');
     }
     const customFields = normalizeCustomFields(workspace.customFields);
+    const importProfiles = normalizeImportProfiles(workspace.importProfiles);
+    const warehouseLayout = warehouseModel.normalizeLayout(workspace.warehouseLayout);
     const articleRegistry = normalizeArticleRegistry(workspace.articleRegistry);
     const customFieldIds = new Set(customFields.map(function (field) { return field.id; }));
+    importProfiles.forEach(function (profile) {
+      if (Object.keys(profile.customFieldMapping).some(function (fieldId) { return !customFieldIds.has(fieldId); })) {
+        validationError('unknown_custom_field', 'Import profile references an unknown custom field.');
+      }
+    });
     const usedSourceIds = new Set();
     const files = workspace.files.map(function (file) {
       const normalized = validateFile(file, options);
@@ -845,6 +1058,8 @@
       analyzed: workspace.analyzed,
       periodSettings: normalizePeriodSettings(workspace.periodSettings),
       customFields: customFields,
+      importProfiles: importProfiles,
+      warehouseLayout: warehouseLayout,
       articleRegistry: articleRegistry,
       files: files
     };
@@ -855,7 +1070,7 @@
       validationError('invalid_workspace', 'Workspace must be an object.');
     }
     const schemaVersion = Number(workspace.schemaVersion);
-    if (schemaVersion === 0 || schemaVersion === 1 || schemaVersion === 2 || schemaVersion === 3 || schemaVersion === 4 || schemaVersion === 5 || schemaVersion === 6 || schemaVersion === 7 || schemaVersion === 8 || schemaVersion === 9) {
+    if (Number.isInteger(schemaVersion) && schemaVersion >= 0 && schemaVersion < WORKSPACE_SCHEMA_VERSION) {
       const migrated = cloneValue(workspace, options);
       const migrationTarget = options && options.clonePayload === false ? Object.assign({}, migrated) : migrated;
       if (schemaVersion === 0) {
@@ -963,6 +1178,16 @@
           return migratedFile;
         }) : [];
       }
+      if (schemaVersion <= 10) migrationTarget.importProfiles = [];
+      if (schemaVersion <= 11) migrationTarget.warehouseLayout = warehouseModel.createLayout();
+      if (schemaVersion <= 12) {
+        migrationTarget.files = Array.isArray(migrationTarget.files) ? migrationTarget.files.map(function (file) {
+          const migratedFile = isPlainObject(file) ? file : {};
+          if (!Array.isArray(migratedFile.sourceRules)) migratedFile.sourceRules = [];
+          return migratedFile;
+        }) : [];
+      }
+      migrationTarget.warehouseLayout = warehouseModel.migrateLayout(migrationTarget.warehouseLayout);
       migrationTarget.schemaVersion = WORKSPACE_SCHEMA_VERSION;
       migrationTarget.periodSettings = normalizePeriodSettings(migrationTarget.periodSettings);
       return validateWorkspace(migrationTarget, options);
@@ -986,6 +1211,8 @@
       analyzed: Boolean(state && state.analysis),
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
       customFields: normalizeCustomFields(state && state.customFields),
+      importProfiles: normalizeImportProfiles(state && state.importProfiles),
+      warehouseLayout: warehouseModel.normalizeLayout(state && state.warehouseLayout || warehouseModel.createLayout()),
       articleRegistry: normalizeArticleRegistry(state && state.articleRegistry),
       files: state && Array.isArray(state.files) ? state.files : []
     }, settings);
@@ -1002,6 +1229,7 @@
     const settings = options || {};
     const files = state && Array.isArray(state.files) ? state.files.map(function (file) {
       const preparationRules = normalizePreparationRules(file.preparationRules);
+      const sourceRules = normalizeSourceRules(file.sourceRules);
       if (countAccessiblePreparationRules(
         preparationRules,
         file.mapping,
@@ -1028,6 +1256,7 @@
         errorKey: file.errorKey || null,
         mapping: file.mapping,
         preparationRules: preparationRules,
+        sourceRules: sourceRules,
         customFieldMapping: file.customFieldMapping,
         confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
@@ -1046,6 +1275,8 @@
       analyzed: Boolean(state && state.analysis),
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
       customFields: normalizeCustomFields(state && state.customFields),
+      importProfiles: normalizeImportProfiles(state && state.importProfiles),
+      warehouseLayout: warehouseModel.normalizeLayout(state && state.warehouseLayout || warehouseModel.createLayout()),
       articleRegistry: state && Array.isArray(state.articleRegistry) ? state.articleRegistry : [],
       files: files
     };
@@ -1110,8 +1341,21 @@
     return btoa(binary);
   }
 
+  // Bounded character classes avoid the grouped-regexp stack overflow on
+  // large original sources. Padding and accepted syntax remain unchanged.
+  function isBase64(value) {
+    if (typeof value !== 'string' || value.length % 4 !== 0) return false;
+    let end = value.length;
+    if (value.endsWith('==')) end -= 2;
+    else if (value.endsWith('=')) end -= 1;
+    for (let index = 0; index < end; index += 16384) {
+      if (/[^A-Za-z0-9+/]/.test(value.slice(index, Math.min(end, index + 16384)))) return false;
+    }
+    return true;
+  }
+
   function base64ToBuffer(value) {
-    if (typeof value !== 'string' || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) {
+    if (!isBase64(value)) {
       validationError('invalid_backup_encoding', 'Backup contains invalid binary data.');
     }
     if (typeof Buffer !== 'undefined') {
@@ -1260,8 +1504,13 @@
     normalizeCustomFields: normalizeCustomFields,
     normalizeArticleRegistry: normalizeArticleRegistry,
     normalizeCustomFieldMapping: normalizeCustomFieldMapping,
+    normalizeImportProfiles: normalizeImportProfiles,
+    createImportProfile: createImportProfile,
+    planImportProfile: planImportProfile,
     PREPARATION_RULE_TYPES: PREPARATION_RULE_TYPES,
+    SOURCE_RULE_TYPES: SOURCE_RULE_TYPES,
     normalizePreparationRules: normalizePreparationRules,
+    normalizeSourceRules: normalizeSourceRules,
     countAccessiblePreparationRules: countAccessiblePreparationRules,
     validateCustomFieldMappingRange: validateCustomFieldMappingRange,
     createId: createId,

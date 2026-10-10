@@ -23,6 +23,21 @@ Damit bleiben insbesondere diese Eigenschaften erhalten:
 
 ## Chunked Workspace-Persistenz
 
+### Hintergrundverarbeitung bei Localhost
+
+Der aktive Start lädt den festen Modul-Worker aus `src/workers/`. Er wird für
+aufeinanderfolgende Vorgänge wiederverwendet und nach 30 Sekunden Leerlauf
+beendet. Auch erste Spaltenprofile und erneute Analysen laufen dort. Diese
+Vorgänge kopieren die aktuellen Quellbytes vor dem Transfer, damit ein Abbruch
+die aktive Ansicht erhält. Das benötigt vorübergehend einen zusätzlichen
+Byte-Puffer; es ist keine pauschale Zusage geringeren Gesamtspeichers. Beim
+Öffnen und bei Sicherungen werden geladene Puffer direkt übertragen.
+
+Der unveränderte Parser verarbeitet 64-KiB-Decodierchunks und behält Mengen als
+skalierte Ganzzahlen. Laufzeitvergleiche und Browsergrenzen stehen unter
+[Performance](performance/README.md) und
+[Workspace/UI](performance/workspace-ui.md).
+
 Beim Speichern werden Quellen, Originalbytes, normalisierte Zeilen und
 Validierungshinweise getrennt abgelegt. Zeilen und Hinweise werden in stabilen
 Chunks mit höchstens 5.000 Einträgen gespeichert. Änderungen an Sprache,

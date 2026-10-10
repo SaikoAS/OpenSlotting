@@ -10,8 +10,7 @@
   'use strict';
 
   const RUNTIME_MODES = Object.freeze({
-    PORTABLE: 'portable',
-    ENHANCED_LOCAL: 'enhanced-local',
+    LOCALHOST: 'localhost',
     UNSUPPORTED: 'unsupported'
   });
 
@@ -40,15 +39,8 @@
   function detectMode(locationLike) {
     const protocol = String(locationLike && locationLike.protocol || '').toLowerCase();
     const hostname = String(locationLike && locationLike.hostname || '');
-    if (protocol === 'file:') {
-      const normalizedFileHost = hostname.toLowerCase().replace(/^\[|\]$/g, '');
-      const localFileHost = ['local', 'host'].join('');
-      return normalizedFileHost === '' || normalizedFileHost === localFileHost
-        ? RUNTIME_MODES.PORTABLE
-        : RUNTIME_MODES.UNSUPPORTED;
-    }
     if ((protocol === 'http:' || protocol === 'https:') && isLoopbackHostname(hostname)) {
-      return RUNTIME_MODES.ENHANCED_LOCAL;
+      return RUNTIME_MODES.LOCALHOST;
     }
     return RUNTIME_MODES.UNSUPPORTED;
   }
@@ -69,10 +61,7 @@
     });
   }
 
-  function detectOrigin(locationLike, mode) {
-    if (mode === RUNTIME_MODES.PORTABLE) {
-      return 'file:///';
-    }
+  function detectOrigin(locationLike) {
     const origin = String(locationLike && locationLike.origin || '');
     return origin && origin !== 'null' ? origin : '—';
   }
@@ -81,10 +70,29 @@
     const scope = environment || {};
     const mode = detectMode(scope.location || {});
     const capabilities = detectCapabilities(scope);
+    const localFile = String(scope.location && scope.location.protocol || '').toLowerCase() === 'file:' &&
+      (!scope.location.hostname || isLoopbackHostname(scope.location.hostname));
+    const reason = mode === RUNTIME_MODES.LOCALHOST ? null : (localFile ? 'portable-paused' : 'unsupported-origin');
     return Object.freeze({
       mode,
-      origin: detectOrigin(scope.location || {}, mode),
+      reason,
+      origin: detectOrigin(scope.location || {}),
       capabilities,
+      startupNotice: function (language) {
+        const german = String(language || '').toLowerCase().startsWith('de');
+        return {
+          language: german ? 'de' : 'en',
+          title: german ? 'OpenSlotting lokal starten' : 'Start OpenSlotting locally',
+          message: reason === 'portable-paused'
+            ? (german ? 'Der Portable Mode ist auf unbestimmte Zeit pausiert. Dieser Entwicklungsstand wird über Localhost gestartet.'
+              : 'Portable Mode is paused indefinitely. This development version starts through localhost.')
+            : (german ? 'OpenSlotting benötigt eine lokale Loopback-Adresse, damit Nutzerdaten auf diesem Gerät bleiben.'
+              : 'OpenSlotting requires a local loopback address to keep user data on this device.'),
+          instruction: german
+            ? 'Starte Start-OpenSlotting.cmd im Anwendungsordner. Python 3.8 oder neuer muss vorhanden sein. Bestehende Portable-Arbeitsbereiche lassen sich im bisherigen Stand als Sicherung exportieren und hier wiederherstellen.'
+            : 'Run Start-OpenSlotting.cmd in the application folder. Python 3.8 or newer must be available. Export existing Portable workspaces as backups in the previous version, then restore them here.'
+        };
+      },
       supports: function (capabilityName) {
         return CAPABILITY_KEYS.indexOf(capabilityName) >= 0 && capabilities[capabilityName] === true;
       }

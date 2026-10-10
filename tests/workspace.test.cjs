@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const csv = require('../csv.js');
 const workspace = require('../workspace.js');
+const warehouse = require('../warehouse.js');
 
 function sourceFile(id, articleId) {
   const text = 'order_id;article_id;quantity;delivery_date\nO-1;' + articleId + ';1.25;2026-09-12\n';
@@ -708,9 +709,164 @@ test('schema-nine migration adds empty preparation rules without changing existi
   legacy.schemaVersion = 9;
   delete legacy.files[0].preparationRules;
   const migrated = workspace.migrateWorkspace(legacy);
-  assert.equal(migrated.schemaVersion, 10);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
   assert.deepEqual(migrated.files[0].preparationRules, {});
   assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V9');
+});
+
+test('schema-ten migration adds an empty import-profile collection', () => {
+  const legacy = analyzedWorkspace('workspace-v10', 'Version ten', 'SKU-V10');
+  legacy.schemaVersion = 10;
+  delete legacy.importProfiles;
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.deepEqual(migrated.importProfiles, []);
+  assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V10');
+});
+
+test('schema-eleven migration adds an empty warehouse layout and preserves imports', () => {
+  const legacy = analyzedWorkspace('workspace-v11', 'Version eleven', 'SKU-V11');
+  legacy.schemaVersion = 11;
+  delete legacy.warehouseLayout;
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.deepEqual(migrated.warehouseLayout, warehouse.createLayout());
+  assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V11');
+});
+
+test('schema-twelve migration adds empty source rules without altering imports', () => {
+  const legacy = analyzedWorkspace('workspace-v12', 'Version twelve', 'SKU-V12');
+  legacy.schemaVersion = 12;
+  delete legacy.files[0].sourceRules;
+  const migrated = workspace.migrateWorkspace(legacy);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+  assert.deepEqual(migrated.files[0].sourceRules, []);
+  assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V12');
+});
+
+for (const version of [12, 13]) {
+  test('schema-' + version + ' migration preserves populated legacy layout and source evidence through backup', () => {
+    const legacy = analyzedWorkspace('warehouse-v' + version, 'Legacy warehouse', 'SKU-V' + version);
+    legacy.schemaVersion = version;
+    legacy.warehouseLayout = structuredClone(require('./fixtures/warehouse-layout-v1.json'));
+    const before = structuredClone(legacy);
+    const migrated = workspace.migrateWorkspace(legacy);
+    assert.deepEqual(legacy, before);
+    assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+    assert.equal(migrated.warehouseLayout.version, warehouse.LAYOUT_VERSION);
+    assert.deepEqual(migrated.warehouseLayout.locations.map((location) => location.id),
+      ['legacy-location-a', 'legacy-location-b', 'legacy-location-c']);
+    assert.equal(migrated.warehouseLayout.locations[0].code, 'R01-03-02-01');
+    assert.ok(migrated.warehouseLayout.zones.every((zone) => zone.usage === 'unassigned'));
+    assert.deepEqual(migrated.files[0].buffer, before.files[0].buffer);
+    assert.deepEqual(migrated.files[0].result.rows, before.files[0].result.rows);
+    const restored = workspace.parseBackup(workspace.stringifyBackup(migrated));
+    assert.deepEqual(restored.warehouseLayout, migrated.warehouseLayout);
+    assert.deepEqual(restored.files[0].result.rows, before.files[0].result.rows);
+    const encoded = workspace.createBackup(migrated);
+    encoded.workspace.schemaVersion = version;
+    encoded.workspace.warehouseLayout = before.warehouseLayout;
+    assert.equal(workspace.parseBackup(JSON.stringify(encoded)).warehouseLayout.locations[0].id, 'legacy-location-a');
+  });
+}
+
+test('named source rules survive backup and profiles remap only selected rules', () => {
+  const rule = { sourcePosition: 4, type: 'exclude-empty', name: 'Missing status',
+    description: 'Ignore unfinished export lines', enabled: true, includeInProfile: true };
+  const localOnly = { sourcePosition: 4, type: 'exclude-equals', value: 'draft', name: 'Draft',
+    description: 'Specific to this one file', enabled: true, includeInProfile: false };
+  const source = { headers: ['Order', 'SKU', 'Quantity', 'Date', 'Status'], sourceType: 'order-lines',
+    mapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },
+    customFieldMapping: {}, sourceRules: [rule, localOnly] };
+  const profile = workspace.createImportProfile(source, 'Filtered orders', [], {
+    id: 'profile-filtered', now: '2026-10-02T08:00:00.000Z'
+  });
+  assert.deepEqual(profile.sourceRules.map((item) => item.name), ['Missing status']);
+  const reordered = workspace.planImportProfile(profile,
+    { headers: ['Status', 'Date', 'Quantity', 'SKU', 'Order'] }, []);
+  assert.equal(reordered.compatible, true);
+  assert.equal(reordered.sourceRules[0].sourcePosition, 0);
+  assert.equal(reordered.sourceRules[0].description, rule.description);
+  const missing = workspace.planImportProfile(profile,
+    { headers: ['Date', 'Quantity', 'SKU', 'Order'] }, []);
+  assert.equal(missing.compatible, false);
+  assert.ok(missing.unresolved.some((item) => item.ruleName === 'Missing status' && item.reason === 'missing'));
+  const original = analyzedWorkspace('workspace-source-rules', 'Source rules', 'SKU-RULE');
+  original.files[0].sourceRules = [{ ...rule, sourcePosition: 1 }];
+  original.importProfiles = [profile];
+  const validated = workspace.validateWorkspace(original);
+  const restored = workspace.parseBackup(workspace.stringifyBackup(validated));
+  assert.deepEqual(restored.files[0].sourceRules, validated.files[0].sourceRules);
+  assert.deepEqual(restored.importProfiles[0].sourceRules, profile.sourceRules);
+  const captured = workspace.captureWorkspaceTrusted(validated, {
+    language: 'en', files: validated.files, customFields: [], importProfiles: validated.importProfiles,
+    articleRegistry: validated.articleRegistry
+  });
+  assert.deepEqual(captured.files[0].sourceRules, validated.files[0].sourceRules);
+  assert.throws(() => workspace.normalizeSourceRules([{ ...rule, description: '' }]),
+    (error) => error.code === 'invalid_source_rules');
+  assert.throws(() => workspace.normalizeSourceRules([rule, { ...rule }]),
+    (error) => error.code === 'invalid_source_rules');
+});
+
+test('import profiles keep mappings and ordered rules and match reordered unique headers', () => {
+  const source = {
+    headers: ['AUFTRNR', 'ARTNR', 'MENGE', 'DATUM'],
+    sourceType: 'order-lines',
+    mapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3, article_name: null },
+    customFieldMapping: {},
+    preparationRules: { article_id: [{ type: 'trim', enabled: true }], quantity: [{ type: 'replace-text', from: '-', to: '0', enabled: false }] }
+  };
+  const profile = workspace.createImportProfile(source, 'Daily orders', [], {
+    id: 'profile-daily', now: '2026-09-25T08:00:00.000Z'
+  });
+  assert.deepEqual(profile.mapping, { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 });
+  assert.equal(profile.preparationRules.article_id[0].type, 'trim');
+  assert.equal(profile.preparationRules.quantity[0].enabled, false);
+  const exact = workspace.planImportProfile(profile, { headers: source.headers }, []);
+  assert.equal(exact.compatible, true);
+  assert.equal(exact.schemaExact, true);
+  const reordered = workspace.planImportProfile(profile, { headers: ['DATUM', 'MENGE', 'AUFTRNR', 'ARTNR', 'EXTRA'] }, []);
+  assert.equal(reordered.compatible, true);
+  assert.deepEqual(reordered.mapping, { order_id: 2, article_id: 3, quantity: 1, delivery_date: 0 });
+  assert.deepEqual(profile.mapping, { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 });
+});
+
+test('import-profile application stops on missing or ambiguous columns and unavailable custom fields', () => {
+  const profile = workspace.createImportProfile({
+    headers: ['SKU', 'NAME', 'SKU'], sourceType: 'article-master',
+    mapping: { article_id: 0, article_name: 1 },
+    customFieldMapping: { 'custom-tag': 2 },
+    preparationRules: { article_id: [{ type: 'trim', enabled: true }] }
+  }, 'Master', [{ id: 'custom-tag', active: true }], {
+    id: 'profile-master', now: '2026-09-25T08:00:00.000Z'
+  });
+  assert.equal(workspace.planImportProfile(profile, { headers: ['SKU', 'NAME', 'SKU'] }, [{ id: 'custom-tag', active: true }]).compatible, true);
+  const changed = workspace.planImportProfile(profile, { headers: ['NAME', 'SKU', 'SKU'] }, [{ id: 'custom-tag', active: true }]);
+  assert.equal(changed.compatible, false);
+  assert.ok(changed.unresolved.some((item) => item.reason === 'ambiguous'));
+  const missing = workspace.planImportProfile(profile, { headers: ['NAME'] }, [{ id: 'custom-tag', active: false }]);
+  assert.equal(missing.compatible, false);
+  assert.ok(missing.unresolved.some((item) => item.reason === 'missing'));
+  assert.ok(missing.unresolved.some((item) => item.reason === 'custom-field-missing'));
+});
+
+test('import profiles survive workspace capture and backup without leaking into another workspace', () => {
+  const first = analyzedWorkspace('workspace-profiles', 'Profiles', 'SKU-P');
+  first.importProfiles = [workspace.createImportProfile({
+    headers: ['order_id', 'article_id', 'quantity', 'delivery_date'], sourceType: 'order-lines',
+    mapping: first.files[0].mapping, customFieldMapping: {},
+    preparationRules: { article_id: [{ type: 'trim', enabled: true }] }
+  }, 'Orders', [], { id: 'profile-orders', now: '2026-09-25T08:00:00.000Z' })];
+  const validated = workspace.validateWorkspace(first);
+  const restored = workspace.parseBackup(workspace.stringifyBackup(validated));
+  assert.deepEqual(restored.importProfiles, validated.importProfiles);
+  const captured = workspace.captureWorkspaceTrusted(validated, {
+    language: 'en', files: validated.files, customFields: [], importProfiles: validated.importProfiles,
+    articleRegistry: validated.articleRegistry
+  });
+  assert.deepEqual(captured.importProfiles, validated.importProfiles);
+  assert.deepEqual(workspace.createWorkspace('Other').importProfiles, []);
 });
 
 test('ordered preparation rules survive validation and backup restore', () => {

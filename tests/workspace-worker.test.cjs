@@ -25,7 +25,7 @@ function extractFunction(source, name, nextName) {
   return source.slice(start + 2, end);
 }
 
-test('offline worker preparation validates, parses, and analyzes a workspace', () => {
+test('shared local worker preparation validates, parses, and analyzes a workspace', () => {
   const messages = [];
   const context = vm.createContext({
     ArrayBuffer,
@@ -44,27 +44,14 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   context.globalThis = context;
   vm.runInContext(read('encoding.js'), context);
   vm.runInContext(read('csv.js'), context);
+  vm.runInContext(read('warehouse.js'), context);
   vm.runInContext(read('workspace.js'), context);
 
-  const appSource = read('app.js');
-  const workerFunctions = [
-    extractFunction(appSource, 'decodeFileEntry', 'handleFileChange'),
-    extractFunction(appSource, 'runtimeFileFromStored', 'prepareWorkspaceRecord'),
-    extractFunction(appSource, 'prepareWorkspaceRecord', 'workspaceWorkerMain'),
-    extractFunction(appSource, 'workspaceWorkerMain', 'workspaceLoadError')
-  ].join('\n');
-  const generatedWorkerSource = [
-    "'use strict';",
-    'const encoding = (' + context.OpenSlottingEncodingFactory.toString() + ')();',
-    'const core = (' + context.OpenSlottingCsvFactory.toString() + ')();',
-    'const workspaceModel = (' + context.OpenSlottingWorkspaceFactory.toString() + ')();',
-    workerFunctions,
-    '(' + extractFunction(appSource, 'workspaceWorkerMain', 'workspaceLoadError') + ')();'
-  ].join('\n');
-  assert.doesNotThrow(() => new vm.Script(generatedWorkerSource));
-  vm.runInContext(generatedWorkerSource, context);
+  vm.runInContext(read('src/application/workspace-preparation.js'), context);
+  context.OpenSlottingWorkspacePreparation.workspaceWorkerMain(context.self);
+  vm.runInContext('const workspaceModel = OpenSlottingWorkspace;', context);
 
-  const text = 'order_id;article_id;quantity;delivery_date\nO-1; sku-worker ;0.3;2026-09-12\n';
+  const text = 'order_id;article_id;quantity;delivery_date\nO-1; sku-worker ;0.3;2026-09-12\nO-2;;1;2026-09-12\n';
   vm.runInContext([
     'const workerText = ' + JSON.stringify(text) + ';',
     "const workerBytes = new TextEncoder().encode(workerText);",
@@ -77,6 +64,7 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
     '  mapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },',
     '  confirmedMapping: { order_id: 0, article_id: 1, quantity: 2, delivery_date: 3 },',
     "  preparationRules: { article_id: [{ type: 'trim', enabled: true }, { type: 'case-normalization', mode: 'upper', enabled: true }] },",
+    "  sourceRules: [{ sourcePosition: 1, type: 'exclude-empty', name: 'No article', description: 'Ignore lines without an article ID.', enabled: true, includeInProfile: true }],",
     "  sourceType: 'article-master',",
     '  result: null',
     '});',
@@ -93,8 +81,11 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   const completed = messages.find((message) => message.type === 'complete');
   assert.ok(completed);
   assert.equal(completed.prepared.result.validRows, 1);
+  assert.equal(completed.prepared.result.filteredRows, 1);
   assert.equal(completed.prepared.result.analysisRows, 0);
   assert.equal(completed.prepared.files[0].result.validRows, 1);
+  assert.equal(completed.prepared.files[0].result.filteredRows, 1);
+  assert.equal(completed.prepared.files[0].result.issues.find((issue) => issue.code === 'source_rule_excluded').ruleName, 'No article');
   assert.equal(completed.prepared.files[0].result.rows[0].quantity, 3000000n);
   assert.equal(completed.prepared.files[0].result.rows[0].article_id, 'SKU-WORKER');
   assert.deepEqual(Array.from(completed.prepared.files[0].result.rows[0].prepared_fields), ['article_id']);
@@ -106,14 +97,15 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.equal(completed.prepared.files[0].columnCatalog[1].sourceFileId, 'source-worker');
   assert.equal(completed.prepared.files[0].result.sourceFile.sourceType, 'article-master');
   assert.equal(completed.prepared.files[0].parsed.rows.length, 0);
-  assert.equal(completed.prepared.files[0].parsed.dataRowCount, 1);
+  assert.equal(completed.prepared.files[0].parsed.dataRowCount, 2);
   assert.deepEqual(Array.from(completed.prepared.files[0].parsed.headers), ['order_id', 'article_id', 'quantity', 'delivery_date']);
 
   const fallbackPrepared = vm.runInContext(
-    "prepareWorkspaceRecord(workerRecord, 'en', function () {})",
+    "OpenSlottingWorkspacePreparation.prepareWorkspaceRecord(workerRecord, 'en', function () {})",
     context
   );
   assert.equal(fallbackPrepared.files[0].result.rows[0].article_id, 'SKU-WORKER');
+  assert.equal(fallbackPrepared.files[0].result.filteredRows, 1);
   assert.deepEqual(Array.from(fallbackPrepared.files[0].result.rows[0].prepared_fields), ['article_id']);
 
   messages.length = 0;
@@ -125,12 +117,14 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   assert.ok(backupCompleted);
   assert.equal(backupCompleted.prepared.workspace.id, 'workspace-backup-worker');
   assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].result.validRows, 1);
+  assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].result.filteredRows, 1);
   assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].sourceType, 'article-master');
   assert.deepEqual(Array.from(backupCompleted.prepared.persistedWorkspace.files[0].preparationRules.article_id, (rule) => rule.type), ['trim', 'case-normalization']);
+  assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].sourceRules[0].description, 'Ignore lines without an article ID.');
   assert.equal(backupCompleted.prepared.persistedWorkspace.files[0].buffer.byteLength, new TextEncoder().encode(text).byteLength);
   assert.ok(backupCompleted.prepared.runtime);
   assert.equal(backupCompleted.prepared.runtime.files[0].parsed.rows.length, 0);
-  assert.equal(backupCompleted.prepared.runtime.files[0].parsed.dataRowCount, 1);
+  assert.equal(backupCompleted.prepared.runtime.files[0].parsed.dataRowCount, 2);
 
   messages.length = 0;
   vm.runInContext("self.onmessage({ data: { backupExport: workerRecord } });", context);
@@ -140,6 +134,7 @@ test('offline worker preparation validates, parses, and analyzes a workspace', (
   const exportedBackup = JSON.parse(exportCompleted.text);
   assert.equal(exportedBackup.workspace.id, 'workspace-worker');
   assert.deepEqual(exportedBackup.workspace.files[0].preparationRules.article_id.map((rule) => rule.type), ['trim', 'case-normalization']);
+  assert.equal(exportedBackup.workspace.files[0].sourceRules[0].name, 'No article');
   assert.equal(exportedBackup.workspace.files[0].size, new TextEncoder().encode(text).byteLength);
 
   messages.length = 0;

@@ -1,0 +1,2651 @@
+{
+  "cases": [
+    {
+      "case": "record-prepare",
+      "contractsMatched": true,
+      "methods": {
+        "baseline-blob-fresh": {
+          "elapsedMs": {
+            "max": 119.5,
+            "median": 102.30000007152556,
+            "min": 98.69999992847444
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 3151631,
+              "fullCanonicalEquality": false,
+              "matched": true,
+              "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+              "sourceBytesEqual": true,
+              "verificationMs": 78.09999990463257
+            },
+            "elapsedMs": 108.79999995231628,
+            "responsiveness": null,
+            "sourceCopyMs": 0.09999990463256836
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 76
+              },
+              "elapsedMs": 99.29999995231628,
+              "responsiveness": null,
+              "sourceCopyMs": 0.10000002384185792
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 81.30000007152557
+              },
+              "elapsedMs": 98.69999992847444,
+              "responsiveness": null,
+              "sourceCopyMs": 0.19999992847442627
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 65.60000002384186
+              },
+              "elapsedMs": 102.30000007152556,
+              "responsiveness": null,
+              "sourceCopyMs": 0.10000002384185792
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 64.20000004768372
+              },
+              "elapsedMs": 119.5,
+              "responsiveness": null,
+              "sourceCopyMs": 0.20000004768371585
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 85.10000002384186
+              },
+              "elapsedMs": 104.5,
+              "responsiveness": null,
+              "sourceCopyMs": 0.10000002384185792
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.20000004768371585,
+            "median": 0.10000002384185792,
+            "min": 0.10000002384185792
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 3151631,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+              "sourceBytesEqual": true,
+              "verificationMs": 67.10000002384186
+            },
+            "elapsedMs": 97.5,
+            "responsiveness": null,
+            "sourceCopyMs": 0.10000002384185792
+          }
+        },
+        "current-module-fresh": {
+          "elapsedMs": {
+            "max": 117.79999995231628,
+            "median": 110.10000002384186,
+            "min": 107
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 3151631,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+              "sourceBytesEqual": true,
+              "verificationMs": 65.29999995231628
+            },
+            "elapsedMs": 121,
+            "responsiveness": null,
+            "sourceCopyMs": 0.10000002384185792
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 73.10000002384186
+              },
+              "elapsedMs": 107,
+              "responsiveness": null,
+              "sourceCopyMs": 0.09999990463256836
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 75.89999997615814
+              },
+              "elapsedMs": 110.10000002384186,
+              "responsiveness": null,
+              "sourceCopyMs": 0.10000002384185792
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 63.300000071525574
+              },
+              "elapsedMs": 108.40000009536745,
+              "responsiveness": null,
+              "sourceCopyMs": 0
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 70.10000002384186
+              },
+              "elapsedMs": 117.79999995231628,
+              "responsiveness": null,
+              "sourceCopyMs": 0
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 64.70000004768372
+              },
+              "elapsedMs": 112.60000002384186,
+              "responsiveness": null,
+              "sourceCopyMs": 0.10000002384185792
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.10000002384185792,
+            "median": 0.09999990463256836,
+            "min": 0
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 3151631,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+              "sourceBytesEqual": true,
+              "verificationMs": 65.60000002384186
+            },
+            "elapsedMs": 107.80000007152556,
+            "responsiveness": null,
+            "sourceCopyMs": 0.10000002384185792
+          }
+        },
+        "current-module-reused": {
+          "elapsedMs": {
+            "max": 54.800000071525574,
+            "median": 53.89999997615814,
+            "min": 51.79999995231629
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 3151631,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+              "sourceBytesEqual": true,
+              "verificationMs": 70.60000002384186
+            },
+            "elapsedMs": 104.69999992847444,
+            "responsiveness": null,
+            "sourceCopyMs": 0.09999990463256836
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 64.5
+              },
+              "elapsedMs": 53.89999997615814,
+              "responsiveness": null,
+              "sourceCopyMs": 0
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 65.69999992847443
+              },
+              "elapsedMs": 52.70000004768371,
+              "responsiveness": null,
+              "sourceCopyMs": 0.10000002384185792
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 61.79999995231629
+              },
+              "elapsedMs": 54.39999997615814,
+              "responsiveness": null,
+              "sourceCopyMs": 0.10000002384185792
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 63.89999997615814
+              },
+              "elapsedMs": 54.800000071525574,
+              "responsiveness": null,
+              "sourceCopyMs": 0.10000002384185792
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3151631,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+                "sourceBytesEqual": true,
+                "verificationMs": 76.80000007152557
+              },
+              "elapsedMs": 51.79999995231629,
+              "responsiveness": null,
+              "sourceCopyMs": 0
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.10000002384185792,
+            "median": 0.10000002384185792,
+            "min": 0
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 3151631,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "a01a70862630684980e29e0c5ec744c27838749d344adbd4ca9d1381804c31e0",
+              "sourceBytesEqual": true,
+              "verificationMs": 74.10000002384186
+            },
+            "elapsedMs": 60.29999995231629,
+            "responsiveness": null,
+            "sourceCopyMs": 0.09999990463256836
+          }
+        }
+      },
+      "rows": 1000,
+      "sampleOrder": [
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "warmup"
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "warmup"
+        },
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "warmup"
+        },
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "sample",
+          "sampleIndex": 4
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "sample",
+          "sampleIndex": 4
+        },
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "sample",
+          "sampleIndex": 4
+        }
+      ],
+      "sourceBytes": 92929
+    },
+    {
+      "case": "profile-file",
+      "contractsMatched": true,
+      "methods": {
+        "current-direct": {
+          "elapsedMs": {
+            "max": 16.899999976158142,
+            "median": 12.699999928474426,
+            "min": 10.5
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 10313,
+              "fullCanonicalEquality": false,
+              "matched": true,
+              "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+              "sourceBytesEqual": true,
+              "verificationMs": 1.899999976158142
+            },
+            "elapsedMs": 9.600000023841858,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2006.7000000476835,
+              "rafMaxGapMs": 1006.6999999999972,
+              "rafObservedFrames": 2,
+              "timerMaxDelayMs": 28,
+              "timerTicks": 120
+            },
+            "sourceCopyMs": 0.10000002384185792
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 10313,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+                "sourceBytesEqual": true,
+                "verificationMs": 2.5
+              },
+              "elapsedMs": 12.699999928474426,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2014.1999999284744,
+                "rafMaxGapMs": 1006.9000000000016,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 46.199999928474426,
+                "timerTicks": 117
+              },
+              "sourceCopyMs": 0
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10313,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+                "sourceBytesEqual": true,
+                "verificationMs": 3
+              },
+              "elapsedMs": 10.5,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2013.3000000715256,
+                "rafMaxGapMs": 1007.1999999999972,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 15.399999976158142,
+                "timerTicks": 119
+              },
+              "sourceCopyMs": 0.10000002384185792
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10313,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+                "sourceBytesEqual": true,
+                "verificationMs": 2
+              },
+              "elapsedMs": 11.299999952316284,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 1993.600000023842,
+                "rafMaxGapMs": 1006.9000000000016,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 23.600000023841854,
+                "timerTicks": 121
+              },
+              "sourceCopyMs": 0
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10313,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+                "sourceBytesEqual": true,
+                "verificationMs": 1.5
+              },
+              "elapsedMs": 16.899999976158142,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 1991.100000023842,
+                "rafMaxGapMs": 1007,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 33.200000047683716,
+                "timerTicks": 115
+              },
+              "sourceCopyMs": 0
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10313,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+                "sourceBytesEqual": true,
+                "verificationMs": 3.5
+              },
+              "elapsedMs": 12.699999928474426,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2013.7999999523165,
+                "rafMaxGapMs": 1006.9000000000088,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 14.699999928474426,
+                "timerTicks": 123
+              },
+              "sourceCopyMs": 0.10000002384185792
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.10000002384185792,
+            "median": 0,
+            "min": 0
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 10313,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+              "sourceBytesEqual": true,
+              "verificationMs": 2.5
+            },
+            "elapsedMs": 8.5,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2013.7999999523165,
+              "rafMaxGapMs": 1006.9000000000016,
+              "rafObservedFrames": 3,
+              "timerMaxDelayMs": 15.5,
+              "timerTicks": 123
+            },
+            "sourceCopyMs": 0.10000002384185792
+          }
+        },
+        "current-worker-reused": {
+          "elapsedMs": {
+            "max": 19,
+            "median": 16.5,
+            "min": 9.700000047683716
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 10313,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+              "sourceBytesEqual": true,
+              "verificationMs": 1.2999999523162842
+            },
+            "elapsedMs": 49.89999997615814,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2006.899999976158,
+              "rafMaxGapMs": 1006.9000000000016,
+              "rafObservedFrames": 3,
+              "timerMaxDelayMs": 14.600000023841858,
+              "timerTicks": 120
+            },
+            "sourceCopyMs": 0.10000002384185792
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 10313,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+                "sourceBytesEqual": true,
+                "verificationMs": 1.899999976158142
+              },
+              "elapsedMs": 19,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2013.600000023842,
+                "rafMaxGapMs": 1006.9000000000016,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 20.699999928474423,
+                "timerTicks": 119
+              },
+              "sourceCopyMs": 0.10000002384185792
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10313,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+                "sourceBytesEqual": true,
+                "verificationMs": 1.899999976158142
+              },
+              "elapsedMs": 9.700000047683716,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2007,
+                "rafMaxGapMs": 1006.9000000000016,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 19.300000071525577,
+                "timerTicks": 120
+              },
+              "sourceCopyMs": 0.10000002384185792
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10313,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+                "sourceBytesEqual": true,
+                "verificationMs": 1.7000000476837158
+              },
+              "elapsedMs": 17,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2006.899999976158,
+                "rafMaxGapMs": 1006.9000000000016,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 15.200000047683716,
+                "timerTicks": 124
+              },
+              "sourceCopyMs": 0
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10313,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+                "sourceBytesEqual": true,
+                "verificationMs": 2.700000047683716
+              },
+              "elapsedMs": 16.5,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2013.899999976158,
+                "rafMaxGapMs": 1007,
+                "rafObservedFrames": 2,
+                "timerMaxDelayMs": 15.899999976158142,
+                "timerTicks": 118
+              },
+              "sourceCopyMs": 0.10000002384185792
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10313,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+                "sourceBytesEqual": true,
+                "verificationMs": 2
+              },
+              "elapsedMs": 13.100000023841858,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2006.7000000476835,
+                "rafMaxGapMs": 1007,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 35,
+                "timerTicks": 116
+              },
+              "sourceCopyMs": 0.10000002384185792
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.10000002384185792,
+            "median": 0.10000002384185792,
+            "min": 0
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 10313,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "81abc47afde3d968c8da0253b1986e6647539bff9afb724cda2d7424335e95cb",
+              "sourceBytesEqual": true,
+              "verificationMs": 1.5
+            },
+            "elapsedMs": 21.700000047683716,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2013.9000000953672,
+              "rafMaxGapMs": 1006.9000000000016,
+              "rafObservedFrames": 3,
+              "timerMaxDelayMs": 15.199999928474426,
+              "timerTicks": 121
+            },
+            "sourceCopyMs": 0.10000002384185792
+          }
+        }
+      },
+      "rows": 1000,
+      "sampleOrder": [
+        {
+          "method": "current-direct",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "warmup"
+        },
+        {
+          "method": "current-direct",
+          "phase": "warmup"
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 4
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 4
+        }
+      ],
+      "sourceBytes": 92929
+    },
+    {
+      "case": "analyze-files",
+      "contractsMatched": true,
+      "methods": {
+        "current-direct": {
+          "elapsedMs": {
+            "max": 99.70000004768372,
+            "median": 42.09999990463257,
+            "min": 18.199999928474423
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 3030042,
+              "fullCanonicalEquality": false,
+              "matched": true,
+              "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+              "sourceBytesEqual": true,
+              "verificationMs": 46.5
+            },
+            "elapsedMs": 35.200000047683716,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2013.7999999523165,
+              "rafMaxGapMs": 1007,
+              "rafObservedFrames": 3,
+              "timerMaxDelayMs": 47.5,
+              "timerTicks": 113
+            },
+            "sourceCopyMs": 0
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 3030042,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+                "sourceBytesEqual": true,
+                "verificationMs": 42.39999997615814
+              },
+              "elapsedMs": 18.199999928474423,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2006.2999999523165,
+                "rafMaxGapMs": 1006.9000000000088,
+                "rafObservedFrames": 2,
+                "timerMaxDelayMs": 15.699999928474426,
+                "timerTicks": 118
+              },
+              "sourceCopyMs": 0
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3030042,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+                "sourceBytesEqual": true,
+                "verificationMs": 54.199999928474426
+              },
+              "elapsedMs": 99.70000004768372,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2007.2000000476835,
+                "rafMaxGapMs": 1006.8999999999942,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 87.30000007152557,
+                "timerTicks": 108
+              },
+              "sourceCopyMs": 0.20000004768371585
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3030042,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+                "sourceBytesEqual": true,
+                "verificationMs": 38.89999997615814
+              },
+              "elapsedMs": 41.20000004768371,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2007,
+                "rafMaxGapMs": 1006.9000000000088,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 26.299999952316284,
+                "timerTicks": 113
+              },
+              "sourceCopyMs": 0.10000002384185792
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3030042,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+                "sourceBytesEqual": true,
+                "verificationMs": 86.89999997615814
+              },
+              "elapsedMs": 44.300000071525574,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2013.8000000715256,
+                "rafMaxGapMs": 1006.9000000000088,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 31,
+                "timerTicks": 118
+              },
+              "sourceCopyMs": 0.10000002384185792
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3030042,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+                "sourceBytesEqual": true,
+                "verificationMs": 77.89999997615814
+              },
+              "elapsedMs": 42.09999990463257,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2005.1999999284744,
+                "rafMaxGapMs": 1007,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 27.299999952316284,
+                "timerTicks": 114
+              },
+              "sourceCopyMs": 0
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.20000004768371585,
+            "median": 0.10000002384185792,
+            "min": 0
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 3030042,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+              "sourceBytesEqual": true,
+              "verificationMs": 66.39999997615814
+            },
+            "elapsedMs": 18.299999952316284,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2014.0999999046328,
+              "rafMaxGapMs": 1007,
+              "rafObservedFrames": 3,
+              "timerMaxDelayMs": 16.399999976158142,
+              "timerTicks": 122
+            },
+            "sourceCopyMs": 0.09999990463256836
+          }
+        },
+        "current-worker-reused": {
+          "elapsedMs": {
+            "max": 46.09999990463257,
+            "median": 37.10000002384186,
+            "min": 23.700000047683716
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 3030042,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+              "sourceBytesEqual": true,
+              "verificationMs": 55.70000004768371
+            },
+            "elapsedMs": 93.89999997615814,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2007,
+              "rafMaxGapMs": 1007,
+              "rafObservedFrames": 2,
+              "timerMaxDelayMs": 16.600000023841858,
+              "timerTicks": 117
+            },
+            "sourceCopyMs": 0.10000002384185792
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 3030042,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+                "sourceBytesEqual": true,
+                "verificationMs": 62.89999997615814
+              },
+              "elapsedMs": 46.09999990463257,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2007.399999976158,
+                "rafMaxGapMs": 1006.8999999999942,
+                "rafObservedFrames": 2,
+                "timerMaxDelayMs": 32.10000002384186,
+                "timerTicks": 118
+              },
+              "sourceCopyMs": 0
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3030042,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+                "sourceBytesEqual": true,
+                "verificationMs": 79.19999992847443
+              },
+              "elapsedMs": 37.10000002384186,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2015,
+                "rafMaxGapMs": 1006.9000000000088,
+                "rafObservedFrames": 2,
+                "timerMaxDelayMs": 16.699999928474426,
+                "timerTicks": 121
+              },
+              "sourceCopyMs": 0
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3030042,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+                "sourceBytesEqual": true,
+                "verificationMs": 51.10000002384186
+              },
+              "elapsedMs": 34.200000047683716,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2007,
+                "rafMaxGapMs": 1006.9000000000088,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 15.900000095367432,
+                "timerTicks": 114
+              },
+              "sourceCopyMs": 0
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3030042,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+                "sourceBytesEqual": true,
+                "verificationMs": 63.60000002384186
+              },
+              "elapsedMs": 23.700000047683716,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2014.7000000476835,
+                "rafMaxGapMs": 1007,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 19.899999976158146,
+                "timerTicks": 120
+              },
+              "sourceCopyMs": 0
+            },
+            {
+              "contract": {
+                "canonicalBytes": 3030042,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+                "sourceBytesEqual": true,
+                "verificationMs": 63
+              },
+              "elapsedMs": 38.20000004768371,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2007.2999999523165,
+                "rafMaxGapMs": 1006.8999999999942,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 15.100000023841858,
+                "timerTicks": 119
+              },
+              "sourceCopyMs": 0.10000002384185792
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.10000002384185792,
+            "median": 0,
+            "min": 0
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 3030042,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "d5a120bde145dfbd431d57c75dd99db30be33a9652acbaa7b7425013d41b13f9",
+              "sourceBytesEqual": true,
+              "verificationMs": 42.39999997615814
+            },
+            "elapsedMs": 47.79999995231629,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2012.5,
+              "rafMaxGapMs": 1007,
+              "rafObservedFrames": 3,
+              "timerMaxDelayMs": 16.90000009536743,
+              "timerTicks": 117
+            },
+            "sourceCopyMs": 0.10000002384185792
+          }
+        }
+      },
+      "rows": 1000,
+      "sampleOrder": [
+        {
+          "method": "current-direct",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "warmup"
+        },
+        {
+          "method": "current-direct",
+          "phase": "warmup"
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 4
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 4
+        }
+      ],
+      "sourceBytes": 92929
+    },
+    {
+      "case": "record-prepare",
+      "contractsMatched": true,
+      "methods": {
+        "baseline-blob-fresh": {
+          "elapsedMs": {
+            "max": 518.5,
+            "median": 513.3999999761581,
+            "min": 500.7000000476837
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 25603634,
+              "fullCanonicalEquality": false,
+              "matched": true,
+              "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+              "sourceBytesEqual": true,
+              "verificationMs": 594.8999999761581
+            },
+            "elapsedMs": 507.60000002384186,
+            "responsiveness": null,
+            "sourceCopyMs": 0.5
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 591.1999999284744
+              },
+              "elapsedMs": 500.7000000476837,
+              "responsiveness": null,
+              "sourceCopyMs": 0.30000007152557373
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 567.5999999046326
+              },
+              "elapsedMs": 514.2000000476837,
+              "responsiveness": null,
+              "sourceCopyMs": 0.19999992847442627
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 648.7999999523163
+              },
+              "elapsedMs": 518.5,
+              "responsiveness": null,
+              "sourceCopyMs": 0.2999999523162842
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 578.7000000476837
+              },
+              "elapsedMs": 509.5,
+              "responsiveness": null,
+              "sourceCopyMs": 0.30000007152557373
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 573
+              },
+              "elapsedMs": 513.3999999761581,
+              "responsiveness": null,
+              "sourceCopyMs": 0.3999999761581421
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.3999999761581421,
+            "median": 0.30000007152557373,
+            "min": 0.19999992847442627
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 25603634,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+              "sourceBytesEqual": true,
+              "verificationMs": 572.6999999284744
+            },
+            "elapsedMs": 510.8000000715256,
+            "responsiveness": null,
+            "sourceCopyMs": 0.4000000953674317
+          }
+        },
+        "current-module-fresh": {
+          "elapsedMs": {
+            "max": 559.5,
+            "median": 520.2999999523163,
+            "min": 517.3999999761581
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 25603634,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+              "sourceBytesEqual": true,
+              "verificationMs": 584.2000000476837
+            },
+            "elapsedMs": 554.8999999761581,
+            "responsiveness": null,
+            "sourceCopyMs": 0.30000007152557373
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 581.5
+              },
+              "elapsedMs": 520.2999999523163,
+              "responsiveness": null,
+              "sourceCopyMs": 0.3999999761581421
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 572
+              },
+              "elapsedMs": 521.7000000476837,
+              "responsiveness": null,
+              "sourceCopyMs": 0.3999999761581421
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 577.6000000238419
+              },
+              "elapsedMs": 518.2999999523163,
+              "responsiveness": null,
+              "sourceCopyMs": 0.5
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 587.3999999761581
+              },
+              "elapsedMs": 559.5,
+              "responsiveness": null,
+              "sourceCopyMs": 0.4000000953674317
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 609.8999999761581
+              },
+              "elapsedMs": 517.3999999761581,
+              "responsiveness": null,
+              "sourceCopyMs": 0.2999999523162842
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.5,
+            "median": 0.3999999761581421,
+            "min": 0.2999999523162842
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 25603634,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+              "sourceBytesEqual": true,
+              "verificationMs": 554.8000000715256
+            },
+            "elapsedMs": 516.1999999284744,
+            "responsiveness": null,
+            "sourceCopyMs": 0.3999999761581421
+          }
+        },
+        "current-module-reused": {
+          "elapsedMs": {
+            "max": 455.39999997615814,
+            "median": 448.5,
+            "min": 435.89999997615814
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 25603634,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+              "sourceBytesEqual": true,
+              "verificationMs": 578.1000000238419
+            },
+            "elapsedMs": 542.1000000238419,
+            "responsiveness": null,
+            "sourceCopyMs": 0.5
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 619.3000000715256
+              },
+              "elapsedMs": 451,
+              "responsiveness": null,
+              "sourceCopyMs": 0.5
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 569.5
+              },
+              "elapsedMs": 436.10000002384186,
+              "responsiveness": null,
+              "sourceCopyMs": 0.5
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 564.2999999523163
+              },
+              "elapsedMs": 448.5,
+              "responsiveness": null,
+              "sourceCopyMs": 0.5
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 580.8000000715256
+              },
+              "elapsedMs": 435.89999997615814,
+              "responsiveness": null,
+              "sourceCopyMs": 0.6000000238418579
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25603634,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+                "sourceBytesEqual": true,
+                "verificationMs": 596.1000000238419
+              },
+              "elapsedMs": 455.39999997615814,
+              "responsiveness": null,
+              "sourceCopyMs": 0.2999999523162842
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.6000000238418579,
+            "median": 0.5,
+            "min": 0.2999999523162842
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 25603634,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "038ec188db503eb923b172c355b158915ff134c7560c117967e6a11ecfc7259c",
+              "sourceBytesEqual": true,
+              "verificationMs": 622.5
+            },
+            "elapsedMs": 453.6999999284744,
+            "responsiveness": null,
+            "sourceCopyMs": 0.7999999523162842
+          }
+        }
+      },
+      "rows": 10000,
+      "sampleOrder": [
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "warmup"
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "warmup"
+        },
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "warmup"
+        },
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "current-module-fresh",
+          "phase": "sample",
+          "sampleIndex": 4
+        },
+        {
+          "method": "current-module-reused",
+          "phase": "sample",
+          "sampleIndex": 4
+        },
+        {
+          "method": "baseline-blob-fresh",
+          "phase": "sample",
+          "sampleIndex": 4
+        }
+      ],
+      "sourceBytes": 948655
+    },
+    {
+      "case": "profile-file",
+      "contractsMatched": true,
+      "methods": {
+        "current-direct": {
+          "elapsedMs": {
+            "max": 161.10000002384186,
+            "median": 117.39999997615814,
+            "min": 81.20000004768372
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 10423,
+              "fullCanonicalEquality": false,
+              "matched": true,
+              "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+              "sourceBytesEqual": true,
+              "verificationMs": 12.200000047683716
+            },
+            "elapsedMs": 82.5,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2013.600000023842,
+              "rafMaxGapMs": 1007.7999999999884,
+              "rafObservedFrames": 3,
+              "timerMaxDelayMs": 78,
+              "timerTicks": 110
+            },
+            "sourceCopyMs": 0.10000002384185792
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 10423,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+                "sourceBytesEqual": true,
+                "verificationMs": 24.5
+              },
+              "elapsedMs": 81.20000004768372,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 1,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 81,
+                "observedWindowMs": 2010.100000023842,
+                "rafMaxGapMs": 1006.8999999999942,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 73.29999995231628,
+                "timerTicks": 118
+              },
+              "sourceCopyMs": 0.20000004768371585
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10423,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+                "sourceBytesEqual": true,
+                "verificationMs": 12.699999928474426
+              },
+              "elapsedMs": 161.10000002384186,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 1952.3000000715256,
+                "rafMaxGapMs": 1006.8999999999942,
+                "rafObservedFrames": 2,
+                "timerMaxDelayMs": 243.20000004768372,
+                "timerTicks": 108
+              },
+              "sourceCopyMs": 0.30000007152557373
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10423,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+                "sourceBytesEqual": true,
+                "verificationMs": 22.399999976158146
+              },
+              "elapsedMs": 113.5,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 1,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 114,
+                "observedWindowMs": 2007,
+                "rafMaxGapMs": 1006.7999999999884,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 112.39999997615814,
+                "timerTicks": 116
+              },
+              "sourceCopyMs": 0.2999999523162842
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10423,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+                "sourceBytesEqual": true,
+                "verificationMs": 18.899999976158146
+              },
+              "elapsedMs": 117.39999997615814,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2015.7999999523165,
+                "rafMaxGapMs": 1006.9000000000232,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 116.20000004768372,
+                "timerTicks": 110
+              },
+              "sourceCopyMs": 0.19999992847442627
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10423,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+                "sourceBytesEqual": true,
+                "verificationMs": 12.699999928474426
+              },
+              "elapsedMs": 134.70000004768372,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2012.9000000953672,
+                "rafMaxGapMs": 1006.8999999999942,
+                "rafObservedFrames": 2,
+                "timerMaxDelayMs": 121.10000002384186,
+                "timerTicks": 107
+              },
+              "sourceCopyMs": 0.20000004768371585
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.30000007152557373,
+            "median": 0.20000004768371585,
+            "min": 0.19999992847442627
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 10423,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+              "sourceBytesEqual": true,
+              "verificationMs": 14.5
+            },
+            "elapsedMs": 97.39999997615814,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 1,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 98,
+              "observedWindowMs": 2013.899999976158,
+              "rafMaxGapMs": 1006.8999999999942,
+              "rafObservedFrames": 3,
+              "timerMaxDelayMs": 86.19999992847443,
+              "timerTicks": 114
+            },
+            "sourceCopyMs": 0.19999992847442627
+          }
+        },
+        "current-worker-reused": {
+          "elapsedMs": {
+            "max": 162.5,
+            "median": 156.60000002384186,
+            "min": 153.29999995231628
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 10423,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+              "sourceBytesEqual": true,
+              "verificationMs": 34.39999997615814
+            },
+            "elapsedMs": 201.30000007152557,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2013.9000000953672,
+              "rafMaxGapMs": 1006.8999999999942,
+              "rafObservedFrames": 3,
+              "timerMaxDelayMs": 15.399999976158142,
+              "timerTicks": 120
+            },
+            "sourceCopyMs": 0.10000002384185792
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 10423,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+                "sourceBytesEqual": true,
+                "verificationMs": 12
+              },
+              "elapsedMs": 162.5,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2006.5,
+                "rafMaxGapMs": 1006.9000000000232,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 16,
+                "timerTicks": 121
+              },
+              "sourceCopyMs": 0.2999999523162842
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10423,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+                "sourceBytesEqual": true,
+                "verificationMs": 16
+              },
+              "elapsedMs": 157.39999997615814,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2007,
+                "rafMaxGapMs": 1006.8000000000176,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 16,
+                "timerTicks": 117
+              },
+              "sourceCopyMs": 0.20000004768371585
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10423,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+                "sourceBytesEqual": true,
+                "verificationMs": 13.5
+              },
+              "elapsedMs": 156.60000002384186,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2008.3000000715256,
+                "rafMaxGapMs": 1006.9000000000232,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 16.199999928474426,
+                "timerTicks": 121
+              },
+              "sourceCopyMs": 0.20000004768371585
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10423,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+                "sourceBytesEqual": true,
+                "verificationMs": 14.299999952316284
+              },
+              "elapsedMs": 155.29999995231628,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2004.7999999523165,
+                "rafMaxGapMs": 1007,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 22.90000009536743,
+                "timerTicks": 118
+              },
+              "sourceCopyMs": 0.19999992847442627
+            },
+            {
+              "contract": {
+                "canonicalBytes": 10423,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+                "sourceBytesEqual": true,
+                "verificationMs": 44.39999997615814
+              },
+              "elapsedMs": 153.29999995231628,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2009,
+                "rafMaxGapMs": 1006.7999999999884,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 33.700000047683716,
+                "timerTicks": 116
+              },
+              "sourceCopyMs": 0.19999992847442627
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.2999999523162842,
+            "median": 0.20000004768371585,
+            "min": 0.19999992847442627
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 10423,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "9238e9557dc6e5f037d821d5d4e15e6b0174b5da8672fe3c2f0de1f25fbb66a8",
+              "sourceBytesEqual": true,
+              "verificationMs": 13.700000047683716
+            },
+            "elapsedMs": 165.19999992847443,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2006.7999999523165,
+              "rafMaxGapMs": 1007,
+              "rafObservedFrames": 3,
+              "timerMaxDelayMs": 15.399999976158142,
+              "timerTicks": 119
+            },
+            "sourceCopyMs": 0.10000002384185792
+          }
+        }
+      },
+      "rows": 10000,
+      "sampleOrder": [
+        {
+          "method": "current-direct",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "warmup"
+        },
+        {
+          "method": "current-direct",
+          "phase": "warmup"
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 4
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 4
+        }
+      ],
+      "sourceBytes": 948655
+    },
+    {
+      "case": "analyze-files",
+      "contractsMatched": true,
+      "methods": {
+        "current-direct": {
+          "elapsedMs": {
+            "max": 279.40000009536743,
+            "median": 205.59999990463257,
+            "min": 134
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 25480985,
+              "fullCanonicalEquality": false,
+              "matched": true,
+              "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+              "sourceBytesEqual": true,
+              "verificationMs": 528.8999999761581
+            },
+            "elapsedMs": 316.7999999523163,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2013.6999999284744,
+              "rafMaxGapMs": 1006.8999999999942,
+              "rafObservedFrames": 3,
+              "timerMaxDelayMs": 309.7000000476837,
+              "timerTicks": 102
+            },
+            "sourceCopyMs": 0.2999999523162842
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 25480985,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+                "sourceBytesEqual": true,
+                "verificationMs": 522.5
+              },
+              "elapsedMs": 279.40000009536743,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 1,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 279,
+                "observedWindowMs": 2006.9000000953672,
+                "rafMaxGapMs": 1006.8999999999942,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 275.09999990463257,
+                "timerTicks": 101
+              },
+              "sourceCopyMs": 0.20000004768371585
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25480985,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+                "sourceBytesEqual": true,
+                "verificationMs": 514.6000000238419
+              },
+              "elapsedMs": 160.89999997615814,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 1,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 161,
+                "observedWindowMs": 2004.7999999523165,
+                "rafMaxGapMs": 1006.5,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 151.79999995231628,
+                "timerTicks": 111
+              },
+              "sourceCopyMs": 0.19999992847442627
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25480985,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+                "sourceBytesEqual": true,
+                "verificationMs": 558.3999999761581
+              },
+              "elapsedMs": 134,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 1,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 134,
+                "observedWindowMs": 2014,
+                "rafMaxGapMs": 1006.8999999999652,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 133.5,
+                "timerTicks": 114
+              },
+              "sourceCopyMs": 0.2999999523162842
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25480985,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+                "sourceBytesEqual": true,
+                "verificationMs": 471.60000002384186
+              },
+              "elapsedMs": 205.59999990463257,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2013.899999976158,
+                "rafMaxGapMs": 1007,
+                "rafObservedFrames": 2,
+                "timerMaxDelayMs": 207.29999995231628,
+                "timerTicks": 108
+              },
+              "sourceCopyMs": 0.19999992847442627
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25480985,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+                "sourceBytesEqual": true,
+                "verificationMs": 484.6999999284744
+              },
+              "elapsedMs": 207.29999995231628,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2013.7000000476835,
+                "rafMaxGapMs": 1006.9000000000232,
+                "rafObservedFrames": 2,
+                "timerMaxDelayMs": 204.5,
+                "timerTicks": 108
+              },
+              "sourceCopyMs": 0.10000002384185792
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.2999999523162842,
+            "median": 0.19999992847442627,
+            "min": 0.10000002384185792
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 25480985,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+              "sourceBytesEqual": true,
+              "verificationMs": 504.39999997615814
+            },
+            "elapsedMs": 258.5,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2006.8000000715256,
+              "rafMaxGapMs": 1006.8999999999942,
+              "rafObservedFrames": 3,
+              "timerMaxDelayMs": 246.10000002384183,
+              "timerTicks": 105
+            },
+            "sourceCopyMs": 0.20000004768371585
+          }
+        },
+        "current-worker-reused": {
+          "elapsedMs": {
+            "max": 310.8000000715256,
+            "median": 292.7999999523163,
+            "min": 286.2000000476837
+          },
+          "firstCall": {
+            "contract": {
+              "canonicalBytes": 25480985,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+              "sourceBytesEqual": true,
+              "verificationMs": 494.5
+            },
+            "elapsedMs": 368.5,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 2013.899999976158,
+              "rafMaxGapMs": 1007,
+              "rafObservedFrames": 2,
+              "timerMaxDelayMs": 34.39999997615814,
+              "timerTicks": 116
+            },
+            "sourceCopyMs": 0.20000004768371585
+          },
+          "samples": [
+            {
+              "contract": {
+                "canonicalBytes": 25480985,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+                "sourceBytesEqual": true,
+                "verificationMs": 581
+              },
+              "elapsedMs": 310.8000000715256,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2009.8000000715256,
+                "rafMaxGapMs": 1006.6999999999824,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 22.600000023841854,
+                "timerTicks": 117
+              },
+              "sourceCopyMs": 0.20000004768371585
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25480985,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+                "sourceBytesEqual": true,
+                "verificationMs": 445.2000000476837
+              },
+              "elapsedMs": 286.2000000476837,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2007.100000023842,
+                "rafMaxGapMs": 1006.8999999999942,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 19,
+                "timerTicks": 118
+              },
+              "sourceCopyMs": 0.30000007152557373
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25480985,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+                "sourceBytesEqual": true,
+                "verificationMs": 515.8000000715256
+              },
+              "elapsedMs": 286.3000000715256,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2007.100000023842,
+                "rafMaxGapMs": 1006.9000000000232,
+                "rafObservedFrames": 2,
+                "timerMaxDelayMs": 15.600000023841858,
+                "timerTicks": 118
+              },
+              "sourceCopyMs": 0.10000002384185792
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25480985,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+                "sourceBytesEqual": true,
+                "verificationMs": 524.1000000238419
+              },
+              "elapsedMs": 296.6999999284744,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2014.6999999284744,
+                "rafMaxGapMs": 1006.9000000000232,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 22,
+                "timerTicks": 121
+              },
+              "sourceCopyMs": 0.19999992847442627
+            },
+            {
+              "contract": {
+                "canonicalBytes": 25480985,
+                "fullCanonicalEquality": true,
+                "matched": true,
+                "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+                "sourceBytesEqual": true,
+                "verificationMs": 491.8000000715256
+              },
+              "elapsedMs": 292.7999999523163,
+              "responsiveness": {
+                "includesTwoDrainFrames": true,
+                "longTaskCount": 0,
+                "longTaskSupported": true,
+                "longTaskTotalMs": 0,
+                "observedWindowMs": 2013.899999976158,
+                "rafMaxGapMs": 1006.9000000000232,
+                "rafObservedFrames": 3,
+                "timerMaxDelayMs": 15.799999952316284,
+                "timerTicks": 119
+              },
+              "sourceCopyMs": 0.20000004768371585
+            }
+          ],
+          "sourceCopyMs": {
+            "max": 0.30000007152557373,
+            "median": 0.20000004768371585,
+            "min": 0.10000002384185792
+          },
+          "warmup": {
+            "contract": {
+              "canonicalBytes": 25480985,
+              "fullCanonicalEquality": true,
+              "matched": true,
+              "sha256": "365da8ae9b2da7600e16af96a55508d922bd3586b3d5dba077212174a64c0756",
+              "sourceBytesEqual": true,
+              "verificationMs": 515.6000000238419
+            },
+            "elapsedMs": 316.40000009536743,
+            "responsiveness": {
+              "includesTwoDrainFrames": true,
+              "longTaskCount": 0,
+              "longTaskSupported": true,
+              "longTaskTotalMs": 0,
+              "observedWindowMs": 1998.2000000476835,
+              "rafMaxGapMs": 1006.7000000000116,
+              "rafObservedFrames": 3,
+              "timerMaxDelayMs": 26.699999928474423,
+              "timerTicks": 118
+            },
+            "sourceCopyMs": 0.30000007152557373
+          }
+        }
+      },
+      "rows": 10000,
+      "sampleOrder": [
+        {
+          "method": "current-direct",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "first-call"
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "warmup"
+        },
+        {
+          "method": "current-direct",
+          "phase": "warmup"
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 0
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 1
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 2
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 3
+        },
+        {
+          "method": "current-direct",
+          "phase": "sample",
+          "sampleIndex": 4
+        },
+        {
+          "method": "current-worker-reused",
+          "phase": "sample",
+          "sampleIndex": 4
+        }
+      ],
+      "sourceBytes": 948655
+    }
+  ],
+  "contractsMatched": true,
+  "environment": {
+    "crossOriginIsolated": false,
+    "deviceMemoryGiB": 32,
+    "hardwareConcurrency": 24,
+    "origin": "http://127.0.0.1:58666",
+    "timeOrigin": 1791152677904.4,
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "visibility": "visible"
+  },
+  "finishedAt": "2026-10-04T22:29:25.455Z",
+  "fixtureSetup": [
+    {
+      "purpose": "synthetic CSV and record generation",
+      "rows": 1000,
+      "setupMs": 2.299999952316284,
+      "sourceBytes": 92929,
+      "sourceSha256": "fcfffb30ca1620f8054bc7c0e3b8b0be08345132b91c69312ba7b75cb7ec4076"
+    },
+    {
+      "purpose": "profile inputs for analysis",
+      "rows": 1000,
+      "setupMs": 31.899999976158146
+    },
+    {
+      "purpose": "synthetic CSV and record generation",
+      "rows": 10000,
+      "setupMs": 28.199999928474423,
+      "sourceBytes": 948655,
+      "sourceSha256": "6f43897abeff01d7d4801e6d0b4cf09dc886805d8f1bd5513bc5e2ecaca637c3"
+    },
+    {
+      "purpose": "profile inputs for analysis",
+      "rows": 10000,
+      "setupMs": 141.89999997615814
+    }
+  ],
+  "format": "openslotting-production-browser-benchmark-v1",
+  "protocol": {
+    "baseline": "original db39ffa factory namespace, Blob construction and runWorkspaceWorker functions; fresh worker every call",
+    "cache": "HTTP cache active with ETag revalidation; cold means new worker, not cleared browser/OS cache",
+    "current": "actual src/workers/workspace-worker.mjs and src/application/worker-session.js; fresh/reused differentiated",
+    "download": "local JSON only; no network submission or workspace storage",
+    "exclusions": "fixture generation, explicit analysis-input profile setup, output hashing/equality, progress rendering, rAF probe setup/drain",
+    "firstCallSeparate": true,
+    "memory": "no claim: browser GC and per-worker peak memory are not controlled",
+    "order": "rotate methods each round, reverse alternating rounds",
+    "prepareCopy": "structuredClone of same fixture included for every method; IndexedDB loading not measured",
+    "profileAnalyzeCopy": "same narrow production calculation snapshot and ArrayBuffer.slice copy, included for both direct and worker",
+    "responsiveness": "rAF maximum observed gap, 16ms timer delay and optional Long Tasks; not a DOM/layout/application benchmark",
+    "samplesAfterWarmup": 5,
+    "sizes": [
+      1000,
+      10000
+    ],
+    "syntheticOnly": true,
+    "timing": "source copy + actual production worker construction/session + postMessage transfer + processing + complete response",
+    "verification": "entire canonical output string equality, BigInt tagged exactly, array order preserved; each returned source byte compared to retained original",
+    "warmups": 1
+  },
+  "sources": {
+    "baselineCommit": "db39ffaca31ebeddec884413c38725f4fd38a5a0",
+    "baselineFunctionSha256": {
+      "createWorkspaceWorker": "7b9b1b92e31f45c1d51044d601ec7857b2db54e062d3e1d81dda883022a00ee3",
+      "decodeFileEntry": "16161ab7f55958bbcde6211a6b83604d75a8f092d90532deffc71ea928d90671",
+      "importBufferStreaming": "9e4fdc8703ddd47b9efa130a78b0ba9636fb214cfce2e7e9db06c006c41417a7",
+      "persistPreparedWorkspace": "837da4c687eb2ffadc2269fb423cd931714f4e495e6931aad8c60746da94fec7",
+      "prepareWorkspaceRecord": "445586a2fc770bf31de75963d9bf74c27ba78806c7e96325a3ad910955bbbebc",
+      "runWorkspaceWorker": "4690e3155ea1eda70bab93e0db822481347af122457f3fb2c796004224fdcafc",
+      "runtimeFileFromStored": "3d50c1b4bc53547fbb4aa1df9c191fd2c69a02af8c66d164d7aa44c23f88f1c2",
+      "sourceContext": "9f2e93a36ef74ff7b3f51c485b74eabd1e76ddfb2fd7b301919af23ccc69e10e",
+      "workspaceLoadError": "1aabfc61af904e624ba60533af219da52446c2569185a9da77576f548370b8fd",
+      "workspaceWorkerMain": "d81dc57e62050721c9bfc34e5fa409fbe9af6b31ff3735d801efe771e2251e23"
+    },
+    "baselineModuleSha256": {
+      "csv.js": "c332ef283bb12b231b42f5805b7f044de56831c17237e4f2c23937f40b1b60f8",
+      "encoding.js": "9c62a3990aab20efd6a45dec2006396241866a14079d705499758853a27a6d0f",
+      "warehouse.js": "e95c48380d066da4d961159bff36ded448d9ccba65ad60d0c96e616a13cbe308",
+      "workspace.js": "701268770677fc61f26894271917059095d12f3ea3221cbcfe53ea160faa6aa7"
+    },
+    "baselineRef": "db39ffa",
+    "generatedBaselineSha256": "1e361e98df698c17ce106c467b727256b28608fdcc9b3fa5848edfeedb8bf47f",
+    "productionAssetSha256": {
+      "csv.js": "dba677eaacdf5b07063a25b97d659a48aebfe26bfa406f3f463ed5c5f95d644c",
+      "encoding.js": "2d7e9de10b404ae380fee7361f2ad66eb5f53fe4d2ac6ddfb510d682f9f84020",
+      "src/application/worker-session.js": "c93704558b9395b85ee843caaecfbc11b8cd9b61439bf911ed903230adc6ed86",
+      "src/application/workspace-preparation.js": "268ef313a799a832aa07ad8f276dd21c0d33504bc3828dda42ee821099574bf5",
+      "src/workers/workspace-worker.mjs": "796e283ff0d8e7a5a79a825a0a5eccde4150fcc3bd65bdd4ac4cb594680e0370",
+      "warehouse.js": "77bc7d95464f753729ca665c3916b9682b4e2600c46a9e760abb7bbaf79e0f60",
+      "workspace.js": "da5ca908dde08d55853d22d1f798c58cf4f61dca51de97f4b11e8aff023d5a70"
+    },
+    "serverPolicy": "127.0.0.1 only; explicit read-only asset allowlist; fixed in-memory asset snapshot; no uploads or data endpoints"
+  },
+  "startedAt": "2026-10-04T22:24:42.753Z",
+  "status": "complete"
+}

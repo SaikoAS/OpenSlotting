@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="de">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OpenSlotting · Feature-Labor</title><link rel="stylesheet" href="styles.css"><script type="module" src="app.mjs"></script></head>
+<body>
+<header><div><p class="eyebrow">OpenSlotting · getrenntes Experiment</p><h1>Feature-Labor</h1></div>
+<label>Sprache / Language <select id="locale"><option value="de">Deutsch</option><option value="en">English</option></select></label></header>
+<p id="privacy" class="notice">Nur synthetische Daten. Keine Verbindung zur Arbeitsbereichsdatenbank, kein Upload und keine Speicherung von Änderungen.</p>
+<nav aria-label="Laboransichten"><button data-view="import" aria-pressed="true">Import prüfen</button><button data-view="article" aria-pressed="false">Artikel untersuchen</button><button data-view="compare" aria-pressed="false">Perioden vergleichen</button></nav>
+<main id="view"></main>
+<section class="bench"><div><h2 id="bench-heading">Tabellenverfahren vergleichen</h2><p id="bench-description">10.000 / 50.000 Zeilen, identische Virtualisierung. Neuanlage, Zeilenpool und Wiederverwendung anhand des Quellschlüssels.</p></div>
+<button id="run">Benchmarks starten</button><p id="status" role="status" aria-live="polite">Bereit</p><div id="bench-summary"></div><div id="bench-host"></div><details><summary id="raw-summary">Rohmesswerte (JSON)</summary><pre id="results" hidden></pre></details></section>
+<footer>Labor auf 127.0.0.1 · Python-Standardbibliothek · Native HTML-Elemente · Keine produktiven Nutzerdaten</footer>
+</body></html>

@@ -1,0 +1,306 @@
+{
+  "generatedAt": "2026-10-04T17:38:18.758Z",
+  "baselineCommit": "db39ffaca31ebeddec884413c38725f4fd38a5a0",
+  "syntheticOnly": true,
+  "environment": {
+    "node": "v24.18.1",
+    "platform": "win32",
+    "cpu": "12th Gen Intel(R) Core(TM) i9-12900F",
+    "totalMemoryBytes": 68572536832,
+    "freeMemoryBytesBefore": 49830449152
+  },
+  "methodology": "One independent child process per variant, sequential baseline then current, Node --expose-gc, 1 warmup + 3 projection samples. Explicit GC before each sample and after projection; timings exclude GC. Previous output stays referenced until replacement as production render does. Peak RSS covers imports, fixture build, all warmups/samples and digest verification, not per-call allocations. No browser/GPU/FPS claim.",
+  "limits": {
+    "objects": 150,
+    "slots": 5000
+  },
+  "fixtureDescription": "150 shelf racks, each 30 bays; 500 bays have two levels and 4000 have one level; each level has one position and a deck. 4*4650 upright boxes + 4*5000 level/slot boxes = 38600 opaque boxes.",
+  "variants": {
+    "baseline": {
+      "variant": "baseline",
+      "fixture": {
+        "objects": 150,
+        "slots": 5000,
+        "bays": 4500,
+        "levels": 5000,
+        "boxes": 38600,
+        "opaqueBoxes": 38600,
+        "inputSha256": "342997d43f752904ecbc460df51c118bd509b8385bd989ab108883506bf5ab5c",
+        "fixtureBuildMs": 23.364799999999995
+      },
+      "warmups": 1,
+      "repeats": 3,
+      "timing": {
+        "medianMs": 460.6107999999999,
+        "minMs": 449.18859999999995,
+        "maxMs": 512.5283
+      },
+      "memory": {
+        "processPeakRssKiB": 1069632,
+        "finalArrayBytes": 83393280,
+        "opaqueArrayBytes": 46320000,
+        "edgesArrayBytes": 37056000,
+        "gridArrayBytes": 17280,
+        "beforeWarmup": {
+          "rssBytes": 69160960,
+          "heapUsedBytes": 13475776,
+          "heapTotalBytes": 52027392,
+          "externalBytes": 2367537,
+          "arrayBuffersBytes": 143611
+        },
+        "afterWarmup": {
+          "rssBytes": 314462208,
+          "heapUsedBytes": 15054888,
+          "heapTotalBytes": 157044736,
+          "externalBytes": 85760821,
+          "arrayBuffersBytes": 83536891
+        },
+        "final": {
+          "rssBytes": 317468672,
+          "heapUsedBytes": 15713904,
+          "heapTotalBytes": 153927680,
+          "externalBytes": 169152751,
+          "arrayBuffersBytes": 83536891
+        }
+      },
+      "samples": [
+        {
+          "elapsedMs": 512.5283,
+          "before": {
+            "rssBytes": 314462208,
+            "heapUsedBytes": 15054304,
+            "heapTotalBytes": 150753280,
+            "externalBytes": 85760821,
+            "arrayBuffersBytes": 83536891
+          },
+          "afterProjection": {
+            "rssBytes": 623386624,
+            "heapUsedBytes": 274761280,
+            "heapTotalBytes": 411693056,
+            "externalBytes": 169154101,
+            "arrayBuffersBytes": 166930171
+          },
+          "afterGc": {
+            "rssBytes": 315027456,
+            "heapUsedBytes": 14052920,
+            "heapTotalBytes": 153112576,
+            "externalBytes": 169152751,
+            "arrayBuffersBytes": 83536891
+          },
+          "cumulativePeakRssKiB": 935240
+        },
+        {
+          "elapsedMs": 460.6107999999999,
+          "before": {
+            "rssBytes": 315162624,
+            "heapUsedBytes": 14056752,
+            "heapTotalBytes": 151015424,
+            "externalBytes": 85759471,
+            "arrayBuffersBytes": 83536891
+          },
+          "afterProjection": {
+            "rssBytes": 697229312,
+            "heapUsedBytes": 348793104,
+            "heapTotalBytes": 486060032,
+            "externalBytes": 169152751,
+            "arrayBuffersBytes": 166930171
+          },
+          "afterGc": {
+            "rssBytes": 315641856,
+            "heapUsedBytes": 14057680,
+            "heapTotalBytes": 153112576,
+            "externalBytes": 169152751,
+            "arrayBuffersBytes": 83536891
+          },
+          "cumulativePeakRssKiB": 1069056
+        },
+        {
+          "elapsedMs": 449.18859999999995,
+          "before": {
+            "rssBytes": 315641856,
+            "heapUsedBytes": 14059888,
+            "heapTotalBytes": 150491136,
+            "externalBytes": 85759471,
+            "arrayBuffersBytes": 83536891
+          },
+          "afterProjection": {
+            "rssBytes": 697851904,
+            "heapUsedBytes": 348799208,
+            "heapTotalBytes": 485535744,
+            "externalBytes": 169152751,
+            "arrayBuffersBytes": 166930171
+          },
+          "afterGc": {
+            "rssBytes": 315420672,
+            "heapUsedBytes": 14059672,
+            "heapTotalBytes": 152326144,
+            "externalBytes": 169152751,
+            "arrayBuffersBytes": 83536891
+          },
+          "cumulativePeakRssKiB": 1069632
+        }
+      ],
+      "output": {
+        "fullGeometryAndPickingSha256": "7c017b1c4325394ced6c8e840882a1557bbb9893f970c627df2e585ba30964f3",
+        "parts": {
+          "opaque": "8fc0afe8808350fe6b737b82ed99b2e1efd2bb5ef26a80577fa0d4196a2c1a15",
+          "edges": "989ffbad6a2d070b68e4394ee820b878e4a584b76b0fe5a26ceab21fbb2e778f",
+          "grid": "ce9b9cb855cd64d90d4dc5544a3e421b9c0eb738c97b3f863775d12b3105900d",
+          "pickMap": "cf8d456102a701f778c72b5b295632bdcf06cba9dd92401c71b534e2866628f4",
+          "view": "4cabcdccbcdb131b8bf61fe198e6cc7f6573177d7f3313b5439fcacb8c6b6f39"
+        }
+      },
+      "freeMemoryBytesBeforeProcess": 49830449152
+    },
+    "current": {
+      "variant": "current",
+      "fixture": {
+        "objects": 150,
+        "slots": 5000,
+        "bays": 4500,
+        "levels": 5000,
+        "boxes": 38600,
+        "opaqueBoxes": 38600,
+        "inputSha256": "342997d43f752904ecbc460df51c118bd509b8385bd989ab108883506bf5ab5c",
+        "fixtureBuildMs": 25.5111
+      },
+      "warmups": 1,
+      "repeats": 3,
+      "timing": {
+        "medianMs": 117.52270000000004,
+        "minMs": 117.08699999999999,
+        "maxMs": 146.50510000000003
+      },
+      "memory": {
+        "processPeakRssKiB": 415812,
+        "finalArrayBytes": 83393280,
+        "opaqueArrayBytes": 46320000,
+        "edgesArrayBytes": 37056000,
+        "gridArrayBytes": 17280,
+        "beforeWarmup": {
+          "rssBytes": 69361664,
+          "heapUsedBytes": 13485248,
+          "heapTotalBytes": 52027392,
+          "externalBytes": 2367537,
+          "arrayBuffersBytes": 143611
+        },
+        "afterWarmup": {
+          "rssBytes": 275361792,
+          "heapUsedBytes": 15067920,
+          "heapTotalBytes": 120082432,
+          "externalBytes": 85760821,
+          "arrayBuffersBytes": 83536891
+        },
+        "final": {
+          "rssBytes": 343486464,
+          "heapUsedBytes": 16732176,
+          "heapTotalBytes": 177520640,
+          "externalBytes": 169154101,
+          "arrayBuffersBytes": 83536891
+        }
+      },
+      "samples": [
+        {
+          "elapsedMs": 117.08699999999999,
+          "before": {
+            "rssBytes": 274763776,
+            "heapUsedBytes": 15085856,
+            "heapTotalBytes": 83120128,
+            "externalBytes": 85760821,
+            "arrayBuffersBytes": 83536891
+          },
+          "afterProjection": {
+            "rssBytes": 360857600,
+            "heapUsedBytes": 107782128,
+            "heapTotalBytes": 150605824,
+            "externalBytes": 169154101,
+            "arrayBuffersBytes": 166930171
+          },
+          "afterGc": {
+            "rssBytes": 354484224,
+            "heapUsedBytes": 15097880,
+            "heapTotalBytes": 117198848,
+            "externalBytes": 169154101,
+            "arrayBuffersBytes": 120592891
+          },
+          "cumulativePeakRssKiB": 352552
+        },
+        {
+          "elapsedMs": 117.52270000000004,
+          "before": {
+            "rssBytes": 276156416,
+            "heapUsedBytes": 15102184,
+            "heapTotalBytes": 83382272,
+            "externalBytes": 85760821,
+            "arrayBuffersBytes": 83536891
+          },
+          "afterProjection": {
+            "rssBytes": 361250816,
+            "heapUsedBytes": 107540456,
+            "heapTotalBytes": 150605824,
+            "externalBytes": 169154101,
+            "arrayBuffersBytes": 166930171
+          },
+          "afterGc": {
+            "rssBytes": 356610048,
+            "heapUsedBytes": 15070984,
+            "heapTotalBytes": 116936704,
+            "externalBytes": 169154101,
+            "arrayBuffersBytes": 120592891
+          },
+          "cumulativePeakRssKiB": 352924
+        },
+        {
+          "elapsedMs": 146.50510000000003,
+          "before": {
+            "rssBytes": 276488192,
+            "heapUsedBytes": 15072320,
+            "heapTotalBytes": 83120128,
+            "externalBytes": 85760821,
+            "arrayBuffersBytes": 83536891
+          },
+          "afterProjection": {
+            "rssBytes": 425680896,
+            "heapUsedBytes": 110391640,
+            "heapTotalBytes": 216666112,
+            "externalBytes": 169154101,
+            "arrayBuffersBytes": 166930171
+          },
+          "afterGc": {
+            "rssBytes": 419131392,
+            "heapUsedBytes": 15072096,
+            "heapTotalBytes": 175919104,
+            "externalBytes": 169154101,
+            "arrayBuffersBytes": 120592891
+          },
+          "cumulativePeakRssKiB": 415812
+        }
+      ],
+      "output": {
+        "fullGeometryAndPickingSha256": "7c017b1c4325394ced6c8e840882a1557bbb9893f970c627df2e585ba30964f3",
+        "parts": {
+          "opaque": "8fc0afe8808350fe6b737b82ed99b2e1efd2bb5ef26a80577fa0d4196a2c1a15",
+          "edges": "989ffbad6a2d070b68e4394ee820b878e4a584b76b0fe5a26ceab21fbb2e778f",
+          "grid": "ce9b9cb855cd64d90d4dc5544a3e421b9c0eb738c97b3f863775d12b3105900d",
+          "pickMap": "cf8d456102a701f778c72b5b295632bdcf06cba9dd92401c71b534e2866628f4",
+          "view": "4cabcdccbcdb131b8bf61fe198e6cc7f6573177d7f3313b5439fcacb8c6b6f39"
+        }
+      },
+      "freeMemoryBytesBeforeProcess": 49843961856
+    }
+  },
+  "parity": {
+    "inputIdentical": true,
+    "fullGeometryPickingFramingIdentical": true,
+    "sha256": "7c017b1c4325394ced6c8e840882a1557bbb9893f970c627df2e585ba30964f3"
+  },
+  "sources": {
+    "warehouse.js": "77bc7d95464f753729ca665c3916b9682b4e2600c46a9e760abb7bbaf79e0f60",
+    "warehouse-webgl.js": "ab63c39ca1a8ba5fc53e95427cfbe3dddba1ad65d2016f3bbfeda5fd2697c743",
+    "warehouse-scene.js": "96fbb1409ee4831c0c5e655dbdc13aaa5e092378967bb3c9822854f547305313",
+    "tests/fixtures/warehouse-baseline.cjs": "e95c48380d066da4d961159bff36ded448d9ccba65ad60d0c96e616a13cbe308",
+    "tests/fixtures/warehouse-webgl-baseline.cjs": "4ca2c5f8fcfc204e72502fda55d18a20e693a4f8a221d07b64f3510da1c2cadd",
+    "tests/fixtures/warehouse-baseline-hashes.json": "31bf792e57872e6a88319e268e233f869187ce3d33d32fb788d277e3ba718b17",
+    "tools/benchmark-warehouse-memory.cjs": "b8d321ca963f3db59486c5401c7712eaf0cadc8690ef931bea67e7887c922804"
+  }
+}

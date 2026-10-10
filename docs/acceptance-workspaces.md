@@ -1,6 +1,9 @@
 # OpenSlotting Persistent Local Workspaces Acceptance
 
-Run this checklist on the exact feature or release candidate in Microsoft Edge Desktop on Windows. Open the complete extracted application directly through `file:///`; do not use a local server. Use only the synthetic files in `test-data`. Automated checks do not replace this visible Edge acceptance run.
+Run this checklist on the exact candidate in Microsoft Edge Desktop on Windows
+through `Start-OpenSlotting.cmd`. Use fully synthetic data. Automated checks do
+not replace visible localhost browser acceptance. Portable migration is covered
+in [acceptance-localhost.md](acceptance-localhost.md).
 
 ## Candidate
 
@@ -29,17 +32,19 @@ Run this checklist on the exact feature or release candidate in Microsoft Edge D
 - [ ] `git diff --check` reports no whitespace errors
 - [ ] required GitHub Actions `quality` check passes on the exact candidate
 - [ ] release packaging from the exact commit contains `workspace.js`, `storage.js`, and the workspace documentation
-- [ ] runtime files contain no unexpected network, CDN, telemetry, backend, localhost, or `localStorage` workspace dependency
+- [ ] runtime files contain no unexpected external network, CDN, telemetry, remote backend, or `localStorage` workspace dependency
 
 ## Storage availability and startup
 
-1. [ ] `index.html` opens through `file:///` with the network unavailable.
-2. [ ] The workspace panel reports IndexedDB availability without a backend or server.
+1. [ ] The launcher opens the fixed localhost origin with external network access unavailable.
+2. [ ] The workspace panel reports IndexedDB availability; Python serves only interface files.
 3. [ ] With no stored workspace, CSV selection is disabled and the UI explains how to continue.
 4. [ ] A named workspace can be created.
 5. [ ] A selected workspace can be renamed from the overview without loading its full payload.
-6. [ ] Closing every Edge window and reopening the same `file:///` application immediately shows the metadata overview without loading a workspace payload.
-7. [ ] Starting through `Start-OpenSlotting.cmd` exposes the same workspace state as direct opening in the same Edge profile and origin.
+6. [ ] Closing every Edge window and reopening the same localhost application immediately shows the metadata overview without loading a workspace payload.
+7. [ ] `Start-OpenSlotting.cmd` opens the maximized localhost app. Existing localhost workspaces
+       remain visible at the same origin. Backups from the paused Portable
+       basis restore without silently reading or merging its browser database.
 8. [ ] Private browsing behavior is documented separately and is not presented as durable storage.
 9. [ ] The last-used workspace is marked but is not automatically opened.
 10. [ ] Selecting and opening a workspace shows visible phases for payload loading, validation, source preparation, and analysis.

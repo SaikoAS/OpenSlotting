@@ -8,6 +8,7 @@ $ErrorActionPreference = 'Stop'
 
 try {
     Import-Module (Join-Path $PSScriptRoot 'OpenSlotting.Windows.psm1') -Force
+    Import-Module (Join-Path $PSScriptRoot 'OpenSlotting.Localhost.Windows.psm1') -Force
 
     if ([string]::IsNullOrWhiteSpace($Location)) {
         Write-Host 'Create an OpenSlotting shortcut for the current Windows user:'
@@ -24,9 +25,12 @@ try {
         }
     }
 
-    $edgePath = Find-OpenSlottingEdgePath
     $directories = Get-OpenSlottingShortcutDirectories -Location $Location
-    $plan = Get-OpenSlottingShortcutPlan -ApplicationRoot $PSScriptRoot -EdgePath $edgePath -ShortcutDirectories $directories
+    $plan = Get-OpenSlottingLocalhostShortcutPlan `
+        -ApplicationRoot $PSScriptRoot `
+        -ShortcutDirectories $directories `
+        -ShortcutName 'OpenSlotting' `
+        -ShortcutDescription 'OpenSlotting shortcut managed by OpenSlotting'
     $created = @(New-OpenSlottingShortcuts -Plan $plan)
 
     Write-Host ''
@@ -35,6 +39,7 @@ try {
     if ($Location -eq 'StartMenu' -or $Location -eq 'Both') {
         Write-Host 'Optional taskbar pin: open Start, search for OpenSlotting, right-click it, and choose Pin to taskbar.'
     }
+    Write-Host 'The shortcut starts the localhost app in a maximized Edge app window.'
     Write-Host 'If this folder is moved or deleted, run setup again from its new location.'
 } catch {
     Write-Error $_.Exception.Message

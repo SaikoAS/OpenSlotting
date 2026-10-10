@@ -17,6 +17,7 @@ function Assert-True {
 
 $repositoryRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 Import-Module (Join-Path $repositoryRoot 'OpenSlotting.Windows.psm1') -Force
+Import-Module (Join-Path $repositoryRoot 'OpenSlotting.Localhost.Windows.psm1') -Force
 
 $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('OpenSlotting Launcher Tests ' + [guid]::NewGuid().ToString('N'))
 [System.IO.Directory]::CreateDirectory($testRoot) | Out-Null
@@ -24,35 +25,33 @@ $testRoot = Join-Path ([System.IO.Path]::GetTempPath()) ('OpenSlotting Launcher 
 try {
     $indexPath = Join-Path $testRoot 'index.html'
     $edgePath = Join-Path $testRoot 'Microsoft Edge.exe'
+    $startScript = Join-Path $testRoot 'Start-OpenSlotting-Localhost.ps1'
+    $powerShellPath = Join-Path $testRoot 'powershell.exe'
+    Set-Content -LiteralPath $startScript -Value '# synthetic localhost launcher' -Encoding UTF8
+    Set-Content -LiteralPath $powerShellPath -Value 'synthetic PowerShell' -Encoding UTF8
     Set-Content -LiteralPath $indexPath -Value '<!doctype html>' -Encoding UTF8
     Set-Content -LiteralPath $edgePath -Value 'synthetic edge placeholder' -Encoding UTF8
 
     $resolvedIndex = Get-OpenSlottingIndexPath -ApplicationRoot $testRoot
     Assert-Equal $resolvedIndex ([System.IO.Path]::GetFullPath($indexPath)) 'index.html must resolve relative to the application root.'
 
-    $fileUri = ConvertTo-OpenSlottingFileUri -IndexPath $resolvedIndex
-    Assert-True $fileUri.StartsWith('file:', [System.StringComparison]::OrdinalIgnoreCase) 'The launcher URL must use the file scheme.'
-    Assert-True ($fileUri -match 'OpenSlotting%20Launcher%20Tests') 'Spaces in the application path must be escaped by System.Uri.'
-
     $foundEdge = Find-OpenSlottingEdgePath -CandidatePaths @((Join-Path $testRoot 'missing.exe'), $edgePath, $edgePath)
     Assert-Equal $foundEdge ([System.IO.Path]::GetFullPath($edgePath)) 'Edge discovery must return the first existing candidate.'
 
-    $arguments = New-OpenSlottingEdgeArguments -FileUri $fileUri
-    Assert-Equal $arguments ('--app="{0}"' -f $fileUri) 'Edge must receive one quoted app-mode file URL.'
-
     $shortcutDirectories = @((Join-Path $testRoot 'Start Menu'), (Join-Path $testRoot 'Desktop'))
-    $plan = @(Get-OpenSlottingShortcutPlan -ApplicationRoot $testRoot -EdgePath $edgePath -ShortcutDirectories $shortcutDirectories)
+    $plan = @(Get-OpenSlottingLocalhostShortcutPlan -ApplicationRoot $testRoot -PowerShellPath $powerShellPath -ShortcutName 'OpenSlotting' -ShortcutDescription 'OpenSlotting shortcut managed by OpenSlotting' -ShortcutDirectories $shortcutDirectories)
     Assert-Equal $plan.Count 2 'A shortcut plan must include every selected destination.'
     Assert-Equal ([System.IO.Path]::GetFileName($plan[0].ShortcutPath)) 'OpenSlotting.lnk' 'The shortcut name must be stable.'
-    Assert-Equal $plan[0].TargetPath ([System.IO.Path]::GetFullPath($edgePath)) 'The shortcut must target Edge directly.'
-    Assert-Equal $plan[0].Arguments $arguments 'The shortcut must use the tested app-mode arguments.'
+    Assert-Equal $plan[0].TargetPath ([System.IO.Path]::GetFullPath($powerShellPath)) 'The shortcut must start the localhost launcher through Windows PowerShell.'
+    Assert-True ($plan[0].Arguments.Contains($startScript)) 'The shortcut must use the localhost launcher.'
+    Assert-True ($plan[0].Arguments -match '-WindowStyle Hidden') 'The shortcut must hide its launcher console.'
     Assert-True ($plan[0].Description -match 'managed by OpenSlotting') 'Managed shortcuts need an ownership marker.'
-    Assert-True ($plan[0].IconLocation.EndsWith(',0')) 'The shortcut must have a local icon fallback.'
+    Assert-True ($plan[0].IconLocation.EndsWith(',0')) 'The shortcut must have a local PowerShell icon fallback.'
 
     $iconPath = Join-Path $testRoot 'OpenSlotting.ico'
     Set-Content -LiteralPath $iconPath -Value 'synthetic icon placeholder' -Encoding UTF8
-    $iconPlan = @(Get-OpenSlottingShortcutPlan -ApplicationRoot $testRoot -EdgePath $edgePath -ShortcutDirectories @($shortcutDirectories[0]))
-    Assert-Equal $iconPlan[0].IconLocation ("$([System.IO.Path]::GetFullPath($iconPath)),0") 'A local OpenSlotting.ico must take precedence over the Edge icon.'
+    $iconPlan = @(Get-OpenSlottingLocalhostShortcutPlan -ApplicationRoot $testRoot -PowerShellPath $powerShellPath -ShortcutName 'OpenSlotting' -ShortcutDescription 'OpenSlotting shortcut managed by OpenSlotting' -ShortcutDirectories @($shortcutDirectories[0]))
+    Assert-Equal $iconPlan[0].IconLocation ("$([System.IO.Path]::GetFullPath($iconPath)),0") 'A local OpenSlotting.ico must take precedence over the PowerShell icon.'
 
     if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
         $created = @(New-OpenSlottingShortcuts -Plan $plan)

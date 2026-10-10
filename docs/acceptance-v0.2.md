@@ -1,5 +1,8 @@
 # OpenSlotting V0.2 Multi-Export Acceptance
 
+> Historical record: the runtime and checks below apply to that release.
+> Active development now uses localhost only; [Portable Mode is paused indefinitely](portable-mode-paused.md).
+
 Run this checklist on the exact V0.2 release candidate in Microsoft Edge Desktop on Windows. Open the extracted `index.html` directly through `file:///`; do not use a local server. Automated checks do not replace this manual run.
 
 ## Candidate record

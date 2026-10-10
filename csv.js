@@ -80,6 +80,7 @@
       qualityColumnIncomplete: 'The mapped column is empty in {{count}} data rows.',
       qualityColumnTypeMismatch: 'The mapped column contains {{count}} values that do not match the expected type.',
       qualityPreparationApplied: 'Explicit preparation rules changed {{count}} values before validation.',
+      sourceRuleExcluded: 'Rule “{{name}}” excluded this row because source column “{{column}}” matched. Reason: {{description}}',
       capabilityReady: 'All included order-line sources provide this capability.',
       capabilityPartial: 'Only some included order-line sources provide this capability.',
       capabilityBlocked: 'No included order-line source provides this capability.',
@@ -121,6 +122,7 @@
       qualityColumnIncomplete: 'Die zugeordnete Spalte ist in {{count}} Datenzeilen leer.',
       qualityColumnTypeMismatch: 'Die zugeordnete Spalte enthält {{count}} Werte mit einem unerwarteten Typ.',
       qualityPreparationApplied: 'Explizite Aufbereitungsregeln haben {{count}} Werte vor der Prüfung geändert.',
+      sourceRuleExcluded: 'Regel „{{name}}“ hat diese Zeile ausgeschlossen, weil Quellspalte „{{column}}“ zutrifft. Grund: {{description}}',
       capabilityReady: 'Alle einbezogenen Auftragszeilenquellen stellen diese Fähigkeit bereit.',
       capabilityPartial: 'Nur ein Teil der einbezogenen Auftragszeilenquellen stellt diese Fähigkeit bereit.',
       capabilityBlocked: 'Keine einbezogene Auftragszeilenquelle stellt diese Fähigkeit bereit.',
@@ -708,6 +710,111 @@
     return parser.finish();
   }
 
+  function createSourceRecordIndexer(buffer, sourceEncoding) {
+    const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    const utf16le = sourceEncoding === 'utf-16le';
+    const utf16be = sourceEncoding === 'utf-16be';
+    const step = utf16le || utf16be ? 2 : 1;
+    const bomLength = step === 2 && bytes.length >= 2 &&
+      ((utf16le && bytes[0] === 0xFF && bytes[1] === 0xFE) ||
+        (utf16be && bytes[0] === 0xFE && bytes[1] === 0xFF)) ? 2
+      : (step === 1 && bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF ? 3 : 0);
+    let offset = bomLength;
+    let recordStart = offset;
+    let line = 1;
+    let recordLine = 1;
+    let inQuotes = false;
+    let fieldStart = true;
+    let recordHasContent = false;
+    let fieldCount = 1;
+    let maxColumns = 0;
+    const records = [];
+    function unitAt(position) {
+      if (position + step > bytes.length) return -1;
+      if (utf16le) return bytes[position] | (bytes[position + 1] << 8);
+      if (utf16be) return (bytes[position] << 8) | bytes[position + 1];
+      return bytes[position];
+    }
+    function pushRecord(end) {
+      if (recordHasContent) {
+        records.push({ start: recordStart, end: end, sourceLine: recordLine });
+        maxColumns = Math.max(maxColumns, fieldCount);
+      }
+      recordHasContent = false;
+      fieldStart = true;
+      fieldCount = 1;
+    }
+    function scan(maxBytes) {
+      const limit = Math.min(bytes.length, offset + (Number.isInteger(maxBytes) && maxBytes > 0 ? maxBytes : bytes.length));
+      while (offset + step <= limit) {
+        const current = unitAt(offset);
+        const next = unitAt(offset + step);
+        if (current === 34 && inQuotes) {
+          if (next === 34) {
+            offset += step * 2;
+            recordHasContent = true;
+            continue;
+          }
+          inQuotes = false;
+        } else if (current === 34 && fieldStart) {
+          inQuotes = true;
+          fieldStart = false;
+        } else if (!inQuotes && current === 59) {
+          fieldStart = true;
+          fieldCount += 1;
+        } else if (current === 13 || current === 10) {
+          const lineEnd = offset;
+          const lineLength = current === 13 && next === 10 ? step * 2 : step;
+          if (!inQuotes) pushRecord(lineEnd);
+          line += 1;
+          offset += lineLength;
+          if (!inQuotes) {
+            recordStart = offset;
+            recordLine = line;
+          }
+          continue;
+        } else if (!inQuotes) {
+          fieldStart = false;
+        }
+        recordHasContent = true;
+        offset += step;
+      }
+      if (offset + step > bytes.length) offset = bytes.length;
+      return offset < bytes.length;
+    }
+    function finish() {
+      if (offset < bytes.length) scan(bytes.length);
+      pushRecord(bytes.length);
+      return { records: records, maxColumns: maxColumns };
+    }
+    return { scan: scan, finish: finish };
+  }
+
+  function readIndexedSourceRow(buffer, sourceEncoding, record, locale) {
+    const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
+    const text = new TextDecoder(sourceEncoding, { fatal: true }).decode(bytes.subarray(record.start, record.end));
+    const parsed = parseCsv(text, { locale: locale });
+    return {
+      sourceLine: record.sourceLine,
+      values: parsed.rows.length ? parsed.rows[0].values : [],
+      parserErrors: parsed.errors.map(function (error) {
+        return Object.assign({}, error, { sourceLine: record.sourceLine + error.sourceLine - 1 });
+      })
+    };
+  }
+
+  function findIndexedSourceRow(records, sourceLine) {
+    if (!Array.isArray(records) || records.length < 2 || !Number.isInteger(sourceLine) || sourceLine < 1) return -1;
+    let low = 1;
+    let high = records.length;
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      if (records[middle].sourceLine <= sourceLine) low = middle + 1;
+      else high = middle;
+    }
+    return Math.max(0, Math.min(records.length - 2, low - 2));
+  }
+
   function detectMapping(headers, sourceType) {
     const normalizedHeaders = headers.map(normalizeHeader);
     const usedIndexes = new Set();
@@ -1111,6 +1218,32 @@
     return compiled;
   }
 
+  function matchingSourceRule(values, rules) {
+    return (Array.isArray(rules) ? rules : []).find(function (rule) {
+      if (!rule || rule.enabled === false || !Number.isInteger(rule.sourcePosition) ||
+          rule.sourcePosition < 0 || rule.sourcePosition >= values.length) return false;
+      const raw = String(values[rule.sourcePosition] === undefined || values[rule.sourcePosition] === null
+        ? '' : values[rule.sourcePosition]);
+      if (rule.type === 'exclude-empty') return raw.trim() === '';
+      if (rule.type === 'exclude-equals') return typeof rule.value === 'string' && raw === rule.value;
+      if (rule.type === 'exclude-contains') return typeof rule.value === 'string' && rule.value.length > 0 && raw.includes(rule.value);
+      return false;
+    }) || null;
+  }
+
+  function sourceRuleIssue(rule, dataRow, headers, mapping, locale) {
+    const position = rule.sourcePosition;
+    const column = headers[position] || '#' + (position + 1);
+    return { sourceLine: dataRow.sourceLine, field: null, code: 'source_rule_excluded',
+      severity: 'info', blocking: true, ruleName: rule.name, ruleDescription: rule.description,
+      sourceColumnPosition: position, sourceColumn: column,
+      rawValue: String(dataRow.values[position] === undefined ? '' : dataRow.values[position]),
+      deliveryDate: mappedDeliveryDate(dataRow.values, mapping),
+      message: message(locale, 'sourceRuleExcluded', {
+        name: rule.name, column: column, description: rule.description
+      }) };
+  }
+
   function hasEnabledPreparationRules(mapping, customFieldMapping, customFields, preparationRules) {
     function enabledFor(targetId, sourceIndex) {
       return Number.isInteger(sourceIndex) && Array.isArray(preparationRules && preparationRules[targetId]) &&
@@ -1440,6 +1573,7 @@
     const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
     const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
     const preparationRules = compilePreparationRules(options && options.preparationRules ? options.preparationRules : {});
+    const sourceRules = Array.isArray(options && options.sourceRules) ? options.sourceRules : [];
     let columnCatalog = [];
     let columnProfileStates = [];
     let rawColumnCatalog = [];
@@ -1453,6 +1587,7 @@
     const structuralLines = new Set();
     const dateByLine = new Map();
     const preparationCounts = {};
+    let filteredRows = 0;
 
     const parsed = parseCsvChunks(chunks, Object.assign({}, options, {
       retainRows: false,
@@ -1497,6 +1632,13 @@
           return;
         }
         if (headerHasParserError || mappingIssues.length > 0) {
+          return;
+        }
+
+        const sourceRule = !rowHasParserError && matchingSourceRule(dataRow.values, sourceRules);
+        if (sourceRule) {
+          filteredRows += 1;
+          issues.push(sourceRuleIssue(sourceRule, dataRow, headers, selectedMapping, locale));
           return;
         }
 
@@ -1589,6 +1731,7 @@
       totalRows: totalRows,
       validRows: rows.length,
       invalidRows: invalidLines.size,
+      filteredRows: filteredRows,
       structuralRows: structuralLines.size,
       mapping: selectedMapping,
       preparationCounts: preparationCounts,
@@ -1635,6 +1778,7 @@
     const customFields = Array.isArray(options && options.customFields) ? options.customFields : [];
     const customFieldMapping = options && options.customFieldMapping ? options.customFieldMapping : {};
     const preparationRules = compilePreparationRules(options && options.preparationRules ? options.preparationRules : {});
+    const sourceRules = Array.isArray(options && options.sourceRules) ? options.sourceRules : [];
     const preparationCounts = {};
     const profileRawSeparately = hasEnabledPreparationRules(selectedMapping, customFieldMapping, customFields, preparationRules);
     const rawColumnCatalog = profileRawSeparately ? buildColumnCatalog(headers, sourceFile) : columnCatalog;
@@ -1696,6 +1840,7 @@
     const rows = [];
     const invalidLines = new Set();
     const structuralLines = new Set();
+    let filteredRows = 0;
 
     dataRows.forEach(function (dataRow, rowIndex) {
       if (dataRow.values.length !== headers.length) {
@@ -1708,6 +1853,13 @@
           deliveryDate: mappedDeliveryDate(dataRow.values, selectedMapping),
           message: message(locale, 'columnCount', { actual: dataRow.values.length, expected: headers.length })
         });
+        return;
+      }
+
+      const sourceRule = !parserErrorLines.has(dataRow.sourceLine) && matchingSourceRule(dataRow.values, sourceRules);
+      if (sourceRule) {
+        filteredRows += 1;
+        issues.push(sourceRuleIssue(sourceRule, dataRow, headers, selectedMapping, locale));
         return;
       }
 
@@ -1743,6 +1895,7 @@
       totalRows: dataRows.length,
       validRows: rows.length,
       invalidRows: invalidLines.size,
+      filteredRows: filteredRows,
       structuralRows: structuralLines.size,
       mapping: selectedMapping,
       preparationCounts: preparationCounts,
@@ -2544,18 +2697,22 @@
       const code = issue && issue.code ? String(issue.code) : 'unknown_validation_issue';
       const severity = issue && issue.severity === 'warning' ? 'warning' : (issue && issue.severity === 'info' ? 'info' : 'error');
       const articleId = issue && issue.articleId ? String(issue.articleId) : '';
-      const key = [sourceId, sourceType, field, code, severity, articleId].join('\u0000');
+      const key = [sourceId, sourceType, field, code, severity, articleId,
+        issue && issue.ruleName || ''].join('\u0000');
       if (!groups.has(key)) {
         groups.set(key, {
           scope: Number.isInteger(issue && issue.sourceLine) ? 'row' : (field ? 'column' : 'source'),
           code: code,
           severity: severity,
-          blocking: issue && issue.blocking !== undefined ? Boolean(issue.blocking) : issueIsBlocking(issue),
+          blocking: code === 'source_rule_excluded' ? false :
+            (issue && issue.blocking !== undefined ? Boolean(issue.blocking) : issueIsBlocking(issue)),
           sourceFileId: issue && issue.sourceFileId || null,
           sourceFileLabel: issue && (issue.sourceFileLabel || issue.sourceFileName) || null,
           sourceFileName: issue && issue.sourceFileName || null,
           sourceType: sourceType,
           field: field || null,
+          sourceColumnPosition: issue && Number.isInteger(issue.sourceColumnPosition) ? issue.sourceColumnPosition : null,
+          sourceColumn: issue && issue.sourceColumn || null,
           article_id: issue && issue.articleId || null,
           message: issue && issue.message || code,
           affectedCount: 0,
@@ -2691,6 +2848,15 @@
       .concat(buildDataQualityFindings(registry, importIssues, locale));
   }
 
+  function selectQualityFindingsForImport(findings, sourceFileId, view) {
+    return (Array.isArray(findings) ? findings : []).filter(function (finding) {
+      if (view === 'cross-source') {
+        return finding.scope === 'cross-source' || !finding.sourceFileId;
+      }
+      return finding.scope !== 'cross-source' && Boolean(sourceFileId) && finding.sourceFileId === sourceFileId;
+    });
+  }
+
   function buildDataQualityFindings(registry, importIssues, locale) {
     const findings = [];
     (importIssues || []).forEach(function (issue) {
@@ -2777,6 +2943,7 @@
     const issues = [];
     let totalRows = 0;
     let invalidRows = 0;
+    let filteredRows = 0;
     let structuralRows = 0;
     let includedFiles = 0;
     const usedSourceIds = new Set();
@@ -2862,6 +3029,7 @@
 
       totalRows += result ? result.totalRows : 0;
       invalidRows += result ? result.invalidRows : 0;
+      filteredRows += result ? result.filteredRows || 0 : 0;
       structuralRows += result ? result.structuralRows : 0;
       if (included) {
         includedFiles += 1;
@@ -2896,6 +3064,7 @@
         totalRows: result ? result.totalRows : 0,
         validRows: result ? result.validRows : 0,
         invalidRows: result ? result.invalidRows : 0,
+        filteredRows: result ? result.filteredRows || 0 : 0,
         structuralRows: result ? result.structuralRows : 0,
         dateStart: range.start,
         dateEnd: range.end
@@ -2920,6 +3089,7 @@
       validRows: retainedRows.length,
       analysisRows: rows.length,
       invalidRows: invalidRows,
+      filteredRows: filteredRows,
       structuralRows: structuralRows,
       selectedFiles: fileSummaries.length,
       includedFiles: includedFiles,
@@ -3331,6 +3501,7 @@
     buildPreparationQualityFindings: buildPreparationQualityFindings,
     buildDataQualityFindings: buildDataQualityFindings,
     buildUnifiedDataQualityFindings: buildUnifiedDataQualityFindings,
+    selectQualityFindingsForImport: selectQualityFindingsForImport,
     enrichAnalysisWithRegistry: enrichAnalysisWithRegistry,
     evaluateFeatureReadiness: evaluateFeatureReadiness,
     detectBatchWarnings: detectBatchWarnings,
@@ -3361,6 +3532,10 @@
     normalizeNumber: normalizeNumber,
     parseCsv: parseCsv,
     parseCsvChunks: parseCsvChunks,
+    createSourceRecordIndexer: createSourceRecordIndexer,
+    readIndexedSourceRow: readIndexedSourceRow,
+    findIndexedSourceRow: findIndexedSourceRow,
+    prepareProfileValues: prepareProfileValues,
     reconstructRawSource: reconstructRawSource,
     validateMapping: validateMapping,
     validateCustomFieldMapping: validateCustomFieldMapping,

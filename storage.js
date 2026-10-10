@@ -81,6 +81,8 @@
       analyzed: workspace.analyzed,
       periodSettings: workspace.periodSettings,
       customFields: workspace.customFields,
+      importProfiles: workspace.importProfiles,
+      warehouseLayout: workspace.warehouseLayout,
       storageRevision: storageRevision,
       sourceCount: workspace.files.length,
       sourceBytes: sourceBytes,
@@ -283,6 +285,7 @@
         errorKey: file.errorKey,
         mapping: file.mapping,
         preparationRules: file.preparationRules,
+        sourceRules: file.sourceRules,
         customFieldMapping: file.customFieldMapping,
         confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
@@ -358,6 +361,12 @@
       customFields: values.customFields
         ? workspaceModel.normalizeCustomFields(values.customFields)
         : (Array.isArray(metadata.customFields) ? workspaceModel.normalizeCustomFields(metadata.customFields) : []),
+      importProfiles: values.importProfiles
+        ? workspaceModel.normalizeImportProfiles(values.importProfiles)
+        : workspaceModel.normalizeImportProfiles(metadata.importProfiles),
+      warehouseLayout: values.warehouseLayout
+        ? values.warehouseLayout
+        : (metadata.warehouseLayout || null),
       sourceCount: Number.isInteger(values.sourceCount) && values.sourceCount >= 0 ? values.sourceCount : metadata.sourceCount,
       sourceBytes: Number.isFinite(values.sourceBytes) && values.sourceBytes >= 0 ? values.sourceBytes : metadata.sourceBytes,
       normalizedRowCount: Number.isInteger(values.normalizedRowCount) && values.normalizedRowCount >= 0
@@ -432,6 +441,7 @@
           errorKey: source.errorKey,
           mapping: source.mapping,
           preparationRules: source.preparationRules,
+          sourceRules: source.sourceRules,
           customFieldMapping: source.customFieldMapping,
           confirmedCustomFieldMapping: source.confirmedCustomFieldMapping,
           confirmedMapping: source.confirmedMapping,
@@ -466,6 +476,8 @@
         analyzed: metadata.analyzed,
         periodSettings: metadata.periodSettings,
         customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
+        importProfiles: Array.isArray(metadata.importProfiles) ? metadata.importProfiles : [],
+        warehouseLayout: metadata.warehouseLayout || null,
         articleRegistry: includeResults ? registry : [],
         storageRevision: storageRevisionOf(metadata),
         files: files
@@ -493,6 +505,8 @@
       analyzed: metadata.analyzed,
       periodSettings: metadata.periodSettings,
       customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
+      importProfiles: Array.isArray(metadata.importProfiles) ? metadata.importProfiles : [],
+      warehouseLayout: metadata.warehouseLayout || null,
       articleRegistry: Array.isArray(payload.articleRegistry) ? payload.articleRegistry : [],
       storageRevision: storageRevisionOf(metadata),
       files: files
@@ -787,6 +801,8 @@
           }
           updated.schemaVersion = persisted.schemaVersion;
           updated.language = persisted.language;
+          updated.importProfiles = persisted.importProfiles;
+          updated.warehouseLayout = persisted.warehouseLayout;
           await clearChunkedWorkspace(stores, workspaceId);
           stores.workspacePayloads.delete(workspaceId);
           putChunkedWorkspace(stores, persisted);

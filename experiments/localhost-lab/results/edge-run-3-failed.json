@@ -1,0 +1,396 @@
+{
+  "schema": 1,
+  "date": "2026-10-04T06:16:31.815Z",
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "origin": "http://127.0.0.1:49450",
+    "secureContext": true,
+    "hardwareConcurrency": 24,
+    "deviceMemoryGiB": 32,
+    "storageEstimate": {
+      "quota": 10737429257,
+      "usage": 11017,
+      "usageDetails": {
+        "indexedDB": 11017
+      }
+    },
+    "moduleWorker": true,
+    "compressionStream": true
+  },
+  "methodology": {
+    "repeats": 5,
+    "order": "rotated each round",
+    "clock": "performance.now",
+    "fixture": "deterministic synthetic, no uploads",
+    "garbageCollection": "browser-managed, not forced",
+    "memory": "no RSS or reliable per-worker peak memory measured",
+    "warmDefinition": "after first task; static modules may be in browser cache; no disk-cold claim"
+  },
+  "workers": [
+    {
+      "rows": 1000,
+      "sourceBytes": 68249,
+      "integrity": "full payload and original bytes equal",
+      "fingerprint": "439a5537ff0f14b9d14828c5b570779fc96fc0fbba3dbf28bf4ca11b770f955a",
+      "variants": [
+        {
+          "variant": "blob-fresh",
+          "firstTaskMs": 107.79999995231628,
+          "allTasks": {
+            "samplesMs": [
+              107.8,
+              106.8,
+              91.6,
+              96,
+              100.7
+            ],
+            "medianMs": 100.7,
+            "minMs": 91.6,
+            "maxMs": 107.8
+          },
+          "afterFirstTask": {
+            "samplesMs": [
+              106.8,
+              91.6,
+              96,
+              100.7
+            ],
+            "medianMs": 100.7,
+            "minMs": 91.6,
+            "maxMs": 106.8
+          }
+        },
+        {
+          "variant": "module-fresh",
+          "firstTaskMs": 120.40000009536743,
+          "allTasks": {
+            "samplesMs": [
+              120.4,
+              113,
+              107.3,
+              118.8,
+              109.8
+            ],
+            "medianMs": 113,
+            "minMs": 107.3,
+            "maxMs": 120.4
+          },
+          "afterFirstTask": {
+            "samplesMs": [
+              113,
+              107.3,
+              118.8,
+              109.8
+            ],
+            "medianMs": 113,
+            "minMs": 107.3,
+            "maxMs": 118.8
+          }
+        },
+        {
+          "variant": "module-reused",
+          "firstTaskMs": 57,
+          "allTasks": {
+            "samplesMs": [
+              57,
+              58.1,
+              54,
+              52.9,
+              38.9
+            ],
+            "medianMs": 54,
+            "minMs": 38.9,
+            "maxMs": 58.1
+          },
+          "afterFirstTask": {
+            "samplesMs": [
+              58.1,
+              54,
+              52.9,
+              38.9
+            ],
+            "medianMs": 54,
+            "minMs": 38.9,
+            "maxMs": 58.1
+          }
+        }
+      ]
+    },
+    {
+      "rows": 50000,
+      "sourceBytes": 3485845,
+      "integrity": "full payload and original bytes equal",
+      "fingerprint": "34f2b8d0afda1399c7b3effe3efe04dcaf44543fc2f135822c41ea3ebad66c5a",
+      "variants": [
+        {
+          "variant": "blob-fresh",
+          "firstTaskMs": 1889.1000000238419,
+          "allTasks": {
+            "samplesMs": [
+              1889.1,
+              2028.2,
+              1848,
+              1896.1,
+              1856.4
+            ],
+            "medianMs": 1889.1,
+            "minMs": 1848,
+            "maxMs": 2028.2
+          },
+          "afterFirstTask": {
+            "samplesMs": [
+              2028.2,
+              1848,
+              1896.1,
+              1856.4
+            ],
+            "medianMs": 1896.1,
+            "minMs": 1848,
+            "maxMs": 2028.2
+          }
+        },
+        {
+          "variant": "module-fresh",
+          "firstTaskMs": 1898.2000000476837,
+          "allTasks": {
+            "samplesMs": [
+              1898.2,
+              2155.4,
+              1910.9,
+              2062.6,
+              1944.4
+            ],
+            "medianMs": 1944.4,
+            "minMs": 1898.2,
+            "maxMs": 2155.4
+          },
+          "afterFirstTask": {
+            "samplesMs": [
+              2155.4,
+              1910.9,
+              2062.6,
+              1944.4
+            ],
+            "medianMs": 2062.6,
+            "minMs": 1910.9,
+            "maxMs": 2155.4
+          }
+        },
+        {
+          "variant": "module-reused",
+          "firstTaskMs": 1971.3999999761581,
+          "allTasks": {
+            "samplesMs": [
+              1971.4,
+              1836.5,
+              1878.9,
+              1886.3,
+              1824.6
+            ],
+            "medianMs": 1878.9,
+            "minMs": 1824.6,
+            "maxMs": 1971.4
+          },
+          "afterFirstTask": {
+            "samplesMs": [
+              1836.5,
+              1878.9,
+              1886.3,
+              1824.6
+            ],
+            "medianMs": 1878.9,
+            "minMs": 1824.6,
+            "maxMs": 1886.3
+          }
+        }
+      ]
+    }
+  ],
+  "storage": [
+    {
+      "bytes": 1048576,
+      "integrity": "SHA-256 equal after every read; caller bytes retained",
+      "scope": "raw source bytes only; no full workspace transaction comparison",
+      "variants": [
+        {
+          "variant": "indexeddb-source-bytes",
+          "openMs": 159.39999997615814,
+          "write": {
+            "samplesMs": [
+              7.3,
+              4,
+              6.2,
+              4.7,
+              4.5
+            ],
+            "medianMs": 4.7,
+            "minMs": 4,
+            "maxMs": 7.3
+          },
+          "read": {
+            "samplesMs": [
+              11.8,
+              2.5,
+              1.7,
+              1.9,
+              1.6
+            ],
+            "medianMs": 1.9,
+            "minMs": 1.6,
+            "maxMs": 11.8
+          }
+        },
+        {
+          "variant": "opfs-async",
+          "openMs": 8.5,
+          "write": {
+            "samplesMs": [
+              26.5,
+              4.3,
+              4.4,
+              4.3,
+              3.7
+            ],
+            "medianMs": 4.3,
+            "minMs": 3.7,
+            "maxMs": 26.5
+          },
+          "read": {
+            "samplesMs": [
+              51.4,
+              1.6,
+              1.6,
+              1.7,
+              1.7
+            ],
+            "medianMs": 1.7,
+            "minMs": 1.6,
+            "maxMs": 51.4
+          }
+        },
+        {
+          "variant": "opfs-sync-worker",
+          "openMs": 33.299999952316284,
+          "write": {
+            "samplesMs": [
+              4.3,
+              1.6,
+              1.3,
+              1.5,
+              1.4
+            ],
+            "medianMs": 1.5,
+            "minMs": 1.3,
+            "maxMs": 4.3
+          },
+          "read": {
+            "samplesMs": [
+              0.3,
+              0.2,
+              0.6,
+              0.3,
+              0.3
+            ],
+            "medianMs": 0.3,
+            "minMs": 0.2,
+            "maxMs": 0.6
+          }
+        }
+      ]
+    },
+    {
+      "bytes": 8388608,
+      "integrity": "SHA-256 equal after every read; caller bytes retained",
+      "scope": "raw source bytes only; no full workspace transaction comparison",
+      "variants": [
+        {
+          "variant": "indexeddb-source-bytes",
+          "openMs": 2.299999952316284,
+          "write": {
+            "samplesMs": [
+              19.3,
+              22.6,
+              32.3,
+              25.9,
+              20.7
+            ],
+            "medianMs": 22.6,
+            "minMs": 19.3,
+            "maxMs": 32.3
+          },
+          "read": {
+            "samplesMs": [
+              9.3,
+              8.9,
+              21.5,
+              9,
+              9.1
+            ],
+            "medianMs": 9.1,
+            "minMs": 8.9,
+            "maxMs": 21.5
+          }
+        },
+        {
+          "variant": "opfs-async",
+          "openMs": 1.2999999523162842,
+          "write": {
+            "samplesMs": [
+              12.1,
+              13.3,
+              12.7,
+              13.6,
+              17.5
+            ],
+            "medianMs": 13.3,
+            "minMs": 12.1,
+            "maxMs": 17.5
+          },
+          "read": {
+            "samplesMs": [
+              4.9,
+              5.1,
+              4.8,
+              5.2,
+              5
+            ],
+            "medianMs": 5,
+            "minMs": 4.8,
+            "maxMs": 5.2
+          }
+        },
+        {
+          "variant": "opfs-sync-worker",
+          "openMs": 9.800000071525574,
+          "write": {
+            "samplesMs": [
+              7.7,
+              7.5,
+              8,
+              10.8,
+              8
+            ],
+            "medianMs": 8,
+            "minMs": 7.5,
+            "maxMs": 10.8
+          },
+          "read": {
+            "samplesMs": [
+              2.4,
+              2.4,
+              2.5,
+              2.2,
+              2.2
+            ],
+            "medianMs": 2.4,
+            "minMs": 2.2,
+            "maxMs": 2.5
+          }
+        }
+      ]
+    }
+  ],
+  "backup": null,
+  "status": "failed",
+  "error": "RangeError: Maximum call stack size exceeded\n    at RegExp.test (<anonymous>)\n    at base64ToBuffer (http://127.0.0.1:49450/workspace.js:1344:106)\n    at decodePortable (http://127.0.0.1:49450/workspace.js:1394:18)\n    at http://127.0.0.1:49450/workspace.js:1403:24\n    at Array.forEach (<anonymous>)\n    at decodePortable (http://127.0.0.1:49450/workspace.js:1399:26)\n    at Array.map (<anonymous>)\n    at decodePortable (http://127.0.0.1:49450/workspace.js:1385:20)\n    at http://127.0.0.1:49450/workspace.js:1403:24\n    at Array.forEach (<anonymous>)"
+}

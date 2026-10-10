@@ -1,0 +1,87 @@
+{
+  "generatedAt": "2026-10-09T20:33:33.479Z",
+  "layoutVersion": 2,
+  "syntheticOnly": true,
+  "environment": {
+    "node": "v24.18.1",
+    "platform": "win32",
+    "cpu": "12th Gen Intel(R) Core(TM) i9-12900F"
+  },
+  "methodology": "Same current layout and ordered references. Repeated zoneForLevel/zoneLocations scans versus one current createScopeIndex per pass followed by Map reads. Build and sorting included; fixture construction excluded. One warmup, five alternating samples; full ordered outputs checked. Lookup CPU only, no drawing/GPU/FPS or peak-memory claim.",
+  "cases": [
+    {
+      "name": "coded-1250-levels",
+      "objects": 150,
+      "physicalLevels": 1250,
+      "locations": 5000,
+      "queriedLevels": 1250,
+      "wholeLayoutQueried": true,
+      "outputsMatched": true,
+      "repeatedScan": {
+        "medianMs": 36.08179999999999,
+        "minMs": 35.8261,
+        "maxMs": 37.2834,
+        "samplesMs": [
+          37.2834,
+          36.4323,
+          35.8261,
+          36.08179999999999,
+          35.92609999999996
+        ]
+      },
+      "indexedPass": {
+        "medianMs": 0.5104999999999791,
+        "minMs": 0.47239999999999327,
+        "maxMs": 0.5749999999999886,
+        "samplesMs": [
+          0.5104999999999791,
+          0.5482000000000085,
+          0.5749999999999886,
+          0.5079999999999814,
+          0.47239999999999327
+        ]
+      }
+    },
+    {
+      "name": "uncoded-54000-levels-tail-probe",
+      "objects": 150,
+      "physicalLevels": 54000,
+      "locations": 0,
+      "queriedLevels": 512,
+      "wholeLayoutQueried": false,
+      "outputsMatched": true,
+      "repeatedScan": {
+        "medianMs": 87.46160000000009,
+        "minMs": 79.72210000000018,
+        "maxMs": 175.85299999999995,
+        "samplesMs": [
+          175.85299999999995,
+          161.34050000000013,
+          87.46160000000009,
+          79.72210000000018,
+          80.5284999999999
+        ]
+      },
+      "indexedPass": {
+        "medianMs": 4.636199999999917,
+        "minMs": 4.281399999999849,
+        "maxMs": 6.906300000000101,
+        "samplesMs": [
+          4.429700000000025,
+          5.142399999999952,
+          4.636199999999917,
+          4.281399999999849,
+          6.906300000000101
+        ]
+      }
+    }
+  ],
+  "sources": {
+    "warehouse.js": "9b12cb031ee0a6c6cbf317ac8f0197709923f04c35446af17fde29330e66edc7",
+    "warehouse-editor.js": "3bc243dc95128bda1660fde7b96762c5b3a5bf7cebf36dd2e039ac43e81686fc",
+    "warehouse-scene.js": "8111e97d50b3a3c93ec50053a99eccbca1e8e8e2406635c0a5bacead0f93d3a4",
+    "tests/fixtures/warehouse-performance.cjs": "eb2409387dc4a292092e6e29e559ab49279c46332d516a936743940120735d81",
+    "tools/benchmark-warehouse-scopes.cjs": "c8575f0145bab6b9041b1ce97a35adddcb8fbb6d43ddce43d7ce9f99a85ba1c4"
+  },
+  "sink": 17620
+}

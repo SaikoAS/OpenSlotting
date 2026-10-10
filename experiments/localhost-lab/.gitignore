@@ -1,0 +1,5 @@
+generated/
+results/project-inventory.json
+results/*-console.txt
+results/production-tests.txt
+__pycache__/

@@ -72,6 +72,11 @@ test('persists isolated workspaces and the active selection across repository in
     periodA: { name: 'Before', start: '2026-09-01', end: '2026-09-05' },
     periodB: { name: 'After', start: '2026-09-08', end: '2026-09-12' }
   };
+  north.importProfiles = [workspace.createImportProfile({
+    headers: ['order_id', 'article_id', 'quantity', 'delivery_date'], sourceType: 'order-lines',
+    mapping: north.files[0].mapping, customFieldMapping: {},
+    preparationRules: { article_id: [{ type: 'trim', enabled: true }] }
+  }, 'North orders', [], { id: 'profile-north', now: '2026-09-25T08:00:00.000Z' })];
 
   await first.createWorkspace(north);
   await first.createWorkspace(south);
@@ -83,10 +88,13 @@ test('persists isolated workspaces and the active selection across repository in
   const reopenedNorth = await reopened.loadWorkspace(north.id);
   assert.equal(reopenedNorth.files[0].name, 'SKU-N.csv');
   assert.deepEqual(reopenedNorth.periodSettings, north.periodSettings);
+  assert.deepEqual(reopenedNorth.importProfiles, north.importProfiles);
   assert.equal((await reopened.loadWorkspace(south.id)).files[0].name, 'SKU-S.csv');
+  assert.deepEqual((await reopened.loadWorkspace(south.id)).importProfiles, []);
 
   const listed = await reopened.listWorkspaces();
   assert.equal(listed.length, 2);
+  assert.deepEqual(listed.find((item) => item.id === north.id).importProfiles, north.importProfiles);
   assert.ok(listed.every((item) => item.sourceCount === 1));
   assert.ok(listed.every((item) => item.sourceBytes > 0));
   assert.ok(listed.every((item) => item.normalizedRowCount === 0));
@@ -203,6 +211,22 @@ test('chunked storage round trip preserves ordered preparation rules', async () 
   const restored = await repository.loadWorkspace(validated.id);
   assert.deepEqual(restored.files[0].preparationRules, validated.files[0].preparationRules);
   assert.deepEqual(restored.files[0].result.preparationCounts, { article_id: 1 });
+});
+
+test('chunked storage round trip preserves source-column rule names and explanations', async () => {
+  const indexedDB = createFakeIndexedDB();
+  const databaseName = 'source-rules-storage-test';
+  const repository = storage.createRepository({ indexedDB, databaseName });
+  const original = workspaceWithRows('workspace-source-rules', 1);
+  original.files[0].sourceRules = [{ sourcePosition: 1, type: 'exclude-empty',
+    name: 'Missing SKU', description: 'Do not analyze rows without an SKU',
+    enabled: true, includeInProfile: true }];
+  const validated = workspace.validateWorkspace(original);
+  await repository.createWorkspace(validated);
+  const stored = indexedDB.inspect(databaseName, 'workspaceSources')[0];
+  assert.deepEqual(stored.sourceRules, validated.files[0].sourceRules);
+  const restored = await repository.loadWorkspace(validated.id);
+  assert.deepEqual(restored.files[0].sourceRules, validated.files[0].sourceRules);
 });
 
 test('renaming and replacing one workspace does not alter another workspace', async () => {

@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import mimetypes
 import os
 import sys
+import threading
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -21,20 +23,33 @@ RUNTIME_FILES = frozenset(
     {
         "index.html",
         "app.css",
+        "terminal-theme.css",
+        "warehouse-editor.css",
         "runtime.js",
         "app.js",
+        "terminal.js",
+        "warehouse.js",
+        "warehouse-webgl.js",
+        "warehouse-scene.js",
+        "warehouse-editor.js",
+        "warehouse-analysis.js",
         "encoding.js",
         "csv.js",
         "periods.js",
         "workspace.js",
         "storage.js",
         "OpenSlotting.ico",
+        "src/application/workspace-preparation.js",
+        "src/application/worker-session.js",
+        "src/ui/shared/windowed-dom.js",
+        "src/workers/workspace-worker.mjs",
     }
 )
 CONTENT_TYPES = {
     ".html": "text/html; charset=utf-8",
     ".css": "text/css; charset=utf-8",
     ".js": "text/javascript; charset=utf-8",
+    ".mjs": "text/javascript; charset=utf-8",
     ".ico": "image/vnd.microsoft.icon",
 }
 
@@ -52,10 +67,17 @@ class OpenSlottingRequestHandler(BaseHTTPRequestHandler):
     expected_hosts = frozenset()
 
     def end_headers(self) -> None:
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", getattr(self, "cache_policy", "no-store"))
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("Cross-Origin-Resource-Policy", "same-origin")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; script-src 'self' blob:; worker-src 'self' blob:; "
+            "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+            "connect-src 'none'; object-src 'none'; base-uri 'none'; "
+            "frame-ancestors 'none'; form-action 'none'",
+        )
         super().end_headers()
 
     def _requested_file(self) -> Optional[Path]:
@@ -68,11 +90,14 @@ class OpenSlottingRequestHandler(BaseHTTPRequestHandler):
             relative_path = request_path.lstrip("/")
         if (
             relative_path not in RUNTIME_FILES
-            or "/" in relative_path
             or "\\" in relative_path
         ):
             return None
-        candidate = APPLICATION_ROOT / relative_path
+        candidate = (APPLICATION_ROOT / relative_path).resolve()
+        try:
+            candidate.relative_to(APPLICATION_ROOT)
+        except ValueError:
+            return None
         return candidate if candidate.is_file() else None
 
     def _serve_runtime_file(self, include_body: bool) -> None:
@@ -80,7 +105,18 @@ class OpenSlottingRequestHandler(BaseHTTPRequestHandler):
         if file_path is None:
             self.send_error(404, "OpenSlotting runtime file not found")
             return
-        payload = file_path.read_bytes()
+        payload, etag = self.server.runtime_asset(file_path)
+        self.cache_policy = "no-store" if file_path.suffix == ".html" else "no-cache"
+        candidates = self.headers.get("If-None-Match", "").split(",")
+        if self.cache_policy == "no-cache" and any(
+            (candidate.strip()[2:] if candidate.strip().startswith("W/") else candidate.strip()) == etag
+            or candidate.strip() == "*"
+            for candidate in candidates
+        ):
+            self.send_response(304)
+            self.send_header("ETag", etag)
+            self.end_headers()
+            return
         content_type = CONTENT_TYPES.get(
             file_path.suffix.lower(),
             mimetypes.guess_type(file_path.name)[0] or "application/octet-stream",
@@ -88,6 +124,7 @@ class OpenSlottingRequestHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(payload)))
+        self.send_header("ETag", etag)
         self.end_headers()
         if include_body:
             self.wfile.write(payload)
@@ -138,6 +175,24 @@ class LoopbackServer(ThreadingHTTPServer):
     # Keep the fixed localhost origin exclusive, including on Windows.
     allow_reuse_address = os.name != "nt"
     daemon_threads = True
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        self._runtime_cache = {}
+        self._runtime_cache_lock = threading.Lock()
+        super().__init__(*args, **kwargs)
+
+    def runtime_asset(self, file_path: Path) -> tuple[bytes, str]:
+        """Cache only explicitly allowed UI assets; revalidate changed files."""
+        with self._runtime_cache_lock:
+            stat = file_path.stat()
+            signature = (stat.st_mtime_ns, stat.st_ctime_ns, stat.st_size)
+            cached = self._runtime_cache.get(file_path)
+            if cached is not None and cached[0] == signature:
+                return cached[1], cached[2]
+            payload = file_path.read_bytes()
+            etag = '"' + hashlib.sha256(payload).hexdigest() + '"'
+            self._runtime_cache[file_path] = (signature, payload, etag)
+            return payload, etag
 
 
 def parse_arguments() -> argparse.Namespace:

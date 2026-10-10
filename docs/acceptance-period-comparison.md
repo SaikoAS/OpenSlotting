@@ -1,6 +1,9 @@
 # Period Comparison Acceptance Checklist
 
-Use synthetic or approved non-sensitive CSV files. Do not attach operational exports to issues or commits.
+Use fully synthetic CSV files. Do not attach operational exports to issues or commits.
+
+Portable Mode is indefinitely paused; current runtime acceptance uses
+[acceptance-localhost.md](acceptance-localhost.md).
 
 ## Automated checks
 
@@ -47,5 +50,5 @@ Use synthetic or approved non-sensitive CSV files. Do not attach operational exp
 - [ ] At 1440 × 900 the compact header, workflow rail, period cards, and comparison table remain readable without overlap.
 - [ ] At a narrow viewport the workflow rail scrolls horizontally and period cards stack.
 - [ ] English and German labels fit without clipping.
-- [ ] Portable `file:///` and Enhanced Local Mode use the same source files and behavior.
+- [ ] The localhost launcher loads all bundled assets without external requests.
 - [ ] Microsoft Edge visual acceptance is recorded separately; automated logic or headless checks do not substitute for it.

@@ -1,0 +1,722 @@
+{
+  "createdUtc": "2026-10-04T16:58:16.791Z",
+  "baselineRef": "db39ffaca31ebeddec884413c38725f4fd38a5a0",
+  "syntheticOnly": true,
+  "knownDatesOnlyForBaselineParity": true,
+  "environment": {
+    "node": "v24.18.1",
+    "platform": "win32",
+    "cpu": "12th Gen Intel(R) Core(TM) i9-12900F",
+    "logicalCpus": 24
+  },
+  "method": "3 warm samples, rotated order; unchanged Git baseline versus current uncached single-pass versus adaptive cold and warm bounded date-only indexes. Full output equality checked outside timing. Index build includes only empty comparison finalization. Baseline null-coverage bug has separate regression tests.",
+  "processPeakRssBytes": 316362752,
+  "memoryNote": "WeakMap held index is dated refs and offsets only; retained deltas measured after GC. Process RSS peak includes all variant output validation and is not the isolated index peak.",
+  "comparisonIndexLimits": {
+    "minRows": 512,
+    "maxRows": 250000,
+    "maxDates": 4096
+  },
+  "cases": [
+    {
+      "rows": 1000,
+      "dates": 365,
+      "index": {
+        "status": "ready",
+        "lastStrategy": "indexed",
+        "calls": 2,
+        "inputRows": 1000,
+        "indexedRows": 1000,
+        "dates": 365,
+        "typedArrayBytes": 5464
+      },
+      "buildSamplesMs": [
+        0.402000000000001,
+        0.2802000000000078,
+        0.23969999999999914
+      ],
+      "buildMedianMs": 0.2802000000000078,
+      "buildIncludesEmptyComparisonFinalization": true,
+      "retainedMemoryDeltaBytes": {
+        "heap": 5560,
+        "external": 40,
+        "arrayBuffers": 5464,
+        "rss": 225280
+      },
+      "workloads": [
+        {
+          "range": "selective",
+          "queryCount": 1,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                6.123999999999995,
+                5.112399999999994,
+                4.923000000000002
+              ],
+              "medianMs": 5.112399999999994
+            },
+            "currentScan": {
+              "samplesMs": [
+                1.5930999999999926,
+                1.533200000000022,
+                1.53479999999999
+              ],
+              "medianMs": 1.53479999999999
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                1.5630000000000024,
+                1.581399999999988,
+                1.65270000000001
+              ],
+              "medianMs": 1.581399999999988
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                1.391999999999996,
+                1.409000000000006,
+                1.4413999999999874
+              ],
+              "medianMs": 1.409000000000006
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 1.6892000000000138,
+          "estimatedBreakEvenVersusCurrentScanQueries": 3
+        },
+        {
+          "range": "selective",
+          "queryCount": 8,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                38.12580000000003,
+                36.602599999999995,
+                37.891999999999996
+              ],
+              "medianMs": 37.891999999999996
+            },
+            "currentScan": {
+              "samplesMs": [
+                11.337499999999977,
+                12.48150000000004,
+                11.620800000000031
+              ],
+              "medianMs": 11.620800000000031
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                11.122400000000027,
+                10.644799999999975,
+                10.874599999999987
+              ],
+              "medianMs": 10.874599999999987
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                10.647599999999954,
+                10.535799999999995,
+                11.298000000000002
+              ],
+              "medianMs": 10.647599999999954
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 10.927799999999962,
+          "estimatedBreakEvenVersusCurrentScanQueries": 3
+        },
+        {
+          "range": "selective",
+          "queryCount": 32,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                147.8194000000001,
+                146.03700000000003,
+                141.9643000000001
+              ],
+              "medianMs": 146.03700000000003
+            },
+            "currentScan": {
+              "samplesMs": [
+                41.37049999999999,
+                42.391200000000026,
+                41.22900000000004
+              ],
+              "medianMs": 41.37049999999999
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                42.16159999999991,
+                39.19730000000004,
+                40.278499999999894
+              ],
+              "medianMs": 40.278499999999894
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                39.08069999999998,
+                40.00080000000003,
+                39.46589999999992
+              ],
+              "medianMs": 39.46589999999992
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 39.74609999999993,
+          "estimatedBreakEvenVersusCurrentScanQueries": 5
+        },
+        {
+          "range": "broad",
+          "queryCount": 1,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                14.030899999999974,
+                14.11389999999983,
+                14.54130000000032
+              ],
+              "medianMs": 14.11389999999983
+            },
+            "currentScan": {
+              "samplesMs": [
+                10.259399999999914,
+                10.878400000000056,
+                10.919800000000123
+              ],
+              "medianMs": 10.878400000000056
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                10.352100000000064,
+                10.452200000000175,
+                11.137399999999616
+              ],
+              "medianMs": 10.452200000000175
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                10.72420000000011,
+                10.617799999999988,
+                11.239399999999932
+              ],
+              "medianMs": 10.72420000000011
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 11.004400000000118,
+          "estimatedBreakEvenVersusCurrentScanQueries": 2
+        },
+        {
+          "range": "broad",
+          "queryCount": 8,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                105.54280000000017,
+                103.52290000000039,
+                103.87540000000035
+              ],
+              "medianMs": 103.87540000000035
+            },
+            "currentScan": {
+              "samplesMs": [
+                78.6232,
+                79.31749999999965,
+                78.28879999999981
+              ],
+              "medianMs": 78.6232
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                76.87170000000015,
+                79.33079999999973,
+                76.6576
+              ],
+              "medianMs": 76.87170000000015
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                79.22919999999976,
+                78.78969999999981,
+                79.01019999999971
+              ],
+              "medianMs": 79.01019999999971
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 79.29039999999972,
+          "estimatedBreakEvenVersusCurrentScanQueries": null
+        }
+      ]
+    },
+    {
+      "rows": 10000,
+      "dates": 365,
+      "index": {
+        "status": "ready",
+        "lastStrategy": "indexed",
+        "calls": 2,
+        "inputRows": 10000,
+        "indexedRows": 10000,
+        "dates": 365,
+        "typedArrayBytes": 41464
+      },
+      "buildSamplesMs": [
+        0.5502999999998792,
+        0.3401000000003478,
+        0.33359999999993306
+      ],
+      "buildMedianMs": 0.3401000000003478,
+      "buildIncludesEmptyComparisonFinalization": true,
+      "retainedMemoryDeltaBytes": {
+        "heap": 8248,
+        "external": 0,
+        "arrayBuffers": 41464,
+        "rss": 73728
+      },
+      "workloads": [
+        {
+          "range": "selective",
+          "queryCount": 1,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                38.258000000000266,
+                38.5612000000001,
+                39.42360000000008
+              ],
+              "medianMs": 38.5612000000001
+            },
+            "currentScan": {
+              "samplesMs": [
+                8.721799999999803,
+                10.353399999999965,
+                8.793099999999868
+              ],
+              "medianMs": 8.793099999999868
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                8.807199999999739,
+                8.320600000000468,
+                8.447200000000521
+              ],
+              "medianMs": 8.447200000000521
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                6.922700000000077,
+                6.8104999999995925,
+                7.17240000000038
+              ],
+              "medianMs": 6.922700000000077
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 7.262800000000425,
+          "estimatedBreakEvenVersusCurrentScanQueries": 1
+        },
+        {
+          "range": "selective",
+          "queryCount": 8,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                305.70759999999973,
+                303.7420999999995,
+                303.1413999999995
+              ],
+              "medianMs": 303.7420999999995
+            },
+            "currentScan": {
+              "samplesMs": [
+                58.074499999999716,
+                58.53909999999996,
+                58.572299999999814
+              ],
+              "medianMs": 58.53909999999996
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                52.71479999999974,
+                54.113499999999476,
+                55.91869999999926
+              ],
+              "medianMs": 54.113499999999476
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                52.8175999999994,
+                53.304699999999684,
+                53.9429999999993
+              ],
+              "medianMs": 53.304699999999684
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 53.64480000000003,
+          "estimatedBreakEvenVersusCurrentScanQueries": 1
+        },
+        {
+          "range": "selective",
+          "queryCount": 32,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                1213.7537000000011,
+                1233.945099999999,
+                1218.7661000000007
+              ],
+              "medianMs": 1218.7661000000007
+            },
+            "currentScan": {
+              "samplesMs": [
+                221.75,
+                215.60360000000037,
+                221.89909999999873
+              ],
+              "medianMs": 221.75
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                213.2367000000013,
+                209.83799999999974,
+                211.47750000000087
+              ],
+              "medianMs": 211.47750000000087
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                214.22080000000096,
+                207.92139999999927,
+                207.33809999999903
+              ],
+              "medianMs": 207.92139999999927
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 208.26149999999961,
+          "estimatedBreakEvenVersusCurrentScanQueries": 1
+        },
+        {
+          "range": "broad",
+          "queryCount": 1,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                83.83790000000226,
+                85.0541000000012,
+                81.26929999999993
+              ],
+              "medianMs": 83.83790000000226
+            },
+            "currentScan": {
+              "samplesMs": [
+                51.45980000000054,
+                47.97200000000157,
+                50.80680000000211
+              ],
+              "medianMs": 50.80680000000211
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                48.50590000000011,
+                50.6234000000004,
+                48.07920000000013
+              ],
+              "medianMs": 48.50590000000011
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                51.54920000000129,
+                47.904600000001665,
+                50.02390000000014
+              ],
+              "medianMs": 50.02390000000014
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 50.36400000000049,
+          "estimatedBreakEvenVersusCurrentScanQueries": 1
+        },
+        {
+          "range": "broad",
+          "queryCount": 8,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                636.9279000000024,
+                635.3638000000028,
+                646.6426999999967
+              ],
+              "medianMs": 636.9279000000024
+            },
+            "currentScan": {
+              "samplesMs": [
+                374.8011000000006,
+                365.4344999999994,
+                369.3613000000005
+              ],
+              "medianMs": 369.3613000000005
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                368.82180000000153,
+                363.3588000000018,
+                373.8139999999985
+              ],
+              "medianMs": 368.82180000000153
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                369.5584999999992,
+                363.36149999999907,
+                370.2042999999976
+              ],
+              "medianMs": 369.5584999999992
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 369.89859999999953,
+          "estimatedBreakEvenVersusCurrentScanQueries": null
+        }
+      ]
+    },
+    {
+      "rows": 50000,
+      "dates": 365,
+      "index": {
+        "status": "ready",
+        "lastStrategy": "indexed",
+        "calls": 2,
+        "inputRows": 50000,
+        "indexedRows": 50000,
+        "dates": 365,
+        "typedArrayBytes": 201464
+      },
+      "buildSamplesMs": [
+        2.435300000001007,
+        1.5913000000000466,
+        1.4336000000002969
+      ],
+      "buildMedianMs": 1.5913000000000466,
+      "buildIncludesEmptyComparisonFinalization": true,
+      "retainedMemoryDeltaBytes": {
+        "heap": 8248,
+        "external": 0,
+        "arrayBuffers": 201464,
+        "rss": 1916928
+      },
+      "workloads": [
+        {
+          "range": "selective",
+          "queryCount": 1,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                173.4336000000003,
+                171.91050000000178,
+                172.62290000000212
+              ],
+              "medianMs": 172.62290000000212
+            },
+            "currentScan": {
+              "samplesMs": [
+                17.76260000000184,
+                17.629899999999907,
+                18.8624000000018
+              ],
+              "medianMs": 17.76260000000184
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                18.529500000000553,
+                18.623200000001816,
+                17.84649999999965
+              ],
+              "medianMs": 18.529500000000553
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                15.298099999999977,
+                15.51929999999993,
+                15.641500000001543
+              ],
+              "medianMs": 15.51929999999993
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 17.110599999999977,
+          "estimatedBreakEvenVersusCurrentScanQueries": 1
+        },
+        {
+          "range": "selective",
+          "queryCount": 8,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                1369.6500000000015,
+                1373.6009999999987,
+                1366.0070999999953
+              ],
+              "medianMs": 1369.6500000000015
+            },
+            "currentScan": {
+              "samplesMs": [
+                130.72079999999914,
+                125.21159999999509,
+                125.43569999999454
+              ],
+              "medianMs": 125.43569999999454
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                116.94709999999759,
+                113.91409999999814,
+                115.98490000000311
+              ],
+              "medianMs": 115.98490000000311
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                113.46409999999742,
+                112.90090000000055,
+                108.88030000000435
+              ],
+              "medianMs": 112.90090000000055
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 114.4922000000006,
+          "estimatedBreakEvenVersusCurrentScanQueries": 2
+        },
+        {
+          "range": "selective",
+          "queryCount": 32,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                5455.1607,
+                5500.375499999995,
+                5459.115299999998
+              ],
+              "medianMs": 5459.115299999998
+            },
+            "currentScan": {
+              "samplesMs": [
+                493.0253999999986,
+                481.36699999999837,
+                487.94280000000435
+              ],
+              "medianMs": 487.94280000000435
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                436.89330000000336,
+                432.7057999999961,
+                442.5316000000021
+              ],
+              "medianMs": 436.89330000000336
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                429.53169999999955,
+                444.5034999999989,
+                431.1350999999995
+              ],
+              "medianMs": 431.1350999999995
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 432.72639999999956,
+          "estimatedBreakEvenVersusCurrentScanQueries": 1
+        },
+        {
+          "range": "broad",
+          "queryCount": 1,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                389.2073000000091,
+                392.13829999999143,
+                388.2372000000032
+              ],
+              "medianMs": 389.2073000000091
+            },
+            "currentScan": {
+              "samplesMs": [
+                222.0980000000127,
+                218.37140000000363,
+                219.7448000000004
+              ],
+              "medianMs": 219.7448000000004
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                213.56699999999546,
+                223.45650000000023,
+                219.64250000000175
+              ],
+              "medianMs": 219.64250000000175
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                214.27240000000165,
+                224.1183000000019,
+                215.19679999999062
+              ],
+              "medianMs": 215.19679999999062
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 216.78809999999066,
+          "estimatedBreakEvenVersusCurrentScanQueries": 1
+        },
+        {
+          "range": "broad",
+          "queryCount": 8,
+          "exactFullOutputPassed": true,
+          "timings": {
+            "baseline": {
+              "samplesMs": [
+                3057.548800000004,
+                3205.084600000002,
+                3045.8476999999984
+              ],
+              "medianMs": 3057.548800000004
+            },
+            "currentScan": {
+              "samplesMs": [
+                1683.102700000003,
+                1685.7302000000054,
+                1695.058600000004
+              ],
+              "medianMs": 1685.7302000000054
+            },
+            "currentIndexCold": {
+              "samplesMs": [
+                1701.5699000000022,
+                1671.2829000000056,
+                1685.659599999999
+              ],
+              "medianMs": 1685.659599999999
+            },
+            "currentIndexWarm": {
+              "samplesMs": [
+                1677.1687999999995,
+                1685.5043000000005,
+                1679.1189000000013
+              ],
+              "medianMs": 1679.1189000000013
+            }
+          },
+          "warmIndexBuildPlusQueryMs": 1680.7102000000014,
+          "estimatedBreakEvenVersusCurrentScanQueries": 2
+        }
+      ]
+    }
+  ],
+  "digest": "0"
+}

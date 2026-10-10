@@ -39,9 +39,7 @@ function requestStatusWithHost(url, host) {
 
 test('accepts the default HTTP Host form when configured for port 80', () => {
   const python = findPython();
-  if (!python) {
-    return;
-  }
+  assert.ok(python, 'Python 3.8 or newer is required for localhost runtime tests.');
   const scriptPath = path.join(__dirname, '..', 'Start-OpenSlotting-Localhost.py');
   const check = spawnSync(
     python.command,
@@ -55,12 +53,9 @@ test('accepts the default HTTP Host form when configured for port 80', () => {
   assert.equal(check.status, 0, check.stderr || check.stdout);
 });
 
-test('experimental Python server is loopback-only and serves only runtime files', { timeout: 15000 }, async (context) => {
+test('Python server is loopback-only, blocks data transmission, and serves only runtime files', { timeout: 15000 }, async (context) => {
   const python = findPython();
-  if (!python) {
-    context.skip('Python 3 is not available on this test host.');
-    return;
-  }
+  assert.ok(python, 'Python 3.8 or newer is required for localhost runtime tests.');
 
   const scriptPath = path.join(__dirname, '..', 'Start-OpenSlotting-Localhost.py');
   const child = spawn(
@@ -106,6 +101,10 @@ test('experimental Python server is loopback-only and serves only runtime files'
   assert.match(indexResponse.headers.get('content-type'), /^text\/html/);
   assert.equal(indexResponse.headers.get('cache-control'), 'no-store');
   assert.equal(indexResponse.headers.get('x-content-type-options'), 'nosniff');
+  const policy = indexResponse.headers.get('content-security-policy');
+  assert.match(policy, /connect-src 'none'/);
+  assert.match(policy, /worker-src 'self' blob:/);
+  assert.match(policy, /frame-ancestors 'none'/);
   assert.match(await indexResponse.text(), /<title>OpenSlotting[^<]*<\/title>/);
 
   const origin = new URL(url).origin;
@@ -125,6 +124,18 @@ test('experimental Python server is loopback-only and serves only runtime files'
   const scriptResponse = await fetch(origin + '/app.js');
   assert.equal(scriptResponse.status, 200);
   assert.match(scriptResponse.headers.get('content-type'), /^text\/javascript/);
+  assert.equal(scriptResponse.headers.get('cache-control'), 'no-cache');
+  const scriptEtag = scriptResponse.headers.get('etag');
+  assert.match(scriptEtag, /^"[a-f0-9]{64}"$/);
+  const unchangedScript = await fetch(origin + '/app.js', { headers: { 'If-None-Match': scriptEtag } });
+  assert.equal(unchangedScript.status, 304);
+  assert.equal(await unchangedScript.text(), '');
+  assert.equal(unchangedScript.headers.get('etag'), scriptEtag);
+  const weakEtag = await fetch(origin + '/app.js', { headers: { 'If-None-Match': 'W/' + scriptEtag } });
+  assert.equal(weakEtag.status, 304);
+  const wrongEtag = await fetch(origin + '/app.js', { headers: { 'If-None-Match': '"other"' } });
+  assert.equal(wrongEtag.status, 200);
+  await wrongEtag.arrayBuffer();
   const periodsResponse = await fetch(origin + '/periods.js');
   assert.equal(periodsResponse.status, 200);
   assert.match(periodsResponse.headers.get('content-type'), /^text\/javascript/);
@@ -136,6 +147,28 @@ test('experimental Python server is loopback-only and serves only runtime files'
   assert.match(runtimeResponse.headers.get('content-type'), /^text\/javascript/);
   await runtimeResponse.arrayBuffer();
 
+  const terminalScript = await fetch(origin + '/terminal.js');
+  assert.equal(terminalScript.status, 200);
+  assert.match(terminalScript.headers.get('content-type'), /^text\/javascript/);
+  await terminalScript.arrayBuffer();
+  const terminalTheme = await fetch(origin + '/terminal-theme.css');
+  assert.equal(terminalTheme.status, 200);
+  assert.match(terminalTheme.headers.get('content-type'), /^text\/css/);
+  await terminalTheme.arrayBuffer();
+  for (const asset of ['warehouse.js', 'warehouse-webgl.js', 'warehouse-scene.js', 'warehouse-editor.js', 'warehouse-analysis.js', 'warehouse-editor.css']) {
+    const response = await fetch(origin + '/' + asset);
+    assert.equal(response.status, 200, asset);
+    await response.arrayBuffer();
+  }
+  for (const asset of ['src/application/workspace-preparation.js', 'src/application/worker-session.js',
+    'src/ui/shared/windowed-dom.js', 'src/workers/workspace-worker.mjs']) {
+    const response = await fetch(origin + '/' + asset);
+    assert.equal(response.status, 200, asset);
+    assert.match(response.headers.get('content-type'), /^text\/javascript/);
+    const source = await response.text();
+    assert.ok(source.length > 100);
+  }
+
   const faviconResponse = await fetch(origin + '/favicon.ico');
   assert.equal(faviconResponse.status, 200);
   assert.match(faviconResponse.headers.get('content-type'), /^image\/vnd\.microsoft\.icon/);
@@ -145,9 +178,19 @@ test('experimental Python server is loopback-only and serves only runtime files'
   assert.equal(headResponse.status, 200);
   assert.equal(await headResponse.text(), '');
 
-  for (const blockedPath of ['/README.md', '/.git/config', '/%2e%2e/README.md']) {
+  for (const blockedPath of ['/README.md', '/.git/config', '/%2e%2e/README.md',
+    '/test-data/basic-orders.csv', '/workspace.workspace.json', '/Start-OpenSlotting-Localhost.py', '/docs/portable-mode-paused.md',
+    '/src/application/private.js', '/src/../README.md', '/src/workers/../../.git/config',
+    '/experiments/feature-lab/index.html', '/tools/benchmarks/browser.html']) {
     const blockedResponse = await fetch(origin + blockedPath);
     assert.equal(blockedResponse.status, 404);
     await blockedResponse.arrayBuffer();
+  }
+  for (const method of ['POST', 'PUT', 'DELETE']) {
+    const response = await fetch(origin + '/index.html', {
+      method, body: 'synthetic upload must not be accepted'
+    });
+    assert.equal(response.status, 501, method);
+    await response.arrayBuffer();
   }
 });

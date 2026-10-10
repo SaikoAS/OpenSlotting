@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="de">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenSlotting · Localhost-Labor</title>
+<style>
+body{font:16px system-ui,sans-serif;background:#f5f6f8;color:#192635;margin:32px auto;padding:0 24px;max-width:1150px}
+button,input{font:inherit;padding:8px;margin:6px}fieldset,pre{background:white;border:1px solid #ccd2da;border-radius:6px;padding:16px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}table{border-collapse:collapse;width:100%;background:white}th,td{padding:8px;border:1px solid #ccd2da;text-align:left}#status{font-weight:600}label{display:inline-block}
+</style>
+<h1>Localhost-Labor</h1>
+<p>Getrennte Experimente mit synthetischen Daten. Keine Verbindung zur Arbeitsbereichsdatenbank der Anwendung. Keine Quelldateien auswählen oder hochladen.</p>
+<fieldset>
+<legend>Messumfang</legend>
+<label>Importzeilen: <input id="rows" type="number" min="1" max="100000" value="20000"></label>
+<label>Wiederholungen: <input id="repeats" type="number" min="3" max="10" value="5"></label>
+<button id="run">Alle Vergleiche starten</button>
+<button id="download" disabled>Ergebnisse als JSON sichern</button>
+</fieldset>
+<p id="status" role="status">Bereit. Speicherprüfungen verwenden 1 und 8 MiB.</p>
+<div id="summary"></div>
+<details><summary>Vollständige Messwerte und Prüfergebnisse</summary><pre id="results">Noch kein Lauf.</pre></details>
+<script src="../../encoding.js"></script>
+<script src="../../csv.js"></script>
+<script src="../../warehouse.js"></script>
+<script src="../../workspace.js"></script>
+<script type="module" src="benchmarks/browser.mjs"></script>
+</html>

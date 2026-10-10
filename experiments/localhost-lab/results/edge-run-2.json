@@ -1,0 +1,548 @@
+{
+  "schema": 1,
+  "date": "2026-10-04T06:12:43.930Z",
+  "environment": {
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "origin": "http://127.0.0.1:49450",
+    "secureContext": true,
+    "hardwareConcurrency": 24,
+    "deviceMemoryGiB": 32,
+    "storageEstimate": {
+      "quota": 10737425829,
+      "usage": 7589,
+      "usageDetails": {
+        "indexedDB": 7589
+      }
+    },
+    "moduleWorker": true,
+    "compressionStream": true
+  },
+  "methodology": {
+    "repeats": 7,
+    "order": "rotated each round",
+    "clock": "performance.now",
+    "fixture": "deterministic synthetic, no uploads",
+    "garbageCollection": "browser-managed, not forced",
+    "memory": "no RSS or reliable per-worker peak memory measured",
+    "warmDefinition": "after first task; static modules may be in browser cache; no disk-cold claim"
+  },
+  "workers": [
+    {
+      "rows": 1000,
+      "sourceBytes": 68249,
+      "integrity": "full payload and original bytes equal",
+      "fingerprint": "439a5537ff0f14b9d14828c5b570779fc96fc0fbba3dbf28bf4ca11b770f955a",
+      "variants": [
+        {
+          "variant": "blob-fresh",
+          "firstTaskMs": 109.19999992847443,
+          "allTasks": {
+            "samplesMs": [
+              109.2,
+              103.3,
+              100,
+              98,
+              103.4,
+              78.9,
+              99.7
+            ],
+            "medianMs": 100,
+            "minMs": 78.9,
+            "maxMs": 109.2
+          },
+          "afterFirstTask": {
+            "samplesMs": [
+              103.3,
+              100,
+              98,
+              103.4,
+              78.9,
+              99.7
+            ],
+            "medianMs": 100,
+            "minMs": 78.9,
+            "maxMs": 103.4
+          }
+        },
+        {
+          "variant": "module-fresh",
+          "firstTaskMs": 115,
+          "allTasks": {
+            "samplesMs": [
+              115,
+              119.2,
+              107.2,
+              120.2,
+              113.1,
+              105,
+              113.4
+            ],
+            "medianMs": 113.4,
+            "minMs": 105,
+            "maxMs": 120.2
+          },
+          "afterFirstTask": {
+            "samplesMs": [
+              119.2,
+              107.2,
+              120.2,
+              113.1,
+              105,
+              113.4
+            ],
+            "medianMs": 113.4,
+            "minMs": 105,
+            "maxMs": 120.2
+          }
+        },
+        {
+          "variant": "module-reused",
+          "firstTaskMs": 123.29999995231628,
+          "allTasks": {
+            "samplesMs": [
+              123.3,
+              65.8,
+              53.2,
+              56.3,
+              54.2,
+              66.8,
+              51.4
+            ],
+            "medianMs": 56.3,
+            "minMs": 51.4,
+            "maxMs": 123.3
+          },
+          "afterFirstTask": {
+            "samplesMs": [
+              65.8,
+              53.2,
+              56.3,
+              54.2,
+              66.8,
+              51.4
+            ],
+            "medianMs": 56.3,
+            "minMs": 51.4,
+            "maxMs": 66.8
+          }
+        }
+      ]
+    },
+    {
+      "rows": 20000,
+      "sourceBytes": 1384450,
+      "integrity": "full payload and original bytes equal",
+      "fingerprint": "2fbb201e54db35db6171094fc9d3e7fb8239be40e29061349c8fc14e239c4c95",
+      "variants": [
+        {
+          "variant": "blob-fresh",
+          "firstTaskMs": 790.5,
+          "allTasks": {
+            "samplesMs": [
+              790.5,
+              832.6,
+              776.9,
+              799.1,
+              797.6,
+              812.7,
+              806.7
+            ],
+            "medianMs": 799.1,
+            "minMs": 776.9,
+            "maxMs": 832.6
+          },
+          "afterFirstTask": {
+            "samplesMs": [
+              832.6,
+              776.9,
+              799.1,
+              797.6,
+              812.7,
+              806.7
+            ],
+            "medianMs": 806.7,
+            "minMs": 776.9,
+            "maxMs": 832.6
+          }
+        },
+        {
+          "variant": "module-fresh",
+          "firstTaskMs": 822.8999999761581,
+          "allTasks": {
+            "samplesMs": [
+              822.9,
+              805.7,
+              808.7,
+              717.8,
+              829.3,
+              863.7,
+              812.6
+            ],
+            "medianMs": 812.6,
+            "minMs": 717.8,
+            "maxMs": 863.7
+          },
+          "afterFirstTask": {
+            "samplesMs": [
+              805.7,
+              808.7,
+              717.8,
+              829.3,
+              863.7,
+              812.6
+            ],
+            "medianMs": 812.6,
+            "minMs": 717.8,
+            "maxMs": 863.7
+          }
+        },
+        {
+          "variant": "module-reused",
+          "firstTaskMs": 855.2999999523163,
+          "allTasks": {
+            "samplesMs": [
+              855.3,
+              718.1,
+              725.2,
+              688.9,
+              697.8,
+              733.1,
+              773.7
+            ],
+            "medianMs": 725.2,
+            "minMs": 688.9,
+            "maxMs": 855.3
+          },
+          "afterFirstTask": {
+            "samplesMs": [
+              718.1,
+              725.2,
+              688.9,
+              697.8,
+              733.1,
+              773.7
+            ],
+            "medianMs": 725.2,
+            "minMs": 688.9,
+            "maxMs": 773.7
+          }
+        }
+      ]
+    }
+  ],
+  "storage": [
+    {
+      "bytes": 1048576,
+      "integrity": "SHA-256 equal after every read; caller bytes retained",
+      "scope": "raw source bytes only; no full workspace transaction comparison",
+      "variants": [
+        {
+          "variant": "indexeddb-source-bytes",
+          "openMs": 7.200000047683716,
+          "write": {
+            "samplesMs": [
+              4.5,
+              4.6,
+              5,
+              4.6,
+              5,
+              4.3,
+              4.6
+            ],
+            "medianMs": 4.6,
+            "minMs": 4.3,
+            "maxMs": 5
+          },
+          "read": {
+            "samplesMs": [
+              1.6,
+              1.6,
+              2.2,
+              9.7,
+              1.6,
+              2.2,
+              2
+            ],
+            "medianMs": 2,
+            "minMs": 1.6,
+            "maxMs": 9.7
+          }
+        },
+        {
+          "variant": "opfs-async",
+          "openMs": 2.0999999046325684,
+          "write": {
+            "samplesMs": [
+              3.8,
+              4.2,
+              4.1,
+              5.3,
+              3.5,
+              3.8,
+              3.6
+            ],
+            "medianMs": 3.8,
+            "minMs": 3.5,
+            "maxMs": 5.3
+          },
+          "read": {
+            "samplesMs": [
+              1.6,
+              1.5,
+              1.6,
+              1.7,
+              2.4,
+              1.8,
+              2.1
+            ],
+            "medianMs": 1.7,
+            "minMs": 1.5,
+            "maxMs": 2.4
+          }
+        },
+        {
+          "variant": "opfs-sync-worker",
+          "openMs": 9.900000095367432,
+          "write": {
+            "samplesMs": [
+              1.9,
+              1.6,
+              1.5,
+              2.3,
+              1.5,
+              1.8,
+              1.5
+            ],
+            "medianMs": 1.6,
+            "minMs": 1.5,
+            "maxMs": 2.3
+          },
+          "read": {
+            "samplesMs": [
+              0.4,
+              0.3,
+              0.2,
+              0.4,
+              0.3,
+              0.3,
+              0.3
+            ],
+            "medianMs": 0.3,
+            "minMs": 0.2,
+            "maxMs": 0.4
+          }
+        }
+      ]
+    },
+    {
+      "bytes": 8388608,
+      "integrity": "SHA-256 equal after every read; caller bytes retained",
+      "scope": "raw source bytes only; no full workspace transaction comparison",
+      "variants": [
+        {
+          "variant": "indexeddb-source-bytes",
+          "openMs": 2.1999999284744263,
+          "write": {
+            "samplesMs": [
+              21.3,
+              20.8,
+              20.4,
+              49.6,
+              25.2,
+              26,
+              20.6
+            ],
+            "medianMs": 21.3,
+            "minMs": 20.4,
+            "maxMs": 49.6
+          },
+          "read": {
+            "samplesMs": [
+              8.8,
+              8.8,
+              9.3,
+              50,
+              9.4,
+              8.9,
+              9.2
+            ],
+            "medianMs": 9.2,
+            "minMs": 8.8,
+            "maxMs": 50
+          }
+        },
+        {
+          "variant": "opfs-async",
+          "openMs": 1.399999976158142,
+          "write": {
+            "samplesMs": [
+              12,
+              12.2,
+              13.8,
+              55.3,
+              26.9,
+              14,
+              19.5
+            ],
+            "medianMs": 14,
+            "minMs": 12,
+            "maxMs": 55.3
+          },
+          "read": {
+            "samplesMs": [
+              4.8,
+              5,
+              4.7,
+              32.3,
+              4.7,
+              4.9,
+              4.4
+            ],
+            "medianMs": 4.8,
+            "minMs": 4.4,
+            "maxMs": 32.3
+          }
+        },
+        {
+          "variant": "opfs-sync-worker",
+          "openMs": 9.100000023841858,
+          "write": {
+            "samplesMs": [
+              11.5,
+              7.3,
+              11.8,
+              7.6,
+              7.4,
+              7.7,
+              8.3
+            ],
+            "medianMs": 7.7,
+            "minMs": 7.3,
+            "maxMs": 11.8
+          },
+          "read": {
+            "samplesMs": [
+              2.2,
+              2.2,
+              2.2,
+              2.3,
+              2.5,
+              2.1,
+              2.4
+            ],
+            "medianMs": 2.2,
+            "minMs": 2.1,
+            "maxMs": 2.5
+          }
+        }
+      ]
+    }
+  ],
+  "backup": {
+    "inputBytes": 1849310,
+    "integrity": "byte-identical JSON, accepted by current parseBackup",
+    "scope": "envelope encoding/decoding; JSON construction and validation excluded from timings",
+    "variants": [
+      {
+        "format": "identity",
+        "bytes": 1849310,
+        "ratio": 1,
+        "encode": {
+          "samplesMs": [
+            0.3,
+            0.4,
+            0.4,
+            0.4,
+            0.4,
+            0.4,
+            0.3
+          ],
+          "medianMs": 0.4,
+          "minMs": 0.3,
+          "maxMs": 0.4
+        },
+        "decode": {
+          "samplesMs": [
+            0.3,
+            0.9,
+            0.3,
+            0.3,
+            0.4,
+            0.4,
+            0.8
+          ],
+          "medianMs": 0.4,
+          "minMs": 0.3,
+          "maxMs": 0.9
+        }
+      },
+      {
+        "format": "gzip",
+        "bytes": 232699,
+        "ratio": 0.1258301744975153,
+        "encode": {
+          "samplesMs": [
+            14.9,
+            24,
+            24.8,
+            26,
+            15.3,
+            25.9,
+            17.8
+          ],
+          "medianMs": 24,
+          "minMs": 14.9,
+          "maxMs": 26
+        },
+        "decode": {
+          "samplesMs": [
+            3,
+            2.8,
+            5.8,
+            6.5,
+            2.9,
+            3,
+            3.1
+          ],
+          "medianMs": 3,
+          "minMs": 2.8,
+          "maxMs": 6.5
+        }
+      },
+      {
+        "format": "deflate",
+        "bytes": 232687,
+        "ratio": 0.12582368559084198,
+        "encode": {
+          "samplesMs": [
+            16.2,
+            16.3,
+            24.2,
+            14.5,
+            16.3,
+            23.8,
+            23.7
+          ],
+          "medianMs": 16.3,
+          "minMs": 14.5,
+          "maxMs": 24.2
+        },
+        "decode": {
+          "samplesMs": [
+            2.7,
+            3.2,
+            2.9,
+            3,
+            3.9,
+            3.2,
+            2.9
+          ],
+          "medianMs": 3,
+          "minMs": 2.7,
+          "maxMs": 3.9
+        }
+      }
+    ]
+  },
+  "status": "passed"
+}

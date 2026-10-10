@@ -47,6 +47,21 @@ jobs:
           node --check runtime.js
           node --check workspace.js
           node --check storage.js
+          node --check terminal.js
+          node --check warehouse.js
+          node --check warehouse-webgl.js
+          node --check warehouse-scene.js
+          node --check warehouse-editor.js
+          node --check warehouse-analysis.js
+          node --check src/application/workspace-preparation.js
+          node --check src/application/worker-session.js
+          node --check src/ui/shared/windowed-dom.js
+          node --check src/workers/workspace-worker.mjs
+
+      - name: Check Python runtime availability and syntax
+        run: |
+          python3 --version
+          python3 -c "import ast, pathlib; ast.parse(pathlib.Path('Start-OpenSlotting-Localhost.py').read_text(encoding='utf-8'))"
 
       - name: Run tests
         run: node --test tests/*.test.cjs
@@ -72,4 +87,12 @@ jobs:
 
       - name: Test localhost Windows launcher logic
         shell: pwsh
-        run: ./tests/localhost-windows-launcher.test.ps1
+        run: |
+          ./tests/windows-launcher.test.ps1
+          ./tests/localhost-windows-launcher.test.ps1
+
+      - name: Test launchers in Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          ./tests/windows-launcher.test.ps1
+          ./tests/localhost-windows-launcher.test.ps1

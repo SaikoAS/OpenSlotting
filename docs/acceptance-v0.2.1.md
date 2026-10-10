@@ -1,5 +1,8 @@
 # OpenSlotting V0.2.1 Windows Launcher Acceptance
 
+> Historical record: the runtime and checks below apply to that release.
+> Active development now uses localhost only; [Portable Mode is paused indefinitely](portable-mode-paused.md).
+
 Run this checklist on the exact V0.2.1 release candidate on Windows. Use a fresh
 extraction path containing spaces and only synthetic CSV fixtures. Automated
 checks do not replace the visible Microsoft Edge and shortcut acceptance run.

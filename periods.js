@@ -10,6 +10,12 @@
   const DEFAULT_WEEKDAYS = Object.freeze([0, 1, 2, 3, 4, 5, 6]);
   const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
   const MAX_SUPPORTED_DATE = '9999-12-31';
+  const COMPARISON_INDEX_MIN_ROWS = 512;
+  const COMPARISON_INDEX_MAX_ROWS = 250000;
+  const COMPARISON_INDEX_MAX_DATES = 4096;
+  // Reuse is opt-in through a caller-owned revision. Unrevisioned mutable
+  // arrays always scan. Weak keys release the index with its analysis input.
+  const comparisonIndexCache = new WeakMap();
 
   function validDate(value) {
     if (typeof value !== 'string' || !ISO_DATE_PATTERN.test(value)) {
@@ -208,7 +214,8 @@
     let rowCount = 0;
 
     function consume(row) {
-      if (!validRange || !row || row.delivery_date < normalized.start || row.delivery_date > normalized.end) {
+      if (!validRange || !row || typeof row.delivery_date !== 'string' || !row.delivery_date ||
+          row.delivery_date < normalized.start || row.delivery_date > normalized.end) {
         return;
       }
       rowCount += 1;
@@ -356,12 +363,127 @@
     return 'unchanged';
   }
 
-  function comparePeriods(rows, settings, analyzeRows, featureReadiness, articleRegistry) {
+  function lowerDateBound(dates, value, inclusiveEnd) {
+    let left = 0;
+    let right = dates.length;
+    while (left < right) {
+      const middle = (left + right) >>> 1;
+      if (dates[middle] < value || (inclusiveEnd && dates[middle] === value)) left = middle + 1;
+      else right = middle;
+    }
+    return left;
+  }
+
+  function buildComparisonIndex(rows) {
+    const buckets = new Map();
+    let indexedRows = 0;
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+      const row = rows[rowIndex];
+      if (!row || row.delivery_date === null || row.delivery_date === undefined || row.delivery_date === '') continue;
+      // Normalized inputs have string/null dates. Other representations retain
+      // their legacy coercion semantics through the scan fallback.
+      if (typeof row.delivery_date !== 'string') return null;
+      let refs = buckets.get(row.delivery_date);
+      if (!refs) {
+        if (buckets.size === COMPARISON_INDEX_MAX_DATES) return null;
+        refs = [];
+        buckets.set(row.delivery_date, refs);
+      }
+      refs.push(rowIndex);
+      indexedRows += 1;
+    }
+    const dates = Array.from(buckets.keys()).sort();
+    const offsets = new Uint32Array(dates.length + 1);
+    const refs = new Uint32Array(indexedRows);
+    let offset = 0;
+    dates.forEach(function (date, index) {
+      offsets[index] = offset;
+      const bucket = buckets.get(date);
+      refs.set(bucket, offset);
+      offset += bucket.length;
+    });
+    offsets[dates.length] = offset;
+    return { dates: dates, offsets: offsets, refs: refs };
+  }
+
+  function comparisonCandidates(rows, normalized, options) {
+    if (!Array.isArray(rows) || !options || options.indexRevision === undefined || options.indexRevision === null) return null;
+    if (rows.length < COMPARISON_INDEX_MIN_ROWS) { comparisonIndexCache.delete(rows); return null; }
+    let entry = comparisonIndexCache.get(rows);
+    if (!entry || entry.revision !== options.indexRevision || entry.length !== rows.length) {
+      entry = { revision: options.indexRevision, length: rows.length, calls: 0, index: null,
+        disabled: rows.length > COMPARISON_INDEX_MAX_ROWS, lastStrategy: 'scan' };
+      comparisonIndexCache.set(rows, entry);
+    }
+    entry.calls += 1;
+    entry.lastStrategy = 'scan';
+    // One isolated comparison pays no index build cost.
+    if (entry.disabled || entry.calls < 2) return null;
+    if (!entry.index) {
+      entry.index = buildComparisonIndex(rows);
+      if (!entry.index) { entry.disabled = true; return null; }
+    }
+    const index = entry.index;
+    const ranges = [normalized.periodA, normalized.periodB].filter(function (period) {
+      return period.start && period.end && period.start <= period.end;
+    }).map(function (period) {
+      return { start: lowerDateBound(index.dates, period.start, false), end: lowerDateBound(index.dates, period.end, true) };
+    }).filter(function (range) { return range.start < range.end; }).sort(function (left, right) { return left.start - right.start; });
+    const merged = [];
+    ranges.forEach(function (range) {
+      const previous = merged[merged.length - 1];
+      if (previous && range.start <= previous.end) previous.end = Math.max(previous.end, range.end);
+      else merged.push({ start: range.start, end: range.end });
+    });
+    const candidateCount = merged.reduce(function (count, range) {
+      return count + index.offsets[range.end] - index.offsets[range.start];
+    }, 0);
+    // A broad comparison scans directly instead of allocating/sorting most of
+    // the input. The existing full accumulators still determine every metric.
+    if (candidateCount > rows.length / 2) return null;
+    const candidates = new Uint32Array(candidateCount);
+    let cursor = 0;
+    merged.forEach(function (range) {
+      const selected = index.refs.subarray(index.offsets[range.start], index.offsets[range.end]);
+      candidates.set(selected, cursor);
+      cursor += selected.length;
+    });
+    candidates.sort();
+    entry.lastStrategy = 'indexed';
+    return candidates;
+  }
+
+  function invalidateComparisonIndex(rows) {
+    return Array.isArray(rows) ? comparisonIndexCache.delete(rows) : false;
+  }
+
+  function comparisonIndexInfo(rows) {
+    const entry = Array.isArray(rows) && comparisonIndexCache.get(rows);
+    if (!entry) return { status: 'absent', lastStrategy: 'scan', indexedRows: 0, dates: 0, typedArrayBytes: 0 };
+    return { status: entry.disabled ? 'unsupported' : entry.index ? 'ready' : 'pending',
+      lastStrategy: entry.lastStrategy, calls: entry.calls, inputRows: entry.length,
+      indexedRows: entry.index ? entry.index.refs.length : 0,
+      dates: entry.index ? entry.index.dates.length : 0,
+      typedArrayBytes: entry.index ? entry.index.refs.byteLength + entry.index.offsets.byteLength : 0 };
+  }
+
+  function comparePeriods(rows, settings, analyzeRows, featureReadiness, articleRegistry, options) {
     if (typeof analyzeRows !== 'function') {
       throw new TypeError('An analyzeRows function is required.');
     }
     const normalized = normalizeSettings(settings);
     const createAccumulator = analyzeRows && analyzeRows.createAnalysisAccumulator;
+    const inputRows = rows || [];
+    const candidates = comparisonCandidates(inputRows, normalized, options);
+    const validA = Boolean(normalized.periodA.start && normalized.periodA.end && normalized.periodA.start <= normalized.periodA.end);
+    const validB = Boolean(normalized.periodB.start && normalized.periodB.end && normalized.periodB.start <= normalized.periodB.end);
+    function forEachCandidate(consume) {
+      if (candidates) {
+        candidates.forEach(function (index) { consume(inputRows[index], index); });
+      } else {
+        inputRows.forEach(consume);
+      }
+    }
     let analysisA;
     let analysisB;
     let coverageA;
@@ -371,13 +493,13 @@
       const accumulatorB = createAccumulator();
       const coverageAccumulatorA = createCoverageAccumulator(normalized.periodA, normalized.expectedWeekdays);
       const coverageAccumulatorB = createCoverageAccumulator(normalized.periodB, normalized.expectedWeekdays);
-      (rows || []).forEach(function (row, index) {
+      forEachCandidate(function (row, index) {
         if (!row) {
           return;
         }
-        const inA = normalized.periodA && validDate(normalized.periodA.start) && validDate(normalized.periodA.end) &&
+        const inA = validA &&
           row.delivery_date >= normalized.periodA.start && row.delivery_date <= normalized.periodA.end;
-        const inB = normalized.periodB && validDate(normalized.periodB.start) && validDate(normalized.periodB.end) &&
+        const inB = validB &&
           row.delivery_date >= normalized.periodB.start && row.delivery_date <= normalized.periodB.end;
         if (inA) {
           accumulatorA.consume(row, index);
@@ -397,25 +519,29 @@
       const indexesA = [];
       const rowsB = [];
       const indexesB = [];
-      (rows || []).forEach(function (row, index) {
+      const coverageAccumulatorA = createCoverageAccumulator(normalized.periodA, normalized.expectedWeekdays);
+      const coverageAccumulatorB = createCoverageAccumulator(normalized.periodB, normalized.expectedWeekdays);
+      forEachCandidate(function (row, index) {
         if (!row) {
           return;
         }
-        if (normalized.periodA && validDate(normalized.periodA.start) && validDate(normalized.periodA.end) &&
+        if (validA &&
           row.delivery_date >= normalized.periodA.start && row.delivery_date <= normalized.periodA.end) {
           rowsA.push(row);
           indexesA.push(index);
         }
-        if (normalized.periodB && validDate(normalized.periodB.start) && validDate(normalized.periodB.end) &&
+        if (validB &&
           row.delivery_date >= normalized.periodB.start && row.delivery_date <= normalized.periodB.end) {
           rowsB.push(row);
           indexesB.push(index);
         }
+        coverageAccumulatorA.consume(row);
+        coverageAccumulatorB.consume(row);
       });
       analysisA = analyzeRows(rowsA, { detailIndexes: indexesA });
       analysisB = analyzeRows(rowsB, { detailIndexes: indexesB });
-      coverageA = coverageForPeriod(rows, normalized.periodA, normalized.expectedWeekdays);
-      coverageB = coverageForPeriod(rows, normalized.periodB, normalized.expectedWeekdays);
+      coverageA = coverageAccumulatorA.finish();
+      coverageB = coverageAccumulatorB.finish();
     }
     const orderComponent = featureReadiness && featureReadiness.periodComparison &&
       featureReadiness.periodComparison.components && featureReadiness.periodComparison.components.distinctOrders;
@@ -617,6 +743,9 @@
     defaultSettings: defaultSettings,
     rowsForPeriod: rowsForPeriod,
     coverageForPeriod: coverageForPeriod,
+    COMPARISON_INDEX_LIMITS: Object.freeze({ minRows: COMPARISON_INDEX_MIN_ROWS, maxRows: COMPARISON_INDEX_MAX_ROWS, maxDates: COMPARISON_INDEX_MAX_DATES }),
+    invalidateComparisonIndex: invalidateComparisonIndex,
+    comparisonIndexInfo: comparisonIndexInfo,
     comparePeriods: comparePeriods,
     exportComparisonCsv: exportComparisonCsv
   };
