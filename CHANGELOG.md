@@ -4,6 +4,8 @@ All notable changes to OpenSlotting are documented in this file.
 
 ## Unreleased
 
+- Distinguish development and release builds in EN/DE and show the candidate commit and actual data formats in runtime diagnostics. Stamp commit-bound packages without changing the working tree; generate a ZIP checksum, candidate manifest and fresh pending acceptance record for the four current checklists. Native Windows/Edge acceptance remains required.
+
 - Refresh schema and workspace-navigation assertions, cover physical-part collisions and parametric modeling, verify analysis component colors and route stencil/picking calls, and pin historical warehouse laboratory tests to hash-checked layout-1 references. Record the project review and remaining native Edge/performance acceptance.
 
 - Prevent horizontal overflow in the desktop navigation with compact localized labels and bounded text wrapping. Retain full localized tooltips and accessible button names, vertical scrolling in short windows and the horizontal navigation strip on narrow screens. Native Edge visual acceptance is pending.

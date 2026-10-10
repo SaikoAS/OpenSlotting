@@ -31,6 +31,12 @@ if (-not $versionMatch.Success) {
 }
 
 $version = $versionMatch.Groups[1].Value
+$buildPattern = "const APP_BUILD = Object\.freeze\(\{ status: '(development|release)', commit: null \}\);"
+$buildMatches = [regex]::Matches($versionSource, $buildPattern)
+if ($buildMatches.Count -ne 1) {
+    throw "Expected one unstamped APP_BUILD declaration in csv.js at commit $resolvedCandidate."
+}
+$buildStatus = $buildMatches[0].Groups[1].Value
 $packageName = "OpenSlotting-v$version"
 
 if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
@@ -158,5 +164,98 @@ if ($LASTEXITCODE -ne 0) {
     throw "Release archive creation failed for commit $resolvedCandidate.`n$($archiveOutput -join [Environment]::NewLine)"
 }
 
+# Stamp the archived candidate, never the working tree. All other entries remain
+# from git archive. The committed status is explicit; packaging does not release it.
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$archive = [System.IO.Compression.ZipFile]::Open($archivePath, [System.IO.Compression.ZipArchiveMode]::Update)
+try {
+    $entryName = "$packageName/csv.js"
+    $entry = $archive.GetEntry($entryName)
+    $entryTimestamp = $entry.LastWriteTime
+    $reader = [System.IO.StreamReader]::new($entry.Open(), [System.Text.Encoding]::UTF8)
+    try { $csvSource = $reader.ReadToEnd() } finally { $reader.Dispose() }
+    $stampedSource = [regex]::Replace($csvSource, $buildPattern,
+        "const APP_BUILD = Object.freeze({ status: '$buildStatus', commit: '$resolvedCandidate' });")
+    $entry.Delete()
+    $stampedEntry = $archive.CreateEntry($entryName)
+    $stampedEntry.LastWriteTime = $entryTimestamp
+    $writer = [System.IO.StreamWriter]::new($stampedEntry.Open(), [System.Text.UTF8Encoding]::new($false))
+    try { $writer.Write($stampedSource) } finally { $writer.Dispose() }
+} finally { $archive.Dispose() }
+
+$archiveHash = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+$candidateName = "$packageName-$resolvedCandidate"
+$manifestPath = Join-Path $outputRoot "$candidateName.candidate.json"
+$manifest = [ordered]@{
+    candidateCommit = $resolvedCandidate
+    productVersion = $version
+    buildStatus = $buildStatus
+    archive = [System.IO.Path]::GetFileName($archivePath)
+    archiveSha256 = $archiveHash
+}
+$utf8 = [System.Text.UTF8Encoding]::new($false)
+[System.IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json), $utf8)
+
+# A fresh result/evidence row for every current checklist item. Historical
+# evidence is deliberately excluded. No automatic or manual pass is inferred.
+$record = [System.Collections.Generic.List[string]]::new()
+$record.Add('# Candidate acceptance record')
+$record.Add('')
+$record.Add("Candidate commit: $resolvedCandidate")
+$record.Add("Product version: $version; build status: $buildStatus")
+$record.Add("Archive: $([System.IO.Path]::GetFileName($archivePath))")
+$record.Add("Archive SHA-256: $archiveHash")
+$record.Add('')
+$record.Add('| Environment | Value |')
+$record.Add('| --- | --- |')
+foreach ($field in @('Extracted folder', 'Windows version', 'Edge version and profile', 'Python version and path', 'Tester and date')) {
+    $record.Add("| $field | NOT RECORDED |")
+}
+$record.Add('')
+$record.Add('Decision: PENDING — native Windows/Edge acceptance has not been recorded.')
+$record.Add('Use only fully synthetic fixtures and evidence. Record PASS, FAIL, or NOT RUN for every row, with an evidence reference and any blocker. Every result must refer to this commit and ZIP checksum. A changed candidate requires a new record; do not reuse historical results.')
+
+foreach ($checklist in @('docs/acceptance-localhost.md', 'docs/acceptance-workspaces.md', 'docs/acceptance-period-comparison.md', 'docs/acceptance-warehouse-workflow.md')) {
+    $source = Invoke-GitText @('show', "${resolvedCandidate}:$checklist")
+    $record.Add('')
+    $record.Add("## $checklist")
+    $record.Add('')
+    $record.Add('| Check | Result | Synthetic evidence / blocker |')
+    $record.Add('| --- | --- | --- |')
+    $warehouseSection = $false
+    $task = ''
+    foreach ($line in ($source -split '\r?\n')) {
+        if ($line -match '^## ') {
+            $warehouseSection = $line -eq '## Required manual checks in the current localhost runtime'
+        }
+        $isTask = $line -match '^(?:-|\d+\.) \[ \] (.+)$'
+        if (-not $isTask -and $warehouseSection) { $isTask = $line -match '^\d+\. (.+)$' }
+        if ($isTask) {
+            if ($task) { $record.Add("| $($task.Replace('|', '\|')) | NOT RUN | |") }
+            $task = $Matches[1]
+        } elseif ($task -and $line -match '^\s+\S') {
+            $task += ' ' + $line.Trim()
+        } elseif ($task) {
+            $record.Add("| $($task.Replace('|', '\|')) | NOT RUN | |")
+            $task = ''
+        }
+    }
+    if ($task) { $record.Add("| $($task.Replace('|', '\|')) | NOT RUN | |") }
+}
+$recordPath = Join-Path $outputRoot "$candidateName.acceptance.md"
+if (Test-Path -LiteralPath $recordPath) {
+    $existingRecord = [System.IO.File]::ReadAllText($recordPath)
+    if (-not $existingRecord.Contains("Archive SHA-256: $archiveHash")) {
+        throw 'Existing acceptance record has a different ZIP checksum. Use a new output directory for a fresh acceptance run.'
+    }
+} else {
+    [System.IO.File]::WriteAllText($recordPath, ($record -join [Environment]::NewLine) + [Environment]::NewLine, $utf8)
+}
+
 Write-Output "Candidate commit: $resolvedCandidate"
+Write-Output "Build status: $buildStatus"
 Write-Output "Archive: $archivePath"
+Write-Output "Archive SHA-256: $archiveHash"
+Write-Output "Candidate manifest: $manifestPath"
+Write-Output "Pending acceptance record: $recordPath"

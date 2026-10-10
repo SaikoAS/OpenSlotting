@@ -27,6 +27,21 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/package-release.ps1 -C
 
 Confirm that the commit printed by the script exactly matches the recorded candidate commit.
 
+For development acceptance, keep `APP_VERSION`, the `development` build status
+and the `Unreleased` changelog heading. A development acceptance run does not
+assign a new version or authorize publication. The version/changelog steps
+above apply only when preparing a published release.
+
+Packaging stamps `APP_BUILD.commit` in the archived `csv.js`, retaining the
+candidate's committed build status. It also prints the ZIP SHA-256 and writes
+`OpenSlotting-v<version>-<commit>.candidate.json` and
+`OpenSlotting-v<version>-<commit>.acceptance.md` beside the ZIP. Use that fresh
+record for the four detailed acceptance checklists; every row starts **NOT RUN**.
+The sidecars stay outside the user-facing ZIP. Keep the ZIP and its record
+together, verify its checksum before testing, and record the extraction folder,
+Windows/Edge/Python versions and profile. Do not copy historical pass results.
+An existing record for the same checksum is preserved when repackaging.
+
 ## Automated checks
 
 - [ ] `node --check csv.js`
@@ -46,7 +61,7 @@ Confirm that the commit printed by the script exactly matches the recorded candi
 - [ ] `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/localhost-windows-launcher.test.ps1`
 - [ ] `pwsh -NoProfile -File tests/localhost-windows-launcher.test.ps1`
 - [ ] `git diff --check` reports no whitespace errors
-- [ ] `CHANGELOG.md` contains the planned publication date instead of `Unreleased`
+- [ ] For publication: `CHANGELOG.md` contains the planned publication date instead of `Unreleased`; for development acceptance: keep `Unreleased`
 - [ ] Required GitHub Actions check `quality` passes on the exact final PR head
 - [ ] Runtime files contain no unexpected network, CDN, telemetry, remote backend, or extra runtime dependency
 - [ ] The full candidate commit hash is recorded above
@@ -67,6 +82,7 @@ Run these checks on Windows in Microsoft Edge Desktop with the network unavailab
 The V0.2 and V0.2.1 acceptance checklists are historical records. A future release candidate requires a new exact-commit acceptance run; do not copy historical results into the current candidate record.
 
 1. [ ] The localhost launcher opens the extracted application at the fixed loopback origin.
+   Diagnostics show the candidate's product version, explicit build status, full commit and actual workspace/layout/backup formats in English and German. The commit matches the printed packaging identity and candidate manifest.
 2. [ ] The application loads without blocking runtime errors.
 3. [ ] A synthetic CSV can be imported.
 4. [ ] Automatic column mapping works.

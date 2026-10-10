@@ -7,6 +7,33 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 const runtimeApi = require('../runtime.js');
+const core = require('../csv.js');
+const workspace = require('../workspace.js');
+const warehouse = require('../warehouse.js');
+
+test('build diagnostics use actual data formats and an honest unpackaged fallback', () => {
+  for (const metadata of [undefined, null, {}, { status: 'release', commit: 'invalid' }]) {
+    const build = runtimeApi.describeBuild({ APP_VERSION: core.APP_VERSION, APP_BUILD: metadata }, workspace, warehouse);
+    assert.equal(build.version, core.APP_VERSION);
+    assert.equal(build.status, 'development');
+    assert.equal(build.commit, null);
+    assert.equal(build.workspaceSchema, workspace.WORKSPACE_SCHEMA_VERSION);
+    assert.equal(build.layoutSchema, warehouse.LAYOUT_VERSION);
+    assert.equal(build.backupFormat, workspace.BACKUP_FORMAT_VERSION);
+  }
+});
+
+test('packaged builds retain the candidate identity without inferring a release', () => {
+  const commit = 'a'.repeat(40);
+  for (const status of ['development', 'release', 'unexpected']) {
+    const build = runtimeApi.describeBuild({ APP_VERSION: core.APP_VERSION, APP_BUILD: { status, commit } }, workspace, warehouse);
+    assert.equal(build.commit, commit);
+    assert.equal(build.status, status === 'release' ? 'release' : 'development');
+    assert.equal(Object.isFrozen(build), true);
+  }
+  assert.equal(core.APP_BUILD.status, 'development');
+  assert.equal(core.APP_BUILD.commit, null);
+});
 
 function createEnvironment(location, overrides) {
   return Object.assign({
