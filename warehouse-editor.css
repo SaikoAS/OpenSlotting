@@ -90,6 +90,63 @@
 .wh-section { display: grid; gap: 9px; margin-top: 13px; padding-top: 13px; border-top: 1px solid #313b46; }
 .wh-section > strong { font-size: .74rem; }
 .wh-section .wh-small-button { justify-self: start; font-size: .69rem; }
+.wh-section summary { color: #d6e9e6; cursor: pointer; font-size: .75rem; font-weight: 700; }
+.wh-section > p { margin: 0; font-size: .7rem; line-height: 1.5; }
+.wh-section > button, .wh-preview button { padding: 7px 10px; border: 1px solid #42635f; border-radius: 5px; color: #bff2e8; background: #203c3a; cursor: pointer; font-size: .7rem; }
+.wh-section > button:hover, .wh-preview button:hover { background: #2e4c4a; }
+.wh-section summary:focus-visible, .wh-section > button:focus-visible, .wh-preview button:focus-visible { outline: 2px solid #85e8d5; outline-offset: 2px; }
+.wh-group-members { display: grid; gap: 8px; max-height: 230px; overflow-y: auto; }
+.wh-group-members span { overflow-wrap: anywhere; }
+.wh-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; margin-bottom: 14px; border: 1px solid #63bea9; border-radius: 7px; color: #d1eee6; background: #203c37; font-size: .74rem; }
+.wh-preview > strong, .wh-preview > span { flex-basis: 100%; }
+.wh-preview label { display: flex; align-items: center; gap: 8px; }
+.wh-preview input { width: 100px; padding: 6px; border: 1px solid #42635f; border-radius: 4px; color: #e9f2f4; background: #222b35; }
+.wh-preview button:disabled { cursor: default; opacity: .45; }
+.wh-collisions.is-info { border-color: #426875; background: #1b2d36; }
+.wh-collisions.is-info h4, .wh-collision-row.is-info small { color: #a9d7e3; }
+.wh-collision-row.is-info button { border-color: #426875; color: #c2e4eb; background: #20333d; }
+.wh-editor-root .wh-sidebar, .wh-editor-root .wh-main, .wh-editor-root .wh-objects, .wh-editor-root .wh-collision-list,
+.wh-editor-root .wh-properties .wh-card, .wh-editor-root .wh-group-members,
+.wh-editor-root .wh-wizard, .wh-editor-root .wh-wizard-table-wrap { overscroll-behavior: contain; scrollbar-gutter: stable; }
+.wh-editor-root .wh-viewport { overflow: hidden; overscroll-behavior: none; }
+.wh-editor-root .wh-canvas:focus-visible, .wh-editor-root [data-ui-key]:focus-visible { outline: 2px solid #85e8d5; outline-offset: -3px; }
+.wh-zoom-value { align-self: center; min-width: 42px; color: #d4e6e6; text-align: center; font-variant-numeric: tabular-nums; }
+.wh-zoom-speed { display: flex; align-items: center; gap: 5px; color: #a9bdc5; font-size: .67rem; }
+.wh-zoom-speed select { padding: 5px; border: 1px solid #42635f; border-radius: 5px; color: #d4e6e6; background: #203c3a; font-size: .68rem; }
+.wh-zoom-speed select:focus-visible, .wh-editor-root .wh-view-toolbar button:focus-visible { outline: 2px solid #85e8d5; outline-offset: 2px; }
+.workflow-content > #warehouse-page, .workflow-content > #warehouse-analysis-page { scrollbar-gutter: auto; }
+#warehouse-panel, #warehouse-analysis-panel { height: 100%; min-height: 0; }
+.wh-editor-root, #warehouse-analysis-root { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.wh-editor-root > .wh-header, .wh-editor-root > .wh-modes, .wh-editor-root > .wh-message { flex: none; }
+.wh-editor-root > .wh-preview { flex: none; max-height: 40%; overflow: auto; overscroll-behavior: contain; }
+@media (min-width: 1001px) {
+  .wh-editor-root .wh-editor-grid { flex: 1 1 0; height: auto; min-height: 140px; align-items: stretch; }
+  .wh-editor-root .wh-main { height: 100%; min-height: 0; grid-template-rows: auto minmax(120px, 1fr) auto auto; overflow-y: auto; }
+  .wh-editor-root .wh-viewport, .wh-editor-root .wh-webgl-slot { height: 100%; min-height: 0; }
+  .wh-editor-root .wh-canvas { height: 100%; min-height: 0; box-sizing: border-box; }
+  .wh-editor-root .wh-view-toolbar { position: sticky; top: 0; z-index: 2; align-items: flex-start; }
+  .wh-editor-root .wh-view-toolbar > strong { flex: none; padding-top: 5px; }
+  .wh-editor-root .wh-sidebar { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow-y: auto; }
+  .wh-editor-root .wh-sidebar > .wh-card { flex: none; }
+  .wh-editor-root .wh-sidebar > .wh-objects { flex: 1 1 100px; min-height: 80px; max-height: none; }
+  .wh-editor-root .wh-collision-list { max-height: min(230px, 22dvh); }
+  .wh-editor-root .wh-properties { height: 100%; min-height: 0; grid-template-rows: minmax(0, 1fr); }
+  .wh-editor-root .wh-properties > .wh-card { height: 100%; min-height: 0; max-height: none; box-sizing: border-box; }
+  #warehouse-analysis-root { display: grid; grid-template-columns: minmax(0, 1fr) 300px; grid-template-rows: auto auto minmax(140px, 1fr) auto auto; gap: 12px; }
+  #warehouse-analysis-root > .wh-header { grid-column: 1 / -1; padding-bottom: 0; }
+  #warehouse-analysis-root > .wh-view-toolbar { grid-column: 1; grid-row: 2; }
+  #warehouse-analysis-root > .wh-analysis-viewport { grid-column: 1; grid-row: 3; height: 100%; min-height: 0; margin: 0; }
+  #warehouse-analysis-root .wh-analysis-canvas { height: 100%; min-height: 0; }
+  #warehouse-analysis-root > .wh-view-hint { grid-column: 1; grid-row: 4; margin: 0; }
+  #warehouse-analysis-root > .wh-legend { grid-column: 1; grid-row: 5; margin: 0; }
+  #warehouse-analysis-root > .wh-analysis-details { grid-column: 2; grid-row: 2 / 6; display: flex; flex-direction: column; min-height: 0; margin: 0; overflow: auto; overscroll-behavior: contain; }
+  #warehouse-analysis-root .wh-analysis-details > .wh-card { flex: 1 1 0; min-height: 100px; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+}
+@media (max-width: 1000px) {
+  .wh-editor-root, #warehouse-analysis-root { height: auto; min-height: 100%; overflow: visible; }
+  .wh-editor-root .wh-canvas, #warehouse-analysis-root .wh-analysis-canvas { height: clamp(180px, 50dvh, 700px); }
+  .wh-editor-root .wh-properties .wh-card { max-height: min(70vh, 650px); }
+}
 .wh-check { display: flex; align-items: center; gap: 7px; color: #b8c7cf; font-size: .72rem; }
 .wh-check input { width: auto; }
 .wh-code-row { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: center; gap: 6px; color: #8ea5af; font-size: .7rem; }

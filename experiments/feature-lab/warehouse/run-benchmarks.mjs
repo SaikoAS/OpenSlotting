@@ -11,6 +11,10 @@ import workspace from '../../../workspace.js';
 import { createAlternatives, batchTransparent, workspaceProjection, createWorkspaceProjectionCache } from './modules.mjs';
 import { layoutFixture, registryFixture, profileFixture } from './fixtures.mjs';
 
+if (model.LAYOUT_VERSION !== 1) {
+  throw new Error('Historical layout-1 benchmark: run from db39ffaca31ebeddec884413c38725f4fd38a5a0. Current clearance/junction semantics require a new benchmark reference.');
+}
+
 const alt = createAlternatives(model, scene, workspace), repeats = 7;
 const version = { workspaceId: 'synthetic', layoutRevision: 1, registryRevision: 1, locale: 'de', kernelVersion: 1 };
 const median = a => a.slice().sort((x, y) => x - y)[Math.floor(a.length / 2)];

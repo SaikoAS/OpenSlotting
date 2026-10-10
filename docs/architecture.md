@@ -1,6 +1,6 @@
 # Architektur und Projektkarte
 
-Stand: 2026-10-04. Die aktive Anwendung läuft im Browser am festen Loopback-
+Stand: 2026-10-10. Die aktive Anwendung läuft im Browser am festen Loopback-
 Origin `http://127.0.0.1:8765`. Python liefert lokale, ausdrücklich erlaubte
 Anwendungsdateien mit seiner Standardbibliothek. CSV-Import, Aufbereitung,
 Fachanalyse und IndexedDB-Speicherung bleiben im Browser. Der Server besitzt
@@ -20,7 +20,7 @@ keine Workspace-Datenbank, Uploadschnittstelle oder Backend-Daten-API.
 | `encoding.js`, `csv.js` | Decoder, Streaming-CSV, Mapping, Regeln, Profile, Validierung, Artikelregister und vollständige exakte Analyse |
 | `periods.js`, `terminal.js` | Abdeckung und Periodenvergleich; begrenzter Datumsindex; Analyseschreibtisch, Ranglisten und Locale-Suchprojektionen |
 | `workspace.js`, `storage.js` | Workspace-/Sicherungsvertrag, Validierung/Migration, stapelsichere Base64-Prüfung und atomare Chunk-Speicherung in IndexedDB |
-| `warehouse.js` | Layout-Schema 2: physische Struktur, Zonen und Locations; Migration, stabile IDs, Codes, Artikelzuordnung und optimierte Kollisionsprüfung |
+| `warehouse.js` | Layout-Schema 3: Struktur, Zonen, Locations, Gruppen, Endpunktverbindungen und Fahrwege; Migration, stabile IDs, gemeinsame Bauteilgeometrie und Kollisionsprüfung mit Höhen |
 | `warehouse-scene.js`, `warehouse-webgl.js` | Gemeinsame Szene, CPU-Projektion, Framepuffer und lokales WebGL2-Rendering |
 | `warehouse-editor.js`, `warehouse-editor.css` | Layoutbearbeitung, bestätigtes Speichern, Sperren, 20-stufige Undo/Redo-Historie und Draufsicht/3D |
 | `warehouse-analysis.js` | Lesende Stellplatz-/Artikelstammanalyse; verändert keine gespeicherten Layouts |
@@ -99,7 +99,7 @@ ihre bestehenden Regeln.
 ## Datenschutz, Laufzeit und Datenkompatibilität
 
 IndexedDB bleibt im aktuellen Browserprofil und Origin: Datenbank
-`openslotting-workspaces`, Datenbankversion 3, Workspace-Schema 14. Neue
+`openslotting-workspaces`, Datenbankversion 3, Workspace-Schema 16. Neue
 Module und flüchtige Caches erfordern keine Datenmigration und verändern den
 Sicherungsvertrag nicht. Originalbytes und BigInt-/Binärkodierung bleiben
 verlustlos. Die Base64-Korrektur vermeidet die rekursiv gruppierte Prüfung
@@ -170,3 +170,112 @@ gespeichert. Die lesende 3D-Auswertung verändert keine Zonen, Codes oder Geomet
 Die vorbereitete SAT-Prüfung und direkten Float32-Puffer bleiben erhalten.
 
 Siehe [Lagerübernahme und neue Messungen](performance/warehouse-layout-v2.md).
+
+## Lagereditor-Fortschreibung vom 2026-10-10
+
+Der gemeinsame Migrator überführt Layout 1/2/3 nach Layout 4 und Workspace 16.
+Gruppen und Endpunktverbindungen sind eigene Metadatenlisten. Durchfahrten
+verweisen optional auf einen Fahrweg; Fahrzeugmaße werden ausdrücklich erfasst.
+Bestehende gezeichnete Fahrwege behalten lokale Punkte und eine separate Breite.
+Neue Wand- und Fahrwegrezepte speichern `junction.shape` und eigene Armlängen.
+Ein mittleres Quadrat und rechteckige Arme bestimmen die tatsächliche Form;
+Darstellung, Picking und Kollisionsprüfung verwenden diese Teile. Zwei, drei
+oder vier stabile Anschlüsse werden in die Weltkoordinaten transformiert.
+Magnet und Verbinden berücksichtigen Objektfamilie, Breite, Anschlussrichtung
+und belegte Anschlüsse. Der Editor bietet keine Freihand-Wegpunkte mehr an.
+`createDistanceConnection` erzeugt aus zwei freien Anschlüssen eine Kette normaler
+Geraden und Eckrezepte mit Endpunktverbindungen. Bestehende Objekte bleiben
+bei der Erzeugung stehen. Eine begrenzte Suche vergleicht bis zu 128 orthogonale
+Verläufe; normalisierte Bauteile werden gegen Hindernisse und nicht benachbarte
+eigene Teile geprüft. Ein Cache für Hindernisteile lebt nur in diesem Aufruf.
+Fahrzeugmaße können direkt bei der Verbindung eingegeben werden; bekannte Maße
+der Endobjekte und deren größte Reserven bilden die Mindestanforderungen für
+neue Stücke. Endobjekte bleiben unverändert. Ohne Fahrzeughöhe werden weiterhin
+Bauteile geprüft, die die Fahrwegunterkante schneiden; die Überbauhöhe bleibt
+ungeprüft und die Vorschau kennzeichnet fehlende Maße. Mit Höhe prüft derselbe
+Bauteilpfad den vollständigen Höhenraum einschließlich Reserve. Die lichte
+Regalhöhe wird nicht als Fahrzeughöhe angenommen. Fehlversuche können ein
+konkretes Hindernis und dessen lichte Höhe nennen. Die Vorschau nutzt den bestehenden
+Revisions-, Sperr- und Undo-Pfad; ein neuer Speichervertrag ist nicht erforderlich.
+Wandöffnungen bestehen aus verbunden modellierbaren Wandteilen, einem
+Öffnungsobjekt und gegebenenfalls einem erhöhten Sturz.
+
+`warehouse.js::physicalParts` beschreibt dieselben Bauteile für Szene und
+Kollisionsprüfung. Die bestehende SAT-/Sweep-Vorprüfung begrenzt Objektpaare;
+anschließend werden tatsächliche Teile und Höhen untersucht. Ein flüchtiger
+Bauteilcache mit Höhenbändern wird nur innerhalb einer Prüfung aufgebaut.
+Fahrwege werden segmentweise einschließlich ihrer Verbindungsflächen geprüft.
+Marker und Artikelzuordnungen verändern keine physische Geometrie.
+
+`warehouse-scene.js::buildBoxes` akzeptiert optional `colorMode: 'structure'`.
+Der Editor verwendet damit in Struktur/3D blaue Palettenregalrahmen, orange
+Traversen und graue Fachböden; die Legende folgt dem Arbeitsmodus und der Ansicht.
+Die schreibgeschützte Analyse verwendet dieselbe Bauteilpalette standardmäßig
+und bietet einen sitzungslokalen Umschalter auf Nutzungsfarben. Ihre Legende folgt
+dieser Auswahl; Artikel- und Stellplatzmarker behalten ihre Zuordnungsfarben.
+Ohne die Struktur-Option bleiben die Nutzungsfarben maßgeblich. Bauteilreferenzen, Picking und Geometrie sind vom
+Darstellungsmodus unabhängig; die Palette ist kein gespeichertes Layoutmerkmal.
+
+Der WebGL-Renderer zeichnet Fahrwegmarkierungen als transparente Oberflächen.
+Eine Stencil-Maske verhindert mehrfaches Einfärben derselben sichtbaren Samples
+bei überlappenden Objekten, Kreuzungsarmen und alten Wegsegmenten. Die
+Tiefenprüfung erhält die Verdeckung durch Regalteile. Der getrennte ID-Pass
+verwendet weiterhin die vollständigen Körper und ihre bisherigen Referenzen.
+Andere Flächenarten behalten ihre eigene Transparenz. Ohne Stencil-Puffer
+steht die Draufsicht weiterhin zur Verfügung. Dort werden alle Wegrechtecke
+mit gleicher Umlaufrichtung in einem gemeinsamen Pfad einmal gefüllt;
+Beschriftungen, Konturen und Auswahl bleiben objektbezogen. Speicherformat
+und Kollisionsgeometrie werden durch diese Darstellung nicht geändert.
+
+Der Editor erzeugt Vorschaukandidaten und zeigt Auswirkungen vor dem Speichern.
+Der vorhandene Revisions-/Transaktionspfad, aktuelle Sperren, Fehlerbehandlung
+und vollständige Undo/Redo-Snapshots bleiben maßgeblich. Die Analyse liest
+weiterhin nur das gespeicherte Layout. Neue Backend-APIs, Bibliotheken,
+Installationen oder Runtime-Dateien sind nicht erforderlich. Der historische
+Nachweis vom 09.10. deckt diese neuen Funktionen und deren Leistung nicht ab.
+
+## Editor-Navigation vom 2026-10-10
+
+Der Editor behandelt Mausradereignisse zentral am vorhandenen Root-Element.
+Die Zeichenfläche zoomt; Zahlen- und Auswahlfelder leiten Scrollbewegungen an
+ihren nächsten scrollbar verfügbaren Editorbereich, ohne Feldwerte zu ändern.
+Strg-/Meta-Gesten bleiben beim Browser. Zoomereignisse verwenden ihre Einheit
+und Bewegungsgröße; das Zeichnen wird über `requestAnimationFrame` gebündelt.
+
+Vor dem DOM-Neuaufbau werden Scrollpositionen, Fokus, Textauswahl, offene
+Werkzeugabschnitte und ausgewählte Eingabeentwürfe erfasst und im passenden
+Workspace-/Objekt-/Bereichskontext wiederhergestellt. Fenster- und
+Root-Größenänderungen lösen eine gebündelte Neuzeichnung aus. Die Arbeitshöhe
+wird im dauerhaften Workspace-Rahmen per Flex-/Grid-Layout verteilt. Der frühere
+bildschirmfüllende Maximierungsmodus mit gesperrtem Hintergrund ist entfernt.
+Diese UI-Zustände werden nicht gespeichert; Backend, Abhängigkeiten und
+Datenvertrag bleiben unverändert.
+
+## Dauerhafter Workspace-Rahmen
+
+`terminal-theme.css` begrenzt die Anwendung auf die dynamische Viewport-Höhe.
+Banner und kompakter Datenschutz-/Versionsfuß erhalten eigene Grid-Zeilen;
+Navigation und abgerundeter Workspace teilen die verbleibende Fläche. Es gibt
+keine äußere Dokument-Scrollfläche. `.app-page` ist die fokussierbare interne
+Scrollregion für lange Formulare, Tabellen und Detailansichten. Unter 761 px
+wird die Navigation als horizontaler Streifen angeordnet; ihre bisherigen
+Aktionen bleiben erhalten. Workspace-Auswahl verwendet denselben Rahmen.
+
+Die schmale Navigation verwendet eigene kurze DE-/EN-Beschriftungen, während
+Seitentitel und Menübeschreibungen ihre vollständigen Namen behalten.
+`data-i18n-title` und `data-i18n-aria-label` aktualisieren Tooltip und zugänglichen
+Buttonnamen beim Sprachwechsel. Text darf innerhalb der Buttonbreite umbrechen;
+die vertikale Navigationsleiste erzeugt keinen horizontalen Überlauf. Vertikales
+Scrollen in niedrigen Fenstern und der horizontale mobile Streifen bleiben
+für den Zugang zu allen Aktionen verfügbar.
+
+`app.js` aktualisiert gemessene Rahmengrenzen nach Navigation und Änderungen
+der Banner-, Footer- oder Workspace-Größe über einen gebündelten
+`ResizeObserver`-Pfad. Der Quellspalten-Drawer und sein Hintergrund bleiben
+innerhalb dieser Grenzen. Aktionen, die bisher das Fenster an den Anfang
+scrollten, scrollen nun die aktive interne Seite. Vorhandene Quellen-/Detail-
+Sprünge bleiben erhalten. Editor und 3D-Analyse zeichnen nach Größenänderungen
+mit den tatsächlichen Canvas-Abmessungen. Unter 1001 px stapeln die 3D-Ansichten
+ihre Bereiche mit interner Scrollmöglichkeit. Es werden keine zusätzlichen
+Bibliotheken geladen und keine Workspace-Metadaten ergänzt. Visuelle Edge-
+Abnahme bei verschiedenen Fenstergrößen und Browser-Zoomstufen steht noch aus.

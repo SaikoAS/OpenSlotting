@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function (warehouseModel) {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 14;
+  const WORKSPACE_SCHEMA_VERSION = 16;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;

@@ -7,6 +7,8 @@
   const LABELS = {
     en: {
       unassigned: 'Unassigned', picking: 'Picking', reserve: 'Reserve',
+      objectColors: 'Object colors', usageColors: 'Usage colors',
+      palletFrameColor: 'Pallet rack: upright frames', palletBeamColor: 'Pallet rack: beams', palletDeckColor: 'Pallet rack: decks',
       title: '3D warehouse analysis', intro: 'Inspect modeled locations and current article-master assignments.',
       fit: 'Fit view', focus: 'Focus selection', search: 'Find location code', find: 'Find',
       selected: 'Selected position', selectHint: 'Click a position marker or search its exact code.',
@@ -20,6 +22,8 @@
     },
     de: {
       unassigned: 'Nicht zugewiesen', picking: 'Kommissionierung', reserve: 'Reserve',
+      objectColors: 'Objektfarben', usageColors: 'Nutzungsfarben',
+      palletFrameColor: 'Palettenregal: Ständerrahmen', palletBeamColor: 'Palettenregal: Traversen', palletDeckColor: 'Palettenregal: Fachböden',
       title: '3D-Lagerauswertung', intro: 'Modellierte Stellplätze und aktuelle Zuordnungen aus dem Artikelstamm prüfen.',
       fit: 'Einpassen', focus: 'Auswahl fokussieren', search: 'Stellplatzcode suchen', find: 'Finden',
       selected: 'Ausgewählter Stellplatz', selectHint: 'Stellplatzmarkierung anklicken oder exakten Code suchen.',
@@ -51,6 +55,7 @@
     let workspaceId = null;
     let currentInfo = null;
     let wallMode = 'transparent';
+    let colorMode = 'structure';
     const renderer = window.OpenSlottingWarehouseWebGL && window.OpenSlottingWarehouseWebGL.create(canvas, {
       onLost: function () { render(); }, onRestored: function () { render(); }
     });
@@ -61,6 +66,7 @@
       workspaceId = current;
       currentInfo = null;
       selectedSlotId = null; search = ''; message = '';
+      colorMode = 'structure';
       camera.yaw = -0.62; camera.pitch = 0.62; camera.zoom = 1; camera.target = null; camera.baseScale = null;
     }
     function data(refresh) {
@@ -69,7 +75,21 @@
       currentInfo = { layout: layout, slots: model.listLocations(layout), matches: model.matchArticles(layout, options.getRegistry()) };
       return currentInfo;
     }
-    function boxes(info) { return window.OpenSlottingWarehouseScene.buildBoxes(model, info.layout, info.matches); }
+    function boxes(info) {
+      return window.OpenSlottingWarehouseScene.buildBoxes(model, info.layout, info.matches, { colorMode: colorMode });
+    }
+    function colorLegend(info, t) {
+      const palette = window.OpenSlottingWarehouseScene.PALLET_PART_COLORS;
+      const entries = colorMode === 'structure' ? [
+        [palette.upright, t.palletFrameColor], [palette.beam, t.palletBeamColor], [palette.deck, t.palletDeckColor]
+      ] : [];
+      if (colorMode === 'usage' || info.layout.objects.some(function (object) { return object.type === 'shelf-rack'; })) {
+        model.USAGES.forEach(function (usage) { entries.push([model.USAGE_COLORS[usage], t[usage]]); });
+      }
+      return entries.map(function (entry) {
+        return '<span><i style="background:' + entry[0] + '"></i>' + esc(entry[1]) + '</span>';
+      }).join('');
+    }
     function paint(info) {
       if (!renderer || !renderer.available() || !canvas.isConnected) return;
       renderer.render(boxes(info), camera, null, selectedSlotId, new Set(), wallMode);
@@ -101,13 +121,13 @@
         '</strong> ' + esc(t.objects) + '<br><strong>' + info.slots.length + '</strong> ' + esc(t.positions) + '</div></div>' +
         '<div class="wh-view-toolbar"><strong>' + esc(t.title) + '</strong><div><button type="button" data-action="fit">' +
         esc(t.fit) + '</button><button type="button" data-action="focus"' + (slot && renderer && renderer.available() ? '' : ' disabled') +
-        '>' + esc(t.focus) + '</button></div></div>' +
+        '>' + esc(t.focus) + '</button><button type="button" data-action="colors" data-color-mode="structure" aria-pressed="' +
+        (colorMode === 'structure') + '">' + esc(t.objectColors) + '</button><button type="button" data-action="colors" data-color-mode="usage" aria-pressed="' +
+        (colorMode === 'usage') + '">' + esc(t.usageColors) + '</button></div></div>' +
         '<div class="wh-analysis-viewport"></div>' +
         '<p class="wh-view-hint">' + esc(renderer && renderer.available() ? t.hint : t.unavailable) + '</p>' +
         '<div class="wh-legend"><span><i class="matched"></i>' + esc(t.linked) + '</span><span><i class="coded"></i>' +
-        esc(t.coded) + '</span><span><i class="empty"></i>' + esc(t.empty) + '</span>' + model.USAGES.map(function (usage) {
-          return '<span><i style="background:' + model.USAGE_COLORS[usage] + '"></i>' + esc(t[usage]) + '</span>';
-        }).join('') + '</div>' +
+        esc(t.coded) + '</span><span><i class="empty"></i>' + esc(t.empty) + '</span>' + colorLegend(info, t) + '</div>' +
         '<div class="wh-analysis-details"><section class="wh-card wh-slot-inspector"><div class="wh-slot-search"><label class="wh-field"><span>' +
         esc(t.search) + '</span><input type="search" data-field="search" value="' + esc(search) + '" maxlength="80"></label>' +
         '<button type="button" class="wh-small-button" data-action="find">' + esc(t.find) + '</button></div>' +
@@ -149,6 +169,12 @@
       if (action === 'find') find();
       else if (action === 'fit') { camera.zoom = 1; camera.target = null; camera.baseScale = null; paint(data()); }
       else if (action === 'focus') focusSelection();
+      else if (action === 'colors') {
+        colorMode = event.target.closest('[data-action]').dataset.colorMode === 'usage' ? 'usage' : 'structure';
+        render();
+        const button = root.querySelector('[data-action="colors"][data-color-mode="' + colorMode + '"]');
+        if (button) button.focus({ preventScroll: true });
+      }
     });
     let drag = null;
     canvas.addEventListener('pointerdown', function (event) {
@@ -194,7 +220,19 @@
       camera.zoom = Math.max(0.25, Math.min(4, camera.zoom * (event.deltaY < 0 ? 1.12 : 0.89)));
       paint(data());
     }, { passive: false });
-    window.addEventListener('resize', function () { if (canvas.isConnected) paint(data()); });
+    let resizeFrame = null;
+    function schedulePaint() {
+      if (resizeFrame !== null) return;
+      resizeFrame = window.requestAnimationFrame(function () {
+        resizeFrame = null;
+        if (canvas.isConnected && canvas.clientWidth > 0 && canvas.clientHeight > 0) paint(data());
+      });
+    }
+    window.addEventListener('resize', schedulePaint);
+    if (typeof window.ResizeObserver === 'function') {
+      const observer = new window.ResizeObserver(schedulePaint);
+      observer.observe(root); observer.observe(canvas);
+    }
     return { render: render };
   }
   return { create: create };

@@ -13,7 +13,7 @@ const allowed = new Set(scripts.concat(['app.css', 'terminal-theme.css', 'wareho
 const legacy = fs.readFileSync(path.join(__dirname, 'fixtures', 'warehouse-layout-v1.json'), 'utf8');
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Issue 74 synthetic acceptance</title>
 <link rel="stylesheet" href="app.css"><link rel="stylesheet" href="terminal-theme.css"><link rel="stylesheet" href="warehouse-editor.css">
-<style>body{padding:18px}header{margin-bottom:18px}header button{margin:5px;padding:8px}#evidence{white-space:pre-wrap;font-size:12px}#warning{color:#ffc48a}</style></head>
+<style>html{height:auto;overflow:auto}body{display:block;height:auto;overflow:auto;padding:18px}header{margin-bottom:18px}header button{margin:5px;padding:8px}#warehouse-editor-root,#warehouse-analysis-root{height:75vh;min-height:500px}[hidden]{display:none!important}#evidence{white-space:pre-wrap;font-size:12px}#warning{color:#ffc48a}</style></head>
 <body><header><h2>Issue 74 · synthetic acceptance</h2><p>Separate test database. All editor and analysis assets are the current candidate.</p>
 <button id="fresh">New geometry fixture</button><button id="legacy">Migrated legacy fixture</button><button id="analysis">Show read-only analysis</button><button id="editor">Show editor</button>
 <label><input type="checkbox" id="approve" checked>Approve warned changes in this test fixture</label><p id="warning"></p></header>

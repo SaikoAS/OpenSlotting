@@ -2,11 +2,20 @@
 
 Getrennte Alternativen für heutige Features. **Keine Produktivdatei wurde hier verändert.** Aktueller Produktvertrag: höchstens 150 Lagerobjekte und 5000 Stellplätze. 1000-Objekt-Fixtures sind ausschließlich Zukunftsstress.
 
+**Historischer Stand:** Die Lageralgorithmen dieses Labors vergleichen Layout 1
+am Basiscommit `db39ffaca31ebeddec884413c38725f4fd38a5a0`. Die Tests laden dafür
+unveränderte, hashgeprüfte Modell-, Szenen- und Renderer-Dateien aus
+`tests/fixtures/`; Profilprüfungen verwenden weiterhin den aktuellen
+Workspace-Profilvertrag. Sie belegen keine Parität der heutigen Bauteil- und
+Durchfahrtsprüfung. Der Benchmark-Runner verlangt Layout 1 und bricht bei einem
+neueren Fachkern mit einer Erklärung ab. Für historische Zeitmessungen den
+Basiscommit separat auschecken; gespeicherte Resultate bleiben unverändert.
+
 ## Dateien
 
 - `modules.mjs`: browser-kompatible Funktionen ohne Node-Import oder externe Abhängigkeiten.
 - `fixtures.mjs`: deterministische synthetische Layouts, Artikel und Profile.
-- `tests.test.mjs`: 17 Gleichheits-/Grenztests mit aktuellem Fachkern als Referenz.
+- `tests.test.mjs`: Gleichheits-/Grenztests mit eingefrorenem Layout-1-Fachkern als Lagerreferenz.
 - `run-benchmarks.mjs`: kalte/warme Node-CPU-Messungen, sieben Proben, Quellhashes und Gesamtprozess-RSS.
 - `write-evaluation.mjs`: erzeugt Bericht aus tatsächlichen Messwerten.
 - [WAREHOUSE-EVALUATION.md](WAREHOUSE-EVALUATION.md): Bewertung und offene Grenzen.

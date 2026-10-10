@@ -4,6 +4,32 @@ All notable changes to OpenSlotting are documented in this file.
 
 ## Unreleased
 
+- Refresh schema and workspace-navigation assertions, cover physical-part collisions and parametric modeling, verify analysis component colors and route stencil/picking calls, and pin historical warehouse laboratory tests to hash-checked layout-1 references. Record the project review and remaining native Edge/performance acceptance.
+
+- Prevent horizontal overflow in the desktop navigation with compact localized labels and bounded text wrapping. Retain full localized tooltips and accessible button names, vertical scrolling in short windows and the horizontal navigation strip on narrow screens. Native Edge visual acceptance is pending.
+
+- Fill the available browser area with a permanent rounded workspace frame while retaining the banner, navigation and compact privacy/version footer. Contain long content inside each view, fit desktop warehouse editor/analysis panels to the remaining height, constrain mapping overlays to the frame and remove the old page-covering editor maximization toggle. Preserve narrow-window navigation and reachable controls; native Edge layout acceptance is pending.
+
+- Render overlapping aisle markings with uniform opacity: draw translucent top surfaces with stencil coverage in the shared 3D renderer and one combined fill in the editor's top view. Preserve full geometry for picking and collision checks, object outlines, other overlay colors and workspace format. Native Edge visual acceptance is pending.
+
+- Fix distance connections through existing rack passages: missing vehicle height checks base-plane obstructions while leaving overhead clearance explicitly unverified, instead of blocking all raised beams. Add vehicle dimensions to distance previews, inherit the largest known endpoint requirements and reserves, and report concrete obstacle/height details on failed searches. Share base-elevation clearance handling with layout checks. Functional and Edge acceptance is pending.
+
+- Add distance-connection previews between free route or wall ports while keeping endpoint assemblies stationary. Compile bounded straight/orthogonal alternatives into editable straight/corner modules and ordinary endpoint links, with obstacle/self-overlap checks and one undoable apply. Retain workspace 16 / layout 4; functional and Edge acceptance is pending.
+
+- Add parametric corner, T-junction and cross recipes for aisles and walls with independent arm lengths, shared hub geometry and two to four stable ports. Add automatic port alignment, family/width-compatible snapping and occupied-port protection. Remove route drawing from the editor while preserving saved paths. Migrate workspace 15 / layout 3 to workspace 16 / layout 4 without inferring junctions. Functional and Edge acceptance is pending.
+
+- Distinguish pallet-rack components in the Structure 3D view and by default in read-only 3D analysis with blue upright frames, orange beams and steel-gray decks, plus a localized component legend. Analysis provides a session-only object/usage color toggle while retaining independent location/article marker colors. Retain functional colors in Zones, Locations and floor plans; geometry, storage and selection/collision outlines are unchanged. Native Edge visual acceptance is pending.
+
+- Keep warehouse scrolling inside lists and panels, retain scroll/focus/tool state across redraws, and prevent wheel changes to number/select controls. Add continuous adjustable zoom, keyboard and button controls and responsive viewport sizing. Navigation state remains session-only; native Edge acceptance is pending.
+
+- Add rack drive-through previews, explicit bottom clearance and route associations, row extension, cross-row passage alignment, endpoint connections, object groups and wall-opening previews.
+- Draw multi-segment routes with independent lane width and explicit required width/height plus margins. Share physical geometry between rendering and collision refinement; distinguish incomplete, blocked, too narrow and too low routes and focus the reported part in 3D.
+- Migrate workspace schema 14 / layout 2 to workspace schema 15 / layout 3 with empty groups/connections, no inferred passages and unknown route requirements; retain surviving IDs, codes, source bytes and browser-local storage. New functional, Edge and performance acceptance is pending.
+
+- Group warehouse recipes into localized categories with alphabetical sorting and retain the selected recipe across editor redraws.
+
+- Use one shared depth per rack row in the editor and builder. Align bays and upright frames in one undoable edit, inherit row depth when adding bays, and preserve mixed historical depths until explicitly unified.
+
 - Integrate warehouse structure/zones/locations into localhost with schema-14 migration, per-pass scope lookups and retained rack-wide code generation. Preserve optimized SAT/Float32 rendering and add integration/layout-2 performance evidence. (next release; version not assigned)
 
 ### Added

@@ -2,9 +2,18 @@
 
 OpenSlotting is an open-source, local-first web tool for analyzing warehouse order lines and building a data-driven foundation for warehouse slotting.
 
-The current development branch also contains a [warehouse editor and separate 3D analysis prototype](docs/warehouse-editor.md). Build physical racks first, assign Picking/Reserve use per level, then create locations explicitly and match current article-master codes in the read-only analysis.
+The current development branch also contains a [warehouse editor and separate 3D analysis prototype](docs/warehouse-editor.md). Build physical racks first, assign Picking/Reserve use per level, then create locations explicitly and match current article-master codes in the read-only analysis. The editor supports rack drive-throughs, clearance-aware route warnings, parametric corner/T/cross modules for routes and walls, compatible magnetic ports, connected/grouped structures and straight-wall opening previews. These new changes use workspace schema 16 / layout 4; fresh functional and Edge acceptance remains pending. Legacy drawn routes remain readable; new routes are built from recipes.
 
 The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The latest published application release is `0.2.1`; current development continues the local-workspace, article-master, and period-comparison foundation. Future versions are planned to expand this foundation through ABC/XYZ classification, slotting scores, and warehouse slotting recommendations.
+
+Warehouse distance-connection previews can fill the gap between two free route or wall ports with ordinary straight/corner modules, preserving existing endpoint positions. The bounded geometric search and its limitations are described in the [editor guide](docs/warehouse-editor.md#connections-over-a-distance); functional and Edge acceptance is pending.
+
+The application uses a permanent rounded workspace frame beneath the banner
+and beside navigation, keeping those controls and the compact privacy/version
+footer visible. Long content scrolls inside the active view; desktop warehouse
+views fit their viewport and side panels to the available height. Narrow windows
+use stacked content and horizontal navigation. The former editor maximization
+toggle is removed. Native Edge layout acceptance remains pending.
 
 > **Project status:** The latest published release is `0.2.1`. `main` contains unreleased development after that release, including persistent workspaces, article-master imports and registry preparation, period comparison and large-import performance work. Active development on this continuation branch now targets localhost only; Portable Mode is paused indefinitely. No next release version has been assigned yet.
 

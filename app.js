@@ -75,6 +75,12 @@
       workspace_selection_back: 'Workspace selection',
       main_menu_title: 'Analysis desk',
       terminal_nav_label: 'Workspace',
+      terminal_nav_caption: 'Menu',
+      nav_import: 'Import',
+      nav_mapping: 'Columns & notes',
+      nav_coverage: 'Coverage',
+      nav_comparison: 'Comparison',
+      nav_workspaces: 'Workspaces',
       terminal_overview: 'Overview',
       terminal_articles: 'Articles',
       terminal_customers: 'Customers',
@@ -770,6 +776,12 @@
       workspace_selection_back: 'Workspace-Auswahl',
       main_menu_title: 'Analyse-Desk',
       terminal_nav_label: 'Arbeitsbereich',
+      terminal_nav_caption: 'Menü',
+      nav_import: 'Import',
+      nav_mapping: 'Quellspalten',
+      nav_coverage: 'Abdeckung',
+      nav_comparison: 'Vergleich',
+      nav_workspaces: 'Auswahl',
       terminal_overview: 'Übersicht',
       terminal_articles: 'Artikel',
       terminal_customers: 'Kunden',
@@ -1477,6 +1489,7 @@
   };
   let warehouseEditor = null;
   let warehouseAnalysis = null;
+  let workspaceFrameRequest = null;
 
   const TABLE_PAGE_SIZE = 100;
   const SOURCE_TABLE_ROW_HEIGHT = 56;
@@ -3740,6 +3753,9 @@
     document.querySelectorAll('[data-i18n-aria-label]').forEach(function (element) {
       element.setAttribute('aria-label', translate(element.dataset.i18nAriaLabel));
     });
+    document.querySelectorAll('[data-i18n-title]').forEach(function (element) {
+      element.setAttribute('title', translate(element.dataset.i18nTitle));
+    });
     renderRuntimeDiagnostics();
     elements.languageSelect.setAttribute('aria-label', translate('language_label'));
     renderWorkspaceControls();
@@ -3823,6 +3839,9 @@
     document.body.classList.toggle('workspace-picker-mode', !state.activeWorkspace || requestedTarget === 'workspace-panel');
     elements.pageViews.forEach(function (view) {
       view.classList.toggle('hidden', view.id !== config.view);
+      view.tabIndex = 0;
+      view.setAttribute('role', 'region');
+      if (view.id === config.view) view.setAttribute('aria-label', translate(config.title));
     });
     setText(elements.pageContextKicker, translate(config.kicker));
     setText(elements.pageContextTitle, translate(config.title));
@@ -3839,6 +3858,27 @@
     if (requestedTarget === 'main-menu-panel') renderTerminal();
     if (requestedTarget === 'warehouse-panel' && warehouseEditor) warehouseEditor.render();
     if (requestedTarget === 'warehouse-analysis-panel' && warehouseAnalysis) warehouseAnalysis.render();
+    scheduleWorkspaceFrame();
+  }
+
+  function scrollActivePageToTop() {
+    const page = elements.pageViews.find(function (view) { return !view.classList.contains('hidden'); });
+    if (page) { page.scrollTop = 0; page.scrollLeft = 0; }
+  }
+
+  function scheduleWorkspaceFrame() {
+    if (workspaceFrameRequest !== null) return;
+    workspaceFrameRequest = window.requestAnimationFrame(function () {
+      workspaceFrameRequest = null;
+      const frame = document.querySelector('.workflow-content');
+      if (!frame || !frame.getClientRects().length) return;
+      const rect = frame.getBoundingClientRect();
+      const values = { top: rect.top, left: rect.left, right: Math.max(0, window.innerWidth - rect.right),
+        bottom: Math.max(0, window.innerHeight - rect.bottom), width: rect.width };
+      Object.keys(values).forEach(function (key) {
+        document.documentElement.style.setProperty('--workspace-' + key, Math.round(values[key]) + 'px');
+      });
+    });
   }
 
   function coverageText(coverage) {
@@ -6477,7 +6517,7 @@
       state.activePageTarget = 'main-menu-panel';
       applyLanguage({ skipAnalysisRefresh: true });
       setWorkspaceMessage(successKey || 'workspace_opened', { name: prepared.workspace.name });
-      window.scrollTo(0, 0);
+      scrollActivePageToTop();
     } catch (error) {
       if (error && error.code === 'workspace_load_cancelled') {
         return;
@@ -7058,7 +7098,7 @@
     if (state.selectedWorkspaceId) {
       if (state.activeWorkspace && state.selectedWorkspaceId === state.activeWorkspace.id) {
         renderWorkflow('main-menu-panel');
-        window.scrollTo(0, 0);
+        scrollActivePageToTop();
         return;
       }
       activateWorkspace(state.selectedWorkspaceId, 'workspace_opened').catch(function () {
@@ -7603,7 +7643,7 @@
         return;
       }
       renderWorkflow(button.dataset.workflowTarget);
-      window.scrollTo(0, 0);
+      scrollActivePageToTop();
     });
   });
   elements.terminalScopeButtons.forEach(function (button) {
@@ -7924,7 +7964,7 @@
     elements.mappingSourceList.dispatchEvent(new Event('change'));
     renderWorkflow('mapping-panel');
     if (button.dataset.qualitySourceLine) jumpToSourceLine(Number(button.dataset.qualitySourceLine));
-    else window.scrollTo(0, 0);
+    else scrollActivePageToTop();
   });
   elements.articleDetailTableBody.addEventListener('click', function (event) {
     const button = event.target.closest('button[data-source-inspect-file-id]');
@@ -7956,7 +7996,7 @@
     elements.mappingSourceList.dispatchEvent(new Event('change'));
     renderWorkflow('mapping-panel');
     if (sourceButton.dataset.qualitySourceLine) jumpToSourceLine(Number(sourceButton.dataset.qualitySourceLine));
-    else window.scrollTo(0, 0);
+    else scrollActivePageToTop();
   });
   elements.qualityViewSelect.addEventListener('change', function () {
     state.qualityView = elements.qualityViewSelect.value === 'cross-source' ? 'cross-source' : 'source';
@@ -8019,6 +8059,14 @@
     getWorkspaceId: function () { return state.activeWorkspace ? state.activeWorkspace.id : null; },
     getLanguage: function () { return state.language; }
   });
+  window.addEventListener('resize', scheduleWorkspaceFrame);
+  if (typeof window.ResizeObserver === 'function') {
+    const observer = new window.ResizeObserver(scheduleWorkspaceFrame);
+    ['.app-header', '.app-footer', '.workflow-content'].forEach(function (selector) {
+      const element = document.querySelector(selector);
+      if (element) observer.observe(element);
+    });
+  }
   applyLanguage();
   initializeWorkspaces();
 }());

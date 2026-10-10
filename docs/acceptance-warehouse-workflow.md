@@ -14,9 +14,11 @@ The warehouse model, scene, editor-controller, workspace, storage, and backup te
 - scope selection across modes; wizard cancel and one-edit completion; explicit level or rack code generation without creating locations;
 - preserved IDs/codes, impact counts, confirmation cancellation, deletion, duplication, locks, undo/redo, save failures, and workspace history boundaries;
 - duplicate codes and IDs, orphaned references, subdivision invariants, and separate geometry/location limits;
-- populated schema-12/13 workspaces and layout-1 backups migrated to schema 14 / layout 2, including Unassigned legacy code editing and exact article matches;
+- populated schema-12/13 workspaces and layout-1 backups migrated to schema 16 / layout 4, including Unassigned legacy code editing and exact article matches; schema-14/15 migration preserves existing uses, geometry and codes;
 - metadata-only saves retaining actual source-byte and normalized-row chunks, plus backup round trips;
-- functional 3D colors without locations and the read-only analysis inspector.
+- functional 3D colors without locations and the read-only analysis inspector, including the shared component palette and object/usage color selection;
+- common rack depth, stable junction ports, compatible magnetic connections, distance compilation and obstruction handling, passage clearance, groups, locks and wall openings;
+- ordered collision results against an independent physical-part reference, and route stencil/picking calls using a WebGL adapter.
 
 The controller tests use a minimal DOM adapter. They do not establish browser layout, native dialog behavior, WebGL availability, or full application runtime acceptance.
 
@@ -34,6 +36,11 @@ Run the following in Microsoft Edge Desktop on Windows at `http://127.0.0.1:8765
 8. Reload the app. Confirm geometry, uses, counts, codes, locks, and article matches persist. Export a workspace backup, restore as new, and compare the plan and matches. If migrating from paused Portable, use a backup exported by that historical version; direct storage sharing between origins is unavailable.
 9. Restore a populated legacy layout-1 workspace backup. Compare every physical and position ID/code against its input. Confirm migrated scopes are Unassigned, existing codes remain editable and matchable, and subdivision creation requires classification. Classify one scope without changing its IDs/codes; leave another Unassigned. Reload and export/restore again.
 10. Confirm ordinary import/analysis still works, and no remote assets or new mandatory service are required. Check storage failures leave the last saved layout and undo history intact where a controlled failure can be induced.
+11. Set a common rack depth, extend at either end, and confirm existing IDs/codes remain. Restore mixed historical depths and confirm they change only after explicitly setting a common depth.
+12. Add aisle/wall corners, T-junctions and crosses from their recipe categories. Change arms, snap compatible free ports, connect distant endpoints using preview/confirm/cancel and undo. Check endpoints remain fixed at creation and locked assemblies remain protected.
+13. Configure a passage in an existing rack, connect routes through it, then supply vehicle dimensions. Check a clear passage, an actual upright/beam obstruction, and missing dimensions reported as unverified. Open/close a door in a wall opening; verify the lintel remains visible.
+14. Overlap straight/junction route surfaces and rotate/zoom. Check uniform opacity and unchanged picking. In analysis compare blue frames/orange beams/gray decks with Structure/3D, switch to usage colors, and confirm article marker colors and stored layout do not change.
+15. Check the permanent workspace frame in German and English, small/large windows and browser zoom. Banner/navigation remain reachable; forms/lists scroll internally. Scrolling the viewport zooms it; lists scroll without changing focused number/select fields. Check Tab focus, zoom buttons/keyboard and state retention after selection and redraw.
 
 ## Supplemental Edge fixture harness
 

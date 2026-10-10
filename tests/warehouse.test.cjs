@@ -26,7 +26,7 @@ function configure(layout, index, usage, count, prefix = '') {
 
 test('fresh geometry has stable physical scopes and zero locations or codes', () => {
   let layout = fresh();
-  assert.equal(layout.version, 2);
+  assert.equal(layout.version, warehouse.LAYOUT_VERSION);
   assert.equal(layout.zones.length, 4);
   assert.deepEqual(layout.locations, []);
   assert.ok(layout.zones.every((zone) => zone.usage === 'unassigned'));
@@ -273,7 +273,7 @@ test('collision checks use rotated footprints and ignore touching edges and inte
   other.x = warehouse.objectFootprint(rack).width;
   assert.equal(warehouse.footprintsOverlap(rack, other), false);
   other.x -= 1;
-  assert.deepEqual(warehouse.findCollisions({ objects: [rack, other] }),
+  assert.deepEqual(warehouse.findCollisions({ objects: [rack, other] }).map(({ firstId, secondId, kind }) => ({ firstId, secondId, kind })),
     [{ firstId: rack.id, secondId: other.id, kind: 'overlap' }]);
   rack.rotation = 45; other.rotation = 45; other.x = -424; other.z = 424;
   assert.equal(warehouse.footprintsOverlap(rack, other), false);
@@ -283,7 +283,7 @@ test('collision checks use rotated footprints and ignore touching edges and inte
   rack.rotation = 0;
   assert.equal(warehouse.footprintsOverlap(rack, wall), true);
   const aisle = warehouse.createArea('aisle');
-  assert.equal(warehouse.findCollisions({ objects: [rack, aisle] })[0].kind, 'blocked-aisle');
+  assert.equal(warehouse.findCollisions({ objects: [rack, aisle] }).find(item => item.severity !== 'info').kind, 'route-too-narrow');
   const gate = warehouse.createArea('gate');
   assert.deepEqual(warehouse.findCollisions({ objects: [wall, gate] }), []);
   assert.deepEqual(warehouse.findCollisions({ objects: [rack, warehouse.createArea('goods-in')] }), []);

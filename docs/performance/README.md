@@ -1,10 +1,20 @@
 # Leistung: integrierte Änderungen und Nachweise
 
-Stand: 2026-10-09. Nach der getrennten Laborphase wurden ausgewählte Änderungen
+Stand: 2026-10-10. Nach der getrennten Laborphase wurden ausgewählte Änderungen
 in die aktive Localhost-Anwendung übernommen. Dieser Überblick beschreibt den
 aktuellen Produktionscode. Die Berichte unter `experiments/` dokumentieren ihre
 damaligen Varianten und Basisstände; dortige Aussagen wie „noch nicht integriert“
 oder die beiden inzwischen behobenen Produktfehler sind historische Befunde.
+
+**Neuer Arbeitsstand:** Workspace 16 / Layout 4 ergänzt Durchfahrten, tatsächliche
+Bauteil-/Höhenprüfung, parametrische Wand-/Fahrwegkreuzungen, Gruppen und Verbindungen. Bestehende Fahrwegpunkte bleiben lesbar. Die folgenden
+Messungen gelten für ihre angegebenen Basisstände, insbesondere Layout 2 vom
+09.10. Automatisierte Funktions- und Migrationsprüfungen wurden am 10.10.
+ergänzt; siehe die [Lagerprüfungen](../acceptance-warehouse-workflow.md).
+Neue Laufzeit-, Speicher- und native Edge-Messungen für diese Erweiterung
+liegen weiterhin nicht vor. Die frühere Footprint-Parität ist
+keine fachliche Referenz für die neue Kollisionssemantik. Der historische
+Warehouse-Runner verweigert daher Layout 3/4, bis eine passende Referenz existiert.
 
 ## Betriebs- und Datenvertrag
 
@@ -15,7 +25,7 @@ oder die beiden inzwischen behobenen Produktfehler sind historische Befunde.
   Backend-Daten-API, Uploads, Cloudkonten oder Übertragung von Nutzerdaten an
   Python. Import, Fachanalyse und Speicherung erfolgen weiterhin im Browser.
 - `http://127.0.0.1:8765`, IndexedDB `openslotting-workspaces`, Datenbankversion 3,
-  Workspace-Schema **14** migriert Lagerpläne auf Layout-Schema **2**. Der Sicherungsformat-Vertrag bleibt bei Version 1. Abgeleitete
+  Workspace-Schema **16** migriert Lagerpläne auf Layout-Schema **4**. Die ursprünglichen Messungen betreffen Schema 14 / Layout 2. Der Sicherungsformat-Vertrag bleibt bei Version 1. Abgeleitete
   Caches werden nicht in Arbeitsbereichen gespeichert.
 - Originalbytes, physische Quellspalten, Quellen-/Zeilenbezüge, exakte Mengen
   und Qualitätsbefunde bleiben erhalten. Die aktive Weiterentwicklung gilt
@@ -55,7 +65,7 @@ neuen Algorithmus.
 | Verbinder, Einrasten, Hysterese und Sperren | Vorhandene Auswahl-, Snap- und Sperrsemantik | Anchorindex bleibt Labor; kalter Aufbau und Invalidierung rechtfertigen keinen pauschalen Ersatz |
 | Undo/Redo, Auswahl, Workspacewechsel und fehlgeschlagene Speicherung | Vorhandene vollständige Layoutsnapshots, 20 Historieneinträge, Historie erst nach bestätigtem Speichern | Objektgebundene Deltas sparen Labor-JSON, verlängerten dort den Gesamtlauf; Locks gelten zusätzlich für referenzierte Zonen/Locations; bestätigtes Speichern bleibt maßgeblich |
 | Stellplätze, Belegung, exakte Codesuche und Nur-Lesen-Lagerauswertung | Vorhandene geordnete Treffer und lesende Artikelzuordnung; gemeinsame Szene | Slot-/Code-/Artikelindizes bleiben Labor; Analysemarker mutieren keine gespeicherten Layouts |
-| 2D/3D, Kamera, Picking, Transparenz und Kontextverlust | Gleich große Float32-Puffer direkt füllen; Trigonometrie/Farben nur innerhalb eines Frames wiederverwenden | Keine neuen Shader, Drawaufrufe oder Pickingregeln; keine GPU-/60-FPS-Zusage aus CPU-Zeiten |
+| 2D/3D, Kamera, Picking, Transparenz und Kontextverlust | Gleich große Float32-Puffer direkt füllen; Trigonometrie/Farben nur innerhalb eines Frames wiederverwenden | Shader bleiben erhalten; Fahrwege erhalten eine Stencil-Abdeckungsprüfung und separate Pickingpuffer; keine GPU-/60-FPS-Zusage aus historischen CPU-Zeiten |
 | Dokumentation, Tests, Paketierung und Zukunftsstruktur | Explizite Runtime-/Paketpfade für neue Module; Produktionsberichte hier, historische Varianten unter `experiments/` | Kein Komplettumzug, keine Laborquellen im Produktpaket; Release-/Geräteabnahme wird separat dokumentiert |
 
 ## Gemessene Produktionsänderungen

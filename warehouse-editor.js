@@ -8,6 +8,7 @@
     en: {
       structure: 'Structure', zones: 'Zones', locations: 'Locations', usage: 'Functional use',
       unassigned: 'Unassigned', picking: 'Picking', reserve: 'Reserve', modeled: 'Modeled', assigned: 'Zone assigned',
+      palletFrameColor: 'Pallet rack: upright frames', palletBeamColor: 'Pallet rack: beams', palletDeckColor: 'Pallet rack: decks',
       structureHelp: 'Build the physical warehouse. Classify levels and create locations when each scope is ready.',
       zonesHelp: 'Classify each level. Picking and reserve may coexist in one rack; floor areas do not determine functional use.',
       locationsHelp: 'Create locations explicitly for the selected classified level, then enter or generate unique codes.',
@@ -23,9 +24,43 @@
       applyUsageBay: 'Apply to this bay', applyUsageRack: 'Apply to this rack', bulkUsage: 'Use for multiple levels',
       add: 'Add recipe', pallet: 'Pallet rack', shelf: 'Shelf rack', wall: 'Wall', gate: 'Gate', door: 'Door', exit: 'Emergency exit',
       aisle: 'Aisle / road', goodsIn: 'Goods in', goodsOut: 'Goods out', addButton: 'Add object', objects: 'Objects',
+      recipeRacks: 'Racks', recipeBuilding: 'Building & access', recipeAreas: 'Routes & functional areas', recipeOther: 'Other recipes',
+      recipeWalls: 'Wall modules', recipeRoutes: 'Route modules', corner: 'Corner', tee: 'T-junction', cross: 'Crossroads',
+      port: 'Port', armLength: 'Arm length', junctionHint: 'Position is the junction center. Arm lengths begin at the edge of the central square. Rotate the whole module to orient its branches.',
+      portAlignment: 'Align ports automatically', wallThickness: 'Wall thickness (mm)',
+      occupiedPort: 'in use', connectionWidthHint: 'Snap and connection require matching route widths or wall thicknesses. Only free ports are available.',
+      previewBridge: 'Preview distance connection', bridgeName: 'Connection', bridgeCourse: 'Connection course', bridgeAuto: 'Automatic', bridgeStraight: 'Straight only', bridgeLeft: 'First turn left', bridgeRight: 'First turn right',
+      bridgeReserve: 'Detour reserve (mm)', bridgeModules: 'new modules', bridgeHint: 'Keep both end objects in place and add straight/corner modules between the chosen ports. Apply saves the entire connection in one edit.',
+      bridgeCompatible: 'Choose two route modules or two wall modules with matching width/thickness and elevation.', bridgeSeparate: 'Choose ports in separate assemblies. Persistent connection loops are not supported.',
+      bridgePorts: 'Choose two valid free ports.', bridgeTouching: 'Distance connections need at least 100 mm between ports. Use direct Connect for closer endpoints.',
+      bridgeOrientation: 'Port orientations must be parallel or at right angles. Rotate the existing module explicitly first.', bridgeWidth: 'The required vehicle width plus side reserves exceeds the lane width.',
+      bridgeCapacity: 'The generated connection exceeds the 150-object or 149-connection limit.', bridgeNoFit: 'No suitable connection found within the bounded search. Check lane width, posts and obstacles, choose another course or change the detour reserve.',
+      bridgeDimensions: 'Enter a required width of 100–50,000 mm and height of 100–15,000 mm, or leave unknown dimensions blank.',
+      bridgeDimensionsHint: 'Dimensions apply to new pieces; known endpoint dimensions are minimum requirements. Blank dimensions remain unverified. Inherited reserves: {{width}} mm per side, {{height}} mm above the vehicle. Passage height is not inferred as vehicle height.',
+      bridgeBlockedDetail: 'One checked course is blocked by {{object}}: {{reason}}.', bridgeHeightDetail: 'Clear height: {{available}} mm; required including reserve: {{required}} mm.',
+      passage: 'Passage through selected bay', passageHeight: 'Clear passage height (mm)', passageWidth: 'Clear width',
+      passageRoute: 'Assigned route', noRoute: 'No route assigned', previewPassage: 'Preview passage', removePassage: 'Remove passage assignment',
+      routeWidth: 'Route width (mm)', requiredWidth: 'Required width (mm)', requiredHeight: 'Required height (mm)',
+      widthMargin: 'Side reserve per side (mm)', heightMargin: 'Height reserve (mm)', routeClear: 'Modeled passage space is clear',
+      routeHint: 'Enter both required dimensions to complete the geometry check. Marking thickness is independent of clearance.',
+      'unverified-route': 'Route not fully checked: required dimensions missing', 'route-too-low': 'Passage too low', 'route-too-narrow': 'Passage too narrow',
+      partBeam: 'Beam', partDeck: 'Deck', partUpright: 'Upright', partFrame: 'Frame', partHeader: 'Header', partBase: 'Base', partBody: 'Body', partLeaf: 'Door leaf',
+      assembly: 'Connect and align', target: 'Target object', ownAnchor: 'Own endpoint', targetAnchor: 'Target endpoint',
+      start: 'Start', end: 'End', previewConnect: 'Preview connection', previewAlign: 'Preview alignment', disconnect: 'Disconnect object',
+      groups: 'Move together', groupName: 'Group name', groupCreate: 'Group selected objects', ungroup: 'Ungroup',
+      extendStart: 'Add bay at start', extendEnd: 'Add bay at end', continuePassage: 'Continue passage', targetBay: 'Target bay (1-based)',
+      wallOpening: 'Insert wall opening', openingType: 'Opening type', openingOffset: 'Offset from wall start (mm)',
+      openingWidth: 'Opening width (mm)', openingHeight: 'Opening height (mm)', previewOpening: 'Preview wall opening',
+      elevation: 'Base elevation (mm)', doorOpen: 'Door open', previewTitle: 'Preview — not saved', applyPreview: 'Apply changes', cancel: 'Cancel',
+      previewImpact: 'Affected: {{locations}} locations, {{codes}} codes, {{articles}} article matches; {{removed}} locations removed.', routeLength: 'Route length (mm)', markingHeight: 'Marking thickness (mm)',
+      growFrames: 'Raise adjacent frames if required', groupHint: 'Groups move together. Connections retain shared endpoints and can be disconnected separately.',
+      keepDirection: 'Keep current direction', planningHint: 'Geometry check only; loads, stored goods and traffic suitability are not assessed.',
       empty: 'No objects yet. Add a recipe to start the layout.', properties: 'Properties', selected: 'Select an object to edit it.',
       name: 'Name', x: 'X position (mm)', z: 'Z position (mm)', rotation: 'Rotation (°)', width: 'Width (mm)',
-      depth: 'Depth / length (mm)', height: 'Height (mm)', bays: 'Bays', levels: 'Levels in this bay',
+      depth: 'Depth / length (mm)', rackDepth: 'Rack row depth (mm)',
+      rackDepthHint: 'Shared by all bays and upright frames in this rack row.',
+      mixedDepth: 'This saved rack has different depths. Enter a common row depth to align all bays and upright frames.',
+      height: 'Height (mm)', bays: 'Bays', levels: 'Levels in this bay',
       positions: 'Locations in this level', applyCounts: 'Apply bay count', applyBayLevels: 'Apply levels in this bay',
       applyLevelPositions: 'Apply location count', bay: 'Bay', level: 'Level', upright: 'Upright',
       clearHeight: 'Level clear height (mm)', thickness: 'Beam / shelf thickness (mm)', deck: 'Add shelf deck',
@@ -38,10 +73,12 @@
       checks: 'Layout checks', collision: 'collision', collisions: 'collisions',
       overlap: 'Objects overlap', 'blocked-aisle': 'Aisle obstructed', moreCollisions: 'more collisions',
       view: '3D layout', planView: 'Floor plan', fit: 'Fit view', focus: 'Focus object', top: 'Top view', orbit: '3D view',
+      zoomIn: 'Zoom in', zoomOut: 'Zoom out', zoomSensitivity: 'Zoom speed', zoomSlow: 'Fine', zoomNormal: 'Normal', zoomFast: 'Fast',
+      zoomKeyboard: 'With the view focused: + / − zoom, 0 fits the view. Ctrl+wheel retains browser zoom.',
       hint: 'Left drag: rotate · right or middle drag / Shift+drag: pan · wheel: zoom · double-click: focus object',
       hintTop: 'Drag an object to move it · drag empty space to pan · wheel to zoom · 100 mm grid',
-      magnet: 'Magnetic snap', magnetTitle: 'Snap wall, gate and door ends together in the floor plan',
-      magnetHint: 'Magnetic snap is on: nearby wall, gate and door ends connect before the grid.',
+      magnet: 'Magnetic snap', magnetTitle: 'Align compatible object endpoints in the floor plan',
+      magnetHint: 'Magnetic snap is on: nearby compatible endpoints align before the grid. Persist links with Connect.',
       snapTo: 'Connect to',
       noSelection: 'Choose a rack level to edit its positions.', saved: 'Layout saved locally.',
       removeWarning: 'Reducing counts removes positions with codes. Continue?', deleteWarning: 'Delete this object and its location codes?',
@@ -67,6 +104,7 @@
     de: {
       structure: 'Struktur', zones: 'Zonen', locations: 'Lagerplätze', usage: 'Funktionale Nutzung',
       unassigned: 'Nicht zugewiesen', picking: 'Kommissionierung', reserve: 'Reserve', modeled: 'Modelliert', assigned: 'Zone zugewiesen',
+      palletFrameColor: 'Palettenregal: Ständerrahmen', palletBeamColor: 'Palettenregal: Traversen', palletDeckColor: 'Palettenregal: Fachböden',
       structureHelp: 'Baue das physische Lager auf. Weise Ebenen eine Nutzung zu und lege Lagerplätze an, sobald der jeweilige Bereich bereit ist.',
       zonesHelp: 'Klassifiziere jede Ebene. Kommissionierung und Reserve können im selben Regal liegen; Bodenflächen bestimmen die Nutzung nicht.',
       locationsHelp: 'Lege Lagerplätze ausdrücklich für die gewählte klassifizierte Ebene an und vergib eindeutige Codes.',
@@ -82,9 +120,43 @@
       applyUsageBay: 'Für dieses Fach übernehmen', applyUsageRack: 'Für dieses Regal übernehmen', bulkUsage: 'Nutzung für mehrere Ebenen',
       add: 'Rezept hinzufügen', pallet: 'Palettenregal', shelf: 'Fachbodenregal', wall: 'Wand', gate: 'Tor', door: 'Tür', exit: 'Notausgang',
       aisle: 'Gang / Straße', goodsIn: 'Wareneingang', goodsOut: 'Warenausgang', addButton: 'Objekt hinzufügen', objects: 'Objekte',
+      recipeRacks: 'Regale', recipeBuilding: 'Gebäude & Zugänge', recipeAreas: 'Wege & Funktionsflächen', recipeOther: 'Weitere Rezepte',
+      recipeWalls: 'Wandmodule', recipeRoutes: 'Fahrwegmodule', corner: 'Ecke', tee: 'T-Kreuzung', cross: 'Kreuzung',
+      port: 'Anschluss', armLength: 'Armlänge', junctionHint: 'Die Position bezeichnet die Mitte der Kreuzung. Armlängen beginnen am Rand des mittleren Quadrats. Drehe das gesamte Modul, um seine Abzweige auszurichten.',
+      portAlignment: 'Anschlüsse automatisch ausrichten', wallThickness: 'Wandstärke (mm)',
+      occupiedPort: 'belegt', connectionWidthHint: 'Magnet und Verbinden benötigen gleiche Fahrwegbreiten beziehungsweise Wandstärken. Nur freie Anschlüsse sind verfügbar.',
+      previewBridge: 'Verbindung über Distanz vorschauen', bridgeName: 'Verbindung', bridgeCourse: 'Verbindungsverlauf', bridgeAuto: 'Automatisch', bridgeStraight: 'Nur gerade', bridgeLeft: 'Erste Kurve links', bridgeRight: 'Erste Kurve rechts',
+      bridgeReserve: 'Umwegreserve (mm)', bridgeModules: 'neue Module', bridgeHint: 'Beide Endobjekte bleiben stehen. Zwischen den gewählten Anschlüssen werden gerade Stücke und Ecken ergänzt. Übernehmen speichert die gesamte Verbindung in einem Schritt.',
+      bridgeCompatible: 'Wähle zwei Fahrwegmodule oder zwei Wandmodule mit gleicher Breite beziehungsweise Stärke und Unterkante.', bridgeSeparate: 'Wähle Anschlüsse in getrennten Verbünden. Geschlossene Anschlussringe werden noch nicht unterstützt.',
+      bridgePorts: 'Wähle zwei gültige freie Anschlüsse.', bridgeTouching: 'Distanzverbindungen benötigen mindestens 100 mm Abstand zwischen den Anschlüssen. Für nähere Endpunkte nutze direkt Verbinden.',
+      bridgeOrientation: 'Die Anschlussrichtungen müssen parallel oder rechtwinklig zueinander sein. Drehe das vorhandene Modul vorher ausdrücklich.', bridgeWidth: 'Die benötigte Fahrzeugbreite einschließlich seitlicher Reserven überschreitet die Fahrwegbreite.',
+      bridgeCapacity: 'Die erzeugte Verbindung überschreitet die Grenze von 150 Objekten oder 149 Verbindungen.', bridgeNoFit: 'In der begrenzten Suche wurde keine passende Verbindung gefunden. Prüfe Fahrwegbreite, Ständer und Hindernisse, wähle einen anderen Verlauf oder ändere die Umwegreserve.',
+      bridgeDimensions: 'Gib eine benötigte Breite von 100–50.000 mm und Höhe von 100–15.000 mm ein oder lasse unbekannte Maße leer.',
+      bridgeDimensionsHint: 'Maße gelten für neue Stücke; bekannte Endpunktmaße sind Mindestanforderungen. Leere Maße bleiben ungeprüft. Übernommene Reserven: {{width}} mm je Seite, {{height}} mm über dem Fahrzeug. Die Durchfahrtshöhe wird nicht als Fahrzeughöhe übernommen.',
+      bridgeBlockedDetail: 'Ein geprüfter Verlauf wird blockiert durch {{object}}: {{reason}}.', bridgeHeightDetail: 'Lichte Höhe: {{available}} mm; benötigt einschließlich Reserve: {{required}} mm.',
+      passage: 'Durchfahrt im gewählten Fach', passageHeight: 'Lichte Durchfahrtshöhe (mm)', passageWidth: 'Lichte Breite',
+      passageRoute: 'Zugeordneter Fahrweg', noRoute: 'Kein Fahrweg zugeordnet', previewPassage: 'Durchfahrt vorschauen', removePassage: 'Durchfahrtzuordnung entfernen',
+      routeWidth: 'Fahrwegbreite (mm)', requiredWidth: 'Benötigte Breite (mm)', requiredHeight: 'Benötigte Höhe (mm)',
+      widthMargin: 'Seitliche Reserve je Seite (mm)', heightMargin: 'Höhenreserve (mm)', routeClear: 'Modellierter Durchfahrtsraum ist frei',
+      routeHint: 'Beide benötigten Maße eingeben, um die Geometrieprüfung zu vervollständigen. Die Markierungsstärke ist unabhängig von der Durchfahrtshöhe.',
+      'unverified-route': 'Fahrweg nicht vollständig geprüft: benötigte Maße fehlen', 'route-too-low': 'Durchfahrt zu niedrig', 'route-too-narrow': 'Durchfahrt zu schmal',
+      partBeam: 'Traverse', partDeck: 'Fachboden', partUpright: 'Ständer', partFrame: 'Rahmen', partHeader: 'Oberer Rahmen', partBase: 'Fußrahmen', partBody: 'Bauteil', partLeaf: 'Türblatt',
+      assembly: 'Verbinden und ausrichten', target: 'Zielobjekt', ownAnchor: 'Eigener Endpunkt', targetAnchor: 'Ziel-Endpunkt',
+      start: 'Anfang', end: 'Ende', previewConnect: 'Verbindung vorschauen', previewAlign: 'Ausrichtung vorschauen', disconnect: 'Objektverbindungen lösen',
+      groups: 'Gemeinsam bewegen', groupName: 'Gruppenname', groupCreate: 'Gewählte Objekte gruppieren', ungroup: 'Gruppe auflösen',
+      extendStart: 'Fach am Anfang ergänzen', extendEnd: 'Fach am Ende ergänzen', continuePassage: 'Durchfahrt fortsetzen', targetBay: 'Zielfach (ab 1)',
+      wallOpening: 'Wandöffnung einsetzen', openingType: 'Art der Öffnung', openingOffset: 'Abstand vom Wandanfang (mm)',
+      openingWidth: 'Öffnungsbreite (mm)', openingHeight: 'Öffnungshöhe (mm)', previewOpening: 'Wandöffnung vorschauen',
+      elevation: 'Unterkante über Boden (mm)', doorOpen: 'Tür geöffnet', previewTitle: 'Vorschau — noch nicht gespeichert', applyPreview: 'Änderungen übernehmen', cancel: 'Abbrechen',
+      previewImpact: 'Betroffen: {{locations}} Lagerplätze, {{codes}} Codes, {{articles}} Artikelzuordnungen; {{removed}} Lagerplätze werden entfernt.', routeLength: 'Fahrweglänge (mm)', markingHeight: 'Markierungsstärke (mm)',
+      growFrames: 'Benachbarte Rahmen bei Bedarf erhöhen', groupHint: 'Gruppen werden gemeinsam bewegt. Verbindungen erhalten gemeinsame Endpunkte und lassen sich separat lösen.',
+      keepDirection: 'Aktuelle Richtung behalten', planningHint: 'Geometrieprüfung; Lasten, eingelagertes Gut und Verkehrseignung werden nicht bewertet.',
       empty: 'Noch keine Objekte. Füge ein Rezept hinzu.', properties: 'Eigenschaften', selected: 'Wähle ein Objekt zur Bearbeitung.',
       name: 'Name', x: 'X-Position (mm)', z: 'Z-Position (mm)', rotation: 'Drehung (°)', width: 'Breite (mm)',
-      depth: 'Tiefe / Länge (mm)', height: 'Höhe (mm)', bays: 'Fächer', levels: 'Ebenen in diesem Fach',
+      depth: 'Tiefe / Länge (mm)', rackDepth: 'Tiefe der Regalzeile (mm)',
+      rackDepthHint: 'Gemeinsam für alle Fächer und Ständerrahmen dieser Regalzeile.',
+      mixedDepth: 'Dieses gespeicherte Regal hat unterschiedliche Tiefen. Gib eine gemeinsame Zeilentiefe ein, um alle Fächer und Ständerrahmen auszurichten.',
+      height: 'Höhe (mm)', bays: 'Fächer', levels: 'Ebenen in diesem Fach',
       positions: 'Lagerplätze in dieser Ebene', applyCounts: 'Fachanzahl übernehmen',
       applyBayLevels: 'Ebenenzahl dieses Fachs übernehmen', applyLevelPositions: 'Lagerplatzanzahl übernehmen',
       bay: 'Fach', level: 'Ebene', upright: 'Ständer',
@@ -98,10 +170,12 @@
       checks: 'Planprüfung', collision: 'Kollision', collisions: 'Kollisionen',
       overlap: 'Objekte überlappen', 'blocked-aisle': 'Gang blockiert', moreCollisions: 'weitere Kollisionen',
       view: '3D-Lagerplan', planView: 'Grundriss', fit: 'Einpassen', focus: 'Objekt fokussieren', top: 'Draufsicht', orbit: '3D-Ansicht',
+      zoomIn: 'Vergrößern', zoomOut: 'Verkleinern', zoomSensitivity: 'Zoomtempo', zoomSlow: 'Fein', zoomNormal: 'Normal', zoomFast: 'Schnell',
+      zoomKeyboard: 'Bei fokussierter Ansicht: + / − zoomen, 0 passt ein. Strg+Mausrad bleibt für den Browserzoom verfügbar.',
       hint: 'Links ziehen: drehen · rechts oder mittig ziehen / Umschalt+ziehen: verschieben · Mausrad: zoomen · Doppelklick: Objekt fokussieren',
       hintTop: 'Objekt ziehen: verschieben · freie Fläche ziehen: Ansicht bewegen · Mausrad: zoomen · 100-mm-Raster',
-      magnet: 'Magnet', magnetTitle: 'Wand-, Tor- und Türenden im Grundriss verbinden',
-      magnetHint: 'Magnet aktiv: Nahe Wand-, Tor- und Türenden rasten vor dem Raster ein.',
+      magnet: 'Magnet', magnetTitle: 'Passende Objektendpunkte im Grundriss ausrichten',
+      magnetHint: 'Magnet aktiv: Nahe passende Endpunkte rasten vor dem Raster ein. Verbindungen über Verbinden speichern.',
       snapTo: 'Verbinden mit',
       noSelection: 'Wähle eine Regalebene, um die Stellplätze zu bearbeiten.', saved: 'Lagerplan lokal gespeichert.',
       removeWarning: 'Beim Verkleinern werden Stellplätze mit Codes entfernt. Fortfahren?', deleteWarning: 'Objekt und seine Stellplatzcodes löschen?',
@@ -171,10 +245,12 @@
   function create(options) {
     const model = options.model;
     const root = options.root;
+    root.classList.add('wh-editor-root');
     const camera = { yaw: -0.62, pitch: 0.62, zoom: 1, target: null, baseScale: null, mode: 'orbit' };
     const topView = { ready: false, centerX: 0, centerZ: 0, scale: 1, zoom: 1 };
     const choice = { objectId: null, bay: 0, level: 0, upright: 0, slotId: null };
     let codePrefix = 'R01';
+    let recipeType = model.RACK_TYPES[0] || model.AREA_TYPES[0];
     let mode = 'structure';
     let message = '';
     let pickFaces = [];
@@ -192,9 +268,30 @@
     let magnetEnabled = false;
     let snapPreview = null;
     let rackWizard = null;
+    let zoomSensitivity = 1, zoomFrame = null, sizeFrame = null;
+    let lastRenderedObjectId = null, lastRenderedScope = null;
+    let preview = null;
+    let currentFindings = [], focusedPart = null;
+    const groupSelection = new Set();
     const boxesFor = function (warehouse, matches) {
-      return window.OpenSlottingWarehouseScene.buildBoxes(model, warehouse, matches);
+      return window.OpenSlottingWarehouseScene.buildBoxes(model, warehouse, matches, {
+        colorMode: mode === 'structure' ? 'structure' : 'usage'
+      });
     };
+
+    function colorLegend(warehouse, t) {
+      const materialColors = mode === 'structure' && camera.mode === 'orbit';
+      const palette = window.OpenSlottingWarehouseScene.PALLET_PART_COLORS;
+      const entries = materialColors ? [
+        [palette.upright, t.palletFrameColor], [palette.beam, t.palletBeamColor], [palette.deck, t.palletDeckColor]
+      ] : [];
+      if (!materialColors || warehouse.objects.some(function (object) { return object.type === 'shelf-rack'; })) {
+        model.USAGES.forEach(function (usage) { entries.push([model.USAGE_COLORS[usage], t[usage]]); });
+      }
+      return entries.map(function (entry) {
+        return '<span><i style="background:' + entry[0] + '"></i>' + esc(entry[1]) + '</span>';
+      }).join('');
+    }
 
     webglRenderer = window.OpenSlottingWarehouseWebGL && window.OpenSlottingWarehouseWebGL.create(glCanvas, {
       onLost: function () { camera.mode = 'top'; message = labels().webglUnavailable; render(); },
@@ -204,6 +301,101 @@
 
     function labels() { return LABELS[options.getLanguage() === 'de' ? 'de' : 'en']; }
     function layout() { return options.getLayout(); }
+    function viewLayout() {
+      return preview ? preview.layout : layout();
+    }
+    const scrollSelectors = ['.wh-sidebar', '.wh-main', '.wh-objects', '.wh-collision-list', '.wh-properties .wh-card',
+      '.wh-group-members', '.wh-wizard', '.wh-wizard-table-wrap'];
+    const focusAttributes = ['data-field', 'data-select', 'data-tool', 'data-zone', 'data-location', 'data-object',
+      'data-group-member', 'data-action', 'data-wizard-field', 'data-wizard-action', 'data-focus-object', 'data-scope-bay',
+      'data-zoom-sensitivity', 'data-mode', 'data-ui-key'];
+    function captureUi() {
+      const active = root.contains(document.activeElement) ? document.activeElement : null;
+      const attributes = active ? Array.from(active.attributes).filter(function (attribute) {
+        return attribute.name === 'id' || attribute.name === 'data-index' || attribute.name === 'data-focus-part' ||
+          attribute.name === 'data-scope-level' || focusAttributes.includes(attribute.name);
+      }).map(function (attribute) { return [attribute.name, attribute.value]; }) : [];
+      const focus = active && (attributes.length || active.classList.contains('wh-canvas')) ? {
+        canvas: active.classList.contains('wh-canvas'), attributes: attributes,
+        contextual: active.closest('.wh-properties, .wh-wizard') !== null,
+        start: active.selectionStart, end: active.selectionEnd, direction: active.selectionDirection
+      } : null;
+      return { workspace: historyWorkspaceId, objectId: lastRenderedObjectId, scope: lastRenderedScope, focus: focus,
+        rootTop: root.scrollTop, rootLeft: root.scrollLeft,
+        scrolls: scrollSelectors.flatMap(function (selector) { return Array.from(root.querySelectorAll(selector)).map(function (element, index) {
+          return { selector: selector, index: index, top: element.scrollTop, left: element.scrollLeft };
+        }); }),
+        details: Array.from(root.querySelectorAll('.wh-properties details')).map(function (element) { return element.open; }),
+        drafts: Array.from(root.querySelectorAll('[data-tool], [data-field^="count."]')).map(function (element) {
+          return { attribute: element.hasAttribute('data-tool') ? 'data-tool' : 'data-field',
+            key: element.getAttribute(element.hasAttribute('data-tool') ? 'data-tool' : 'data-field'), value: element.value, checked: element.checked };
+        }) };
+    }
+    function restoreUi(state, scope) {
+      if (state.workspace !== historyWorkspaceId) return;
+      const sameObject = state.objectId === choice.objectId, sameScope = state.scope === scope;
+      if (sameObject) Array.from(root.querySelectorAll('.wh-properties details')).forEach(function (element, index) {
+        if (state.details[index] !== undefined) element.open = state.details[index];
+      });
+      if (sameScope) state.drafts.forEach(function (draft) {
+        const element = Array.from(root.querySelectorAll('[' + draft.attribute + ']')).find(function (item) { return item.getAttribute(draft.attribute) === draft.key; });
+        if (element && !element.disabled && (element.tagName !== 'SELECT' || Array.from(element.options).some(function (option) { return option.value === draft.value && !option.disabled; }))) {
+          element.value = draft.value; if (element.type === 'checkbox') element.checked = draft.checked;
+        }
+      });
+      const focus = state.focus;
+      if (focus && (!focus.contextual || sameScope)) {
+        const target = focus.canvas ? (camera.mode === 'top' ? canvas : glCanvas) : Array.from(root.querySelectorAll('button, input, select, textarea, [tabindex]')).find(function (element) {
+          return focus.attributes.every(function (attribute) { return element.getAttribute(attribute[0]) === attribute[1]; });
+        });
+        if (target && !target.disabled && !target.closest('[inert]')) {
+          target.focus({ preventScroll: true });
+          if (focus.start !== null && focus.start !== undefined && typeof target.setSelectionRange === 'function') {
+            try { target.setSelectionRange(focus.start, focus.end, focus.direction || 'none'); } catch (_) { /* Number/select controls have no text selection API. */ }
+          }
+        }
+      }
+      state.scrolls.forEach(function (saved) {
+        if (!sameObject && ['.wh-properties .wh-card', '.wh-group-members'].includes(saved.selector)) return;
+        if (!sameScope && ['.wh-wizard', '.wh-wizard-table-wrap'].includes(saved.selector)) return;
+        const element = root.querySelectorAll(saved.selector)[saved.index];
+        if (element) { element.scrollTop = saved.top; element.scrollLeft = saved.left; }
+      });
+      root.scrollTop = state.rootTop; root.scrollLeft = state.rootLeft;
+    }
+    function scheduleSize() {
+      if (sizeFrame !== null) return;
+      sizeFrame = window.requestAnimationFrame(function () {
+        sizeFrame = null;
+        const active = camera.mode === 'top' ? canvas : glCanvas;
+        if (active && active.isConnected && active.clientWidth > 0) paint(viewLayout(), null, currentFindings);
+      });
+    }
+    function fitView() {
+      if (camera.mode === 'orbit') { camera.zoom = 1; camera.target = null; camera.baseScale = null; }
+      else { topView.zoom = 1; topView.ready = false; }
+    }
+    function zoomBy(amount) {
+      if (camera.mode === 'orbit') ensureOrbitAnchor();
+      const view = camera.mode === 'orbit' ? camera : topView;
+      view.zoom = Math.max(0.25, Math.min(4, view.zoom * Math.exp(amount)));
+      const output = root.querySelector('[data-zoom-value]');
+      if (output) output.textContent = Math.round(view.zoom * 100) + '%';
+      if (zoomFrame === null) zoomFrame = window.requestAnimationFrame(function () {
+        zoomFrame = null;
+        if (root.getClientRects().length) paint(viewLayout(), null, currentFindings);
+      });
+    }
+    function scrollParent(element) {
+      for (let parent = element.parentElement; parent && root.contains(parent); parent = parent.parentElement) {
+        if (/auto|scroll/.test(window.getComputedStyle(parent).overflowY) && parent.scrollHeight > parent.clientHeight + 1) return parent;
+      }
+      return null;
+    }
+    function wheelDistance(event, height) {
+      const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? height : 1;
+      return { x: event.deltaX * unit, y: event.deltaY * unit };
+    }
     function syncHistoryScope() {
       const workspaceId = options.getWorkspaceId();
       if (workspaceId !== historyWorkspaceId) {
@@ -211,6 +403,7 @@
         undoStack = [];
         redoStack = [];
         rackWizard = null;
+        preview = null; focusedPart = null; groupSelection.clear();
         mode = 'structure';
         camera.yaw = -0.62; camera.pitch = 0.62; camera.zoom = 1;
         camera.target = null; camera.baseScale = null;
@@ -230,14 +423,14 @@
       if (!Number.isFinite(camera.baseScale) || camera.baseScale <= 0) camera.baseScale = view.fitScale;
       return view;
     }
-    function focusObject(objectId) {
+    function focusObject(objectId, partId) {
       if (camera.mode !== 'orbit' || !objectId) return false;
-      const targetBoxes = boxesFor(layout())
-        .filter(function (item) { return item.object.id === objectId; });
+      const targetBoxes = boxesFor(viewLayout())
+        .filter(function (item) { return item.object.id === objectId && (!partId || item.partId === partId); });
       if (!targetBoxes.length) return false;
       const view = window.OpenSlottingWarehouseWebGL.projectScene(targetBoxes,
         { yaw: camera.yaw, pitch: camera.pitch, zoom: 1 },
-        Math.max(280, glCanvas.clientWidth), Math.max(320, glCanvas.clientHeight),
+        Math.max(1, glCanvas.clientWidth), Math.max(1, glCanvas.clientHeight),
         null, null, new Set(), 'solid').view;
       camera.target = Object.assign({}, view.fitTarget);
       camera.baseScale = view.fitScale;
@@ -245,6 +438,7 @@
       return true;
     }
     function selectSlot(slot) {
+      focusedPart = null;
       choice.objectId = slot.objectId;
       choice.bay = slot.bayIndex;
       choice.level = slot.levelIndex;
@@ -253,7 +447,7 @@
       render();
     }
 
-    async function commit(next, historyAction, selectionAfter, toggleLockId, closeWizardOnSuccess) {
+    async function commit(next, historyAction, selectionAfter, toggleLockId, closeWizardOnSuccess, assemblyPose) {
       if (saving) return;
       syncHistoryScope();
       const scope = historyWorkspaceId;
@@ -266,6 +460,7 @@
           const currentLocks = new Map(before.objects.map(function (object) { return [object.id, object.locked === true]; }));
           next.objects.forEach(function (object) { object.locked = currentLocks.get(object.id) || false; });
         }
+        if (!historyAction && !toggleLockId) model.applyAssemblyChanges(before, next, assemblyPose);
         normalized = model.reconcileLayout(next);
         if (model.lockedEditConflict(before, normalized, toggleLockId)) {
           message = labels().lockedEdit; render(); return false;
@@ -283,6 +478,7 @@
         root.setAttribute('aria-busy', 'true');
         root.classList.add('is-saving');
         await options.save(normalized);
+        preview = null;
         syncHistoryScope();
         if (scope === historyWorkspaceId) {
           if (historyAction === 'undo') {
@@ -330,6 +526,7 @@
       return next;
     }
     function wizardValidation() {
+      if (model.rackDepth(rackWizard.draft) === null) return labels().mixedDepth;
       try { model.reconcileLayout(wizardLayout()); return ''; }
       catch (error) {
         const detail = error && error.message ? error.message : String(error);
@@ -389,6 +586,7 @@
     }
     function wizardHtml(t) {
       const state = rackWizard, rack = state.draft;
+      const rowDepth = model.rackDepth(rack);
       const steps = [t.wizardBasics, t.wizardBays, t.wizardLevels];
       const stepNav = '<ol class="wh-wizard-steps">' + steps.map(function (name, index) {
         return '<li' + (index === state.step ? ' aria-current="step"' : '') + '>' + esc(name) + '</li>';
@@ -403,22 +601,23 @@
           '</span><input type="text" data-wizard-field="name" value="' + esc(rack.name) + '" maxlength="120"></label>' +
           '<label class="wh-field"><span>' + esc(t.wizardBayCount) + '</span>' + wizardInput('bayCount', rack.bays.length, 1, 30) + '</label>' +
           (state.mode === 'create' ? '<label class="wh-field"><span>' + esc(t.wizardDefaultLevels) +
-            '</span>' + wizardInput('defaultLevels', rack.bays[0].levels.length, 1, 12) + '</label>' : '') + '</div>';
+            '</span>' + wizardInput('defaultLevels', rack.bays[0].levels.length, 1, 12) + '</label>' : '') +
+          '<label class="wh-field"><span>' + esc(t.rackDepth) + '</span>' +
+          wizardInput('rackDepth', rowDepth === null ? '' : rowDepth, 200, 3000) +
+          '</label><p class="wh-scope-hint wh-wizard-depth-hint">' + esc(rowDepth === null ? t.mixedDepth : t.rackDepthHint) + '</p></div>';
       } else if (state.step === 1) {
         body = '<h4>' + esc(t.wizardBayTable) + '</h4><div class="wh-wizard-table-wrap"><table class="wh-wizard-table"><thead><tr><th>' +
-          esc(t.wizardBayNumber) + '</th><th>' + esc(t.width) + '</th><th>' + esc(t.depth) + '</th><th>' + esc(t.levels) +
+          esc(t.wizardBayNumber) + '</th><th>' + esc(t.width) + '</th><th>' + esc(t.levels) +
           '</th><th></th></tr></thead><tbody>' + rack.bays.map(function (bay, index) {
             return '<tr><th scope="row">' + (index + 1) + '</th><td>' + wizardInput('bay.width', bay.width, 300, 6000, index) +
-              '</td><td>' + wizardInput('bay.depth', bay.depth, 200, 3000, index) + '</td><td>' +
-              wizardInput('bay.levels', bay.levels.length, 1, 12, index) + '</td><td><button type="button" data-wizard-action="edit-bay" data-index="' +
+              '</td><td>' + wizardInput('bay.levels', bay.levels.length, 1, 12, index) + '</td><td><button type="button" data-wizard-action="edit-bay" data-index="' +
               index + '">' + esc(t.wizardLevelTable) + '</button></td></tr>';
           }).join('') + '</tbody></table></div><h4>' + esc(t.wizardUprightTable) +
           '</h4><div class="wh-wizard-table-wrap"><table class="wh-wizard-table"><thead><tr><th>' + esc(t.wizardUprightNumber) +
-          '</th><th>' + esc(t.width) + '</th><th>' + esc(t.depth) + '</th><th>' + esc(t.height) + '</th></tr></thead><tbody>' +
+          '</th><th>' + esc(t.width) + '</th><th>' + esc(t.height) + '</th></tr></thead><tbody>' +
           rack.uprights.map(function (upright, index) {
             return '<tr><th scope="row">' + (index + 1) + '</th><td>' + wizardInput('upright.width', upright.width, 20, 500, index) +
-              '</td><td>' + wizardInput('upright.depth', upright.depth, 100, 3000, index) + '</td><td>' +
-              wizardInput('upright.height', upright.height, 200, 20000, index) + '</td></tr>';
+              '</td><td>' + wizardInput('upright.height', upright.height, 200, 20000, index) + '</td></tr>';
           }).join('') + '</tbody></table></div>';
       } else {
         const bay = rack.bays[state.activeBay];
@@ -455,6 +654,8 @@
     function refreshWizardFeedback() {
       if (!rackWizard) return;
       const issue = wizardValidation();
+      const depthHint = root.querySelector('.wh-wizard-depth-hint');
+      if (depthHint) depthHint.textContent = model.rackDepth(rackWizard.draft) === null ? labels().mixedDepth : labels().rackDepthHint;
       const feedback = root.querySelector('.wh-wizard-feedback');
       if (feedback) feedback.innerHTML = rackWizard.error ? '<p class="wh-wizard-error">' + esc(rackWizard.error) + '</p>' :
         issue ? '<p class="wh-wizard-error">' + esc(labels().wizardCheck) + ' ' + esc(issue) + '</p>' :
@@ -471,9 +672,9 @@
       const index = Number(input.dataset.index);
       const t = labels();
       const fieldNames = {
-        bayCount: t.wizardBayCount, defaultLevels: t.wizardDefaultLevels,
-        'bay.width': t.width, 'bay.depth': t.depth, 'bay.levels': t.levels,
-        'upright.width': t.width, 'upright.depth': t.depth, 'upright.height': t.height,
+        bayCount: t.wizardBayCount, defaultLevels: t.wizardDefaultLevels, rackDepth: t.rackDepth,
+        'bay.width': t.width, 'bay.levels': t.levels,
+        'upright.width': t.width, 'upright.height': t.height,
         'level.clearHeight': t.clearHeight, 'level.thickness': t.thickness,
         'level.deckThickness': t.deckThickness
       };
@@ -490,6 +691,8 @@
           const name = input.value.trim();
           if (!name || name.length > 120) throw new Error(labels().wizardName + ': 1–120');
           draft.name = name;
+        } else if (field === 'rackDepth') {
+          state.draft = model.setRackDepth(draft, wizardNumber(input.value, 200, 3000));
         } else if (field === 'bayCount') {
           const count = wizardNumber(input.value, 1, 30);
           const resized = model.resizeRack(draft, count, null);
@@ -513,8 +716,8 @@
           draft.bays[state.activeBay].levels[index].deck = input.checked;
         } else {
           const bounds = {
-            'bay.width': [300, 6000], 'bay.depth': [200, 3000],
-            'upright.width': [20, 500], 'upright.depth': [100, 3000], 'upright.height': [200, 20000],
+            'bay.width': [300, 6000],
+            'upright.width': [20, 500], 'upright.height': [200, 20000],
             'level.clearHeight': [100, 8000], 'level.thickness': [10, 300], 'level.deckThickness': [10, 200]
           };
           if (!bounds[field]) return;
@@ -589,6 +792,105 @@
         esc(t.generateRack) + '</button><p class="wh-scope-hint">' + esc(t.exact) + '</p></div>';
       return html;
     }
+    function toolNumber(label, key, value, min, max) {
+      return '<label class="wh-field"><span>' + esc(label) + '</span><input type="number" data-tool="' + key +
+        '" value="' + esc(value) + '" min="' + min + '" max="' + max + '" step="1"></label>';
+    }
+    function toolSelect(label, key, items) {
+      return '<label class="wh-field"><span>' + esc(label) + '</span><select data-tool="' + key + '">' + items + '</select></label>';
+    }
+    function anchorLabel(anchor, t) {
+      return anchor.direction ? t.port + ' ' + (anchor.index + 1) : t[anchor.index ? 'end' : 'start'];
+    }
+    function anchorOptions(object, t, selectedIndex) {
+      const anchors = model.connectionAnchors(object);
+      const occupied = function (anchor) { return (layout().connections || []).some(function (link) {
+        return link.aId === object.id && link.aAnchor === anchor.index || link.bId === object.id && link.bAnchor === anchor.index;
+      }); };
+      const selected = anchors.find(function (anchor) { return anchor.index === selectedIndex && !occupied(anchor); }) || anchors.find(function (anchor) { return !occupied(anchor); });
+      return anchors.map(function (anchor) {
+        const busy = occupied(anchor);
+        return '<option value="' + anchor.index + '"' + (anchor === selected ? ' selected' : '') + (busy ? ' disabled' : '') + '>' + esc(anchorLabel(anchor, t) + (busy ? ' · ' + t.occupiedPort : '')) + '</option>';
+      }).join('');
+    }
+    function planningTools(object, t) {
+      const describe = function (item) { return objectName(item, t) + ' · X ' + item.x + ' / Z ' + item.z + ' mm'; };
+      const related = model.relatedObjects(layout(), object.id);
+      const occupied = new Set();
+      (layout().connections || []).forEach(function (link) { occupied.add(link.aId + ':' + link.aAnchor); occupied.add(link.bId + ':' + link.bAnchor); });
+      const hasFreePort = function (item) { return model.connectionAnchors(item).some(function (anchor) { return !occupied.has(item.id + ':' + anchor.index); }); };
+      const targets = layout().objects.filter(function (item) { return !related.has(item.id) && model.canConnect(object, item) && hasFreePort(item); });
+      const currentTarget = root.querySelector('[data-tool="target"]');
+      const target = targets.find(function (item) { return currentTarget && item.id === currentTarget.value; }) || targets[0];
+      const bridgeDimension = function (key) {
+        const values = [object.route && object.route[key], target && target.route && target.route[key]].filter(Number.isFinite);
+        return values.length ? Math.max.apply(null, values) : '';
+      };
+      const targetOptions = targets.map(function (item) { return '<option value="' + esc(item.id) + '"' + (item === target ? ' selected' : '') + '>' + esc(describe(item)) + '</option>'; }).join('');
+      let html = '';
+      if (model.RACK_TYPES.includes(object.type)) {
+        const bay = object.bays[choice.bay];
+        const routes = layout().objects.filter(function (item) { return item.type === 'aisle'; });
+        html += '<details class="wh-section" open><summary>' + esc(t.passage) + '</summary><p>' + esc(t.passageWidth) + ': ' + bay.width + ' mm</p>' +
+          toolNumber(t.passageHeight, 'passage-height', bay.levels[0].clearHeight, 100, 8000) +
+          toolNumber(t.levels, 'passage-levels', bay.levels.length, 1, 12) +
+          '<label class="wh-check"><input type="checkbox" data-tool="grow-frames"><span>' + esc(t.growFrames) + '</span></label>' +
+          toolSelect(t.passageRoute, 'passage-route', '<option value="">' + esc(t.noRoute) + '</option>' + routes.map(function (item) {
+            return '<option value="' + esc(item.id) + '"' + (bay.passage && bay.passage.routeId === item.id ? ' selected' : '') + '>' + esc(describe(item)) + '</option>';
+          }).join('')) + '<button type="button" data-action="preview-passage">' + esc(t.previewPassage) + '</button>' +
+          (bay.passage ? '<button type="button" data-action="remove-passage">' + esc(t.removePassage) + '</button>' : '') +
+          '<button type="button" data-action="extend-start">' + esc(t.extendStart) + '</button><button type="button" data-action="extend-end">' + esc(t.extendEnd) + '</button></details>';
+      }
+      if (hasFreePort(object) && targets.length) {
+        html += '<details class="wh-section"><summary>' + esc(t.assembly) + '</summary>' + toolSelect(t.target, 'target', targetOptions) +
+          toolSelect(t.ownAnchor, 'own-anchor', anchorOptions(object, t, 0)) + toolSelect(t.targetAnchor, 'target-anchor', anchorOptions(target, t, 1)) +
+          toolSelect(t.rotation, 'connection-angle', '<option value="ports" selected>' + esc(t.portAlignment) + '</option><option value="keep">' + esc(t.keepDirection) + '</option><option value="0">0°</option><option value="90">90°</option><option value="-90">−90°</option><option value="180">180°</option>') +
+          '<button type="button" data-action="preview-connect">' + esc(t.previewConnect) + '</button><button type="button" data-action="preview-align">' + esc(t.previewAlign) + '</button>' +
+          ((layout().connections || []).some(function (link) { return link.aId === object.id || link.bId === object.id; }) ?
+            '<button type="button" data-action="disconnect">' + esc(t.disconnect) + '</button>' : '') +
+          (['aisle', 'wall'].includes(object.type) && target.type === object.type ? '<div class="wh-section"><p class="wh-scope-hint">' + esc(t.bridgeHint) + '</p>' +
+            toolSelect(t.bridgeCourse, 'bridge-course', [['auto', t.bridgeAuto], ['straight', t.bridgeStraight], ['left', t.bridgeLeft], ['right', t.bridgeRight]].map(function (item) {
+              return '<option value="' + item[0] + '">' + esc(item[1]) + '</option>';
+            }).join('')) + toolNumber(t.bridgeReserve, 'bridge-reserve', 500, 100, 10000) +
+            (object.type === 'aisle' ? toolNumber(t.requiredWidth, 'bridge-width', bridgeDimension('requiredWidth'), 100, 50000) +
+              toolNumber(t.requiredHeight, 'bridge-height', bridgeDimension('requiredHeight'), 100, 15000) +
+              '<p class="wh-scope-hint">' + esc(t.bridgeDimensionsHint.replace('{{width}}', Math.max(object.route.widthMargin, target.route.widthMargin))
+                .replace('{{height}}', Math.max(object.route.heightMargin, target.route.heightMargin))) + '</p>' : '') +
+            '<button type="button" data-action="preview-bridge">' + esc(t.previewBridge) + '</button></div>' : '') +
+          (model.RACK_TYPES.includes(object.type) && object.bays[choice.bay].passage ? toolNumber(t.targetBay, 'target-bay', 1, 1, 30) +
+            '<button type="button" data-action="continue-passage">' + esc(t.continuePassage) + '</button>' : '') + '</details>';
+      }
+      if ((layout().connections || []).some(function (link) { return link.aId === object.id || link.bId === object.id; }) && (!targets.length || !hasFreePort(object))) {
+        html += '<div class="wh-section"><button type="button" data-action="disconnect">' + esc(t.disconnect) + '</button></div>';
+      }
+      if (object.type === 'wall' && !object.junction) {
+        const openingOffset = Math.min(500, Math.max(0, object.width - 100));
+        html += '<details class="wh-section"><summary>' + esc(t.wallOpening) + '</summary>' + toolSelect(t.openingType, 'opening-type',
+          ['gate', 'door', 'emergency-exit'].map(function (type) { return '<option value="' + type + '">' + esc(t[TYPE_LABELS[type]]) + '</option>'; }).join('')) +
+          toolNumber(t.openingOffset, 'opening-offset', openingOffset, 0, object.width) + toolNumber(t.openingWidth, 'opening-width', Math.min(2000, object.width - openingOffset), 100, object.width) +
+          toolNumber(t.openingHeight, 'opening-height', Math.min(2200, object.height), 200, object.height) +
+          '<button type="button" data-action="preview-opening">' + esc(t.previewOpening) + '</button></details>';
+      }
+      const group = (layout().groups || []).find(function (item) { return item.objectIds.includes(object.id); });
+      html += '<details class="wh-section"><summary>' + esc(t.groups) + '</summary><p class="wh-scope-hint">' + esc(t.groupHint) + '</p>' + (group ? '<p>' + esc(group.name) + '</p><button type="button" data-action="ungroup">' + esc(t.ungroup) + '</button>' :
+        '<label class="wh-field"><span>' + esc(t.groupName) + '</span><input data-tool="group-name" value="' + esc(t.groups) + '" maxlength="120"></label>' +
+        '<div class="wh-group-members">' + layout().objects.map(function (item) { return '<label class="wh-check"><input type="checkbox" data-group-member="' + esc(item.id) +
+          '"' + (item.id === object.id || groupSelection.has(item.id) ? ' checked' : '') + (item.locked || item.id === object.id ? ' disabled' : '') + '><span>' + esc(describe(item)) + '</span></label>'; }).join('') +
+        '</div><button type="button" data-action="group">' + esc(t.groupCreate) + '</button>') + '</details>';
+      return html;
+    }
+    function stage(next, label, pose, selectionId) {
+      try {
+        model.applyAssemblyChanges(layout(), next, pose);
+        const candidate = model.reconcileLayout(next);
+        if (model.lockedEditConflict(layout(), candidate)) throw new Error(labels().lockedEdit);
+        preview = { layout: candidate, label: label, pose: pose, selectionId: selectionId === undefined ? choice.objectId : selectionId };
+        preview.impact = model.layoutImpact(layout(), candidate, options.getRegistry ? options.getRegistry() : []);
+        message = ''; render();
+        const applyButton = root.querySelector('[data-action="apply-preview"]');
+        if (applyButton) applyButton.focus();
+      } catch (error) { message = error.message; render(); }
+    }
     function properties(object, t) {
       if (!object) return '<p class="wh-empty">' + esc(t.selected) + '</p>';
       if (model.RACK_TYPES.includes(object.type)) {
@@ -600,8 +902,26 @@
         numberField(t.x, 'x', object.x, -500000, 500000) + numberField(t.z, 'z', object.z, -500000, 500000) +
         numberField(t.rotation, 'rotation', object.rotation, -360, 360) + '</div>';
       if (!model.RACK_TYPES.includes(object.type)) {
-        return html + '<div class="wh-property-grid">' + numberField(t.width, 'width', object.width, 100, 50000) +
-          numberField(t.depth, 'depth', object.depth, 10, 50000) + numberField(t.height, 'height', object.height, 1, 15000) + '</div>';
+        if (object.junction) {
+          html += '<div class="wh-section"><strong>' + esc(t[object.junction.shape]) + '</strong><p class="wh-scope-hint">' + esc(t.junctionHint) + '</p><p class="wh-scope-hint">' + esc(t.connectionWidthHint) + '</p><div class="wh-property-grid">' +
+            model.JUNCTION_DIRECTIONS[object.junction.shape].map(function (direction, index) {
+              return numberField(t.armLength + ' · ' + t.port + ' ' + (index + 1) + ' (mm)', 'junction.arms.' + direction, object.junction.arms[direction], 100, 24000);
+            }).join('') + '</div></div>';
+        }
+        html += '<div class="wh-property-grid">' + (object.junction || object.type === 'aisle' && object.route && object.route.path ? '' : numberField(object.type === 'aisle' ? t.routeLength : t.width, 'width', object.width, 100, 50000)) +
+          numberField(object.type === 'aisle' ? t.routeWidth : object.type === 'wall' ? t.wallThickness : t.depth, 'depth', object.depth, object.type === 'aisle' ? 100 : 10, 50000) +
+          numberField(object.type === 'aisle' ? t.markingHeight : t.height, 'height', object.height, 1, 15000) + '</div>';
+        if (object.elevation !== undefined || object.type === 'wall' && object.junction) html += numberField(t.elevation, 'elevation', object.elevation || 0, 0, 20000);
+        if (object.type === 'door') html += '<label class="wh-check"><input type="checkbox" data-field="open"' + (object.open ? ' checked' : '') + '><span>' + esc(t.doorOpen) + '</span></label>';
+        if (object.type === 'aisle') {
+          const route = object.route || {}, findings = currentFindings.filter(function (issue) { return issue.firstId === object.id || issue.secondId === object.id; });
+          html += '<div class="wh-section">' + numberField(t.requiredWidth, 'route.requiredWidth', route.requiredWidth === null ? '' : route.requiredWidth, 100, 50000) +
+            numberField(t.requiredHeight, 'route.requiredHeight', route.requiredHeight === null ? '' : route.requiredHeight, 100, 15000) +
+            numberField(t.widthMargin, 'route.widthMargin', route.widthMargin || 0, 0, 5000) + numberField(t.heightMargin, 'route.heightMargin', route.heightMargin || 0, 0, 5000) +
+            '<p class="wh-scope-hint">' + esc(t.routeHint) + '</p><p class="wh-route-status">' + esc(findings.length ? t[(findings.find(function (finding) { return finding.severity !== 'info'; }) || findings[0]).kind] : t.routeClear) + '</p>' +
+            '<p class="wh-scope-hint">' + esc(t.planningHint) + '</p></div>';
+        }
+        return html + planningTools(object, t);
       }
       choice.bay = Math.min(choice.bay, object.bays.length - 1);
       choice.upright = Math.min(choice.upright, object.uprights.length - 1);
@@ -609,13 +929,15 @@
       choice.level = Math.min(choice.level, bay.levels.length - 1);
       const level = bay.levels[choice.level];
       const stand = object.uprights[choice.upright];
+      const depth = model.rackDepth(object);
+      html += '<div class="wh-section">' + numberField(t.rackDepth, 'rack.depth', depth === null ? '' : depth, 200, 3000) +
+        '<p class="wh-scope-hint">' + esc(depth === null ? t.mixedDepth : t.rackDepthHint) + '</p></div>';
       html += '<div class="wh-section"><div class="wh-property-grid">' +
         numberField(t.bays, 'count.bays', object.bays.length, 1, 30) +
         '</div><button type="button" class="wh-small-button" data-action="resize">' + esc(t.applyCounts) + '</button></div>';
       html += '<div class="wh-section"><div class="wh-property-grid">' +
         selectField(t.bay, 'bay', object.bays.length, choice.bay) +
         numberField(t.width, 'bay.width', bay.width, 300, 6000) +
-        numberField(t.depth, 'bay.depth', bay.depth, 200, 3000) +
         numberField(t.levels, 'count.bayLevels', bay.levels.length, 1, 12) +
         '</div><button type="button" class="wh-small-button" data-action="resize-bay">' + esc(t.applyBayLevels) + '</button></div>';
       html += '<div class="wh-section"><div class="wh-property-grid">' +
@@ -627,19 +949,45 @@
       html += '<div class="wh-section"><div class="wh-property-grid">' +
         selectField(t.upright, 'upright', object.uprights.length, choice.upright) +
         numberField(t.width, 'upright.width', stand.width, 20, 500) +
-        numberField(t.depth, 'upright.depth', stand.depth, 100, 3000) +
         numberField(t.height, 'upright.height', stand.height, 200, 20000) +
         '</div></div>';
-      return html + scopeProgress(object, level, t);
+      return html + scopeProgress(object, level, t) + planningTools(object, t);
+    }
+
+    function recipeOptions(t) {
+      const supported = model.RECIPE_TYPES;
+      const groups = [
+        { label: 'recipeRacks', types: model.RACK_TYPES },
+        { label: 'recipeBuilding', types: ['gate', 'door', 'emergency-exit'] },
+        { label: 'recipeWalls', types: ['wall', 'wall-corner', 'wall-tee', 'wall-cross'] },
+        { label: 'recipeRoutes', types: ['aisle', 'aisle-corner', 'aisle-tee', 'aisle-cross'] },
+        { label: 'recipeAreas', types: ['goods-in', 'goods-out'] }
+      ];
+      const grouped = new Set(groups.flatMap(function (group) { return group.types; }));
+      groups.push({ label: 'recipeOther', types: supported.filter(function (type) { return !grouped.has(type); }) });
+      const locale = options.getLanguage() === 'de' ? 'de' : 'en';
+      const name = function (type) {
+        if (TYPE_LABELS[type]) return t[TYPE_LABELS[type]];
+        const split = type.lastIndexOf('-');
+        return t[TYPE_LABELS[type.slice(0, split)]] + ' · ' + t[type.slice(split + 1)];
+      };
+      return groups.map(function (group) {
+        const types = group.types.filter(function (type) { return supported.includes(type); }).slice()
+          .sort(function (a, b) { return name(a).localeCompare(name(b), locale); });
+        if (!types.length) return '';
+        return '<optgroup label="' + esc(t[group.label]) + '">' + types.map(function (type) {
+          return '<option value="' + esc(type) + '"' + (type === recipeType ? ' selected' : '') + '>' + esc(name(type)) + '</option>';
+        }).join('') + '</optgroup>';
+      }).join('');
     }
 
     function render() {
-      const focused = rackWizard && root.contains(document.activeElement) ? document.activeElement : null;
-      const focusedField = focused && focused.dataset.wizardField;
-      const focusedIndex = focused && focused.dataset.index;
+      const uiState = captureUi();
+      const recipeInput = root.querySelector('#wh-recipe');
+      if (recipeInput && model.RECIPE_TYPES.includes(recipeInput.value)) recipeType = recipeInput.value;
       syncHistoryScope();
       const t = labels();
-      const warehouse = layout();
+      const warehouse = viewLayout();
       if (!warehouse.objects.some(function (object) { return object.id === choice.objectId; })) {
         choice.objectId = warehouse.objects.length ? warehouse.objects[0].id : null;
         choice.bay = 0; choice.level = 0; choice.upright = 0;
@@ -649,31 +997,40 @@
       if (!slots.some(function (slot) { return slot.slotId === choice.slotId; })) choice.slotId = null;
       const coded = slots.filter(function (slot) { return Boolean(slot.code); }).length;
       const collisions = model.findCollisions(warehouse);
-      const collisionIds = new Set(collisions.flatMap(function (item) { return [item.firstId, item.secondId]; }));
+      currentFindings = collisions;
+      const warnings = collisions.filter(function (item) { return item.severity !== 'info'; });
+      const collisionIds = new Set(warnings.flatMap(function (item) { return [item.firstId, item.secondId]; }));
       const objectsById = new Map(warehouse.objects.map(function (item) { return [item.id, item]; }));
-      const collisionSummary = collisions.length + ' ' + (collisions.length === 1 ? t.collision : t.collisions);
-      const collisionPanel = collisions.length ? '<div class="wh-card wh-collisions"><h4>' + esc(t.checks) +
-        ' · ' + esc(collisionSummary) + '</h4><div class="wh-collision-list">' + collisions.slice(0, 12).map(function (item) {
+      const collisionSummary = warnings.length + ' ' + (warnings.length === 1 ? t.collision : t.collisions);
+      const collisionPanel = collisions.length ? '<div class="wh-card wh-collisions' + (warnings.length ? '' : ' is-info') + '"><h4>' + esc(t.checks) +
+        ' · ' + esc(collisionSummary) + '</h4><div class="wh-collision-list" tabindex="0" data-ui-key="layout-checks" aria-label="' + esc(t.checks) + '">' + collisions.slice(0, 12).map(function (item) {
           const first = objectsById.get(item.firstId), second = objectsById.get(item.secondId);
-          return '<div class="wh-collision-row"><small>' + esc(t[item.kind]) + '</small><div><button type="button" data-focus-object="' +
+          const part = item.partKind ? t['part' + item.partKind.charAt(0).toUpperCase() + item.partKind.slice(1)] : '';
+          return '<div class="wh-collision-row' + (item.severity === 'info' ? ' is-info' : '') + '"><small>' + esc(t[item.kind]) + (part ? ' · ' + esc(part) : '') +
+            (item.requiredHeight !== undefined && item.kind === 'route-too-low' ? ' · ' + item.availableHeight + ' / ' + item.requiredHeight + ' mm' : '') + '</small><div><button type="button" data-focus-object="' +
             esc(first.id) + '" title="' + esc(first.name) + '">' + esc(first.name) + '</button><span>↔</span><button type="button" data-focus-object="' +
-            esc(second.id) + '" title="' + esc(second.name) + '">' + esc(second.name) + '</button></div></div>';
+            esc(second.id) + '" title="' + esc(second.name) + '">' + esc(second.name) + '</button></div>' +
+            (item.partId ? '<button type="button" data-focus-object="' + esc(item.obstacleId) + '" data-focus-part="' + esc(item.partId) +
+              '"' + (item.bayIndex === undefined ? '' : ' data-bay="' + item.bayIndex + '" data-level="' + item.levelIndex + '"') + '>' + esc(part || t.partBody) + '</button>' : '') + '</div>';
         }).join('') + '</div>' + (collisions.length > 12 ? '<p>' + (collisions.length - 12) + ' ' + esc(t.moreCollisions) + '</p>' : '') +
         '</div>' : '';
       root.innerHTML = '<div class="wh-header"><div><p class="wh-eyebrow">OpenSlotting · 3D</p><h3>' + esc(t.view) + '</h3><p>' +
         esc(t[mode + 'Help']) + '</p></div><div class="wh-summary"><strong>' + warehouse.objects.length + '</strong> ' + esc(t.objects) +
         '<br><strong>' + slots.length + '</strong> ' + esc(t.slotSummary) + ' ' + coded + ' ' + esc(t.coded) +
-        (collisions.length ? '<br><span class="wh-summary-conflicts">⚠ ' + esc(collisionSummary) + '</span>' : '') + '</div></div>' +
-        '<nav class="wh-modes" aria-label="' + esc(t.view) + '"' + (rackWizard ? ' inert' : '') + '>' + ['structure', 'zones', 'locations'].map(function (step, index) {
+        (warnings.length ? '<br><span class="wh-summary-conflicts">⚠ ' + esc(collisionSummary) + '</span>' : '') + '</div></div>' +
+        (preview ? '<div class="wh-preview" role="status"><strong>' + esc(t.previewTitle) + ': ' + esc(preview.label) +
+          '</strong><span>' + esc(t.previewImpact.replace(/\{\{(locations|codes|articles|removed)\}\}/g, function (_, key) { return preview.impact[key]; })) +
+          '</span>' + (preview.unverifiedRoute ? '<span>' + esc(t['unverified-route']) + '</span>' : '') +
+          '<button type="button" data-action="apply-preview">' + esc(t.applyPreview) + '</button><button type="button" data-action="cancel-preview">' + esc(t.cancel) + '</button></div>' : '') +
+        '<nav class="wh-modes" aria-label="' + esc(t.view) + '"' + (rackWizard || preview ? ' inert' : '') + '>' + ['structure', 'zones', 'locations'].map(function (step, index) {
           return '<button type="button" data-mode="' + step + '" aria-pressed="' + (step === mode) + '">' + (index + 1) + ' · ' + esc(t[step]) + '</button>';
         }).join('') + '</nav>' +
-        '<div class="wh-editor-grid"' + (rackWizard ? ' inert' : '') + '><aside class="wh-sidebar">' + (mode === 'structure' ? '<div class="wh-card"><h4>' + esc(t.add) + '</h4>' +
+        '<div class="wh-editor-grid"' + (rackWizard ? ' inert' : '') + '><aside class="wh-sidebar"' + (preview ? ' inert' : '') + '>' + (mode === 'structure' ? '<div class="wh-card"><h4>' + esc(t.add) + '</h4>' +
         '<select id="wh-recipe" aria-label="' + esc(t.choose) + '">' +
-        model.RACK_TYPES.concat(model.AREA_TYPES).map(function (type) {
-          return '<option value="' + type + '">' + esc(t[TYPE_LABELS[type]]) + '</option>';
-        }).join('') + '</select><button type="button" class="wh-add-button" data-action="add">' + esc(t.addButton) + '</button></div>' : '') +
+        recipeOptions(t) + '</select><button type="button" class="wh-add-button" data-action="add">' + esc(t.addButton) +
+        '</button></div>' : '') +
         collisionPanel +
-        '<div class="wh-card wh-objects"><h4>' + esc(t.objects) + '</h4>' +
+        '<div class="wh-card wh-objects" tabindex="0" aria-label="' + esc(t.objects) + '" data-ui-key="object-list"><h4>' + esc(t.objects) + '</h4>' +
         (warehouse.objects.length ? warehouse.objects.map(function (item) {
           return '<button type="button" class="wh-object' + (item.id === choice.objectId ? ' active' : '') +
             (collisionIds.has(item.id) ? ' is-conflict' : '') +
@@ -688,7 +1045,13 @@
         ' title="Ctrl+Z">' + esc(t.undo) + '</button><button type="button" data-action="redo"' +
         (redoStack.length ? '' : ' disabled') + ' title="Ctrl+Y / Ctrl+Shift+Z">' + esc(t.redo) +
         '</button><button type="button" data-action="fit">' + esc(t.fit) +
-        '</button>' + (camera.mode === 'orbit' ? '<button type="button" data-action="focus"' +
+        '</button><button type="button" data-action="zoom-out" aria-label="' + esc(t.zoomOut) + '" title="' + esc(t.zoomOut) + '">−</button>' +
+        '<output class="wh-zoom-value" data-zoom-value aria-label="Zoom">' + Math.round((camera.mode === 'orbit' ? camera.zoom : topView.zoom) * 100) + '%</output>' +
+        '<button type="button" data-action="zoom-in" aria-label="' + esc(t.zoomIn) + '" title="' + esc(t.zoomIn) + '">+</button>' +
+        '<label class="wh-zoom-speed"><span>' + esc(t.zoomSensitivity) + '</span><select data-zoom-sensitivity aria-label="' + esc(t.zoomSensitivity) + '">' +
+        [[0.5, t.zoomSlow], [1, t.zoomNormal], [2, t.zoomFast]].map(function (item) { return '<option value="' + item[0] + '"' +
+          (zoomSensitivity === item[0] ? ' selected' : '') + '>' + esc(item[1]) + '</option>'; }).join('') + '</select></label>' +
+        (camera.mode === 'orbit' ? '<button type="button" data-action="focus"' +
           (object ? '' : ' disabled') + '>' + esc(t.focus) + '</button>' : '') + '<button type="button" data-action="magnet" aria-pressed="' + magnetEnabled +
         '" title="' + esc(t.magnetTitle) + '">⌁ ' + esc(t.magnet) +
         '</button>' + (camera.mode === 'orbit' ? '<button type="button" data-action="wall-mode" title="' +
@@ -697,11 +1060,11 @@
         '</button><button type="button" data-action="orbit" aria-pressed="' + (camera.mode === 'orbit') +
         '"' + (!webglRenderer || !webglRenderer.available() ? ' disabled title="' + esc(t.webglUnavailable) + '"' : '') + '>' +
         esc(t.orbit) + '</button></div></div><div class="wh-viewport"><canvas class="wh-canvas is-top' +
-        (camera.mode === 'top' ? '' : ' is-hidden') + '" role="img" aria-label="' + esc(t.planView) + '"></canvas>' +
+        (camera.mode === 'top' ? '' : ' is-hidden') + '" role="img" tabindex="0" aria-label="' + esc(t.planView) + '" title="' + esc(t.zoomKeyboard) + '"></canvas>' +
         '<div class="wh-webgl-slot' + (camera.mode === 'orbit' ? '' : ' is-hidden') + '"></div></div>' +
-        '<div class="wh-view-hint">' + esc(camera.mode === 'top' ? (mode === 'structure' ? t.hintTop + (magnetEnabled ? ' · ' + t.magnetHint : '') : t.inspectHint) + ' · ' + t.topZonesHint : t.hint) + '</div>' +
-        '<div class="wh-legend">' + model.USAGES.map(function (usage) { return '<span><i style="background:' + model.USAGE_COLORS[usage] + '"></i>' + esc(t[usage]) + '</span>'; }).join('') + '</div>' +
-        '</div><aside class="wh-properties"><div class="wh-card"><div class="wh-properties-head"><h4>' + esc(t.properties) + '</h4>' +
+        '<div class="wh-view-hint" id="wh-navigation-hint">' + esc(camera.mode === 'top' ? (mode === 'structure' ? t.hintTop + (magnetEnabled ? ' · ' + t.magnetHint : '') : t.inspectHint) + ' · ' + t.topZonesHint : t.hint) + ' · ' + esc(t.zoomKeyboard) + '</div>' +
+        '<div class="wh-legend">' + colorLegend(warehouse, t) + '</div>' +
+        '</div><aside class="wh-properties"' + (preview ? ' inert' : '') + '><div class="wh-card" tabindex="0" data-ui-key="properties" aria-label="' + esc(t.properties) + '"><div class="wh-properties-head"><h4>' + esc(t.properties) + '</h4>' +
         (object && mode === 'structure' ? '<button type="button" class="wh-delete" data-action="delete">' + esc(t.delete) + '</button>' : '') +
         '</div>' + (object ? '<div class="wh-object-actions"><button type="button" class="wh-lock-toggle" data-action="toggle-lock" aria-pressed="' +
           Boolean(object.locked) + '">' + (object.locked ? '🔓 ' + esc(t.unlock) : '🔒 ' + esc(t.lock)) +
@@ -713,23 +1076,34 @@
         '</div></aside></div>' + (rackWizard ? wizardHtml(t) : '') +
         '<p class="wh-message" role="status" aria-live="polite">' + esc(message) + '</p>';
       if (object && object.locked) {
-        root.querySelectorAll('.wh-properties [data-field], .wh-properties [data-zone], .wh-properties [data-location], .wh-properties [data-bulk-usage], .wh-properties [data-action]:not([data-action="toggle-lock"])')
+        root.querySelectorAll('.wh-properties [data-field], .wh-properties [data-tool], .wh-properties [data-group-member], .wh-properties [data-zone], .wh-properties [data-location], .wh-properties [data-bulk-usage], .wh-properties [data-action]:not([data-action="toggle-lock"])')
           .forEach(function (control) { control.disabled = true; });
+      }
+      if (preview) {
+        root.querySelectorAll('.wh-view-toolbar [data-action]').forEach(function (control) {
+          const allowed = ['fit', 'focus', 'wall-mode', 'top', 'orbit', 'zoom-in', 'zoom-out'];
+          if (!allowed.includes(control.dataset.action)) control.disabled = true;
+        });
       }
       root.querySelector('.wh-webgl-slot').appendChild(glCanvas);
       if (mode === 'locations' && object && model.RACK_TYPES.includes(object.type) && currentZone(object).usage === 'unassigned') {
         root.querySelector('[data-field="count.locations"]').disabled = true;
       }
       glCanvas.setAttribute('aria-label', t.view);
+      glCanvas.tabIndex = 0;
+      glCanvas.title = t.zoomKeyboard;
+      glCanvas.setAttribute('aria-describedby', 'wh-navigation-hint');
       canvas = root.querySelector('canvas.is-top');
-      paint(warehouse, collisionIds);
+      canvas.setAttribute('aria-describedby', 'wh-navigation-hint');
+      root.querySelectorAll('.wh-properties details summary').forEach(function (element, index) { element.dataset.uiKey = 'section-' + index; element.tabIndex = 0; });
+      root.querySelectorAll('.wh-collision-row').forEach(function (row, rowIndex) {
+        row.querySelectorAll('button').forEach(function (button, buttonIndex) { button.dataset.uiKey = 'finding-' + rowIndex + '-' + buttonIndex; });
+      });
+      const scope = JSON.stringify([historyWorkspaceId, choice.objectId, mode, choice.bay, choice.level, choice.upright, rackWizard && rackWizard.step]);
+      restoreUi(uiState, scope);
+      lastRenderedObjectId = choice.objectId; lastRenderedScope = scope;
+      paint(warehouse, collisionIds, collisions);
       wireCanvas();
-      if (rackWizard && focusedField) {
-        const replacement = Array.from(root.querySelectorAll('.wh-wizard [data-wizard-field]')).find(function (item) {
-          return item.dataset.wizardField === focusedField && item.dataset.index === focusedIndex;
-        });
-        if (replacement) replacement.focus();
-      }
     }
 
     function fitTop(warehouse, width, height) {
@@ -741,8 +1115,8 @@
       const maxZ = Math.max.apply(null, corners.map(function (point) { return point.z; }));
       topView.centerX = (minX + maxX) / 2;
       topView.centerZ = (minZ + maxZ) / 2;
-      topView.scale = Math.min((width - 90) / Math.max(3000, maxX - minX),
-        (height - 100) / Math.max(3000, maxZ - minZ));
+      topView.scale = Math.min(Math.max(1, width - 90) / Math.max(3000, maxX - minX),
+        Math.max(1, height - 100) / Math.max(3000, maxZ - minZ));
       topView.ready = true;
     }
 
@@ -800,6 +1174,17 @@
         };
         return rank(a) - rank(b);
       });
+      // One nonzero-winding fill gives overlapping lane rectangles the same
+      // opacity as a single lane. All model rectangles share their winding.
+      ctx.beginPath();
+      objects.filter(function (object) { return object.type === 'aisle'; }).forEach(function (object) {
+        model.routeSegments(object).forEach(function (segment) {
+          const shape = model.footprintCorners(segment).map(function (point) { return topPoint(point.x, point.z, width, height); });
+          ctx.moveTo(shape[0][0], shape[0][1]);
+          shape.slice(1).forEach(function (point) { ctx.lineTo(point[0], point[1]); }); ctx.closePath();
+        });
+      });
+      ctx.fillStyle = COLORS.aisle; ctx.globalAlpha = 0.28; ctx.fill('nonzero'); ctx.globalAlpha = 1;
       objects.forEach(function (object) {
         const corners = model.footprintCorners(object);
         const polygon = corners.map(function (point) { return topPoint(point.x, point.z, width, height); });
@@ -807,11 +1192,19 @@
         polygon.slice(1).forEach(function (point) { ctx.lineTo(point[0], point[1]); }); ctx.closePath();
         ctx.fillStyle = COLORS[object.type];
         ctx.globalAlpha = ['aisle', 'goods-in', 'goods-out'].includes(object.type) ? 0.28 : 0.48;
-        ctx.fill(); ctx.globalAlpha = 1;
+        const compound = object.junction || object.type === 'aisle' && object.route && object.route.path;
+        if (!compound && object.type !== 'aisle') ctx.fill(); ctx.globalAlpha = 1;
         const colliding = collisionIds.has(object.id);
         ctx.strokeStyle = colliding ? object.id === choice.objectId ? '#ffd28a' : '#ff8374' :
           object.id === choice.objectId ? '#91f4e2' : COLORS[object.type];
-        ctx.lineWidth = object.id === choice.objectId || colliding ? 3 : 1.5; ctx.stroke();
+        ctx.lineWidth = object.id === choice.objectId || colliding ? 3 : 1.5;
+        if (!compound) ctx.stroke();
+        if (compound) model.routeSegments(object).forEach(function (segment) {
+          const shape = model.footprintCorners(segment).map(function (point) { return topPoint(point.x, point.z, width, height); });
+          ctx.beginPath(); ctx.moveTo(shape[0][0], shape[0][1]); shape.slice(1).forEach(function (point) { ctx.lineTo(point[0], point[1]); }); ctx.closePath();
+          if (object.type !== 'aisle') { ctx.globalAlpha = 0.48; ctx.fill(); ctx.globalAlpha = 1; }
+          ctx.stroke(); pickFaces.push({ objectId: object.id, polygon: shape });
+        });
         if (model.RACK_TYPES.includes(object.type)) {
           pickFaces.push({ objectId: object.id, polygon: polygon });
           let divider = object.uprights[0].width;
@@ -844,6 +1237,11 @@
                   slotId: location && location.id, polygon: band });
               });
             });
+            if (bay.passage) {
+              const start = local(divider + bay.width / 2, 0), end = local(divider + bay.width / 2, bay.depth);
+              ctx.beginPath(); ctx.moveTo(start[0], start[1]); ctx.lineTo(end[0], end[1]); ctx.strokeStyle = '#91f4e2'; ctx.lineWidth = 3; ctx.stroke();
+              ctx.fillStyle = '#e4fff9'; ctx.fillText('↕ ' + bay.levels[0].clearHeight + ' mm', (start[0] + end[0]) / 2, (start[1] + end[1]) / 2);
+            }
             divider += bay.width;
             const localX = divider;
             const depth = model.objectFootprint(object).depth;
@@ -855,13 +1253,27 @@
             divider += object.uprights[index + 1].width;
           });
         }
-        const centerX = polygon.reduce(function (sum, point) { return sum + point[0]; }, 0) / 4;
-        const centerY = polygon.reduce(function (sum, point) { return sum + point[1]; }, 0) / 4;
+        const center = object.junction ? topPoint(object.x, object.z, width, height) : null;
+        const centerX = center ? center[0] : polygon.reduce(function (sum, point) { return sum + point[0]; }, 0) / 4;
+        const centerY = center ? center[1] : polygon.reduce(function (sum, point) { return sum + point[1]; }, 0) / 4;
         ctx.font = '12px Segoe UI, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         const name = (object.locked ? '🔒 ' : '') + (colliding ? '⚠ ' : '') + object.name;
         ctx.lineWidth = 3; ctx.strokeStyle = '#0d151c'; ctx.strokeText(name, centerX, centerY);
         ctx.fillStyle = '#e4f2f2'; ctx.fillText(name, centerX, centerY);
-        if (!model.RACK_TYPES.includes(object.type)) pickFaces.push({ objectId: object.id, polygon: polygon });
+        if (!model.RACK_TYPES.includes(object.type) && !compound) pickFaces.push({ objectId: object.id, polygon: polygon });
+      });
+      const portObjects = preview ? [preview.selectionId].concat(preview.targetId || []) : mode === 'structure' && magnetEnabled ? [choice.objectId] : [];
+      portObjects.forEach(function (key) {
+        const object = warehouse.objects.find(function (item) { return item.id === key; });
+        if (!object) return;
+        model.connectionAnchors(object).forEach(function (anchor) {
+          const position = topPoint(anchor.x, anchor.z, width, height);
+          const occupied = (warehouse.connections || []).some(function (link) {
+            return link.aId === object.id && link.aAnchor === anchor.index || link.bId === object.id && link.bAnchor === anchor.index;
+          });
+          ctx.beginPath(); ctx.arc(position[0], position[1], 6, 0, Math.PI * 2); ctx.fillStyle = occupied ? '#7790a6' : '#ffda86'; ctx.fill();
+          ctx.fillText(anchorLabel(anchor, labels()) + (occupied ? ' · ' + labels().occupiedPort : ''), position[0] + 10, position[1] - 10);
+        });
       });
       if (snapPreview && magnetEnabled) {
         const point = topPoint(snapPreview.point.x, snapPreview.point.z, width, height);
@@ -892,20 +1304,22 @@
       }
     }
 
-    function paint(warehouse, collisionIds) {
-      const conflicts = collisionIds || new Set(model.findCollisions(warehouse).flatMap(function (item) {
+    function paint(warehouse, collisionIds, findings) {
+      const issues = (findings || model.findCollisions(warehouse)).filter(function (item) { return item.severity !== 'info'; });
+      const conflicts = collisionIds || new Set(issues.flatMap(function (item) {
         return [item.firstId, item.secondId];
       }));
       if (camera.mode === 'orbit') {
         if (webglRenderer && webglRenderer.available()) {
+          const partConflicts = new Set(issues.flatMap(function (item) { return item.partId ? [item.partId, item.secondPartId].filter(Boolean) : [item.firstId, item.secondId]; }));
           webglRenderer.render(boxesFor(warehouse),
-            camera, choice.objectId, choice.slotId, conflicts, wallMode);
+            camera, preview ? preview.selectionId : choice.objectId, preview ? null : choice.slotId || focusedPart, partConflicts, wallMode);
         }
         return;
       }
       if (!canvas) return;
-      const width = Math.max(280, canvas.clientWidth);
-      const height = Math.max(320, canvas.clientHeight);
+      const width = Math.max(1, canvas.clientWidth);
+      const height = Math.max(1, canvas.clientHeight);
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       canvas.width = Math.round(width * dpr);
       canvas.height = Math.round(height * dpr);
@@ -923,18 +1337,25 @@
       let drag = null;
       inputCanvas.addEventListener('pointerdown', function (event) {
         if (saving) return;
+        inputCanvas.focus({ preventScroll: true });
+        if (saving || !inputCanvas.isConnected) return;
         if (camera.mode === 'top' && event.button !== 0) return;
         if (camera.mode === 'orbit' && ![0, 1, 2].includes(event.button)) return;
         snapPreview = null;
         if (camera.mode === 'top') {
           const rect = canvas.getBoundingClientRect();
           const x = event.clientX - rect.left, y = event.clientY - rect.top;
-          const found = topHit(x, y);
+          const found = preview ? null : topHit(x, y);
           if (found) {
             const object = layout().objects.find(function (item) { return item.id === found.objectId; });
             choice.objectId = object.id; choice.slotId = null;
             if (found.bayIndex !== undefined) { choice.bay = found.bayIndex; choice.level = found.levelIndex; choice.slotId = found.slotId || null; }
-            if (object.locked || mode !== 'structure') drag = { mode: 'select', x: event.clientX, y: event.clientY, moved: false };
+            const members = model.relatedObjects(layout(), object.id);
+            const lockedAssembly = layout().objects.some(function (member) { return members.has(member.id) && member.locked; });
+            if (lockedAssembly || mode !== 'structure') {
+              if (lockedAssembly && mode === 'structure') message = labels().lockedEdit;
+              drag = { mode: 'select', x: event.clientX, y: event.clientY, moved: false };
+            }
             else {
               const next = clone(layout());
               drag = { mode: 'move', x: event.clientX, y: event.clientY, moved: false,
@@ -965,8 +1386,9 @@
           drag.target.x = rawX; drag.target.z = rawZ;
           const scale = topView.scale * topView.zoom;
           const tolerance = Math.max(50, Math.min(300, 14 / scale));
-          const snap = magnetEnabled ? model.findConnectionSnap(drag.target, drag.next.objects,
-            tolerance, drag.snap && drag.snap.key) : null;
+          const related = model.relatedObjects(layout(), drag.target.id);
+          const snap = magnetEnabled ? model.findConnectionSnap(drag.target, drag.next.objects.filter(function (item) { return !related.has(item.id); }),
+            tolerance, drag.snap && drag.snap.key, layout().connections) : null;
           if (snap) { drag.target.x = snap.x; drag.target.z = snap.z; }
           else {
             drag.target.x = model.snapCoordinate(rawX, 100);
@@ -974,24 +1396,35 @@
           }
           drag.snap = snap;
           snapPreview = snap;
-          paint(drag.next, null);
+          const visual = clone(layout());
+          const target = visual.objects.find(function (object) { return object.id === drag.target.id; });
+          target.x = drag.target.x; target.z = drag.target.z;
+          try {
+            model.applyAssemblyChanges(layout(), visual);
+            paint(visual, null);
+          } catch (error) {
+            message = error.message;
+            const output = root.querySelector('.wh-message');
+            if (output) output.textContent = message;
+            paint(layout());
+          }
         } else if (drag.mode === 'pan') {
           const scale = topView.scale * topView.zoom;
           topView.centerX = drag.centerX - dx / scale;
           topView.centerZ = drag.centerZ - dy / scale;
-          paint(layout(), null);
+          paint(viewLayout(), null, currentFindings);
         } else if (drag.mode === 'orbit') {
           camera.yaw += dx * 0.008;
           camera.pitch = Math.max(0.12, Math.min(1.45, camera.pitch + dy * 0.006));
           drag.x = event.clientX; drag.y = event.clientY;
-          paint(layout());
+          paint(viewLayout(), null, currentFindings);
         } else if (drag.mode === 'orbit-pan') {
           const view = webglRenderer && webglRenderer.view();
           if (!view || !camera.target) return;
           camera.target = window.OpenSlottingWarehouseWebGL.panTarget(camera.target,
             camera.yaw, camera.pitch, dx, dy, view.scale);
           drag.x = event.clientX; drag.y = event.clientY;
-          paint(layout());
+          paint(viewLayout(), null, currentFindings);
         }
       });
       inputCanvas.addEventListener('pointerup', function (event) {
@@ -1006,7 +1439,7 @@
           else render();
           return;
         }
-        if (drag.mode === 'orbit' && !drag.moved) {
+        if (drag.mode === 'orbit' && !drag.moved && !preview) {
           const found = webglRenderer && webglRenderer.pick(event.clientX, event.clientY);
           if (found && found.bayIndex !== undefined) selectSlot(found);
           else if (found) { choice.objectId = found.objectId; choice.bay = 0; choice.level = 0; choice.upright = 0; choice.slotId = null; render(); }
@@ -1019,20 +1452,16 @@
         snapPreview = null;
         if (shouldRender) render();
       });
-      inputCanvas.addEventListener('wheel', function (event) {
-        event.preventDefault();
-        if (camera.mode === 'orbit') {
-          ensureOrbitAnchor();
-          camera.zoom = Math.max(0.25, Math.min(4, camera.zoom * (event.deltaY < 0 ? 1.12 : 0.89)));
-        } else {
-          topView.zoom = Math.max(0.25, Math.min(4, topView.zoom * (event.deltaY < 0 ? 1.12 : 0.89)));
-        }
-        paint(layout());
-      }, { passive: false });
+      inputCanvas.addEventListener('lostpointercapture', function () {
+        const restore = drag && drag.mode === 'move';
+        drag = null; snapPreview = null;
+        if (restore && root.getClientRects().length) paint(viewLayout(), null, currentFindings);
+      });
       if (inputCanvas === glCanvas) {
         inputCanvas.addEventListener('contextmenu', function (event) { event.preventDefault(); });
         inputCanvas.addEventListener('dblclick', function (event) {
           event.preventDefault();
+          if (preview) return;
           const found = webglRenderer && webglRenderer.pick(event.clientX, event.clientY);
           if (!found || !focusObject(found.objectId)) return;
           if (found.slotId) selectSlot(found);
@@ -1044,8 +1473,46 @@
       }
     }
 
+    root.addEventListener('wheel', function (event) {
+      // Preserve browser zoom, including touchpad pinch gestures.
+      if (event.ctrlKey || event.metaKey) return;
+      const control = event.target.closest('input[type="number"], select');
+      if (control) {
+        if (event.cancelable) event.preventDefault();
+        event.stopPropagation();
+        const container = scrollParent(control);
+        if (container) {
+          const delta = wheelDistance(event, container.clientHeight);
+          container.scrollTop += delta.y; container.scrollLeft += delta.x;
+        }
+        return;
+      }
+      if (!event.target.closest('.wh-viewport')) return;
+      if (event.cancelable) event.preventDefault();
+      event.stopPropagation();
+      if (saving || rackWizard) return;
+      const delta = wheelDistance(event, camera.mode === 'top' && canvas ? canvas.clientHeight : glCanvas.clientHeight);
+      if (delta.y) zoomBy(-Math.max(-240, Math.min(240, delta.y)) * 0.0012 * zoomSensitivity);
+    }, { passive: false, capture: true });
+
     root.addEventListener('click', async function (event) {
       if (saving) return;
+      const globalButton = event.target.closest('[data-action]');
+      const globalAction = globalButton && globalButton.dataset.action;
+      if (!rackWizard && (globalAction === 'zoom-in' || globalAction === 'zoom-out')) { zoomBy(globalAction === 'zoom-in' ? 0.14 : -0.14); return; }
+      if (preview) {
+        if (globalAction === 'cancel-preview') { preview = null; render(); }
+        if (globalAction === 'apply-preview') {
+          const candidate = preview;
+          await commit(clone(candidate.layout), null, candidate.selectionId, null, false, candidate.pose);
+        }
+        if (globalAction === 'top') { camera.mode = 'top'; topView.ready = false; render(); }
+        if (globalAction === 'orbit' && webglRenderer && webglRenderer.available()) { camera.mode = 'orbit'; render(); }
+        if (globalAction === 'fit') { fitView(); render(); }
+        if (globalAction === 'focus' && focusObject(preview.selectionId)) render();
+        if (globalAction === 'wall-mode') { wallMode = wallMode === 'solid' ? 'transparent' : wallMode === 'transparent' ? 'hidden' : 'solid'; render(); }
+        return;
+      }
       if (rackWizard) {
         const wizardButton = event.target.closest('[data-wizard-action]');
         if (!wizardButton) return;
@@ -1087,12 +1554,16 @@
       if (conflictButton) {
         choice.objectId = conflictButton.dataset.focusObject;
         choice.slotId = null;
-        camera.mode = 'top'; topView.zoom = 1; topView.ready = false;
+        focusedPart = conflictButton.dataset.focusPart || null;
+        if (conflictButton.dataset.bay !== undefined) { choice.bay = Number(conflictButton.dataset.bay); choice.level = Number(conflictButton.dataset.level); }
+        camera.mode = focusedPart && webglRenderer && webglRenderer.available() ? 'orbit' : 'top'; topView.zoom = 1; topView.ready = false;
+        if (focusedPart) focusObject(choice.objectId, focusedPart);
         message = ''; render(); return;
       }
       const objectButton = event.target.closest('[data-object]');
       if (objectButton) {
         choice.objectId = objectButton.dataset.object;
+        focusedPart = null;
         choice.bay = 0; choice.level = 0; choice.upright = 0; choice.slotId = null; message = ''; render(); return;
       }
       const button = event.target.closest('[data-action]');
@@ -1120,11 +1591,8 @@
         return;
       }
       if (action === 'fit' || action === 'top' || action === 'orbit') {
-        if (action === 'fit' && camera.mode === 'orbit') {
-          camera.zoom = 1; camera.target = null; camera.baseScale = null;
-        } else if (action === 'fit') {
-          topView.zoom = 1; topView.ready = false;
-        } else if (action === 'top') { camera.mode = 'top'; topView.ready = false; }
+        if (action === 'fit') fitView();
+        else if (action === 'top') { camera.mode = 'top'; topView.ready = false; }
         else if (action === 'orbit' && webglRenderer && webglRenderer.available()) {
           camera.mode = 'orbit';
         }
@@ -1134,8 +1602,9 @@
         const type = root.querySelector('#wh-recipe').value;
         if (model.RACK_TYPES.includes(type)) { openRackWizard(null, type); return; }
         const next = clone(layout());
-        const newObject = model.RACK_TYPES.includes(type) ? model.createRack(type) :
-          model.createArea(type, { name: labels()[TYPE_LABELS[type]] });
+        const split = type.lastIndexOf('-');
+        const name = TYPE_LABELS[type] ? labels()[TYPE_LABELS[type]] : labels()[TYPE_LABELS[type.slice(0, split)]] + ' · ' + labels()[type.slice(split + 1)];
+        const newObject = model.createRecipe(type, { name: name });
         const last = next.objects[next.objects.length - 1];
         newObject.x = last ? last.x + 1800 : 0;
         newObject.z = last ? last.z + 1200 : 0;
@@ -1151,6 +1620,55 @@
         commit(next, null, object.id, object.id); return;
       }
       if (object.locked) { message = labels().lockedEdit; render(); return; }
+      if (['preview-passage', 'remove-passage', 'extend-start', 'extend-end', 'preview-connect', 'preview-align', 'preview-bridge', 'disconnect', 'group', 'ungroup', 'continue-passage', 'preview-opening'].includes(action)) {
+        const value = function (key) { const input = root.querySelector('[data-tool="' + key + '"]'); return input && input.value; };
+        try {
+          if (action === 'preview-passage') stage(model.configurePassage(layout(), object.id, choice.bay, Number(value('passage-height')), value('passage-route'),
+            { levelCount: Number(value('passage-levels')), growFrames: root.querySelector('[data-tool="grow-frames"]').checked }), labels().passage);
+          else if (action === 'remove-passage') { const next = clone(layout()); next.objects.find(function (item) { return item.id === object.id; }).bays[choice.bay].passage = null; await commit(next); }
+          else if (action === 'extend-start' || action === 'extend-end') stage(model.extendRack(layout(), object.id, action === 'extend-start' ? 'start' : 'end'), labels()[action === 'extend-start' ? 'extendStart' : 'extendEnd'], false);
+          else if (action === 'preview-connect' || action === 'preview-align') {
+            const targetId = value('target');
+            const angle = value('connection-angle');
+            const next = model.connectObjects(layout(), object.id, targetId, Number(value('own-anchor')), Number(value('target-anchor')), angle === 'keep' ? false : angle === 'ports' ? 'ports' : Number(angle));
+            if (action === 'preview-align') next.connections.pop();
+            stage(next, labels()[action === 'preview-connect' ? 'assembly' : 'previewAlign']);
+            if (preview) { preview.targetId = targetId; render(); }
+          } else if (action === 'preview-bridge') {
+            const targetId = value('target');
+            const next = model.createDistanceConnection(layout(), object.id, targetId, Number(value('own-anchor')), Number(value('target-anchor')),
+              { variant: value('bridge-course'), reserve: Number(value('bridge-reserve')), name: labels().bridgeName,
+                requiredWidth: value('bridge-width'), requiredHeight: value('bridge-height') });
+            stage(next, labels().previewBridge + ' · ' + (next.objects.length - layout().objects.length) + ' ' + labels().bridgeModules, false);
+            if (preview) {
+              const existingIds = new Set(layout().objects.map(function (item) { return item.id; }));
+              preview.unverifiedRoute = next.objects.some(function (item) { return !existingIds.has(item.id) && item.type === 'aisle' &&
+                (!Number.isFinite(item.route.requiredWidth) || !Number.isFinite(item.route.requiredHeight)); });
+              preview.targetId = targetId; fitView(); render();
+            }
+          } else if (action === 'disconnect') {
+            const next = clone(layout()); next.connections = next.connections.filter(function (link) { return link.aId !== object.id && link.bId !== object.id; }); await commit(next);
+          } else if (action === 'group') {
+            const keys = Array.from(new Set([object.id].concat(Array.from(groupSelection)))).filter(function (key) { return layout().objects.some(function (item) { return item.id === key; }); });
+            if (await commit(model.groupObjects(layout(), keys, value('group-name')))) { groupSelection.clear(); render(); }
+          }
+          else if (action === 'ungroup') { const next = clone(layout()); next.groups = next.groups.filter(function (group) { return !group.objectIds.includes(object.id); }); await commit(next); }
+          else if (action === 'continue-passage') stage(model.continuePassage(layout(), object.id, choice.bay, value('target'), Number(value('target-bay')) - 1), labels().continuePassage);
+          else if (action === 'preview-opening') stage(model.insertWallOpening(layout(), object.id, value('opening-type'), Number(value('opening-offset')), Number(value('opening-width')), Number(value('opening-height'))), labels().wallOpening, false);
+        } catch (error) {
+          const t = labels();
+          message = t[error.code] || error.message;
+          if (error.code === 'bridgeNoFit' && error.obstruction) {
+            const obstacle = error.obstruction;
+            message += ' ' + t.bridgeBlockedDetail.replace('{{object}}', obstacle.objectName || obstacle.objectId)
+              .replace('{{reason}}', t[obstacle.kind] || obstacle.kind);
+            if (obstacle.kind === 'route-too-low' && Number.isFinite(obstacle.requiredHeight)) message += ' ' +
+              t.bridgeHeightDetail.replace('{{available}}', obstacle.availableHeight).replace('{{required}}', obstacle.requiredHeight);
+          }
+          render();
+        }
+        return;
+      }
       if (['usage-bay', 'usage-rack'].includes(action)) {
         const usage = root.querySelector('[data-bulk-usage]').value;
         const next = clone(layout());
@@ -1214,6 +1732,16 @@
 
     root.addEventListener('keydown', function (event) {
       if (saving) return;
+      if (!rackWizard && event.target.classList.contains('wh-canvas') && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        if (event.key === '+' || event.key === '=' || event.key === '-' || event.key === '−') {
+          event.preventDefault(); zoomBy(event.key === '-' || event.key === '−' ? -0.14 : 0.14); return;
+        }
+        if (event.key === '0' || event.key === 'Home') { event.preventDefault(); fitView(); render(); return; }
+      }
+      if (preview) {
+        if (event.key === 'Escape') { event.preventDefault(); preview = null; render(); }
+        return;
+      }
       if (rackWizard) {
         if (event.key === 'Escape') { event.preventDefault(); rackWizard = null; render(); root.querySelector('#wh-recipe').focus(); }
         if (event.key === 'Tab') {
@@ -1244,7 +1772,22 @@
 
     root.addEventListener('change', function (event) {
       if (saving) return;
+      if (event.target.dataset.zoomSensitivity !== undefined) {
+        const value = Number(event.target.value);
+        if ([0.5, 1, 2].includes(value)) zoomSensitivity = value;
+        return;
+      }
+      if (event.target.dataset.groupMember) {
+        if (event.target.checked) groupSelection.add(event.target.dataset.groupMember); else groupSelection.delete(event.target.dataset.groupMember);
+        return;
+      }
+      if (preview) return;
       if (rackWizard) { changeWizardField(event.target); return; }
+      if (event.target.dataset.tool === 'target') {
+        const anchor = root.querySelector('[data-tool="target-anchor"]');
+        if (anchor) anchor.value = '0';
+        render(); return;
+      }
       if (event.target.dataset.zone || event.target.dataset.location) {
         try {
           const next = event.target.dataset.zone ? model.setZoneUsage(layout(), event.target.dataset.zone, event.target.value) :
@@ -1264,6 +1807,21 @@
       const object = selected(); if (!object) return;
       if (object.locked) { message = labels().lockedEdit; render(); return; }
       const next = clone(layout()); const target = next.objects.find(function (item) { return item.id === object.id; });
+      if (field.startsWith('junction.arms.') && target.junction) {
+        target.junction.arms[field.slice(14)] = Number(event.target.value);
+        commit(next); return;
+      }
+      if (field === 'rack.depth') {
+        try { Object.assign(target, model.setRackDepth(target, event.target.value)); commit(next); }
+        catch (error) { message = error.message; render(); }
+        return;
+      }
+      if (field === 'bay.depth' || field === 'upright.depth') return;
+      if (field.startsWith('route.') && target.type === 'aisle') {
+        const property = field.slice(6), required = property === 'requiredWidth' || property === 'requiredHeight';
+        target.route[property] = required && event.target.value === '' ? null : Number(event.target.value);
+        commit(next); return;
+      }
       let holder = target, property = field;
       if (field.startsWith('bay.')) { holder = target.bays[choice.bay]; property = field.slice(4); }
       if (field.startsWith('level.')) { holder = target.bays[choice.bay].levels[choice.level]; property = field.slice(6); }
@@ -1272,9 +1830,18 @@
       commit(next);
     });
 
-    window.addEventListener('resize', function () {
-      if (canvas && canvas.isConnected && canvas.clientWidth > 0) paint(layout());
-    });
+    window.addEventListener('resize', scheduleSize);
+    if (typeof window.ResizeObserver === 'function') {
+      const observer = new window.ResizeObserver(scheduleSize);
+      observer.observe(root);
+    }
+    const page = root.closest('.app-page');
+    if (page && typeof window.MutationObserver === 'function') {
+      const observer = new window.MutationObserver(function () {
+        if (!page.classList.contains('hidden') && !page.hidden && root.getClientRects().length) scheduleSize();
+      });
+      observer.observe(page, { attributes: true, attributeFilter: ['class', 'hidden', 'style'] });
+    }
     return { render: render };
   }
   return { create: create };

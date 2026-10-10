@@ -13,6 +13,10 @@ const original = require('../tests/fixtures/warehouse-baseline.cjs');
 const originalRenderer = require('../tests/fixtures/warehouse-webgl-baseline.cjs');
 const { layoutFixture } = require('../tests/fixtures/warehouse-performance.cjs');
 
+if (current.LAYOUT_VERSION !== 2) {
+  throw new Error('Historical footprint benchmark requires layout 2 (commit f4aa20bb618842eff8be40401a16f44fe56db784). Layout 3/4 clearance and junction checks require a new semantic reference and measurements; old result parity is not applicable.');
+}
+
 const baselineCommit = 'db39ffaca31ebeddec884413c38725f4fd38a5a0';
 const repeats = 7;
 let sink = 0;

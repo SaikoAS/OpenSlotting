@@ -308,3 +308,122 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
   .terminal-kpis .metric-detail { display: none; }
   .terminal-period { white-space: normal; }
 }
+
+/* Permanent workspace frame: the document never scrolls behind the app. */
+html { height: 100%; overflow: hidden; }
+body {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+body > .app-header { position: relative; top: auto; min-width: 0; }
+.page-shell { width: 100%; min-width: 0; min-height: 0; margin: 0; overflow: hidden; }
+.app-layout, .workspace-picker-mode .app-layout {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  padding: 8px 8px 8px 0;
+  gap: 8px;
+  overflow: hidden;
+}
+.terminal-rail {
+  position: relative;
+  top: auto;
+  align-self: stretch;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.terminal-nav-item, .terminal-rail-caption, .terminal-rail-divider { flex-shrink: 0; }
+.terminal-nav-item { min-width: 0; }
+.terminal-nav-item strong, .terminal-rail-caption {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+}
+.workflow-content, .workspace-picker-mode .workflow-content {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid #42635f;
+  border-radius: 8px;
+  background: #10171e;
+}
+.workflow-content > .page-context {
+  flex: none;
+  min-height: 54px;
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: 7px 7px 0 0;
+}
+.workflow-content > .app-page {
+  flex: 1 1 0;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  animation: none;
+}
+.workflow-content > .app-page:focus-visible { outline: 2px solid var(--focus); outline-offset: -3px; }
+body > .app-footer, .workspace-picker-mode > .app-footer {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 5px 18px;
+  font-size: .68rem;
+}
+.app-footer > div { min-width: 0; }
+.app-footer .app-version { display: inline; margin-left: 8px; }
+.app-footer .text-button { flex: none; margin: 0; padding: 4px 6px; font-size: .7rem; }
+.workspace-picker-mode .app-layout { grid-template-columns: minmax(0, 1fr); padding-left: 8px; }
+.workspace-picker-mode .workflow-content > #workspace-page { max-width: none; }
+.terminal-watchlist { top: 0; height: min(750px, calc(100dvh - 190px)); min-height: 180px; }
+
+/* Mapping overlays stay inside the measured workspace frame. */
+.mapping-drawer-backdrop {
+  inset: var(--workspace-top, 66px) var(--workspace-right, 8px) var(--workspace-bottom, 38px) var(--workspace-left, 96px);
+  border-radius: 8px;
+}
+#mapping-page > #mapping-panel, #mapping-page > #mapping-panel.focused {
+  top: var(--workspace-top, 66px);
+  right: var(--workspace-right, 8px);
+  bottom: var(--workspace-bottom, 38px);
+  width: min(1040px, var(--workspace-width, calc(100vw - 104px)));
+  border-radius: 8px;
+}
+#mapping-page > #mapping-panel.focused { width: min(520px, var(--workspace-width, calc(100vw - 104px))); }
+
+@media (max-width: 760px) {
+  .app-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); padding: 4px; gap: 4px; }
+  .terminal-rail { height: auto; overflow-x: auto; overflow-y: hidden; }
+  .workflow-content > .page-context { display: flex; min-height: 48px; padding: 6px 10px; gap: 8px; }
+  .page-context-actions { margin-top: 0; }
+  .workflow-content > .app-page { padding: 10px; }
+  .workspace-picker-mode .app-layout { grid-template-rows: minmax(0, 1fr); padding: 4px; }
+  body > .app-footer { padding: 4px 10px; font-size: .6rem; }
+}
+@media (max-height: 600px) {
+  .terminal-rail { padding-top: 5px; padding-bottom: 5px; }
+  .terminal-nav-item { min-height: 49px; }
+}

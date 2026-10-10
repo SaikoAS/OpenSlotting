@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import model from '../../../warehouse.js';
-import scene from '../../../warehouse-scene.js';
-import webgl from '../../../warehouse-webgl.js';
+// Frozen layout-1 reference for the historical laboratory, never production.
+import model from '../../../tests/fixtures/warehouse-baseline.cjs';
+import scene from '../../../tests/fixtures/warehouse-scene-baseline.cjs';
+import webgl from '../../../tests/fixtures/warehouse-webgl-baseline.cjs';
 import workspace from '../../../workspace.js';
 import { createAlternatives, batchTransparent, workspaceProjection, createWorkspaceProjectionCache } from './modules.mjs';
 import { layoutFixture, registryFixture, profileFixture } from './fixtures.mjs';

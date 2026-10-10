@@ -218,7 +218,7 @@ test('responsive workflow handles empty results and shared-page navigation safel
   assert.match(appSource, /'coverage-panel': Boolean\(state\.result && analysisRowCount\(state\.result\) > 0\)/);
   assert.match(appSource, /'results-panel': Boolean\(state\.result && resultHasRetainedData\(state\.result\)\)/);
   assert.match(appSource, /: state\.result && analysisRowCount\(state\.result\) > 0\s*\n\s*\? 'coverage-panel'/);
-  assert.match(appSource, /renderWorkflow\(button\.dataset\.workflowTarget\);\s*window\.scrollTo\(0, 0\)/);
+  assert.match(appSource, /renderWorkflow\(button\.dataset\.workflowTarget\);\s*scrollActivePageToTop\(\)/);
   assert.match(fs.readFileSync(path.join(__dirname, '..', 'app.css'), 'utf8'), /\.app-page > \.panel \{ scroll-margin-top: 84px; \}/);
   assert.match(appSource, /article\.period_a\.article_name_variants/);
   assert.match(appSource, /return article\.selling_unit_conflict;/);
@@ -315,7 +315,7 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.doesNotMatch(indexSource, /class="workflow-rail"/);
   assert.match(appSource, /core\.reconstructRawSource/);
   assert.match(indexSource, /id="article-source-inspection"/);
-  assert.match(appSource, /renderWorkflow\(button\.dataset\.workflowTarget\);\s*window\.scrollTo\(0, 0\)/);
+  assert.match(appSource, /renderWorkflow\(button\.dataset\.workflowTarget\);\s*scrollActivePageToTop\(\)/);
   assert.match(appSource, /detail_source_file: 'Source file'/);
   assert.match(appSource, /detail_source_file: 'Quelldatei'/);
   assert.match(appSource, /warning_overlap:/);

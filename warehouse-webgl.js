@@ -109,8 +109,8 @@
     const target = camera.target || fitTarget;
     const center = transform({ x: 0, z: 0, rotation: 0 }, target.x, target.y, target.z);
     const centerX = center.x, centerY = center.y;
-    const fitScale = Math.min((width - 90) / Math.max(3000, maxX - minX),
-      (height - 100) / Math.max(3000, maxY - minY));
+    const fitScale = Math.min(Math.max(1, width - 90) / Math.max(3000, maxX - minX),
+      Math.max(1, height - 100) / Math.max(3000, maxY - minY));
     const scale = (Number.isFinite(camera.baseScale) && camera.baseScale > 0 ? camera.baseScale : fitScale) * camera.zoom;
     function clip(p) {
       return { x: ((p.x - centerX) * scale + width / 2) / width * 2 - 1,
@@ -130,7 +130,11 @@
       const item = entry.item;
       const isTransparent = transparentBox(item);
       const alpha = item.object.type === 'wall' ? .28 : .32;
-      const vertices = isTransparent ? vertexBuffer(FACES.length * 6) : opaque;
+      const isRoute = item.object.type === 'aisle';
+      // Routes are markings: only their top is visible. Keep the full box in
+      // the independent ID pass so this display change does not alter picking.
+      const vertices = isTransparent ? vertexBuffer((isRoute ? 1 : FACES.length) * 6) : opaque;
+      const pickingVertices = isRoute ? vertexBuffer(FACES.length * 6) : vertices;
       const corners = entry.corners.map(clip);
       const pickId = pickMap.length;
       pickMap.push(item.slotRef || { objectId: item.object.id });
@@ -138,16 +142,17 @@
       FACES.forEach(function (face, faceIndex) {
         const rgba = frameColor(item.color, SHADES[faceIndex], isTransparent ? alpha : 1);
         [face[0], face[1], face[2], face[0], face[2], face[3]].forEach(function (index) {
-          pushVertex(vertices, corners[index], rgba, pick);
+          if (!isRoute || faceIndex === 0) pushVertex(vertices, corners[index], rgba, pick);
+          if (isRoute) pushVertex(pickingVertices, corners[index], rgba, pick);
         });
       });
       if (isTransparent) {
         const averageDepth = entry.corners.reduce(function (sum, p) { return sum + p.depth; }, 0) / 8;
-        transparent.push({ depth: averageDepth, vertices: vertices });
+        transparent.push({ depth: averageDepth, vertices: vertices, pickingVertices: pickingVertices, route: isRoute });
       }
       if (!isTransparent || item.object.id === selectedId) {
-        const selected = item.slotRef && item.slotRef.slotId === selectedSlotId;
-        const conflict = collisionIds.has(item.object.id);
+        const selected = item.slotRef && item.slotRef.slotId === selectedSlotId || item.partId && item.partId === selectedSlotId;
+        const conflict = collisionIds.has(item.object.id) || collisionIds.has(item.partId);
         const edgeColor = frameColor(selected ? '#fff2a3' : conflict ? '#ff9c72' :
           item.object.id === selectedId ? '#79f2de' : '#273844', 1, 1);
         EDGES.forEach(function (edge) { pushLine(edges, corners[edge[0]], corners[edge[1]], edgeColor, -.0003); });
@@ -173,15 +178,17 @@
       pushLine(grid, c, d, gridColor);
     }
     return { opaque: opaque.values, transparent: transparent.map(function (item) { return item.vertices.values; }),
+      pickTransparent: transparent.map(function (item) { return item.pickingVertices.values; }),
+      routeCoverage: transparent.map(function (item) { return item.route; }),
       edges: edges.values, grid: grid.values, pickMap: pickMap,
       view: { fitTarget: fitTarget, fitScale: fitScale, scale: scale } };
   }
 
   function create(canvas, callbacks) {
     let gl;
-    try { gl = canvas.getContext('webgl2', { depth: true, antialias: true, alpha: false }); }
+    try { gl = canvas.getContext('webgl2', { depth: true, stencil: true, antialias: true, alpha: false }); }
     catch (error) { return null; }
-    if (!gl) return null;
+    if (!gl || gl.getParameter(gl.STENCIL_BITS) < 1) return null;
     let program = null, buffer = null, framebuffer = null, pickTexture = null, depthBuffer = null;
     let pickWidth = 0, pickHeight = 0, lost = false, scene = null;
     let positionLocation, colorLocation, pickLocation, pickingLocation;
@@ -220,7 +227,7 @@
     }
     function render(boxes, camera, selectedId, selectedSlotId, collisionIds, wallMode) {
       if (lost) return false;
-      const width = Math.max(280, canvas.clientWidth), height = Math.max(320, canvas.clientHeight);
+      const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
       const dpr = Math.min(2, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1);
       const pixelWidth = Math.round(width * dpr), pixelHeight = Math.round(height * dpr);
       if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
@@ -229,11 +236,22 @@
       scene = projectScene(boxes, camera, width, height, selectedId, selectedSlotId, collisionIds, wallMode);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height);
       gl.clearColor(.05, .08, .11, 1); gl.clearDepth(1);
-      gl.depthMask(true); gl.disable(gl.BLEND); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      gl.clearStencil(0); gl.stencilMask(0xff); gl.disable(gl.STENCIL_TEST);
+      gl.depthMask(true); gl.disable(gl.BLEND); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
       gl.depthMask(false); draw(scene.grid, gl.LINES, false); gl.depthMask(true);
       draw(scene.opaque, gl.TRIANGLES, false);
       gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
-      scene.transparent.forEach(function (vertices) { draw(vertices, gl.TRIANGLES, false); });
+      // Paint each visible route-covered sample once, including intersections
+      // between separate objects and arms. Depth-failed samples stay unmarked,
+      // so opaque rack parts still occlude routes. Other overlays and walls
+      // retain their separate transparency and do not modify this coverage.
+      gl.stencilFunc(gl.EQUAL, 0, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.INCR);
+      scene.transparent.forEach(function (vertices, index) {
+        if (scene.routeCoverage[index]) gl.enable(gl.STENCIL_TEST);
+        else gl.disable(gl.STENCIL_TEST);
+        draw(vertices, gl.TRIANGLES, false);
+      });
+      gl.disable(gl.STENCIL_TEST);
       draw(scene.edges, gl.LINES, false);
       gl.depthMask(true); gl.disable(gl.BLEND);
       return true;
@@ -261,10 +279,10 @@
       const y = canvas.height - 1 - Math.floor((clientY - rect.top) * canvas.height / rect.height);
       if (x < 0 || y < 0 || x >= canvas.width || y >= canvas.height) return null;
       gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer); gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.clearColor(0, 0, 0, 0); gl.clearDepth(1); gl.depthMask(true); gl.disable(gl.BLEND);
+      gl.clearColor(0, 0, 0, 0); gl.clearDepth(1); gl.depthMask(true); gl.disable(gl.BLEND); gl.disable(gl.STENCIL_TEST);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       draw(scene.opaque, gl.TRIANGLES, true);
-      scene.transparent.forEach(function (vertices) { draw(vertices, gl.TRIANGLES, true); });
+      scene.pickTransparent.forEach(function (vertices) { draw(vertices, gl.TRIANGLES, true); });
       const pixel = new Uint8Array(4);
       gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);

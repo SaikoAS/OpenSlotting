@@ -39,7 +39,7 @@ Every workspace has:
 | Field | Type | Contract |
 | --- | --- | --- |
 | `id` | string | Stable browser-local identity. |
-| `schemaVersion` | integer | Stored-workspace schema version; currently `14`. |
+| `schemaVersion` | integer | Stored-workspace schema version; currently `16`. |
 | `name` | string | Trimmed, non-empty, at most 120 characters. Names do not have to be unique. |
 | `createdAt` | ISO timestamp | Creation time. |
 | `updatedAt` | ISO timestamp | Time of the latest successful snapshot. |
@@ -48,7 +48,7 @@ Every workspace has:
 | `periodSettings` | object | Selection mode (`weeks` or `custom`), expected weekdays, and the names and inclusive boundaries of Period A and Period B. Detected week options remain derived from normalized rows. |
 | `customFields` | array | Workspace-level custom-field definitions with stable IDs, supported types (`text`, `number`, or `date`), and active/inactive lifecycle state. |
 | `importProfiles` | array | Up to 50 named profiles containing source type, decoded header layout, field/custom-field mappings, ordered preparation rules, and selected named source-column filters. Profiles belong only to this workspace and are included in its backup. |
-| `warehouseLayout` | object | Layout schema 2 with physical `objects`, per-level functional `zones`, and explicit logical `locations`. Stable references and codes are stored in metadata and backups; generated 3D meshes are derived. |
+| `warehouseLayout` | object | Layout schema 4 with physical `objects`, per-level functional `zones`, explicit logical `locations`, object `groups`, and endpoint `connections`. Stable references and codes are stored in metadata and backups; generated 3D meshes are derived. |
 | `articleRegistry` | array | Deterministic workspace-level article identities with master fields, custom values, master/movement status, and source provenance. |
 | `files` | array | Ordered and strictly workspace-local source records. |
 
@@ -237,22 +237,108 @@ The restore worker returns the already validated persisted payload and prepared 
 
 ## Schema migration
 
-Workspace records carry `schemaVersion`. The current reader uses version `14`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, accepts version `5` catalogs without column profiles by supplying an empty profile, adds the workspace custom-field registry and source mappings in version `7`, and adds an empty article registry when migrating version `7` records to version `8`. Version `8` mappings, normalized rows, issue fields, issue date evidence, and registry provenance are migrated from `order_date` to `delivery_date` for version `9`. Version `9` sources gain empty preparation-rule lists for version `10`; version `10` workspaces gain an empty `importProfiles` list for version `11`. Version `11` workspaces gain an empty `warehouseLayout` for version `12`; version `12` sources gain empty `sourceRules` lists for version `13`. Version `13` workspaces migrate warehouse layout schema `1` to `2`: physical levels lose nested positions, per-level functional zones are Unassigned, and explicit locations retain the old position IDs and codes (marked `legacy` for code editing before classification). No use is inferred, and article-master matching is preserved. Existing imports therefore keep their prior behavior. Legacy `sales_value` mappings and values remain unchanged and unclassified. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `3` creates the chunk stores, including article-registry chunks. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis and the registry are rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
+Workspace records carry `schemaVersion`. The current reader uses version `16`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, accepts version `5` catalogs without column profiles by supplying an empty profile, adds the workspace custom-field registry and source mappings in version `7`, and adds an empty article registry when migrating version `7` records to version `8`. Version `8` mappings, normalized rows, issue fields, issue date evidence, and registry provenance are migrated from `order_date` to `delivery_date` for version `9`. Version `9` sources gain empty preparation-rule lists for version `10`; version `10` workspaces gain an empty `importProfiles` list for version `11`. Version `11` workspaces gain an empty `warehouseLayout` for version `12`; version `12` sources gain empty `sourceRules` lists for version `13`. Version `13` workspaces migrate warehouse layout schema `1` to `2`: physical levels lose nested positions, per-level functional zones are Unassigned, and explicit locations retain the old position IDs and codes (marked `legacy` for code editing before classification). No use is inferred, and article-master matching is preserved. Version `14` workspaces migrate layout `2` to `3`, retaining physical IDs, zones, locations and codes, and supplying empty groups/connections, no rack passages, closed modeled doors and unknown route requirements. Version `15` workspaces migrate layout `3` to `4`, preserving all existing geometry, paths, groups, connections, IDs and codes without inferring junction recipes. Existing imports therefore keep their prior behavior. Legacy `sales_value` mappings and values remain unchanged and unclassified. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `3` creates the chunk stores, including article-registry chunks. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis and the registry are rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
 
 Future migrations must produce a fully valid current workspace before saving it and require automated migration and backup-round-trip tests.
 
-## Warehouse layout schema 2
+## Warehouse layout schema 4
 
-`warehouseLayout` contains `version: 2` and three independent collections:
+`warehouseLayout` contains `version: 4` and five collections:
 
 | Collection | Stored fields and meaning |
 | --- | --- |
 | `objects` | Physical racks and areas. Rack bays, uprights, and levels retain stable IDs and measurements. A level has no nested positions. |
 | `zones` | `{ id, objectId, bayId, levelId, usage }` assigns functional use to one rack level. References must agree with the physical hierarchy; one zone per level. Missing scopes receive a new Unassigned zone during normalization, with no implicit locations. |
 | `locations` | `{ id, zoneId, positionIndex, code, legacy }` is an explicit equal subdivision within a zone. Zero to four locations per level have consecutive, unique indices starting at zero. Codes are trimmed, case-sensitive, at most 80 characters, and unique workspace-wide when nonempty. |
+| `groups` | `{ id, name, objectIds }` stores 2–150 distinct existing members. At most 75 groups; an object belongs to at most one group. Groups move and rotate together. |
+| `connections` | `{ id, aId, bId, aAnchor, bAnchor }` stores up to 149 endpoint links between distinct existing objects. Straight/path anchors are 0 (start) and 1 (end); junctions have 2–4 numbered ports. Anchors must exist and coincide within 2 mm. Junction links also require matching families/widths and opposing port directions; each junction port accepts one link. Connection cycles are rejected. |
 
-`usage` supports `unassigned`, `picking`, and `reserve`. Future usage identifiers may use lowercase letters, digits, and hyphens (starting with a letter, at most 40 characters). Physical floor-area types remain separate. Zone and location IDs share the layout-wide uniqueness contract with physical part IDs. Orphaned references are validation errors. The 150-object and 5,000-location limits are independent; uncoded physical geometry does not consume location capacity.
+`usage` supports `unassigned`, `picking`, and `reserve`. Future usage identifiers may use lowercase letters, digits, and hyphens (starting with a letter, at most 40 characters). Physical floor-area types remain separate. Zone, location, group and connection IDs share the layout-wide uniqueness contract with physical part IDs. Orphaned references are validation errors. The 150-object and 5,000-location limits are independent; uncoded physical geometry does not consume location capacity.
+
+Each rack bay has `passage: null` or `{ routeId: null | existing-aisle-id }`.
+The designation does not suppress physical collision checks. Its clearance is
+the first level's `clearHeight`; width is `bay.width`. The optional route link
+is descriptive and does not cause automatic movement. Route deletion clears
+its passage associations. Duplicating a rack clears route associations and
+creates fresh physical IDs; extending a row preserves existing part IDs.
+
+Each aisle has `route: { requiredWidth, requiredHeight, widthMargin,
+heightMargin, path }`. Required dimensions are `null` when unknown, or integer
+millimeters (width 100–50,000; height 100–15,000). Margins are 0–5,000 mm;
+width margin applies on each side. `path` is null for a rectangular aisle, or
+2–100 local `{ x, z }` points in ±500,000 mm, relative to the object's origin
+and transformed by its rotation. Segment length is 100–50,000 mm. For a path,
+`depth` is lane width; `width` remains a stored compatibility field and is not
+its bounding extent. The extent is derived from segment and junction geometry.
+`height` represents the visible floor marking, not vehicle clearance.
+
+Wall and aisle objects may additionally have `junction: { shape, arms }`,
+where `shape` is `corner`, `tee` or `cross`. `arms` contains exactly the shape's
+directions: `{ west, south }`, `{ west, east, south }`, or
+`{ west, east, south, north }`. Each arm is an integer length of 100–24,000 mm,
+measured from the edge of the square hub. `x`/`z` locate the hub center;
+`depth` is the common wall thickness or lane width and defines the hub side.
+`width` is normalized to the local bounding width, up to 98,000 mm at the
+maximum supported hub and arms, rather than serving as an editable dimension.
+Rotation applies to the complete hub/arms and their ports. Port indexes follow
+the direction order above and remain stable when lengths change. Junctions
+cannot also carry a non-null `route.path`.
+
+Hub and arms are disjoint rectangles sharing boundaries, derived from the
+parameters. They supply actual rendering, picking and collision geometry;
+bounding extents are broad-phase/framing data only. The same object ID covers
+all these physical parts. There are no persisted meshes or hidden member objects.
+New explicit connections require free ports; magnetic placement is transient.
+Routes require equal lane widths. Wall junctions require equal connector
+thickness and base elevation. Legacy straight-wall connections retain their
+existing layout semantics; the new editor restricts new links to compatible
+families. Drawn paths are a retained read/move/resize format, not a new editor
+creation workflow. Schema-3 layouts migrate by updating the layout version,
+without synthesizing junctions, changing IDs or replacing paths.
+
+Distance connections compile to ordinary wall/aisle objects and corner
+`junction` objects, plus `connections` at both endpoints and between pieces.
+There is no stored freehand path, bridge wrapper, solver state or new schema
+field. Source/target geometry and IDs remain unchanged at creation; generated
+parts get fresh IDs. The selected search course and detour reserve are transient
+editor inputs. Explicit vehicle dimensions supplied in that preview are stored
+in the new aisle pieces' existing `route.requiredWidth` / `route.requiredHeight`
+fields, taking the maximum of the input and any known endpoint value. Margins
+take the larger endpoint value; endpoint requirements are not rewritten.
+Unknown dimensions remain `null`. Without height the geometry check only
+rejects parts intersecting the route base plane; overhead clearance stays
+unverified. Neither the search nor migration derives vehicle dimensions from
+rack passage heights. Later edits follow the existing connected-assembly rules rather
+than rerunning the compiler. Workspace 16 / layout 4 and backup format 1 remain
+the required contracts.
+
+Non-rack objects optionally store integer `elevation` (0–20,000 mm), used for
+wall lintels and other raised bodies. Doors store `open` (default false); only
+closed doors render a leaf and include it as an obstacle. Wall-opening edits
+produce side segments, an opening and an optional raised lintel, retaining the
+original wall ID on the first piece and remapping outer endpoint links.
+
+Groups, endpoints and paths are source geometry; boxes, meshes, broad-phase
+footprints and collision-part caches are derived per invocation. The shared
+physical parts describe posts, beams, decks, frames, leaves and solid bodies.
+Location markers are not obstacles. New layouts need explicit vehicle dimensions
+before a route can be fully checked. Migration never guesses those dimensions
+or declares a legacy overlap to be a permitted passage.
 
 Location creation/resizing requires a classified zone. Returning a zone to Unassigned retains its existing locations for later classification. `legacy: true` marks migrated positions and permits editing their existing codes while Unassigned; it does not permit adding subdivisions before classification. Geometry/zone edits preserve surviving references. The editor computes and confirms impacts before saving a destructive candidate. Locks cover physical objects and their referenced zones/locations; undo/redo preserves current locks.
 
+The current editor offers one common depth per connected rack object. It writes
+that value to every existing `bay.depth` and `upright.depth`; newly added parts
+inherit a uniform row's depth. No redundant persisted rack-depth field or schema
+change is needed for common depth itself. Existing layouts with differing depths are preserved by
+normalization and restore. They become uniform only when the user explicitly
+sets a common depth in the editor; IDs, codes, zone uses and location counts
+remain unchanged.
+
 Layout metadata saves retain source-byte, normalized-row, issue, and registry chunks. The IndexedDB database version remains 3, and backup format version remains 1; the workspace schema identifies the required migration. The read-only 3D analysis derives geometry and exact current article-master matches without persisting view changes.
+
+A reader supporting workspace schema 15 or earlier cannot restore a schema-16 backup.
+Retain a backup made before updating when a return to the older application is
+required. Automated schema-16 migration and backup regressions are covered by the current
+workspace, worker and parametric warehouse tests. Native Edge acceptance of this
+candidate remains pending; earlier schema-14/15 evidence does not verify it.

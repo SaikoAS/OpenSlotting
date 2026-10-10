@@ -1,4 +1,5 @@
 {
   "warehouse-baseline.cjs": "e95c48380d066da4d961159bff36ded448d9ccba65ad60d0c96e616a13cbe308",
-  "warehouse-webgl-baseline.cjs": "4ca2c5f8fcfc204e72502fda55d18a20e693a4f8a221d07b64f3510da1c2cadd"
+  "warehouse-webgl-baseline.cjs": "4ca2c5f8fcfc204e72502fda55d18a20e693a4f8a221d07b64f3510da1c2cadd",
+  "warehouse-scene-baseline.cjs": "96fbb1409ee4831c0c5e655dbdc13aaa5e092378967bb3c9822854f547305313"
 }

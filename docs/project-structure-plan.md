@@ -225,7 +225,20 @@ separat ausgewiesen.
 ## Fortschreibung: Lagerübernahme, 2026-10-09
 
 Die Schema-13-Angaben in der ursprünglichen Bestandsaufnahme und der ersten
-Optimierungsphase sind historisch. Aktuell gilt Workspace-Schema 14 mit
+Optimierungsphase sind historisch. Für die Übernahme vom 09.10. galt Workspace-Schema 14 mit
 Layout-Schema 2 (objects, zones, locations). Dies ist eine fachliche Migration,
 kein Ordnerumzug. Die Modulpfade, Datenbankversion 3 und feste Origin bleiben
 erhalten. Neue Nachweise: `docs/performance/warehouse-layout-v2.md`.
+
+## Fortschreibung: Modellierwerkzeuge, 2026-10-10
+
+Der aktuelle Arbeitsstand verwendet Workspace-Schema 16 / Layout 4 mit
+Gruppen, Verbindungen, Durchfahrten und parametrischen Wand-/Fahrwegmodulen. Bestehende punktbasierte Fahrwege bleiben lesbar. Modell und
+gemeinsame Szene bleiben an ihren bisherigen Pfaden; dies ist kein weiterer
+Ordnerumzug. Die gemeinsame Bauteilbeschreibung liegt im Modell und wird von
+Szene und Kollisionsprüfung verwendet. Eine spätere Aufteilung kann
+Bauteilgeometrie und Modellieroperationen als eigene Module übernehmen, muss
+aber den gemeinsamen Datenvertrag und die lesende Analyse erhalten.
+Die zusätzlichen Funktionen sind implementiert. Automatisierte Funktions-
+und Migrationsprüfungen sind im [Projektprüfbericht](project-review-2026-10-10.md)
+festgehalten; neue native Edge- und Leistungsnachweise stehen noch aus.

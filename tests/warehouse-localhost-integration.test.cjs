@@ -27,7 +27,7 @@ test('localhost worker migrates a populated schema-13 workspace, exports and res
   assert.equal(response.message.type, 'complete', response.message.type === 'error' ? JSON.stringify(response.message) : '');
   assert.equal(response.message.taskId, 101);
   const prepared = response.message.prepared;
-  assert.equal(prepared.workspace.schemaVersion, 14); assert.equal(prepared.workspace.warehouseLayout.version, 2);
+  assert.equal(prepared.workspace.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION); assert.equal(prepared.workspace.warehouseLayout.version, warehouse.LAYOUT_VERSION);
   assert.deepEqual(prepared.workspace.warehouseLayout.locations.map(location => location.id),
     ['legacy-location-a', 'legacy-location-b', 'legacy-location-c']);
   assert.equal(prepared.workspace.warehouseLayout.locations[0].code, 'R01-03-02-01');

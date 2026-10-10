@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const csv = require('../csv.js');
 const workspace = require('../workspace.js');
+const warehouse = require('../warehouse.js');
 
 function sourceFile(id, articleId) {
   const text = 'order_id;article_id;quantity;delivery_date\nO-1;' + articleId + ';1.25;2026-09-12\n';
@@ -729,7 +730,7 @@ test('schema-eleven migration adds an empty warehouse layout and preserves impor
   delete legacy.warehouseLayout;
   const migrated = workspace.migrateWorkspace(legacy);
   assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
-  assert.deepEqual(migrated.warehouseLayout, { version: 2, objects: [], zones: [], locations: [] });
+  assert.deepEqual(migrated.warehouseLayout, warehouse.createLayout());
   assert.equal(migrated.files[0].result.rows[0].article_id, 'SKU-V11');
 });
 
@@ -751,8 +752,8 @@ for (const version of [12, 13]) {
     const before = structuredClone(legacy);
     const migrated = workspace.migrateWorkspace(legacy);
     assert.deepEqual(legacy, before);
-    assert.equal(migrated.schemaVersion, 14);
-    assert.equal(migrated.warehouseLayout.version, 2);
+    assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
+    assert.equal(migrated.warehouseLayout.version, warehouse.LAYOUT_VERSION);
     assert.deepEqual(migrated.warehouseLayout.locations.map((location) => location.id),
       ['legacy-location-a', 'legacy-location-b', 'legacy-location-c']);
     assert.equal(migrated.warehouseLayout.locations[0].code, 'R01-03-02-01');

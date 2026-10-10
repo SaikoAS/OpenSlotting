@@ -1,5 +1,10 @@
 # Lagerworkflow im Localhost-Stand
 
+**Historischer Nachweis für Layout 2 vom 09.10.2026.** Der Arbeitsstand vom
+10.10. verwendet Workspace 16 / Layout 4 mit Bauteil-/Höhenprüfung und parametrischen Kreuzungen sowie weiteren
+Modellierwerkzeugen. Die Zahlen und Abnahmen dieses Berichts gelten nicht für
+diese Erweiterung. Neue Messungen und fachliche/Edge-Abnahme stehen aus.
+
 Datum: 2026-10-09. Zusammenführung von `72f992abacbe7381a6e191ae3a5d194261ec4be9`
 (`codex/parametric-warehouse-editor`) in den Localhost-Ausgangsstand
 `a6f2b0364e904cab91d7edc98200f8953e409cb2`.

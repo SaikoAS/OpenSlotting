@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 const model = require('../warehouse.js');
+const scene = require('../warehouse-scene.js');
 
 // Small DOM adapter for testing the real controller's user actions and save boundary.
 // Canvas/WebGL appearance is covered by scene tests and browser acceptance.
@@ -15,7 +16,7 @@ function harness(initial, registry = [], activeModel = model, draw = false) {
     getContext(kind) { return draw && kind === '2d' ? new Proxy({}, { get(_, name) {
       return name === 'measureText' ? () => ({ width: 20 }) : () => {};
     } }) : null; }, addEventListener() {} };
-  const root = { innerHTML: '', classList: { add() {}, remove() {} }, contains() { return false; },
+  const root = { innerHTML: '', closest() { return null; }, classList: { add() {}, remove() {} }, contains() { return false; },
     addEventListener(type, callback) { listeners[type] = callback; }, setAttribute() {}, removeAttribute() {},
     querySelector(selector) {
       if (selector === 'canvas.is-top') return canvas;
@@ -24,7 +25,7 @@ function harness(initial, registry = [], activeModel = model, draw = false) {
     }, querySelectorAll() { return []; } };
   const h = { layout: structuredClone(initial), workspaceId: 'synthetic', root, warnings, saves, accept: true, failSave: false };
   const context = vm.createContext({ document: { createElement() { return canvas; }, activeElement: null },
-    window: { addEventListener() {}, confirm(message) { warnings.push(message); return h.accept; } } });
+    window: { OpenSlottingWarehouseScene: scene, addEventListener() {}, confirm(message) { warnings.push(message); return h.accept; } } });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'warehouse-editor.js'), 'utf8'), context);
   const editor = context.OpenSlottingWarehouseEditor.create({ root, model: activeModel,
     getLayout: () => h.layout, getRegistry: () => registry, getWorkspaceId: () => h.workspaceId, getLanguage: () => 'en',
@@ -230,13 +231,20 @@ test('legacy unassigned codes remain editable; classification preserves them and
 
 test('analysis inspector shows exact migrated matches without changing the layout or registry', () => {
   const layout = model.migrateLayout(require('./fixtures/warehouse-layout-v1.json'));
+  layout.objects[0].type = 'pallet-rack';
   const registry = [{ article_id: 'SYNTHETIC-1', master_data: { location: 'R01-03-02-01' } },
     { article_id: 'SYNTHETIC-2', master_data: { location: 'OUTSIDE-01' } }];
   const before = structuredClone({ layout, registry });
-  const listeners = {}, search = { value: 'R01-03-02-01' };
+  const listeners = {}, search = { value: 'R01-03-02-01' }, painted = [];
   const root = { innerHTML: '', addEventListener(type, callback) { listeners[type] = callback; },
-    querySelector(selector) { return selector === '[data-field="search"]' ? search : { appendChild() {} }; } };
-  const context = vm.createContext({ document: { createElement() { return { setAttribute() {}, addEventListener() {} }; } }, window: { addEventListener() {} } });
+    querySelector(selector) { return selector === '[data-field="search"]' ? search : { appendChild() {}, focus() {} }; } };
+  const canvas = { isConnected: true, setAttribute() {}, addEventListener() {} };
+  const context = vm.createContext({ document: { createElement() { return canvas; } }, window: {
+    OpenSlottingWarehouseScene: scene, addEventListener() {}, OpenSlottingWarehouseWebGL: {
+      create() { return { available: () => true, render(boxes) { painted.push(boxes); } }; },
+      projectScene() { return { view: { fitTarget: { x: 0, y: 0, z: 0 }, fitScale: 1 } }; }
+    }
+  } });
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'warehouse-analysis.js'), 'utf8'), context);
   const analysis = context.OpenSlottingWarehouseAnalysis.create({ root, model, getLayout: () => layout,
     getRegistry: () => registry, getWorkspaceId: () => 'synthetic', getLanguage: () => 'en' });
@@ -246,5 +254,13 @@ test('analysis inspector shows exact migrated matches without changing the layou
   assert.match(root.innerHTML, /SYNTHETIC-1/);
   assert.match(root.innerHTML, /OUTSIDE-01/);
   assert.match(root.innerHTML, /Unassigned/);
+  assert.match(root.innerHTML, /data-color-mode="structure" aria-pressed="true"/);
+  assert.equal(painted.at(-1).find(part => part.kind === 'beam').color, scene.PALLET_PART_COLORS.beam);
+  const matchedMarker = painted.at(-1).find(part => part.slotRef && part.slotRef.slotId === layout.locations[0].id);
+  assert.equal(matchedMarker.color, '#45d3b1');
+  listeners.click({ target: { closest() { return { dataset: { action: 'colors', colorMode: 'usage' } }; } } });
+  assert.match(root.innerHTML, /data-color-mode="usage" aria-pressed="true"/);
+  assert.equal(painted.at(-1).find(part => part.kind === 'beam').color, model.USAGE_COLORS.unassigned);
+  assert.equal(painted.at(-1).find(part => part.slotRef && part.slotRef.slotId === layout.locations[0].id).color, matchedMarker.color);
   assert.deepEqual({ layout, registry }, before);
 });
