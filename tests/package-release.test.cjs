@@ -31,6 +31,8 @@ test('packaging stamps the selected commit, preserves assets and creates fresh a
     fs.writeFileSync(csvPath, fs.readFileSync(csvPath, 'utf8').replace(/const APP_VERSION = '[^']+';/, "const APP_VERSION = '9.8.7';"));
     const git = (...args) => execFileSync('git', ['-C', fixture, ...args], { encoding: 'utf8' }).trim();
     git('init', '-q');
+    // Preserve fixture bytes regardless of the runner's checkout configuration.
+    git('config', 'core.autocrlf', 'false');
     git('config', 'user.name', 'Synthetic Packaging Test');
     git('config', 'user.email', 'packaging@example.invalid');
     git('add', '.');
@@ -60,7 +62,8 @@ test('packaging stamps the selected commit, preserves assets and creates fresh a
     execFileSync(pwsh, ['-NoProfile', '-File', extractScript, archivePath, extracted]);
     const root = path.join(extracted, 'OpenSlotting-v9.8.7');
     const packagedCsv = fs.readFileSync(path.join(root, 'csv.js'), 'utf8');
-    assert.equal(packagedCsv, candidateCsv.replace('commit: null', `commit: '${candidate}'`));
+    assert.equal(createHash('sha256').update(packagedCsv).digest('hex'),
+      createHash('sha256').update(candidateCsv.replace('commit: null', `commit: '${candidate}'`)).digest('hex'));
     const context = { module: { exports: {} } };
     vm.runInNewContext(packagedCsv, context);
     assert.equal(context.module.exports.APP_VERSION, '9.8.7');
@@ -68,7 +71,8 @@ test('packaging stamps the selected commit, preserves assets and creates fresh a
     assert.equal(context.module.exports.APP_BUILD.status, 'development');
     for (const name of files.filter((name) => name !== 'csv.js' && name !== 'tools/package-release.ps1')) {
       const expected = execFileSync('git', ['-C', fixture, 'show', `${candidate}:${name}`]);
-      assert.deepEqual(fs.readFileSync(path.join(root, name)), expected, name);
+      assert.equal(createHash('sha256').update(fs.readFileSync(path.join(root, name))).digest('hex'),
+        createHash('sha256').update(expected).digest('hex'), name);
     }
     assert.equal(fs.readFileSync(csvPath, 'utf8'), 'invalid dirty working tree');
     assert.equal(fs.existsSync(path.join(root, 'tools')), false);
