@@ -99,6 +99,13 @@ Record the extracted directory, Windows/Edge/Python versions, profile, tester
 and date, then fill every result and the final decision for this exact ZIP.
 Repackaging the same candidate preserves an existing record with the same
 checksum; a different checksum requires a fresh output directory and acceptance.
+The ZIP itself is named `OpenSlotting-v<version>-<commit>.zip`, so candidates
+with the same product version coexist without invalidating earlier evidence.
+Packaging builds all files in a temporary directory on the output filesystem
+and checks the existing acceptance checksum before publishing anything. Each
+file replacement is atomic; if a later publication fails, earlier replacements
+are rolled back. Checksum conflicts preserve the original ZIP, manifest and
+record unchanged, and temporary files are removed.
 
 The package contains the active application, Python service, Windows helpers
 and current documentation. Existing `*-Localhost` entry points and the version-1

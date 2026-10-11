@@ -4,6 +4,8 @@ All notable changes to OpenSlotting are documented in this file.
 
 ## Unreleased
 
+- Give every candidate ZIP its own commit-based filename. Stage packages and validate existing acceptance checksums before publishing; preserve the complete evidence set on checksum conflicts and roll back earlier replacements if publication fails.
+
 - Distinguish development and release builds in EN/DE and show the candidate commit and actual data formats in runtime diagnostics. Stamp commit-bound packages without changing the working tree; generate a ZIP checksum, candidate manifest and fresh pending acceptance record for the four current checklists. Native Windows/Edge acceptance remains required.
 
 - Refresh schema and workspace-navigation assertions, cover physical-part collisions and parametric modeling, verify analysis component colors and route stencil/picking calls, and pin historical warehouse laboratory tests to hash-checked layout-1 references. Record the project review and remaining native Edge/performance acceptance.

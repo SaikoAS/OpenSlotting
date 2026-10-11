@@ -33,7 +33,9 @@ assign a new version or authorize publication. The version/changelog steps
 above apply only when preparing a published release.
 
 Packaging stamps `APP_BUILD.commit` in the archived `csv.js`, retaining the
-candidate's committed build status. It also prints the ZIP SHA-256 and writes
+candidate's committed build status. The archive is named
+`OpenSlotting-v<version>-<commit>.zip`, allowing different candidates of the
+same version to coexist. Packaging also prints the ZIP SHA-256 and writes
 `OpenSlotting-v<version>-<commit>.candidate.json` and
 `OpenSlotting-v<version>-<commit>.acceptance.md` beside the ZIP. Use that fresh
 record for the four detailed acceptance checklists; every row starts **NOT RUN**.
@@ -41,6 +43,8 @@ The sidecars stay outside the user-facing ZIP. Keep the ZIP and its record
 together, verify its checksum before testing, and record the extraction folder,
 Windows/Edge/Python versions and profile. Do not copy historical pass results.
 An existing record for the same checksum is preserved when repackaging.
+Artifacts are staged and the existing record is checked before any publication.
+A checksum conflict leaves the original ZIP, manifest and record unchanged.
 
 ## Automated checks
 
@@ -65,7 +69,7 @@ An existing record for the same checksum is preserved when repackaging.
 - [ ] Required GitHub Actions check `quality` passes on the exact final PR head
 - [ ] Runtime files contain no unexpected network, CDN, telemetry, remote backend, or extra runtime dependency
 - [ ] The full candidate commit hash is recorded above
-- [ ] `tools/package-release.ps1 -CandidateCommit <full-commit-hash>` reports that exact commit and creates `dist/OpenSlotting-v<APP_VERSION>.zip`
+- [ ] `tools/package-release.ps1 -CandidateCommit <full-commit-hash>` reports that exact commit and creates `dist/OpenSlotting-v<APP_VERSION>-<full-commit-hash>.zip`
 - [ ] The ZIP contains only the documented user-facing files
 
 Expected ZIP contents are the explicit `$releaseFiles` list in
@@ -142,5 +146,5 @@ The V0.2 and V0.2.1 acceptance checklists are historical records. A future relea
 - [ ] No release-visible file changed after the final-`main` package and acceptance run.
 - [ ] Tag `v<APP_VERSION>` points to that exact accepted final `main` commit.
 - [ ] A normal, non-prerelease GitHub Release named `OpenSlotting v<APP_VERSION>` is created from the tag.
-- [ ] `OpenSlotting-v<APP_VERSION>.zip` is attached to the release.
+- [ ] The accepted `OpenSlotting-v<APP_VERSION>-<full-commit-hash>.zip` is attached to the release.
 - [ ] The attached ZIP is independently downloaded, extracted, and verified again through the localhost launcher.
