@@ -102,7 +102,7 @@ jobs:
         run: node --test tests/package-release.test.cjs
 
       - name: Test candidate packaging in Windows PowerShell 5.1
-        shell: pwsh
+        shell: powershell
         env:
           OPENSLOTTING_PWSH: powershell.exe
         run: node --test tests/package-release.test.cjs
