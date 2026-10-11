@@ -141,8 +141,10 @@ foreach ($relativePath in $releaseFiles) {
 }
 
 foreach ($relativePath in $optionalReleaseFiles) {
-    & git -C $repositoryRoot cat-file -e "${resolvedCandidate}:$relativePath" 2>$null
-    if ($LASTEXITCODE -eq 0) {
+    # Missing optional files are normal. Avoid native stderr here: Windows
+    # PowerShell 5.1 turns it into a terminating error under Stop, even redirected.
+    $optionalPath = Invoke-GitText @('ls-tree', '--name-only', $resolvedCandidate, '--', $relativePath)
+    if ($optionalPath -eq $relativePath) {
         $releaseFiles += $relativePath
     }
 }

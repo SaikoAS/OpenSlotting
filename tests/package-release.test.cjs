@@ -76,6 +76,7 @@ test('packaging stamps the selected commit, preserves assets and creates fresh a
     }
     assert.equal(fs.readFileSync(csvPath, 'utf8'), 'invalid dirty working tree');
     assert.equal(fs.existsSync(path.join(root, 'tools')), false);
+    assert.equal(fs.existsSync(path.join(root, 'OpenSlotting.ico')), false, 'An absent optional icon must not prevent packaging');
     const recordPath = path.join(output, `${candidateName}.acceptance.md`);
     const record = fs.readFileSync(recordPath, 'utf8');
     assert.ok(record.includes(candidate));
