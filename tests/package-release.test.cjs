@@ -105,6 +105,38 @@ test('packaging stamps the selected commit, preserves assets and creates fresh a
     const snapshot = (directory) => Object.fromEntries(fs.readdirSync(directory).sort()
       .map((name) => [name, fileHash(path.join(directory, name))]));
 
+    const checksumHeader = `Archive SHA-256: ${manifest.archiveSha256}`;
+    const staleHeader = `Archive SHA-256: ${'0'.repeat(64)}`;
+    const evidenceNote = `Synthetic comparison note: ${checksumHeader}`;
+    const checksumCases = [
+      { name: 'stale header with the current checksum in an evidence note', header: staleHeader, note: evidenceNote },
+      { name: 'missing header with the current checksum in an evidence note', header: '', note: evidenceNote },
+      { name: 'duplicate identical headers', header: `${checksumHeader}\n${checksumHeader}` },
+      { name: 'duplicate conflicting headers', header: `${checksumHeader}\n${staleHeader}` },
+      { name: 'valid header with a malformed duplicate', header: `${checksumHeader}\nArchive SHA-256: malformed` },
+      { name: 'checksum header with trailing text', header: `${checksumHeader}extra` },
+      { name: 'single valid LF header with a comparison note', header: checksumHeader, note: evidenceNote, valid: true },
+      { name: 'single valid CRLF header', header: checksumHeader, crlf: true, valid: true }
+    ];
+    for (const [index, fixtureCase] of checksumCases.entries()) {
+      await t.test(fixtureCase.name, () => {
+        const directory = path.join(temporary, `checksum-header-${index}`);
+        fs.cpSync(output, directory, { recursive: true });
+        const acceptancePath = path.join(directory, `${candidateName}.acceptance.md`);
+        let caseRecord = record.replace(/^Archive SHA-256:[^\r\n]*\r?$/m, fixtureCase.header)
+          + `\n${fixtureCase.note || 'Synthetic evidence: preserve this record.'}\n`;
+        if (fixtureCase.crlf) { caseRecord = caseRecord.replace(/\r?\n/g, '\r\n'); }
+        fs.writeFileSync(acceptancePath, caseRecord);
+        const originalFiles = snapshot(directory);
+        if (fixtureCase.valid) {
+          packageCandidate(candidate, directory);
+        } else {
+          assert.throws(() => packageCandidate(candidate, directory), /checksum|Archive SHA-256 header/);
+        }
+        assert.deepEqual(snapshot(directory), originalFiles, 'All original artifacts and evidence must remain unchanged');
+      });
+    }
+
     await t.test('two commits with the same version retain their own archives and evidence', () => {
       const directory = path.join(temporary, 'multiple-candidates');
       packageCandidate(candidate, directory);
@@ -130,7 +162,6 @@ test('packaging stamps the selected commit, preserves assets and creates fresh a
       packageCandidate(candidate, directory);
       const acceptancePath = path.join(directory, `${candidateName}.acceptance.md`);
       fs.appendFileSync(acceptancePath, '\nSynthetic accepted evidence: must not be changed.\n');
-      const originalFiles = snapshot(directory);
       const scriptPath = path.join(fixture, 'tools/package-release.ps1');
       const originalScript = fs.readFileSync(scriptPath, 'utf8');
       const compressionCall = '$archive.CreateEntry($entryName)';
@@ -142,6 +173,8 @@ test('packaging stamps the selected commit, preserves assets and creates fresh a
         packageCandidate(candidate, changedOutput);
         const changedManifest = JSON.parse(fs.readFileSync(path.join(changedOutput, `${candidateName}.candidate.json`), 'utf8'));
         assert.notEqual(changedManifest.archiveSha256, manifest.archiveSha256, 'Fixture must actually change the ZIP checksum');
+        fs.appendFileSync(acceptancePath, `\nSynthetic comparison note: Archive SHA-256: ${changedManifest.archiveSha256}\n`);
+        const originalFiles = snapshot(directory);
         assert.throws(() => packageCandidate(candidate, directory), /different ZIP checksum/);
         assert.deepEqual(snapshot(directory), originalFiles, 'ZIP, manifest, evidence and directory contents must remain intact');
 

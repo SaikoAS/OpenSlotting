@@ -106,6 +106,10 @@ and checks the existing acceptance checksum before publishing anything. Each
 file replacement is atomic; if a later publication fails, earlier replacements
 are rolled back. Checksum conflicts preserve the original ZIP, manifest and
 record unchanged, and temporary files are removed.
+An existing record must contain exactly one `Archive SHA-256:` header whose
+complete value matches the new ZIP checksum. Missing, duplicate or malformed
+headers abort packaging; a hash mentioned in an evidence note cannot validate
+the record. All existing artifacts remain unchanged on these failures.
 
 The package contains the active application, Python service, Windows helpers
 and current documentation. Existing `*-Localhost` entry points and the version-1

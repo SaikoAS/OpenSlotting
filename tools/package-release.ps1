@@ -253,7 +253,14 @@ try {
     $recordPath = Join-Path $outputRoot "$candidateName.acceptance.md"
     if (Test-Path -LiteralPath $recordPath) {
         $existingRecord = [System.IO.File]::ReadAllText($recordPath)
-        if (-not $existingRecord.Contains("Archive SHA-256: $archiveHash")) {
+        # Only the single metadata header binds the record to its archive.
+        # Matching hashes in evidence notes cannot override missing/stale headers.
+        $checksumHeaders = [regex]::Matches($existingRecord, '(?m)^Archive SHA-256:([^\r\n]*)\r?$')
+        if ($checksumHeaders.Count -ne 1) {
+            throw 'Existing acceptance record must contain exactly one Archive SHA-256 header. Use a new output directory for a fresh acceptance run.'
+        }
+        $recordedHash = $checksumHeaders[0].Groups[1].Value.Trim()
+        if (-not [string]::Equals($recordedHash, $archiveHash, [System.StringComparison]::OrdinalIgnoreCase)) {
             throw 'Existing acceptance record has a different ZIP checksum. Use a new output directory for a fresh acceptance run.'
         }
     } else {
