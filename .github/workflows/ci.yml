@@ -7,6 +7,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:
@@ -26,11 +28,20 @@ jobs:
         with:
           persist-credentials: false
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '24'
+
+      - name: Check candidate version and release-tag consistency
+        env:
+          CANDIDATE_COMMIT: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node --check tools/check-release.cjs
+          node tools/check-release.cjs --commit "$CANDIDATE_COMMIT"
 
       - name: Check csv.js syntax
         run: node --check csv.js
@@ -74,7 +85,10 @@ jobs:
         shell: pwsh
         env:
           CANDIDATE_COMMIT: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
-        run: ./tools/package-release.ps1 -OutputDirectory (Join-Path $env:RUNNER_TEMP 'openslotting-release') -CandidateCommit $env:CANDIDATE_COMMIT
+        run: |
+          ./tools/package-release.ps1 -OutputDirectory (Join-Path $env:RUNNER_TEMP 'openslotting-release') -CandidateCommit $env:CANDIDATE_COMMIT
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ./tools/check-release.cjs --commit $env:CANDIDATE_COMMIT --artifacts (Join-Path $env:RUNNER_TEMP 'openslotting-release')
 
   localhost-launcher:
     runs-on: windows-latest

@@ -16,6 +16,7 @@ Contributions are welcome. Keep changes small, reviewable, local-first, and supp
 Run the repository checks before requesting review:
 
 ```text
+node tools/check-release.cjs --commit HEAD
 node --check csv.js
 node --check app.js
 node --check encoding.js
@@ -35,6 +36,11 @@ pwsh -NoProfile -File tests/windows-launcher.test.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/localhost-windows-launcher.test.ps1
 pwsh -NoProfile -File tests/localhost-windows-launcher.test.ps1
 ```
+
+Version/build, roadmap milestones and data-format numbers are separate contracts.
+See [the versioning policy](docs/versioning.md) for SemVer decisions and the
+release/tag/ZIP checks. Ordinary feature PRs keep development status and may
+retain the last published product version; they do not create a release.
 
 Runtime or UI changes require a manual Microsoft Edge Desktop check on
 Windows through `Start-OpenSlotting.cmd` at the stable localhost origin.

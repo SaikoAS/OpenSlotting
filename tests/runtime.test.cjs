@@ -31,7 +31,7 @@ test('packaged builds retain the candidate identity without inferring a release'
     assert.equal(build.status, status === 'release' ? 'release' : 'development');
     assert.equal(Object.isFrozen(build), true);
   }
-  assert.equal(core.APP_BUILD.status, 'development');
+  assert.ok(['development', 'release'].includes(core.APP_BUILD.status));
   assert.equal(core.APP_BUILD.commit, null);
 });
 

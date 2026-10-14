@@ -4,7 +4,7 @@ OpenSlotting is an open-source, local-first web tool for analyzing warehouse ord
 
 The current development branch also contains a [warehouse editor and separate 3D analysis prototype](docs/warehouse-editor.md). Build physical racks first, assign Picking/Reserve use per level, then create locations explicitly and match current article-master codes in the read-only analysis. The editor supports rack drive-throughs, clearance-aware route warnings, parametric corner/T/cross modules for routes and walls, compatible magnetic ports, connected/grouped structures and straight-wall opening previews. These new changes use workspace schema 16 / layout 4; fresh functional and Edge acceptance remains pending. Legacy drawn routes remain readable; new routes are built from recipes.
 
-The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The latest published application release is `0.2.1`; current development continues the local-workspace, article-master, and period-comparison foundation. Future versions are planned to expand this foundation through ABC/XYZ classification, slotting scores, and warehouse slotting recommendations.
+The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The latest published application release is [`0.2.1`](https://github.com/SaikoAS/OpenSlotting/releases/tag/v0.2.1); current development continues the local-workspace, article-master, and period-comparison foundation. Future versions are planned to expand this foundation through ABC/XYZ classification, slotting scores, and warehouse slotting recommendations.
 
 Warehouse distance-connection previews can fill the gap between two free route or wall ports with ordinary straight/corner modules, preserving existing endpoint positions. The bounded geometric search and its limitations are described in the [editor guide](docs/warehouse-editor.md#connections-over-a-distance); functional and Edge acceptance is pending.
 
@@ -15,7 +15,7 @@ views fit their viewport and side panels to the available height. Narrow windows
 use stacked content and horizontal navigation. The former editor maximization
 toggle is removed. Native Edge layout acceptance remains pending.
 
-> **Project status:** The latest published release is `0.2.1`. `main` contains unreleased development after that release, including persistent workspaces, article-master imports and registry preparation, period comparison and large-import performance work. Active development on this continuation branch now targets localhost only; Portable Mode is paused indefinitely. No next release version has been assigned yet.
+> **Project status:** The latest published release is `0.2.1`. `main` contains unreleased development after that release, including further workspace improvements, article-master imports and registry preparation, period comparison and large-import performance work. Core local workspaces were already shipped in `0.2.1`. Active development on this continuation branch now targets localhost only; Portable Mode is paused indefinitely. No next release version has been assigned yet.
 
 ## Current development implementation
 
@@ -82,7 +82,7 @@ The current implementation includes:
 
 The complete import, normalization, validation, and analysis-export contract is documented in [`docs/data-format.md`](docs/data-format.md). The analysis desk's grouping and chart semantics are documented in [`docs/trading-desk.md`](docs/trading-desk.md). Period coverage and comparison semantics are documented in [`docs/period-comparison.md`](docs/period-comparison.md). Large-import measurements and the synthetic benchmark are documented in [`docs/large-imports.md`](docs/large-imports.md). Search and sort projection measurements are documented in [`docs/search-performance.md`](docs/search-performance.md). Persistent storage, backup, restore, and migration are documented in [`docs/workspace-format.md`](docs/workspace-format.md).
 
-The published V0.1 and V0.2.1 releases were accepted in Microsoft Edge Desktop on Windows with `index.html` opened directly through `file:///`; the V0.2 multi-export acceptance record remains historical. Current localhost development requires a fresh exact-candidate Edge run through the local launcher before a future release claim. Other browsers may work but are not part of the compatibility claim unless tested separately.
+Published `0.1.0` and `0.2.1` use the historical direct `file:///` runtime. Acceptance records apply only to their recorded candidates; the [0.2.1 launcher record](docs/acceptance-v0.2.1.md) distinguishes its accepted source tree from final-package acceptance. The multi-export acceptance record remains historical. Current localhost development requires a fresh exact-candidate Edge run through the local launcher before a future release claim. Other browsers may work but are not part of the compatibility claim unless tested separately.
 
 Workspace source data is stored locally in IndexedDB in the current browser
 profile and origin. Startup loads only small workspace metadata; the selected
@@ -171,9 +171,9 @@ The project is designed around a few core principles:
 - Modular architecture
 - Gradual evolution from order analysis toward slotting optimization
 
-## V0.1 Scope
+## Order-line analysis foundation
 
-V0.1 focuses exclusively on **order-line analysis**.
+The initial release established **order-line analysis** (milestone M01). Current development builds on that foundation.
 
 A typical order-line dataset may contain fields such as:
 
@@ -325,7 +325,32 @@ The public project and demo data must not contain real company, customer, articl
 
 ## Roadmap
 
-### V0.1 — Order-Line Analysis
+Milestone IDs describe functional goals, **not product versions or release
+promises**. Implementation and publication are separate: a feature on `main`
+may still need exact-candidate checks and native Edge acceptance. The current
+prioritized work and dependencies are tracked in [#76](https://github.com/SaikoAS/OpenSlotting/issues/76).
+See the [versioning policy](docs/versioning.md) for release history, SemVer rules
+and the independent workspace/layout/backup formats.
+
+| Milestone | Functional goal | Current implementation | First published release |
+| --- | --- | --- | --- |
+| M01 | Order-line analysis | Implemented; later improvements on `main` | `0.1.0` |
+| M02 | Import compatibility | Implemented | `0.2.1` |
+| M03 | Multi-export analysis | Implemented | `0.2.1` (`0.2.0` work was unpublished) |
+| M04 | Optional Windows launcher | Historical direct-file launcher published; current localhost launcher on `main` | `0.2.1` for the historical launcher |
+| M05 | Local workspaces | Core implemented and published; later improvements on `main` | `0.2.1` for the core |
+| M06 | Period comparison | Implemented on `main`; release acceptance pending | Not published |
+| M07 | ABC / XYZ analysis | Planned (#90, #91) | Not published |
+| M08 | Article master data | Import/registry/enrichment/quality implemented on `main`; further profile options planned | Not published |
+| M09 | Storage locations and warehouse model | Editor, uses, locations and read-only matching on `main`; typed capacity/stock assignments pending (#92, #93) | Not published |
+| M10 | Slotting evaluation | Planned (#95) | Not published |
+| M11 | Slotting recommendations | Planned (#97) | Not published |
+
+The former “V0.x” headings were roadmap labels. M01–M11 retain their order
+and scope without claiming releases named `0.3`, `0.6` or `1.0`. Published tags,
+assets, historical acceptance filenames and changelog versions are unchanged.
+
+### M01 — Order-Line Analysis
 
 - CSV import
 - Column mapping
@@ -339,13 +364,13 @@ The public project and demo data must not contain real company, customer, articl
 - Filtering and sorting
 - CSV export
 
-### V0.1.1 — Import Compatibility
+### M02 — Import Compatibility
 
 - Windows-1252 CSV support
 - BOM-aware and BOM-less UTF-16 detection
 - Broader high-confidence German ERP and warehouse header aliases
 
-### V0.2 — Multi-Export Analysis
+### M03 — Multi-Export Analysis
 
 - Select and import multiple CSV exports
 - Encoding detection, mapping, and validation per file
@@ -354,7 +379,7 @@ The public project and demo data must not contain real company, customer, articl
 - Visible warnings for potentially overlapping exports
 - No automatic cross-file deduplication without a reliable source-row key
 
-### V0.2.1 — Optional Windows Edge Launcher
+### M04 — Optional Windows Edge Launcher
 
 - Start the extracted local application in Microsoft Edge app mode
 - Create current-user Start menu and/or Desktop shortcuts without administrator rights
@@ -362,7 +387,7 @@ The public project and demo data must not contain real company, customer, articl
 - Use an optional local icon and remove only OpenSlotting-managed shortcuts safely
 - Historical release: direct `file:///` startup; Portable development is now paused
 
-### V0.3 — Local Workspaces (implemented and included in published 0.2.1)
+### M05 — Local Workspaces
 
 - Create and reopen separate workspaces in browser-local IndexedDB storage
 - Start with a metadata-only overview and load a large workspace only after explicit selection
@@ -376,18 +401,18 @@ The public project and demo data must not contain real company, customer, articl
 - No mandatory cloud storage, backend, account, or network connection
 
 The implementation is on `main` and was included in the published 0.2.1
-release. Current `main` may contain later workspace improvements that still
+release. Current `main` contains later workspace improvements that still
 require exact-candidate automated checks and manual Microsoft Edge localhost
 acceptance before a future release claim.
 
-### V0.4 — Period Comparison (implemented on `main`; release claim pending)
+### M06 — Period Comparison
 
 - Select and compare defined analysis periods
 - Show data coverage and missing-period warnings
 - Compare article activity between periods
 - Establish the time-series foundation required for XYZ analysis
 
-### V0.5 — ABC / XYZ Analysis
+### M07 — ABC / XYZ Analysis
 
 - ABC classification
 - Configurable ABC thresholds
@@ -395,7 +420,7 @@ acceptance before a future release claim.
 - XYZ classification
 - Combined ABC/XYZ matrix
 
-### V0.6 — Article Master Data (import, registry, enrichment, and initial quality checks implemented on `main`)
+### M08 — Article Master Data
 
 - Import article-master CSV sources with persistent source type and provenance
 - Additional article attributes through workspace custom fields
@@ -405,21 +430,21 @@ acceptance before a future release claim.
 - Configurable article master data
 - Further import-profile sharing and editing options (planned)
 
-### V0.7 — Existing Storage Locations
+### M09 — Existing Storage Locations
 
 - Current storage locations
 - Storage zones
 - Location attributes
 - Comparison of article activity and current location
 
-### V0.8 — Slotting Evaluation
+### M10 — Slotting Evaluation
 
 - Configurable slotting scores
 - Article prioritization
 - Rule-based constraints
 - Location suitability
 
-### V1.0 — Slotting Recommendations
+### M11 — Slotting Recommendations
 
 - Suggested storage locations
 - Explainable recommendations

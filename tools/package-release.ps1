@@ -101,6 +101,7 @@ $releaseFiles = @(
     'docs/period-comparison.md',
     'docs/architecture.md',
     'docs/release-checklist.md',
+    'docs/versioning.md',
     'docs/performance/README.md',
     'docs/performance/workspace-ui.md',
     'docs/performance/terminal-search.md',

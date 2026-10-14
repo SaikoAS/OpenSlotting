@@ -2,7 +2,15 @@
 
 All notable changes to OpenSlotting are documented in this file.
 
+Product-release versions below are independent of [roadmap milestone IDs and
+data-format versions](docs/versioning.md). Dated entries describe release scope
+(a prepared candidate is not published until its GitHub Release exists);
+`Unreleased` records current development. The explicitly unpublished `0.2.0`
+entry remains historical development work, not an additional published release.
+
 ## Unreleased
+
+- Separate roadmap milestones M01–M11 from published product versions and document SemVer/build/schema contracts. Add source, release-tag and manifest/ZIP metadata consistency checks to CI without incrementing the development version or publishing releases.
 
 - Show the localized product version and build status in the permanent header as well as the footer, including the workspace picker. Refresh both on language changes and distinguish development from release builds.
 
