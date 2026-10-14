@@ -38,6 +38,14 @@
       runtime_badge_localhost: 'Runtime · Localhost',
       runtime_badge_unsupported: 'Runtime · Unsupported',
       runtime_diagnostics_title: 'Runtime diagnostics',
+      runtime_version_label: 'Product version',
+      runtime_build_status_label: 'Build status',
+      runtime_build_commit_label: 'Candidate commit',
+      runtime_formats_label: 'Data formats',
+      runtime_build_development: 'Development build',
+      runtime_build_release: 'Release build',
+      runtime_build_unknown: 'Build unknown (unpackaged development copy)',
+      runtime_formats: 'Workspace schema {{workspace}} · layout {{layout}} · backup format {{backup}}. Supported older workspaces are migrated on opening. Newer schemas and other backup formats are rejected; the product version does not determine backup compatibility.',
       runtime_mode_label: 'Mode',
       runtime_origin_label: 'Origin',
       runtime_capabilities_label: 'Browser capabilities',
@@ -739,6 +747,14 @@
       runtime_badge_localhost: 'Runtime · Localhost',
       runtime_badge_unsupported: 'Runtime · Nicht unterstützt',
       runtime_diagnostics_title: 'Runtime-Diagnose',
+      runtime_version_label: 'Produktversion',
+      runtime_build_status_label: 'Buildstatus',
+      runtime_build_commit_label: 'Kandidaten-Commit',
+      runtime_formats_label: 'Datenformate',
+      runtime_build_development: 'Entwicklungsstand',
+      runtime_build_release: 'Releasebuild',
+      runtime_build_unknown: 'Build unbekannt (ungepackter Entwicklungsstand)',
+      runtime_formats: 'Workspace-Schema {{workspace}} · Layout {{layout}} · Backupformat {{backup}}. Unterstützte ältere Arbeitsbereiche werden beim Öffnen migriert. Neuere Schemata und andere Backupformate werden abgelehnt; die Produktversion bestimmt nicht die Backup-Kompatibilität.',
       runtime_mode_label: 'Modus',
       runtime_origin_label: 'Ursprung',
       runtime_capabilities_label: 'Browser-Fähigkeiten',
@@ -1496,6 +1512,11 @@
   const SOURCE_TABLE_OVERSCAN = 2;
   const SOURCE_TABLE_WINDOW_STEP = 6;
 
+  const BUILD_STATUS_TRANSLATION_KEYS = Object.freeze({
+    development: 'runtime_build_development',
+    release: 'runtime_build_release'
+  });
+
   const RUNTIME_MODE_TRANSLATION_KEYS = {
     localhost: {
       badge: 'runtime_badge_localhost',
@@ -1548,6 +1569,7 @@
   };
 
   const elements = {
+    headerBuildStatus: document.getElementById('header-build-status'),
     headerWorkspaceName: document.getElementById('header-workspace-name'),
     workflowSteps: Array.from(document.querySelectorAll('[data-workflow-target]')),
     pageViews: Array.from(document.querySelectorAll('.app-page')),
@@ -1601,6 +1623,10 @@
     mainMenuWorkspaceName: document.getElementById('main-menu-workspace-name'),
     runtimeBadge: document.getElementById('runtime-badge'),
     runtimeMode: document.getElementById('runtime-mode'),
+    runtimeVersion: document.getElementById('runtime-version'),
+    runtimeBuildStatus: document.getElementById('runtime-build-status'),
+    runtimeBuildCommit: document.getElementById('runtime-build-commit'),
+    runtimeFormats: document.getElementById('runtime-formats'),
     runtimeOrigin: document.getElementById('runtime-origin'),
     runtimeCapabilities: document.getElementById('runtime-capabilities'),
     workspaceOpen: document.getElementById('workspace-open'),
@@ -3726,6 +3752,13 @@
     setText(elements.runtimeBadge, translate(modeTranslation.badge));
     setText(elements.runtimeMode, translate(modeTranslation.mode));
     setText(elements.runtimeOrigin, runtime.origin);
+    const build = window.OpenSlottingRuntimeFactory.describeBuild(core, workspaceModel, warehouseModel);
+    setText(elements.runtimeVersion, build.version);
+    setText(elements.runtimeBuildStatus, translate(BUILD_STATUS_TRANSLATION_KEYS[build.status]));
+    setText(elements.runtimeBuildCommit, build.commit || translate('runtime_build_unknown'));
+    setText(elements.runtimeFormats, translate('runtime_formats', {
+      workspace: build.workspaceSchema, layout: build.layoutSchema, backup: build.backupFormat
+    }));
     elements.runtimeCapabilities.replaceChildren();
     window.OpenSlottingRuntimeFactory.CAPABILITY_KEYS.forEach(function (capabilityName) {
       const available = runtime.supports(capabilityName);
@@ -3742,10 +3775,12 @@
   function applyLanguage(options) {
     document.documentElement.lang = state.language;
     document.title = translate('page_title');
-    setText(elements.appVersion, 'OpenSlotting v' + core.APP_VERSION);
+    const build = window.OpenSlottingRuntimeFactory.describeBuild(core, workspaceModel, warehouseModel);
+    const visibleVersion = core.APP_VERSION + ' · ' + translate(BUILD_STATUS_TRANSLATION_KEYS[build.status]);
+    setText(elements.headerBuildStatus, 'v' + visibleVersion);
+    setText(elements.appVersion, 'OpenSlotting v' + visibleVersion);
     document.querySelectorAll('[data-i18n]').forEach(function (element) {
-      const replacements = element.dataset.i18n === 'eyebrow' ? { version: core.APP_VERSION } : undefined;
-      setText(element, translate(element.dataset.i18n, replacements));
+      setText(element, translate(element.dataset.i18n));
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(function (element) {
       element.setAttribute('placeholder', translate(element.dataset.i18nPlaceholder));

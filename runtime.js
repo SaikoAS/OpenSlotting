@@ -66,6 +66,20 @@
     return origin && origin !== 'null' ? origin : '—';
   }
 
+  function describeBuild(core, workspace, warehouse) {
+    const build = core.APP_BUILD || {};
+    const commit = typeof build.commit === 'string' && /^[a-f0-9]{40}$/.test(build.commit)
+      ? build.commit : null;
+    return Object.freeze({
+      version: core.APP_VERSION,
+      status: build.status === 'release' && commit ? 'release' : 'development',
+      commit,
+      workspaceSchema: workspace.WORKSPACE_SCHEMA_VERSION,
+      layoutSchema: warehouse.LAYOUT_VERSION,
+      backupFormat: workspace.BACKUP_FORMAT_VERSION
+    });
+  }
+
   function detectRuntime(environment) {
     const scope = environment || {};
     const mode = detectMode(scope.location || {});
@@ -105,6 +119,7 @@
     detectCapabilities,
     detectMode,
     detectRuntime,
+    describeBuild,
     isLoopbackHostname
   });
 }));

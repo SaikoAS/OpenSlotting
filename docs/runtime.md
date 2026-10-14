@@ -72,6 +72,45 @@ working copy before migrating, as described in
 
 ## Distribution
 
+### Product version and candidate identity
+
+`csv.js` is the single source for `APP_VERSION` and `APP_BUILD`. The product
+version remains `0.2.1`; it does not mean that current development changes have
+been released. The committed build status is `development` and its commit is
+`null`. An unpackaged copy shows **Development build / Build unknown** (German:
+**Entwicklungsstand / Build unbekannt**) without inferring a Git identity.
+
+Commit-bound packaging stamps the full resolved `CandidateCommit` into the
+archived `APP_BUILD`, preserving the explicit status and the working tree.
+Packaging never changes a development build into a release. An intentional
+future release must set its status in the committed source before acceptance.
+
+Header/footer and runtime diagnostics distinguish development from release
+builds. Diagnostics also show the full candidate hash and current workspace,
+layout and backup format versions directly from their owning modules. Supported
+older workspaces are migrated; newer schemas or other backup formats are
+rejected. Product-version numbers do not define backup compatibility.
+
+Alongside the ZIP, packaging writes a commit-named candidate JSON manifest
+with its SHA-256 and a pending acceptance Markdown record. The record contains
+all current localhost, workspace, period and warehouse manual checklist items,
+with result and synthetic-evidence columns. It excludes historical results.
+Record the extracted directory, Windows/Edge/Python versions, profile, tester
+and date, then fill every result and the final decision for this exact ZIP.
+Repackaging the same candidate preserves an existing record with the same
+checksum; a different checksum requires a fresh output directory and acceptance.
+The ZIP itself is named `OpenSlotting-v<version>-<commit>.zip`, so candidates
+with the same product version coexist without invalidating earlier evidence.
+Packaging builds all files in a temporary directory on the output filesystem
+and checks the existing acceptance checksum before publishing anything. Each
+file replacement is atomic; if a later publication fails, earlier replacements
+are rolled back. Checksum conflicts preserve the original ZIP, manifest and
+record unchanged, and temporary files are removed.
+An existing record must contain exactly one `Archive SHA-256:` header whose
+complete value matches the new ZIP checksum. Missing, duplicate or malformed
+headers abort packaging; a hash mentioned in an evidence note cannot validate
+the record. All existing artifacts remain unchanged on these failures.
+
 The package contains the active application, Python service, Windows helpers
 and current documentation. Existing `*-Localhost` entry points and the version-1
 health marker `experimental-python` are retained for launcher compatibility;

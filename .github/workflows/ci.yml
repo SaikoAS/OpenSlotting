@@ -96,3 +96,13 @@ jobs:
         run: |
           ./tests/windows-launcher.test.ps1
           ./tests/localhost-windows-launcher.test.ps1
+
+      - name: Test candidate packaging on Windows
+        shell: pwsh
+        run: node --test tests/package-release.test.cjs
+
+      - name: Test candidate packaging in Windows PowerShell 5.1
+        shell: powershell
+        env:
+          OPENSLOTTING_PWSH: powershell.exe
+        run: node --test tests/package-release.test.cjs

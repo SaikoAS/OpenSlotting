@@ -15,12 +15,18 @@ paused and is not a second current runtime acceptance target.
 | Tester and date | |
 | Result | Pending |
 
+Use the commit-named `.acceptance.md` record generated beside the ZIP by
+`tools/package-release.ps1`. It binds these checks and the workspace, period and
+warehouse checklists to the candidate commit and ZIP SHA-256. Fill every result
+and synthetic evidence reference; generation itself is not an acceptance pass.
+
 ## Startup
 
 - [ ] The package contains all assets/helpers without new executable or package dependencies.
 - [ ] Existing approved Python 3.8+ is sufficient, with no pip/npm install or administrator action.
 - [ ] Standard start opens maximized Edge app mode at the fixed localhost origin.
 - [ ] Header and diagnostics show Localhost in English and German.
+- [ ] Development/release status is visible in header/footer and diagnostics in EN/DE. The packaged full commit matches the candidate manifest; an unpackaged development copy shows Build unknown. Workspace/layout/backup versions match the candidate modules and explain compatibility limits.
 - [ ] Reuse and stop act only on the verified server belonging to this folder.
 - [ ] A foreign listener or different folder is rejected without being stopped.
 - [ ] Missing Python gives approved-runtime instructions without downloads or a file fallback.

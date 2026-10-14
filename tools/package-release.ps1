@@ -31,7 +31,14 @@ if (-not $versionMatch.Success) {
 }
 
 $version = $versionMatch.Groups[1].Value
+$buildPattern = "const APP_BUILD = Object\.freeze\(\{ status: '(development|release)', commit: null \}\);"
+$buildMatches = [regex]::Matches($versionSource, $buildPattern)
+if ($buildMatches.Count -ne 1) {
+    throw "Expected one unstamped APP_BUILD declaration in csv.js at commit $resolvedCandidate."
+}
+$buildStatus = $buildMatches[0].Groups[1].Value
 $packageName = "OpenSlotting-v$version"
+$candidateName = "$packageName-$resolvedCandidate"
 
 if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
     $OutputDirectory = Join-Path $repositoryRoot 'dist'
@@ -39,7 +46,7 @@ if ([string]::IsNullOrWhiteSpace($OutputDirectory)) {
 
 $outputRoot = [System.IO.Path]::GetFullPath($OutputDirectory)
 [System.IO.Directory]::CreateDirectory($outputRoot) | Out-Null
-$archivePath = Join-Path $outputRoot "$packageName.zip"
+$archivePath = Join-Path $outputRoot "$candidateName.zip"
 
 $releaseFiles = @(
     'index.html',
@@ -134,29 +141,176 @@ foreach ($relativePath in $releaseFiles) {
 }
 
 foreach ($relativePath in $optionalReleaseFiles) {
-    & git -C $repositoryRoot cat-file -e "${resolvedCandidate}:$relativePath" 2>$null
-    if ($LASTEXITCODE -eq 0) {
+    # Missing optional files are normal. Avoid native stderr here: Windows
+    # PowerShell 5.1 turns it into a terminating error under Stop, even redirected.
+    $optionalPath = Invoke-GitText @('ls-tree', '--name-only', $resolvedCandidate, '--', $relativePath)
+    if ($optionalPath -eq $relativePath) {
         $releaseFiles += $relativePath
     }
 }
 
-if (Test-Path -LiteralPath $archivePath -PathType Leaf) {
-    Remove-Item -LiteralPath $archivePath
-}
+# Stage on the same filesystem. Validate any existing acceptance record
+# before touching its archive or manifest, including compression-runtime changes.
+$stagingRoot = Join-Path $outputRoot ('.package-' + [guid]::NewGuid().ToString('N'))
+[System.IO.Directory]::CreateDirectory($stagingRoot) | Out-Null
+$stagedArchivePath = Join-Path $stagingRoot "$candidateName.zip"
+$stagedManifestPath = Join-Path $stagingRoot "$candidateName.candidate.json"
+$stagedRecordPath = Join-Path $stagingRoot "$candidateName.acceptance.md"
+$removeStaging = $true
+try {
+    $archiveArguments = @(
+        'archive',
+        '--format=zip',
+        "--prefix=$packageName/",
+        "--output=$stagedArchivePath",
+        $resolvedCandidate,
+        '--'
+    ) + $releaseFiles
 
-$archiveArguments = @(
-    'archive',
-    '--format=zip',
-    "--prefix=$packageName/",
-    "--output=$archivePath",
-    $resolvedCandidate,
-    '--'
-) + $releaseFiles
+    $archiveOutput = & git -C $repositoryRoot @archiveArguments 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "Release archive creation failed for commit $resolvedCandidate.`n$($archiveOutput -join [Environment]::NewLine)"
+    }
 
-$archiveOutput = & git -C $repositoryRoot @archiveArguments 2>&1
-if ($LASTEXITCODE -ne 0) {
-    throw "Release archive creation failed for commit $resolvedCandidate.`n$($archiveOutput -join [Environment]::NewLine)"
+    # Stamp the archived candidate, never the working tree. All other entries remain
+    # from git archive. The committed status is explicit; packaging does not release it.
+    Add-Type -AssemblyName System.IO.Compression
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::Open($stagedArchivePath, [System.IO.Compression.ZipArchiveMode]::Update)
+    try {
+        $entryName = "$packageName/csv.js"
+        $entry = $archive.GetEntry($entryName)
+        $entryTimestamp = $entry.LastWriteTime
+        $reader = [System.IO.StreamReader]::new($entry.Open(), [System.Text.Encoding]::UTF8)
+        try { $csvSource = $reader.ReadToEnd() } finally { $reader.Dispose() }
+        $stampedSource = [regex]::Replace($csvSource, $buildPattern,
+            "const APP_BUILD = Object.freeze({ status: '$buildStatus', commit: '$resolvedCandidate' });")
+        $entry.Delete()
+        $stampedEntry = $archive.CreateEntry($entryName)
+        $stampedEntry.LastWriteTime = $entryTimestamp
+        $writer = [System.IO.StreamWriter]::new($stampedEntry.Open(), [System.Text.UTF8Encoding]::new($false))
+        try { $writer.Write($stampedSource) } finally { $writer.Dispose() }
+    } finally { $archive.Dispose() }
+
+    $archiveHash = (Get-FileHash -LiteralPath $stagedArchivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $manifestPath = Join-Path $outputRoot "$candidateName.candidate.json"
+    $manifest = [ordered]@{
+        candidateCommit = $resolvedCandidate
+        productVersion = $version
+        buildStatus = $buildStatus
+        archive = [System.IO.Path]::GetFileName($archivePath)
+        archiveSha256 = $archiveHash
+    }
+    $utf8 = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($stagedManifestPath, ($manifest | ConvertTo-Json), $utf8)
+
+    # A fresh result/evidence row for every current checklist item. Historical
+    # evidence is deliberately excluded. No automatic or manual pass is inferred.
+    $record = [System.Collections.Generic.List[string]]::new()
+    $record.Add('# Candidate acceptance record')
+    $record.Add('')
+    $record.Add("Candidate commit: $resolvedCandidate")
+    $record.Add("Product version: $version; build status: $buildStatus")
+    $record.Add("Archive: $([System.IO.Path]::GetFileName($archivePath))")
+    $record.Add("Archive SHA-256: $archiveHash")
+    $record.Add('')
+    $record.Add('| Environment | Value |')
+    $record.Add('| --- | --- |')
+    foreach ($field in @('Extracted folder', 'Windows version', 'Edge version and profile', 'Python version and path', 'Tester and date')) {
+        $record.Add("| $field | NOT RECORDED |")
+    }
+    $record.Add('')
+    $record.Add('Decision: PENDING — native Windows/Edge acceptance has not been recorded.')
+    $record.Add('Use only fully synthetic fixtures and evidence. Record PASS, FAIL, or NOT RUN for every row, with an evidence reference and any blocker. Every result must refer to this commit and ZIP checksum. A changed candidate requires a new record; do not reuse historical results.')
+
+    foreach ($checklist in @('docs/acceptance-localhost.md', 'docs/acceptance-workspaces.md', 'docs/acceptance-period-comparison.md', 'docs/acceptance-warehouse-workflow.md')) {
+        $source = Invoke-GitText @('show', "${resolvedCandidate}:$checklist")
+        $record.Add('')
+        $record.Add("## $checklist")
+        $record.Add('')
+        $record.Add('| Check | Result | Synthetic evidence / blocker |')
+        $record.Add('| --- | --- | --- |')
+        $warehouseSection = $false
+        $task = ''
+        foreach ($line in ($source -split '\r?\n')) {
+            if ($line -match '^## ') {
+                $warehouseSection = $line -eq '## Required manual checks in the current localhost runtime'
+            }
+            $isTask = $line -match '^(?:-|\d+\.) \[ \] (.+)$'
+            if (-not $isTask -and $warehouseSection) { $isTask = $line -match '^\d+\. (.+)$' }
+            if ($isTask) {
+                if ($task) { $record.Add("| $($task.Replace('|', '\|')) | NOT RUN | |") }
+                $task = $Matches[1]
+            } elseif ($task -and $line -match '^\s+\S') {
+                $task += ' ' + $line.Trim()
+            } elseif ($task) {
+                $record.Add("| $($task.Replace('|', '\|')) | NOT RUN | |")
+                $task = ''
+            }
+        }
+        if ($task) { $record.Add("| $($task.Replace('|', '\|')) | NOT RUN | |") }
+    }
+    $recordPath = Join-Path $outputRoot "$candidateName.acceptance.md"
+    if (Test-Path -LiteralPath $recordPath) {
+        $existingRecord = [System.IO.File]::ReadAllText($recordPath)
+        # Only the single metadata header binds the record to its archive.
+        # Matching hashes in evidence notes cannot override missing/stale headers.
+        $checksumHeaders = [regex]::Matches($existingRecord, '(?m)^Archive SHA-256:([^\r\n]*)\r?$')
+        if ($checksumHeaders.Count -ne 1) {
+            throw 'Existing acceptance record must contain exactly one Archive SHA-256 header. Use a new output directory for a fresh acceptance run.'
+        }
+        $recordedHash = $checksumHeaders[0].Groups[1].Value.Trim()
+        if (-not [string]::Equals($recordedHash, $archiveHash, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw 'Existing acceptance record has a different ZIP checksum. Use a new output directory for a fresh acceptance run.'
+        }
+    } else {
+        [System.IO.File]::WriteAllText($stagedRecordPath, ($record -join [Environment]::NewLine) + [Environment]::NewLine, $utf8)
+    }
+
+    # Each replacement is atomic on the output filesystem. Roll back prior
+    # replacements if a later file cannot be published, retaining the evidence set.
+    $artifacts = @(
+        @{ Source = $stagedArchivePath; Destination = $archivePath; Backup = $null },
+        @{ Source = $stagedManifestPath; Destination = $manifestPath; Backup = $null }
+    )
+    if (Test-Path -LiteralPath $stagedRecordPath) {
+        $artifacts += @{ Source = $stagedRecordPath; Destination = $recordPath; Backup = $null }
+    }
+    $published = [System.Collections.Generic.List[object]]::new()
+    try {
+        foreach ($artifact in $artifacts) {
+            if (Test-Path -LiteralPath $artifact.Destination) {
+                $artifact.Backup = Join-Path $stagingRoot ([System.IO.Path]::GetFileName($artifact.Destination) + '.previous')
+                [System.IO.File]::Replace($artifact.Source, $artifact.Destination, $artifact.Backup)
+            } else {
+                [System.IO.File]::Move($artifact.Source, $artifact.Destination)
+            }
+            $published.Add($artifact)
+        }
+    } catch {
+        $publicationFailure = $_
+        try {
+            for ($index = $published.Count - 1; $index -ge 0; $index--) {
+                $artifact = $published[$index]
+                if ($artifact.Backup) {
+                    [System.IO.File]::Replace($artifact.Backup, $artifact.Destination, [NullString]::Value)
+                } else {
+                    [System.IO.File]::Delete($artifact.Destination)
+                }
+            }
+        } catch {
+            $removeStaging = $false
+            throw "Package publication and rollback failed. Recovery files remain in ${stagingRoot}: $_"
+        }
+        throw $publicationFailure
+    }
+} finally {
+    if ($removeStaging) { Remove-Item -LiteralPath $stagingRoot -Recurse -Force }
 }
 
 Write-Output "Candidate commit: $resolvedCandidate"
+Write-Output "Build status: $buildStatus"
 Write-Output "Archive: $archivePath"
+Write-Output "Archive SHA-256: $archiveHash"
+Write-Output "Candidate manifest: $manifestPath"
+Write-Output "Pending acceptance record: $recordPath"

@@ -7,6 +7,65 @@ const test = require('node:test');
 const vm = require('node:vm');
 
 const runtimeApi = require('../runtime.js');
+const core = require('../csv.js');
+const workspace = require('../workspace.js');
+const warehouse = require('../warehouse.js');
+
+test('build diagnostics use actual data formats and an honest unpackaged fallback', () => {
+  for (const metadata of [undefined, null, {}, { status: 'release', commit: 'invalid' }]) {
+    const build = runtimeApi.describeBuild({ APP_VERSION: core.APP_VERSION, APP_BUILD: metadata }, workspace, warehouse);
+    assert.equal(build.version, core.APP_VERSION);
+    assert.equal(build.status, 'development');
+    assert.equal(build.commit, null);
+    assert.equal(build.workspaceSchema, workspace.WORKSPACE_SCHEMA_VERSION);
+    assert.equal(build.layoutSchema, warehouse.LAYOUT_VERSION);
+    assert.equal(build.backupFormat, workspace.BACKUP_FORMAT_VERSION);
+  }
+});
+
+test('packaged builds retain the candidate identity without inferring a release', () => {
+  const commit = 'a'.repeat(40);
+  for (const status of ['development', 'release', 'unexpected']) {
+    const build = runtimeApi.describeBuild({ APP_VERSION: core.APP_VERSION, APP_BUILD: { status, commit } }, workspace, warehouse);
+    assert.equal(build.commit, commit);
+    assert.equal(build.status, status === 'release' ? 'release' : 'development');
+    assert.equal(Object.isFrozen(build), true);
+  }
+  assert.equal(core.APP_BUILD.status, 'development');
+  assert.equal(core.APP_BUILD.commit, null);
+});
+
+test('language changes render build status into the declared header and footer for every build type', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8').replace(/\r\n/g, '\n');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const header = html.match(/<header\b[\s\S]*?<\/header>/)[0];
+  assert.match(header, /id="header-build-status"/);
+  const nodes = Object.fromEntries([...html.matchAll(/\bid="([^"]+)"/g)]
+    .map((match) => [match[1], { textContent: '', setAttribute() {} }]));
+  const functionSource = (name) => source.match(new RegExp('  function ' + name + '\\([^]*?(?=\\n  (?:async )?function )'))[0];
+  const state = { language: 'en', files: [], result: null };
+  const context = vm.createContext({ state, core: { ...core }, workspaceModel: workspace, warehouseModel: warehouse,
+    window: { OpenSlottingRuntimeFactory: runtimeApi },
+    document: { documentElement: {}, getElementById(id) { return nodes[id] || null; }, querySelectorAll() { return []; }, querySelector() { return null; } },
+    renderRuntimeDiagnostics() {}, renderWorkspaceControls() {}, renderStorageStatus() {},
+    renderWorkspaceMessage() {}, renderSourceStatus() {}, renderWorkflow() {} });
+  vm.runInContext('const TRANSLATIONS = ' + source.match(/const TRANSLATIONS = ({[\s\S]*?});\s+const state/)[1] + ';\n' +
+    'const elements = ' + source.match(/const elements = ({[\s\S]*?});/)[1] + ';\n' +
+    source.match(/const BUILD_STATUS_TRANSLATION_KEYS = Object\.freeze\({[\s\S]*?}\);/)[0] + '\n' +
+    ['setText', 'translate', 'applyLanguage'].map(functionSource).join('\n'), context);
+  for (const build of [undefined, { status: 'development', commit: 'a'.repeat(40) }, { status: 'release', commit: 'b'.repeat(40) }]) {
+    context.core.APP_BUILD = build;
+    for (const language of ['en', 'de', 'en']) {
+      state.language = language;
+      context.applyLanguage();
+      const expectedStatus = build?.status === 'release'
+        ? (language === 'de' ? 'Releasebuild' : 'Release build')
+        : (language === 'de' ? 'Entwicklungsstand' : 'Development build');
+      assert.equal(nodes['header-build-status'].textContent, 'v' + core.APP_VERSION + ' · ' + expectedStatus);
+      assert.equal(nodes['app-version'].textContent, 'OpenSlotting ' + nodes['header-build-status'].textContent);
+    }
+  }
+});
 
 function createEnvironment(location, overrides) {
   return Object.assign({

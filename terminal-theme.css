@@ -35,6 +35,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .app-header h1 { color: #f3f7fa; font-size: 1rem; letter-spacing: .01em; }
 .brand-mark { width: 34px; height: 34px; border-radius: 7px; color: #0d201f; background: #41c8ba; }
 .header-workspace-name { color: var(--muted); }
+.header-build-status { margin: 3px 0 0; color: var(--muted); font-size: .76rem; overflow-wrap: anywhere; }
 .header-actions { align-items: center; }
 .language-picker { color: var(--muted); }
 .language-picker select, .compact-field input, .compact-field select, .mapping-field select,

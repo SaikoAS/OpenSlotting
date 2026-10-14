@@ -9,6 +9,8 @@
   'use strict';
 
   const APP_VERSION = '0.2.1';
+  // Packaging stamps only the commit from CandidateCommit into this declaration.
+  const APP_BUILD = Object.freeze({ status: 'development', commit: null });
   const QUANTITY_DECIMAL_PLACES = 7;
   const QUANTITY_SCALE = 10000000n;
   const SALES_DECIMAL_PLACES = 2;
@@ -3481,6 +3483,7 @@
 
   return {
     APP_VERSION: APP_VERSION,
+    APP_BUILD: APP_BUILD,
     FIELD_DEFINITIONS: FIELD_DEFINITIONS,
     FEATURE_REQUIREMENTS: FEATURE_REQUIREMENTS,
     QUANTITY_DECIMAL_PLACES: QUANTITY_DECIMAL_PLACES,
