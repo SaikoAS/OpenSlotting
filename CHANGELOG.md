@@ -4,6 +4,8 @@ All notable changes to OpenSlotting are documented in this file.
 
 ## Unreleased
 
+- Show the localized product version and build status in the permanent header as well as the footer, including the workspace picker. Refresh both on language changes and distinguish development from release builds.
+
 - Validate the single complete archive checksum header when reusing an acceptance record. Reject missing, duplicate, malformed or stale headers without replacing artifacts; hashes mentioned in evidence notes cannot override the recorded checksum.
 
 - Give every candidate ZIP its own commit-based filename. Stage packages and validate existing acceptance checksums before publishing; preserve the complete evidence set on checksum conflicts and roll back earlier replacements if publication fails.

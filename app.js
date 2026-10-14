@@ -1569,6 +1569,7 @@
   };
 
   const elements = {
+    headerBuildStatus: document.getElementById('header-build-status'),
     headerWorkspaceName: document.getElementById('header-workspace-name'),
     workflowSteps: Array.from(document.querySelectorAll('[data-workflow-target]')),
     pageViews: Array.from(document.querySelectorAll('.app-page')),
@@ -3776,10 +3777,10 @@
     document.title = translate('page_title');
     const build = window.OpenSlottingRuntimeFactory.describeBuild(core, workspaceModel, warehouseModel);
     const visibleVersion = core.APP_VERSION + ' · ' + translate(BUILD_STATUS_TRANSLATION_KEYS[build.status]);
+    setText(elements.headerBuildStatus, 'v' + visibleVersion);
     setText(elements.appVersion, 'OpenSlotting v' + visibleVersion);
     document.querySelectorAll('[data-i18n]').forEach(function (element) {
-      const replacements = element.dataset.i18n === 'eyebrow' ? { version: visibleVersion } : undefined;
-      setText(element, translate(element.dataset.i18n, replacements));
+      setText(element, translate(element.dataset.i18n));
     });
     document.querySelectorAll('[data-i18n-placeholder]').forEach(function (element) {
       element.setAttribute('placeholder', translate(element.dataset.i18nPlaceholder));
