@@ -400,7 +400,7 @@ assets, historical acceptance filenames and changelog versions are unchanged.
 - Transferable workspace backups for migration between browser profiles or origins
 - No mandatory cloud storage, backend, account, or network connection
 
-The implementation is on `main` and was included in the published 0.2.1
+The core workspace workflow was included in the published `0.2.1`
 release. Current `main` contains later workspace improvements that still
 require exact-candidate automated checks and manual Microsoft Edge localhost
 acceptance before a future release claim.
