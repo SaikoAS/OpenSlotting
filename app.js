@@ -4161,8 +4161,8 @@
       return [file.id, {
         id: file.id,
         label: file.label,
-        dateStart: file.dateStart,
-        dateEnd: file.dateEnd,
+        dateStart: null,
+        dateEnd: null,
         validRows: file.validRows,
         invalidRows: file.invalidRows,
         filteredRows: file.filteredRows || 0,
@@ -4171,6 +4171,11 @@
       }];
     }));
     const dateMap = new Map();
+    function recordSourceDate(source, date) {
+      source.dates.add(date);
+      if (!source.dateStart || date < source.dateStart) source.dateStart = date;
+      if (!source.dateEnd || date > source.dateEnd) source.dateEnd = date;
+    }
     function dateEntry(date) {
       if (!dateMap.has(date)) {
         dateMap.set(date, { date: date, validRows: 0, invalidLines: new Set(),
@@ -4181,7 +4186,7 @@
     state.result.rows.forEach(function (row) {
       const source = sourceMap.get(row.source_file_id);
       if (source && periods.validDate(row.delivery_date)) {
-        source.dates.add(row.delivery_date);
+        recordSourceDate(source, row.delivery_date);
         if (typeof row.sales_unit_count === 'bigint') {
           source.salesUnitRows += 1;
         }
@@ -4198,6 +4203,7 @@
       if (!isDatedCoverageIssue(issue, sourceMap)) {
         return;
       }
+      recordSourceDate(sourceMap.get(issue.sourceFileId), issue.deliveryDate);
       const entry = dateEntry(issue.deliveryDate);
       const lineKey = String(issue.sourceFileId || '') + ':' + issue.sourceLine;
       if (issue.code === 'source_rule_excluded') entry.filteredLines.add(lineKey);
@@ -4334,7 +4340,8 @@
       return;
     }
     const rows = state.result ? state.result.rows : [];
-    const dates = Array.from(new Set(rows.map(function (row) { return periods.validDate(row.delivery_date) ? row.delivery_date : null; }).filter(Boolean))).sort();
+    const coverageData = buildCoverageData();
+    const dates = coverageData.dates.map(function (entry) { return entry.date; });
     const datedRows = rows.filter(function (row) { return periods.validDate(row.delivery_date); }).length;
     elements.coverageOverview.replaceChildren();
     const summary = document.createElement('div');
@@ -4357,7 +4364,6 @@
     summary.appendChild(summaryStrong);
     summary.appendChild(summaryDetail);
     elements.coverageOverview.appendChild(summary);
-    const coverageData = buildCoverageData();
     if (coverageCalendar) coverageCalendar.refresh(coverageData.dates);
     renderCoverageSources(coverageData);
     renderCoverageDates(coverageData);
@@ -4378,7 +4384,7 @@
     setText(elements.periodBStatus, hasExpectedWeekdays
       ? coverageText(coverageB) + ' · ' + translate('coverage_sources', { count: coverageB.sourceFiles.length })
       : translate('weekdays_required'));
-    elements.comparePeriods.disabled = dates.length === 0;
+    elements.comparePeriods.disabled = datedRows === 0;
     elements.coveragePanel.classList.remove('hidden');
   }
 

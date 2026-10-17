@@ -33,8 +33,10 @@ function coverageView(result, notes = []) {
     getLanguage: () => 'en', getNotes: () => state.coverageNotes,
     getExpectedWeekdays: () => state.periodSettings.expectedWeekdays, isLocked: () => false });
   let renderedData, renders = 0;
+  const translations = [];
   const context = vm.createContext({ state, elements, periods, core, coverageCalendar,
-    document: { createElement: element }, setText: (node, text) => { node.textContent = text; }, translate: key => key,
+    document: { createElement: element }, setText: (node, text) => { node.textContent = text; },
+    translate: (key, values) => { translations.push({ key, values }); return key; },
     renderCoverageSources: data => { renderedData = data; renders++; }, renderCoverageDates() {}, renderCoverageDrilldown() {}, renderPeriodControls() {},
     coverageText: () => '', closeMappingDrawer() {}, PAGE_CONFIG: { 'coverage-panel': {}, 'mapping-panel': {}, 'main-menu-panel': {}, 'workspace-panel': {} } });
   for (const name of ['analysisRowCount', 'resultHasRetainedData', 'isDatedCoverageIssue', 'buildCoverageData', 'hasCoverageContent', 'renderCoverage']) {
@@ -42,7 +44,7 @@ function coverageView(result, notes = []) {
   }
   const start = appSource.indexOf('  function renderWorkflow('), end = appSource.indexOf('    document.body.classList.toggle', start);
   vm.runInContext(appSource.slice(start, end) + 'return availability; }', context);
-  return { state, elements, root, context, data: () => renderedData, renders: () => renders };
+  return { state, elements, root, context, translations, data: () => renderedData, renders: () => renders };
 }
 
 test('issue-only imports can enter coverage and show invalid or excluded evidence without enabling comparisons', () => {
@@ -60,11 +62,42 @@ test('issue-only imports can enter coverage and show invalid or excluded evidenc
     assert.equal(view.elements.coveragePanel.classList.contains('hidden'), false);
     assert.match(view.root.innerHTML, /coverage-calendar-day issues[^>]*data-calendar-date="2026-10-03"/);
     assert.equal(view.data().dates[0][excluded ? 'filteredLines' : 'invalidLines'].size, 1);
+    assert.equal(view.data().sources[0].dateStart, '2026-10-03');
+    assert.equal(view.data().sources[0].dateEnd, '2026-10-03');
+    assert.equal(view.data().sources[0].dates.size, 1);
+    const overview = view.translations.find(item => item.key === 'coverage_overview');
+    assert.ok(overview, 'dated issue evidence must appear in the overview');
+    assert.deepEqual(JSON.parse(JSON.stringify(overview.values)), { days: 1, start: '2026-10-03', end: '2026-10-03', dated: 0, rows: 0 });
     assert.equal(view.elements.comparePeriods.disabled, true);
     view.context.renderWorkflow('unavailable-page');
     assert.equal(view.state.activePageTarget, 'coverage-panel');
     assert.equal(view.renders(), 1, 'route refresh must reuse the already rendered evidence');
   }
+});
+
+test('coverage evidence ranges include deduplicated invalid/excluded dates without changing valid-row coverage', () => {
+  const result = { analysisRows: 1, validRows: 1, files: [
+    { id: 'order', dateStart: '2026-10-03', dateEnd: '2026-10-03', validRows: 1 },
+    { id: 'empty' }, { id: 'master', sourceType: 'article-master' }
+  ], rows: [{ source_file_id: 'order', delivery_date: '2026-10-03' }], issues: [
+    { sourceFileId: 'order', deliveryDate: '2026-10-01', sourceLine: 2 },
+    { sourceFileId: 'order', deliveryDate: '2026-10-01', sourceLine: 2, code: 'another_issue' },
+    { sourceFileId: 'order', deliveryDate: '2026-10-06', sourceLine: 3, code: 'source_rule_excluded' },
+    { sourceFileId: 'order', deliveryDate: '2026-12-01', sourceLine: 4, blocking: false },
+    { sourceFileId: 'master', deliveryDate: '2020-01-01', sourceLine: 2 }
+  ] };
+  const original = structuredClone(result), view = coverageView(result);
+  const period = { start: '2026-10-01', end: '2026-10-06' };
+  const before = periods.coverageForPeriod(result.rows, period, [0, 1, 2, 3, 4, 5, 6]);
+  view.context.renderCoverage();
+  const source = view.data().sources.find(source => source.id === 'order');
+  assert.equal(source.dateStart, '2026-10-01'); assert.equal(source.dateEnd, '2026-10-06');
+  assert.deepEqual(Array.from(source.dates).sort(), ['2026-10-01', '2026-10-03', '2026-10-06']);
+  assert.equal(view.data().dates[0].invalidLines.size, 1);
+  assert.equal(view.data().sources.find(source => source.id === 'empty').dateStart, null);
+  assert.deepEqual(result, original);
+  assert.deepEqual(periods.coverageForPeriod(result.rows, period, [0, 1, 2, 3, 4, 5, 6]), before);
+  assert.equal(view.elements.comparePeriods.disabled, false);
 });
 
 test('coverage availability stops at the first dated issue and skips master-only issues without aggregating dates', () => {

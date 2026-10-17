@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Derive displayed coverage dates and per-source ranges from dated valid, invalid and rule-excluded evidence. Keep valid-row counts, demand and comparison completeness separate from those evidence ranges.
+
 - Preserve saved calendar reasons when removing the final source or resetting source data. Workspace switches still clear the previous workspace's notes from the view.
 
 - Open the requested profile-overview import even when an old editor search hides it; ignore stale source IDs. Check coverage availability without aggregating issue-line evidence and reuse visible coverage tables during navigation.
