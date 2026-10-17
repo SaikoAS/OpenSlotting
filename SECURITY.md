@@ -8,6 +8,12 @@ Security and data privacy are core project requirements. The application is desi
 
 Only the latest published release line, OpenSlotting 0.2.x, is supported. The `main` branch contains ongoing unreleased development and may change before the next release.
 
+The concrete latest published release is [0.2.1](https://github.com/SaikoAS/OpenSlotting/releases/tag/v0.2.1).
+`0.2.x` is a support-line designation, not a claim that every patch number was
+published: `0.2.0` was unpublished development work. Roadmap milestones and
+workspace/layout schemas do not change this support status; see the
+[versioning policy](docs/versioning.md).
+
 | Version | Supported |
 | --- | --- |
 | `0.2.x` | Yes |

@@ -8,6 +8,7 @@ const { execFileSync, spawnSync } = require('node:child_process');
 const test = require('node:test');
 const vm = require('node:vm');
 const { createHash } = require('node:crypto');
+const { checkCandidate, checkArtifacts } = require('../tools/check-release.cjs');
 
 const repository = path.resolve(__dirname, '..');
 const pwsh = process.env.OPENSLOTTING_PWSH || 'pwsh';
@@ -28,7 +29,10 @@ test('packaging stamps the selected commit, preserves assets and creates fresh a
       fs.copyFileSync(path.join(repository, name), path.join(fixture, name));
     }
     const csvPath = path.join(fixture, 'csv.js');
-    fs.writeFileSync(csvPath, fs.readFileSync(csvPath, 'utf8').replace(/const APP_VERSION = '[^']+';/, "const APP_VERSION = '9.8.7';"));
+    fs.writeFileSync(csvPath, fs.readFileSync(csvPath, 'utf8')
+      .replace(/const APP_VERSION = '[^']+';/, "const APP_VERSION = '9.8.7';")
+      .replace(/const APP_BUILD = Object\.freeze\(\{[^\n]+/, "const APP_BUILD = Object.freeze({ status: 'development', commit: null });"));
+    fs.writeFileSync(path.join(fixture, 'CHANGELOG.md'), '# Changelog\n\n## Unreleased\n\nSynthetic development candidate.\n');
     const git = (...args) => execFileSync('git', ['-C', fixture, ...args], { encoding: 'utf8' }).trim();
     git('init', '-q');
     // Preserve fixture bytes regardless of the runner's checkout configuration.
@@ -55,6 +59,7 @@ test('packaging stamps the selected commit, preserves assets and creates fresh a
     assert.equal(manifest.candidateCommit, candidate);
     assert.equal(manifest.productVersion, '9.8.7');
     assert.equal(manifest.buildStatus, 'development');
+    checkArtifacts(checkCandidate({ repository: fixture, ref: candidate }), output);
     assert.equal(manifest.archiveSha256, require('node:crypto').createHash('sha256').update(fs.readFileSync(archivePath)).digest('hex'));
     const extractScript = path.join(temporary, 'extract.ps1');
     fs.writeFileSync(extractScript, 'param($Archive, $Destination)\nExpand-Archive -LiteralPath $Archive -DestinationPath $Destination\n');

@@ -2,6 +2,10 @@
 
 Use this checklist on the exact release candidate. Automated results do not replace the manual Microsoft Edge acceptance run.
 
+See [versions, milestones and data formats](versioning.md) for SemVer decisions
+and the separate meanings of product versions, build commits, roadmap IDs and
+schema versions. This checklist does not assign a new version to feature PRs.
+
 ## Candidate record
 
 | Item | Value |
@@ -15,14 +19,16 @@ Use this checklist on the exact release candidate. Automated results do not repl
 | Acceptance date | |
 | Result | Pending |
 
-The latest published release is `0.2.1`; `main` may contain unreleased work without an assigned next version. Before building a release candidate, decide the next version, update the single `APP_VERSION` source in `csv.js`, and record it above. Replace the current `Unreleased` heading in `CHANGELOG.md` with that version and publication date only when the release is ready. Complete the automated checks, packaging, ZIP extraction, and manual Edge acceptance only after those edits are part of the recorded PR candidate commit.
+The latest published release is `0.2.1`; `main` may retain that version with `development` status and unreleased work. Before preparing a candidate for publication, deliberately choose the next version, update the single `APP_VERSION` source in `csv.js`, set `APP_BUILD.status` to `release` (keeping the source commit null), and record the version above. Replace the top `Unreleased` heading in `CHANGELOG.md` with `## X.Y.Z - YYYY-MM-DD` for that version and publication date only when the release is ready. Complete the automated checks, packaging, ZIP extraction, and manual Edge acceptance only after those edits are part of the recorded PR candidate commit.
 
 Any later change to the publication date or another release-visible file invalidates the previous candidate. Commit the change, rebuild the ZIP, and repeat all automated and manual checks on the new exact candidate before tagging.
 
 The packaging script reads release files from the explicitly supplied Git commit, never from uncommitted working-tree content. Use the full hash recorded in this checklist:
 
 ```text
+node tools/check-release.cjs --commit <full-commit-hash>
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/package-release.ps1 -CandidateCommit <full-commit-hash>
+node tools/check-release.cjs --commit <full-commit-hash> --artifacts dist
 ```
 
 Confirm that the commit printed by the script exactly matches the recorded candidate commit.
@@ -48,6 +54,7 @@ A checksum conflict leaves the original ZIP, manifest and record unchanged.
 
 ## Automated checks
 
+- [ ] `node tools/check-release.cjs --commit <full-commit-hash>` passes (development version reuse is allowed; release status requires the matching dated first changelog entry)
 - [ ] `node --check csv.js`
 - [ ] `node --check app.js`
 - [ ] `node --check encoding.js`
@@ -71,6 +78,7 @@ A checksum conflict leaves the original ZIP, manifest and record unchanged.
 - [ ] The full candidate commit hash is recorded above
 - [ ] `tools/package-release.ps1 -CandidateCommit <full-commit-hash>` reports that exact commit and creates `dist/OpenSlotting-v<APP_VERSION>-<full-commit-hash>.zip`
 - [ ] The ZIP contains only the documented user-facing files
+- [ ] `node tools/check-release.cjs --commit <full-commit-hash> --artifacts dist` verifies manifest version/status/commit, archive filename, actual ZIP SHA-256 and archived build metadata
 
 Expected ZIP contents are the explicit `$releaseFiles` list in
 `tools/package-release.ps1`, plus the optional local icon. It includes all
@@ -145,6 +153,7 @@ The V0.2 and V0.2.1 acceptance checklists are historical records. A future relea
 - [ ] All automated checks and all required manual Edge localhost checks pass again on the extracted ZIP from the final `main` commit.
 - [ ] No release-visible file changed after the final-`main` package and acceptance run.
 - [ ] Tag `v<APP_VERSION>` points to that exact accepted final `main` commit.
+- [ ] After creating the tag, `node tools/check-release.cjs --commit <final-main-commit> --tag v<APP_VERSION> --artifacts dist` passes; CI triggered by that tag also passes before publication.
 - [ ] A normal, non-prerelease GitHub Release named `OpenSlotting v<APP_VERSION>` is created from the tag.
 - [ ] The accepted `OpenSlotting-v<APP_VERSION>-<full-commit-hash>.zip` is attached to the release.
 - [ ] The attached ZIP is independently downloaded, extracted, and verified again through the localhost launcher.
