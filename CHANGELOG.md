@@ -10,7 +10,7 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
-- Separate roadmap milestones M01–M11 from published product versions and document SemVer/build/schema contracts. Add source, release-tag and manifest/ZIP metadata consistency checks to CI without incrementing the development version or publishing releases.
+- Separate roadmap milestones M01–M11 from published product versions and document SemVer/build/schema contracts. Add source, release-tag and manifest/ZIP metadata consistency checks to CI without incrementing the development version or publishing releases. Reject development versions below existing release tags and support Windows Python-launcher-only installations during ZIP inspection.
 
 - Show the localized product version and build status in the permanent header as well as the footer, including the workspace picker. Refresh both on language changes and distinguish development from release builds.
 

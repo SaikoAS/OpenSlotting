@@ -113,7 +113,7 @@ jobs:
 
       - name: Test candidate packaging on Windows
         shell: pwsh
-        run: node --test tests/package-release.test.cjs
+        run: node --test tests/package-release.test.cjs tests/release-consistency.test.cjs
 
       - name: Test candidate packaging in Windows PowerShell 5.1
         shell: powershell

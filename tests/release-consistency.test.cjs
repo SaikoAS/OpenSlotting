@@ -7,7 +7,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { execFileSync, spawnSync } = require('node:child_process');
 const { createHash } = require('node:crypto');
-const { metadata, validateVersionState, checkCandidate, checkArtifacts } = require('../tools/check-release.cjs');
+const { metadata, validateVersionState, checkCandidate, checkArtifacts, findPython } = require('../tools/check-release.cjs');
 
 const csv = (version = '0.2.1', status = 'development', commit = 'null') =>
   `const APP_VERSION = '${version}';\nconst APP_BUILD = Object.freeze({ status: '${status}', commit: ${commit} });\n`;
@@ -20,6 +20,69 @@ test('normal development keeps the last published product version and independen
   assert.equal(result.version, '0.2.1');
   assert.equal(result.status, 'development');
   assert.equal(validateVersionState({ csvSource: csv('0.3.0'), changelog: development }).version, '0.3.0');
+});
+
+test('development cannot regress below published tags but may retain or advance their version', (t) => {
+  const f = fixture(t);
+  const published = f.commit(csv(), development);
+  f.git('tag', 'v0.2.1', published);
+  f.git('tag', '-a', 'v0.1.0', '-m', 'Synthetic older release', published);
+  for (const version of ['0.1.0', '0.2.0']) {
+    const commit = f.commit(csv(version), development);
+    assert.throws(() => checkCandidate({ repository: f.repository, ref: commit }), /older than existing tag v0.2.1/);
+  }
+  for (const version of ['0.2.1', '0.3.0', '0.10.0']) {
+    const commit = f.commit(csv(version), development);
+    assert.notEqual(commit, published);
+    assert.equal(checkCandidate({ repository: f.repository, ref: commit }).version, version);
+  }
+});
+
+test('Windows artifact inspection supports a Python-launcher-only installation', () => {
+  const calls = [];
+  const python = findPython({ platform: 'win32', override: '', exec: (command, args) => {
+    calls.push({ command, args });
+    if (command !== 'py.exe') throw new Error('Only the Python launcher is installed');
+  } });
+  assert.equal(python.command, 'py.exe');
+  assert.deepEqual(python.prefix, ['-3']);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0].args.slice(0, 2), ['-3', '-c']);
+  assert.match(calls[0].args[2], /sys.version_info >= \(3, 8\)/);
+});
+
+test('Python discovery falls back from missing or unsupported launchers and reports unavailable runtimes', () => {
+  for (const failure of [Object.assign(new Error('not installed'), { code: 'ENOENT' }), Object.assign(new Error('unsupported version'), { status: 1 })]) {
+    const calls = [];
+    const python = findPython({ platform: 'win32', override: '', exec: (command, args) => {
+      calls.push({ command, args });
+      if (command === 'py.exe') throw failure;
+    } });
+    assert.deepEqual(calls.map((call) => call.command), ['py.exe', 'python.exe']);
+    assert.equal(python.command, 'python.exe');
+    assert.deepEqual(python.prefix, []);
+    assert.equal(calls[1].args[0], '-c');
+  }
+  assert.throws(() => findPython({ platform: 'win32', override: '', exec: () => { throw new Error('not available'); } }),
+    /Python 3.8 or newer.*py.exe.*python.exe/);
+});
+
+test('Python overrides preserve paths with spaces and select launcher arguments without shell parsing', () => {
+  for (const [override, prefix] of [['C:\\Approved Python\\py.exe', ['-3']], ['C:\\Approved Python\\python.exe', []]]) {
+    const calls = [];
+    const python = findPython({ platform: 'win32', override, exec: (command, args) => calls.push({ command, args }) });
+    assert.equal(python.command, override);
+    assert.deepEqual(python.prefix, prefix);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].command, override);
+    assert.deepEqual(calls[0].args.slice(0, -1), [...prefix, '-c']);
+  }
+  const commands = [];
+  assert.throws(() => findPython({ platform: 'win32', override: 'missing-python.exe', exec: (command) => {
+    commands.push(command);
+    throw new Error('not installed');
+  } }), /OPENSLOTTING_PYTHON/);
+  assert.deepEqual(commands, ['missing-python.exe']);
 });
 
 test('an explicit release candidate needs matching dated changelog metadata', () => {
@@ -120,9 +183,9 @@ test('artifact validation checks manifest identity, actual ZIP hash and archived
   const stem = `OpenSlotting-v${candidate.version}-${commit}`;
   const archive = path.join(f.repository, stem + '.zip');
   const manifestPath = path.join(f.repository, stem + '.candidate.json');
-  const python = process.env.OPENSLOTTING_PYTHON || (process.platform === 'win32' ? 'python' : 'python3');
+  const python = findPython();
   const writeArchive = (source) => {
-    execFileSync(python, ['-c', 'import sys,zipfile\nwith zipfile.ZipFile(sys.argv[1],"w") as z: z.writestr(sys.argv[2],sys.argv[3])', archive, 'OpenSlotting-v0.2.1/csv.js', source]);
+    execFileSync(python.command, [...python.prefix, '-c', 'import sys,zipfile\nwith zipfile.ZipFile(sys.argv[1],"w") as z: z.writestr(sys.argv[2],sys.argv[3])', archive, 'OpenSlotting-v0.2.1/csv.js', source]);
     return createHash('sha256').update(fs.readFileSync(archive)).digest('hex');
   };
   const manifest = { candidateCommit: commit, productVersion: candidate.version, buildStatus: candidate.status,

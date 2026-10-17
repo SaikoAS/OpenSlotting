@@ -53,6 +53,10 @@ function validateVersionState({ csvSource, changelog, tag = '', commit, released
     requireCondition(tag === 'v' + build.version, `Tag ${tag} does not match APP_VERSION ${build.version}.`);
     requireCondition(build.status === 'release', 'A release tag requires APP_BUILD.status release, not development.');
   }
+  for (const published of releasedTags) {
+    requireCondition(compareVersions(build.version, published.version) >= 0,
+      `Product version ${build.version} is older than existing tag v${published.version}.`);
+  }
   if (build.status === 'development') {
     requireCondition(headings[0] === 'Unreleased', 'Development builds must keep Unreleased as the first changelog section.');
   } else {
@@ -64,8 +68,6 @@ function validateVersionState({ csvSource, changelog, tag = '', commit, released
         `Release version ${build.version} must be newer than changelog release ${release[1]}.`);
     }
     for (const published of releasedTags) {
-      requireCondition(compareVersions(build.version, published.version) >= 0,
-        `Release version ${build.version} is older than existing tag v${published.version}.`);
       requireCondition(build.version !== published.version || commit === published.commit,
         `Existing tag v${build.version} points to another commit; published versions must not be reused.`);
     }
@@ -91,6 +93,27 @@ function checkCandidate({ repository, ref = 'HEAD', tag = '' }) {
   return { ...build, commit };
 }
 
+function findPython({ platform = process.platform, override = process.env.OPENSLOTTING_PYTHON, exec = execFileSync } = {}) {
+  // Match the Windows launcher's preference and minimum supported version.
+  // An explicit override names one executable, never a shell command string.
+  const candidates = override
+    ? [{ command: override, prefix: platform === 'win32' && /^py(?:\.exe)?$/i.test(path.win32.basename(override)) ? ['-3'] : [] }]
+    : platform === 'win32'
+      ? [{ command: 'py.exe', prefix: ['-3'] }, { command: 'python.exe', prefix: [] }]
+      : [{ command: 'python3', prefix: [] }];
+  for (const candidate of candidates) {
+    try {
+      exec(candidate.command, [...candidate.prefix, '-c', 'import sys; raise SystemExit(0 if sys.version_info >= (3, 8) else 1)'], { stdio: 'ignore' });
+      return candidate;
+    } catch {
+      // Missing launchers, Store aliases and unsupported versions may fall back.
+    }
+  }
+  throw new Error('Python 3.8 or newer was not found for ZIP inspection. Tried ' +
+    candidates.map(({ command, prefix }) => [command, ...prefix].join(' ')).join(', ') +
+    '. Set OPENSLOTTING_PYTHON to an approved Python executable path.');
+}
+
 function checkArtifacts(candidate, directory) {
   const stem = `OpenSlotting-v${candidate.version}-${candidate.commit}`;
   const manifest = JSON.parse(fs.readFileSync(path.join(directory, stem + '.candidate.json'), 'utf8'));
@@ -105,8 +128,9 @@ function checkArtifacts(candidate, directory) {
   const script = 'import sys,zipfile\nwith zipfile.ZipFile(sys.argv[1]) as z:\n' +
     ' assert z.namelist().count(sys.argv[2]) == 1, "ZIP must contain one csv.js entry"\n' +
     ' sys.stdout.buffer.write(z.read(sys.argv[2]))\n';
-  const source = execFileSync(process.env.OPENSLOTTING_PYTHON || (process.platform === 'win32' ? 'python' : 'python3'),
-    ['-c', script, archivePath, entryName], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
+  const python = findPython();
+  const source = execFileSync(python.command,
+    [...python.prefix, '-c', script, archivePath, entryName], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
   const archived = metadata(source);
   requireCondition(archived.version === candidate.version && archived.status === candidate.status && archived.commit === candidate.commit,
     'Archived APP_VERSION/APP_BUILD does not match CandidateCommit and its manifest.');
@@ -132,4 +156,4 @@ if (require.main === module) {
   try { main(process.argv.slice(2)); }
   catch (error) { process.stderr.write('Version consistency failed: ' + error.message + '\n'); process.exitCode = 1; }
 }
-module.exports = { metadata, compareVersions, validateVersionState, checkCandidate, checkArtifacts };
+module.exports = { metadata, compareVersions, validateVersionState, checkCandidate, checkArtifacts, findPython };

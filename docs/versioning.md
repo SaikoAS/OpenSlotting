@@ -88,6 +88,10 @@ node tools/check-release.cjs --commit <full-candidate-commit> --artifacts dist
 
 The checker is a contributor/CI tool using Node.js, Git and (for ZIP inspection)
 the existing Python standard library. It is not shipped or required by users.
+On Windows it probes `py.exe -3`, then `python.exe`, for Python 3.8 or newer,
+matching the localhost launcher; on other systems it uses `python3`.
+`OPENSLOTTING_PYTHON` can name an explicit executable path (including spaces,
+without command-line arguments); a Windows `py.exe` override also receives `-3`.
 The PowerShell packager retains its existing dependency contract. The checker
 reads candidate files from Git, never from a dirty checkout, and makes no
 network calls or repository changes.
@@ -96,7 +100,8 @@ The source check validates canonical version/build declarations, a null source
 commit, changelog dates and duplicate release entries. Release builds require
 the matching dated first changelog entry and cannot regress behind historical
 releases or reuse a version tag pointing to another commit. Development builds
-are allowed to retain the last released version. Artifact checks compare the
+are allowed to retain the last released version or prepare a newer one, but
+cannot regress below an existing release tag. Artifact checks compare the
 manifest's version/status/commit, exact archive filename, actual ZIP SHA-256
 and the version/status/stamped commit in archived `csv.js`.
 
