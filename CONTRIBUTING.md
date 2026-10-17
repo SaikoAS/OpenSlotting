@@ -30,6 +30,9 @@ node --check warehouse-webgl.js
 node --check warehouse-scene.js
 node --check warehouse-editor.js
 node --check warehouse-analysis.js
+node --check src/application/import-profile-batch.js
+node --check src/ui/import-profile-panel.js
+node --check src/ui/coverage-calendar.js
 node --test tests/*.test.cjs
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/windows-launcher.test.ps1
 pwsh -NoProfile -File tests/windows-launcher.test.ps1

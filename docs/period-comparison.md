@@ -31,6 +31,33 @@ A date without an imported row is unknown coverage. It is never interpreted as a
 
 The coverage workspace also lists each source file and observed date. Its evidence view distinguishes valid normalized rows, non-blocking advisory notes, and excluded rows. An excluded row contributes to a date only when its mapped delivery date is itself valid; rows with invalid dates remain attributable to their source file but are not assigned to an invented date.
 
+## Calendar view and reasons for dates without data
+
+Data coverage is shown as one month with a Monday-first calendar (at most 42
+day cells). Each row displays its ISO calendar-week number and week-year;
+the selected-day detail repeats both, including dates belonging to the previous
+or next ISO year. Navigate by month or use arrow keys on a focused day. Days distinguish
+valid normalized data, only invalid/rule-excluded rows, unexplained gaps and
+dates with a manually recorded reason. Dates outside the observed source-date
+span are shown separately and are not counted as unexplained gaps. Expected
+weekdays remain the user's configured weekdays.
+
+Select a date and save a reason, for example **Feiertag – keine Auslieferung**.
+Reasons can be edited or removed, contain at most 500 characters, and remain
+workspace-local. The day detail shows valid/invalid/excluded row counts and can
+open the existing source-evidence view. Reasons may also be retained on dates
+that subsequently gain valid imported data; those days use the valid-data state.
+Unsubmitted drafts survive navigation within the current workspace session.
+
+A reason does not establish zero demand, invent source rows, modify the expected
+weekday configuration or change period completeness, comparison totals or CSV
+exports. No holiday calendar, region or delivery schedule is inferred. Original
+source bytes stay untouched. A reason becomes visible as saved only after its
+metadata transaction commits; failed saves retain the draft and previous record.
+Reasons and their last-edit timestamp survive reanalysis, reopening, and full
+workspace backup/restore. Schema 18 adds these records; database 3, backup
+format 1 and warehouse layout 4 remain unchanged.
+
 ## Metrics
 
 The comparison shows Period A and Period B values plus the B-minus-A change for:

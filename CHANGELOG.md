@@ -10,6 +10,14 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Show ISO calendar-week numbers and week-years beside each coverage calendar row and in the selected-day detail, including month/year transitions. Reuse the period-selection week calculation; stored data is unchanged.
+
+- Replace the compact coverage strip with a monthly calendar and editable local reasons for dates without data. Distinguish valid, invalid/excluded, explained, unexplained and out-of-span days. Retain reasons through reopening, analysis and backup restore without changing demand or comparison completeness. Migrate workspace schema 17 to 18; database 3, backup format 1 and layout 4 remain unchanged.
+
+- Record the last applied import profile per source with its historical name, application time and settings snapshot. Show it in the profile overview and source-column editor, flag subsequent settings/profile changes, and retain the evidence across activation, analysis and backups. Migrate workspace schema 16 to 17 without inferring prior applications; database 3, backup format 1 and layout 4 remain unchanged.
+
+- Split source-column editing from profile application. Add a bilingual searchable, paginated import overview with selection across filters/pages, source-type and compatibility checks, replacement previews and staged multi-import application through one workspace save. Preserve source bytes and existing profile/backup schemas; data validation stays explicit.
+
 - Separate roadmap milestones M01–M11 from published product versions and document SemVer/build/schema contracts. Add source, release-tag and manifest/ZIP metadata consistency checks to CI without incrementing the development version or publishing releases. Reject development versions below existing release tags and support Windows Python-launcher-only installations during ZIP inspection.
 
 - Show the localized product version and build status in the permanent header as well as the footer, including the workspace picker. Refresh both on language changes and distinguish development from release builds.

@@ -269,6 +269,8 @@
       files_detected_with_errors: '{{files}} files selected · {{rows}} data rows detected · {{errors}} files could not be prepared.',
       step_2: 'Step 2',
       mapping_title: 'Map source columns per file',
+      mapping_editor_view: 'Source-column editor', mapping_profiles_view: 'Apply profiles', mapping_views: 'Source-column views',
+      mapping_editor_profile_note: 'Manage profiles here; apply them to imports in the Apply profiles view.',
       mapping_hint: 'Review each file independently. Blocking files are excluded from the combined analysis.',
       mapping_file_rows: '{{count}} detected data rows',
       mapping_file_ready: 'Ready for validation',
@@ -978,6 +980,8 @@
       files_detected_with_errors: '{{files}} Dateien ausgewählt · {{rows}} Datenzeilen erkannt · {{errors}} Dateien konnten nicht vorbereitet werden.',
       step_2: 'Schritt 2',
       mapping_title: 'Quellspalten je Datei zuordnen',
+      mapping_editor_view: 'Quellspalteneditor', mapping_profiles_view: 'Profile anwenden', mapping_views: 'Quellspaltenansichten',
+      mapping_editor_profile_note: 'Profile hier verwalten; auf Importe werden sie unter Profile anwenden angewendet.',
       mapping_hint: 'Jede Datei wird unabhängig geprüft. Blockierte Dateien werden von der gemeinsamen Analyse ausgeschlossen.',
       mapping_file_rows: '{{count}} erkannte Datenzeilen',
       mapping_file_ready: 'Bereit zur Prüfung',
@@ -1468,6 +1472,7 @@
     restoreMode: null,
     files: [],
     selectedMappingFileId: null,
+    mappingView: 'profiles',
     mappingDrawerReturnFocus: null,
     mappingColumnSearch: '',
     mappingColumnFilter: 'all',
@@ -1483,6 +1488,7 @@
     detailRowsByRef: [],
     analysis: null,
     periodSettings: periods.normalizeSettings(),
+    coverageNotes: [],
     comparison: null,
     comparisonPage: 1,
     coverageDatePage: 1,
@@ -1505,6 +1511,8 @@
   };
   let warehouseEditor = null;
   let warehouseAnalysis = null;
+  let importProfilePanel = null;
+  let coverageCalendar = null;
   let workspaceFrameRequest = null;
 
   const TABLE_PAGE_SIZE = 100;
@@ -1661,16 +1669,20 @@
     languageSelect: document.getElementById('language-select'),
     sourceStatus: document.getElementById('source-status'),
     mappingPanel: document.getElementById('mapping-panel'),
+    mappingPage: document.getElementById('mapping-page'),
+    mappingEditorView: document.getElementById('mapping-editor-view'),
+    mappingProfilesView: document.getElementById('mapping-profiles-view'),
+    mappingViewButtons: Array.from(document.querySelectorAll('[data-mapping-view]')),
     mappingSourceList: document.getElementById('mapping-source-list'),
     mappingSourceSearch: document.getElementById('mapping-source-search'),
     importProfileName: document.getElementById('import-profile-name'),
     importProfileSelect: document.getElementById('import-profile-select'),
     importProfileSave: document.getElementById('import-profile-save'),
-    importProfileApply: document.getElementById('import-profile-apply'),
     importProfileUpdate: document.getElementById('import-profile-update'),
     importProfileDelete: document.getElementById('import-profile-delete'),
     importProfilePreview: document.getElementById('import-profile-preview'),
     mappingSourceMeta: document.getElementById('mapping-source-meta'),
+    mappingSourceProfile: document.getElementById('mapping-source-profile'),
     mappingEditorOpen: document.getElementById('mapping-editor-open'),
     mappingEditorClose: document.getElementById('mapping-editor-close'),
     mappingDrawerBackdrop: document.getElementById('mapping-drawer-backdrop'),
@@ -2057,6 +2069,7 @@
       }
     });
     renderWorkspaceProgress();
+    renderImportProfileControls();
     renderWorkflow();
     renderWorkspaceOverview();
   }
@@ -2131,6 +2144,7 @@
           language: state.language,
           analyzed: Boolean(state.analysis),
           periodSettings: periods.normalizeSettings(state.periodSettings),
+          coverageNotes: workspaceModel.normalizeCoverageNotes(options && options.coverageNotes !== undefined ? options.coverageNotes : state.coverageNotes),
           customFields: state.customFields,
           importProfiles: state.importProfiles,
           warehouseLayout: state.warehouseLayout,
@@ -2140,7 +2154,9 @@
           }, 0),
           normalizedRowCount: state.result && Array.isArray(state.result.rows) ? state.result.rows.length : 0
         }
-        : captureActiveWorkspace();
+        : options && options.runtimeState
+          ? workspaceModel.captureWorkspaceTrusted(state.activeWorkspace, options.runtimeState)
+          : captureActiveWorkspace();
     } catch (error) {
       showWorkspaceError(error);
       return Promise.reject(error);
@@ -2176,6 +2192,7 @@
         if (state.activeWorkspace && state.activeWorkspace.id === saved.id) {
           state.activeWorkspace = workspaceMetadata(saved);
         }
+        if (options && options.onCommitted) options.onCommitted(saved);
         await refreshWorkspaceCatalog();
         if (generation !== workspaceSaveGeneration) {
           return saved;
@@ -2787,6 +2804,10 @@
   function renderImportProfileControls() {
     const file = state.files.find(function (item) { return item.id === state.selectedMappingFileId; });
     const profiles = state.importProfiles || [];
+    const application = window.OpenSlottingImportProfilePanel.applicationDescription(workspaceModel, file, profiles, state.language);
+    setText(elements.mappingSourceProfile, file ?
+      (state.language === 'de' ? 'Zuletzt angewendetes Profil: ' : 'Last applied profile: ') +
+        application.title + (application.detail ? ' · ' + application.detail : '') : '');
     if (!profiles.some(function (profile) { return profile.id === state.selectedImportProfileId; })) {
       state.selectedImportProfileId = profiles.length ? profiles[0].id : null;
     }
@@ -2798,48 +2819,21 @@
     });
     elements.importProfileSelect.value = state.selectedImportProfileId || '';
     const profile = profiles.find(function (item) { return item.id === state.selectedImportProfileId; });
-    const plan = profile && file && file.parsed
-      ? workspaceModel.planImportProfile(profile, file, state.customFields)
-      : null;
-    elements.importProfileSave.disabled = !file || !file.parsed || state.workspaceLoading || profiles.length >= 50;
-    elements.importProfileApply.disabled = !plan || !plan.compatible || state.workspaceLoading;
-    elements.importProfileUpdate.disabled = !profile || !file || !file.parsed || state.workspaceLoading;
-    elements.importProfileDelete.disabled = !profile || state.workspaceLoading;
+    const editsLocked = state.workspaceLoading || state.files.some(function (item) { return item.reading; });
+    elements.importProfileSave.disabled = !file || !file.parsed || editsLocked || profiles.length >= 50;
+    elements.importProfileUpdate.disabled = !profile || !file || !file.parsed || editsLocked;
+    elements.importProfileDelete.disabled = !profile || editsLocked;
     if (state.importProfileMessage) {
       setText(elements.importProfilePreview, translate(state.importProfileMessage.key, state.importProfileMessage.replacements));
-    } else if (!profile) {
-      setText(elements.importProfilePreview, translate('import_profile_empty'));
-    } else if (!plan) {
-      setText(elements.importProfilePreview, translate('import_profile_source_required'));
-    } else if (plan.compatible) {
-      setText(elements.importProfilePreview, translate('import_profile_ready', {
-        count: plan.matchedCount, rules: plan.sourceRules.length
-      }));
     } else {
-      setText(elements.importProfilePreview, translate('import_profile_unresolved', {
-        matched: plan.matchedCount, count: plan.unresolved.length, details: importProfileUnresolvedText(plan)
-      }));
+      setText(elements.importProfilePreview, translate(profile ? 'mapping_editor_profile_note' : 'import_profile_empty'));
     }
-  }
-
-  function importProfileUnresolvedText(plan) {
-    const reasonKeys = {
-      missing: 'import_profile_reason_missing',
-      ambiguous: 'import_profile_reason_ambiguous',
-      'custom-field-missing': 'import_profile_reason_custom_field_missing',
-      collision: 'import_profile_reason_collision'
-    };
-    return plan.unresolved.slice(0, 4).map(function (item) {
-      const customField = state.customFields.find(function (field) { return field.id === item.targetId; });
-      const target = customField ? customField.name : core.getFieldLabel(item.targetId, state.language);
-      return (item.header || '—') + ' → ' + (item.ruleName || target) +
-        ' (' + translate(reasonKeys[item.reason] || reasonKeys.missing) + ')';
-    }).join(', ');
   }
 
   function setImportProfileMessage(key, replacements) {
     state.importProfileMessage = key ? { key: key, replacements: replacements || {} } : null;
     renderImportProfileControls();
+    if (importProfilePanel) importProfilePanel.refresh();
   }
 
   function saveCurrentImportProfile() {
@@ -2868,34 +2862,60 @@
     persistActiveWorkspace().catch(function () {});
   }
 
-  function applySelectedImportProfile() {
-    const file = state.files.find(function (item) { return item.id === state.selectedMappingFileId; });
-    const profile = state.importProfiles.find(function (item) { return item.id === state.selectedImportProfileId; });
-    if (!profile) return setImportProfileMessage('import_profile_select_required');
-    if (!file || !file.parsed) return setImportProfileMessage('import_profile_source_required');
-    let plan;
-    try {
-      plan = workspaceModel.planImportProfile(profile, file, state.customFields);
-    } catch (error) {
-      return setImportProfileMessage('import_profile_invalid');
-    }
-    if (!plan.compatible) return setImportProfileMessage('import_profile_unresolved', {
-      matched: plan.matchedCount,
-      count: plan.unresolved.length,
-      details: importProfileUnresolvedText(plan)
+  function renderMappingViews() {
+    const editor = state.mappingView === 'editor';
+    elements.mappingEditorView.classList.toggle('hidden', !editor);
+    elements.mappingProfilesView.classList.toggle('hidden', editor);
+    elements.mappingViewButtons.forEach(function (button) {
+      button.setAttribute('aria-pressed', String(button.dataset.mappingView === state.mappingView));
+      button.disabled = state.workspaceLoading || state.files.some(function (file) { return file.reading; });
     });
-    file.sourceType = plan.sourceType;
-    file.mapping = plan.mapping;
-    file.customFieldMapping = plan.customFieldMapping;
-    file.preparationRules = workspaceModel.normalizePreparationRules(plan.preparationRules);
-    file.sourceRules = workspaceModel.normalizeSourceRules(plan.sourceRules, file.headers.length);
-    file.confirmedMapping = null;
-    file.confirmedCustomFieldMapping = null;
-    refreshColumnCatalogOwnership(file);
-    clearAnalysis();
+    if (state.activePageTarget === 'mapping-panel') {
+      setText(elements.pageContextTitle, translate(editor ? 'mapping_editor_view' : 'mapping_profiles_view'));
+      elements.mappingPage.setAttribute('aria-label', translate(editor ? 'mapping_editor_view' : 'mapping_profiles_view'));
+    }
+    if (importProfilePanel) importProfilePanel.refresh();
+  }
+
+  function selectMappingView(view) {
+    if (state.workspaceLoading || state.files.some(function (file) { return file.reading; })) return;
+    state.mappingView = view === 'editor' ? 'editor' : 'profiles';
+    closeMappingDrawer();
     renderMapping();
-    setImportProfileMessage('import_profile_applied', { name: profile.name, file: file.label });
-    persistActiveWorkspace().catch(function () {});
+    elements.mappingPage.scrollTop = 0;
+  }
+
+  async function applyImportProfileBatch(preview) {
+    if (!state.activeWorkspace || !state.storageReady || state.workspaceLoading || state.files.some(function (file) { return file.reading; })) throw new Error('workspace-busy');
+    if (preview.workspaceId !== state.activeWorkspace.id) throw new Error('stale-preview');
+    const profile = state.importProfiles.find(function (item) { return item.id === preview.profileId; });
+    const proposed = window.OpenSlottingImportProfileBatch.apply(workspaceModel, profile, state.files, preview, state.customFields);
+    // Shallow runtime copies retain original buffers/indexes without copying source payloads.
+    const files = proposed.files.map(function (file) { return Object.assign({}, file, { result: null, confirmedMapping: null }); });
+    const runtimeState = Object.assign({}, state, { files: files, analysis: null, articleRegistry: [] });
+    const workspaceId = state.activeWorkspace.id;
+    let committed = false;
+    state.workspaceLoading = true;
+    state.workspaceLoadCancellable = false;
+    renderWorkspaceControls();
+    try {
+      try {
+        await persistActiveWorkspace(undefined, { allowWhileLoading: true, runtimeState: runtimeState,
+          onCommitted: function () { committed = true; } });
+      } catch (error) {
+        if (!committed) throw error;
+        // The central save path already displays a post-commit catalog error.
+      }
+      if (!committed || !state.activeWorkspace || state.activeWorkspace.id !== workspaceId) throw new Error('workspace-changed');
+      state.files = files;
+      state.fileSelectionVersion += 1;
+      clearAnalysis();
+      renderMapping();
+      return { applied: proposed.applied, skipped: proposed.skipped };
+    } finally {
+      state.workspaceLoading = false;
+      renderWorkspaceControls();
+    }
   }
 
   function updateSelectedImportProfile() {
@@ -2935,6 +2955,7 @@
   }
 
   function openMappingDrawer(position) {
+    state.mappingView = 'editor';
     const file = state.files.find(function (item) { return item.id === state.selectedMappingFileId; });
     if (!file) return;
     if (!state.mappingDrawerOpen) state.mappingDrawerReturnFocus = document.activeElement;
@@ -3166,6 +3187,7 @@
     }
     renderImportedFiles();
     renderMappingSourceList();
+    renderMappingViews();
     elements.mappingGrid.replaceChildren();
     const selectedFile = state.files.find(function (file) { return file.id === state.selectedMappingFileId; });
     if (!selectedFile) {
@@ -3671,6 +3693,7 @@
   }
 
   function renderSourceTable(force) {
+    if (state.mappingView === 'profiles') return;
     const file = state.files.find(function (candidate) { return candidate.id === state.selectedMappingFileId; });
     if (!file || !file.buffer || !file.activeEncoding) {
       elements.sourceTablePanel.classList.add('hidden');
@@ -3871,6 +3894,7 @@
     if (requestedTarget !== 'mapping-panel' && state.mappingDrawerOpen) closeMappingDrawer();
     const config = PAGE_CONFIG[requestedTarget] || PAGE_CONFIG[fallbackTarget];
     state.activePageTarget = requestedTarget;
+    if (coverageCalendar && requestedTarget === 'coverage-panel') coverageCalendar.refresh();
     document.body.classList.toggle('workspace-picker-mode', !state.activeWorkspace || requestedTarget === 'workspace-panel');
     elements.pageViews.forEach(function (view) {
       view.classList.toggle('hidden', view.id !== config.view);
@@ -3890,6 +3914,7 @@
       button.classList.toggle('active', target === requestedTarget);
       button.disabled = !availability[target] && target !== 'workspace-panel';
     });
+    renderMappingViews();
     if (requestedTarget === 'main-menu-panel') renderTerminal();
     if (requestedTarget === 'warehouse-panel' && warehouseEditor) warehouseEditor.render();
     if (requestedTarget === 'warehouse-analysis-panel' && warehouseAnalysis) warehouseAnalysis.render();
@@ -4079,35 +4104,32 @@
     return defaults;
   }
 
-  function renderCoverageTimeline(rows) {
-    const dates = Array.from(new Set(rows.map(function (row) { return periods.validDate(row.delivery_date) ? row.delivery_date : null; }).filter(Boolean))).sort();
-    elements.coverageTimeline.replaceChildren();
-    if (dates.length === 0) {
-      elements.coverageTimeline.classList.add('hidden');
-      return;
+  async function saveCoverageNote(date, reason) {
+    if (!state.activeWorkspace || !state.storageReady || state.workspaceLoading || state.files.some(function (file) { return file.reading; })) {
+      throw new Error('coverage-note-locked');
     }
-    elements.coverageTimeline.classList.remove('hidden');
-    const first = new Date(dates[0] + 'T00:00:00Z');
-    const last = new Date(dates[dates.length - 1] + 'T00:00:00Z');
-    const dayCount = Math.max(1, Math.round((last - first) / 86400000) + 1);
-    const bucketSize = Math.max(1, Math.ceil(dayCount / 366));
-    const observed = new Set(dates);
-    const observedBuckets = new Set(Array.from(observed).map(function (value) {
-      const observedDate = new Date(value + 'T00:00:00Z');
-      const offset = Math.round((observedDate.getTime() - first.getTime()) / 86400000);
-      return Math.floor(offset / bucketSize);
-    }));
-    const bucketCount = Math.ceil(dayCount / bucketSize);
-    for (let bucketIndex = 0; bucketIndex < bucketCount; bucketIndex += 1) {
-      const offset = bucketIndex * bucketSize;
-      const bucketStart = new Date(first.getTime() + offset * 86400000);
-      const bucketEndOffset = Math.min(dayCount - 1, offset + bucketSize - 1);
-      const bucketEnd = new Date(first.getTime() + bucketEndOffset * 86400000);
-      const hasObserved = observedBuckets.has(bucketIndex);
-      const day = document.createElement('span');
-      day.className = 'coverage-day' + (hasObserved ? ' observed' : '');
-      day.title = bucketStart.toISOString().slice(0, 10) + (bucketSize > 1 ? ' – ' + bucketEnd.toISOString().slice(0, 10) : '');
-      elements.coverageTimeline.appendChild(day);
+    if (typeof reason !== 'string' || reason.trim().length > 500) throw new Error('invalid-coverage-reason');
+    const normalizedReason = reason.trim();
+    if (!periods.validDate(date) || date < '0001-01-01') throw new Error('invalid-coverage-date');
+    const notes = state.coverageNotes.filter(function (note) { return note.date !== date; });
+    if (normalizedReason) notes.push({ date: date, reason: normalizedReason, updatedAt: new Date().toISOString() });
+    const proposed = workspaceModel.normalizeCoverageNotes(notes), workspaceId = state.activeWorkspace.id;
+    let committed = false;
+    state.workspaceLoading = true;
+    state.workspaceLoadCancellable = false;
+    renderWorkspaceControls();
+    try {
+      try {
+        await persistActiveWorkspace(undefined, { metadataOnly: true, allowWhileLoading: true, coverageNotes: proposed,
+          onCommitted: function () {
+            committed = true;
+            if (state.activeWorkspace && state.activeWorkspace.id === workspaceId) state.coverageNotes = proposed;
+          } });
+      } catch (error) { if (!committed) throw error; }
+      if (!committed || !state.activeWorkspace || state.activeWorkspace.id !== workspaceId) throw new Error('workspace-changed');
+    } finally {
+      state.workspaceLoading = false;
+      renderWorkspaceControls();
     }
   }
 
@@ -4314,8 +4336,8 @@
     summary.appendChild(summaryStrong);
     summary.appendChild(summaryDetail);
     elements.coverageOverview.appendChild(summary);
-    renderCoverageTimeline(rows);
     const coverageData = buildCoverageData();
+    if (coverageCalendar) coverageCalendar.refresh(coverageData.dates);
     renderCoverageSources(coverageData);
     renderCoverageDates(coverageData);
     renderCoverageDrilldown();
@@ -5738,7 +5760,7 @@
     renderComparison();
     elements.exportButton.disabled = !state.analysis || state.analysis.articles.length === 0;
     elements.resultsPanel.classList.remove('hidden');
-    renderWorkflow(state.comparison
+    renderWorkflow(preserveView ? state.activePageTarget : state.comparison
       ? 'comparison-panel'
       : analysisRowCount(result) > 0 ? 'coverage-panel' : 'mapping-panel');
   }
@@ -5932,6 +5954,7 @@
       parsed: file.parsed, headers: file.headers, mapping: file.mapping, confirmedMapping: file.confirmedMapping,
       customFieldMapping: file.customFieldMapping, confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
       preparationRules: file.preparationRules, sourceRules: file.sourceRules, columnCatalog: file.columnCatalog,
+      appliedImportProfile: file.appliedImportProfile,
       dataRowCount: file.dataRowCount, hasParseErrors: file.hasParseErrors, result: null
     };
   }
@@ -6375,6 +6398,7 @@
     terminalRowCache.clear();
     state.files = [];
     state.selectedMappingFileId = null;
+    state.mappingView = 'profiles';
     state.importProfiles = [];
     state.selectedImportProfileId = null;
     state.importProfileMessage = null;
@@ -6383,6 +6407,7 @@
     state.pendingSourceLine = null;
     closeMappingDrawer();
     state.periodSettings = periods.normalizeSettings();
+    state.coverageNotes = [];
     state.fileSelectionVersion += 1;
     clearAnalysis();
     elements.fileInput.value = '';
@@ -6538,6 +6563,7 @@
       state.importProfiles = workspaceModel.normalizeImportProfiles(prepared.workspace.importProfiles);
       state.warehouseLayout = warehouseModel.normalizeLayout(prepared.workspace.warehouseLayout);
       state.periodSettings = periods.normalizeSettings(prepared.workspace.periodSettings);
+      state.coverageNotes = workspaceModel.normalizeCoverageNotes(prepared.workspace.coverageNotes);
       state.files = prepared.files;
       state.articleRegistry = workspaceModel.normalizeArticleRegistry(prepared.workspace.articleRegistry);
       if (state.files.length > 0) {
@@ -7185,10 +7211,14 @@
     const button = event.target.closest('button[data-remove-file-id]');
     if (button && elements.importedFiles.contains(button)) removeImportedFile(button.dataset.removeFileId);
   });
+  elements.mappingViewButtons.forEach(function (button) {
+    button.addEventListener('click', function () { selectMappingView(button.dataset.mappingView); });
+  });
   elements.mappingSourceSearch.addEventListener('input', renderMappingSourceList);
   elements.mappingSourceList.addEventListener('change', function () {
     if (!state.files.some(function (file) { return file.id === elements.mappingSourceList.value; })) return;
     closeMappingDrawer();
+    state.mappingView = 'editor';
     state.importProfileMessage = null;
     state.selectedMappingFileId = elements.mappingSourceList.value;
     state.focusedSourceColumn = null;
@@ -7205,7 +7235,6 @@
     renderQualityOverview(state.result ? (state.result.dataQualityFindings || state.result.qualityFindings || []) : []);
   });
   elements.importProfileSave.addEventListener('click', saveCurrentImportProfile);
-  elements.importProfileApply.addEventListener('click', applySelectedImportProfile);
   elements.importProfileUpdate.addEventListener('click', updateSelectedImportProfile);
   elements.importProfileSelect.addEventListener('change', function () {
     state.selectedImportProfileId = elements.importProfileSelect.value || null;
@@ -8093,6 +8122,38 @@
     getRegistry: function () { return state.articleRegistry; },
     getWorkspaceId: function () { return state.activeWorkspace ? state.activeWorkspace.id : null; },
     getLanguage: function () { return state.language; }
+  });
+  importProfilePanel = window.OpenSlottingImportProfilePanel.create({
+    root: document.getElementById('import-profile-batch-root'), model: workspaceModel,
+    batch: window.OpenSlottingImportProfileBatch,
+    getFiles: function () { return state.files; }, getProfiles: function () { return state.importProfiles; },
+    getCustomFields: function () { return state.customFields; }, getProfileId: function () { return state.selectedImportProfileId; },
+    setProfileId: function (id) { state.selectedImportProfileId = id; state.importProfileMessage = null; },
+    getWorkspaceId: function () { return state.activeWorkspace && state.activeWorkspace.id; }, getLanguage: function () { return state.language; },
+    isLocked: function () { return !state.activeWorkspace || !state.storageReady || state.workspaceLoading || state.files.some(function (file) { return file.reading; }); },
+    isVisible: function () { return state.activePageTarget === 'mapping-panel' && state.mappingView === 'profiles'; },
+    fieldLabel: function (key) { return core.getFieldLabel(key, state.language); },
+    ruleLabel: function (type) { return translate(preparationRuleTypeKey(type)); },
+    openEditor: function (id) {
+      if (id) { elements.mappingSourceList.value = id; elements.mappingSourceList.dispatchEvent(new Event('change')); }
+      selectMappingView('editor');
+      if (id) openMappingDrawer(null);
+    },
+    validate: analyze, apply: applyImportProfileBatch
+  });
+  coverageCalendar = window.OpenSlottingCoverageCalendar.create({
+    root: elements.coverageTimeline,
+    getNotes: function () { return state.coverageNotes; },
+    getWorkspaceId: function () { return state.activeWorkspace && state.activeWorkspace.id; },
+    getLanguage: function () { return state.language; },
+    getExpectedWeekdays: function () { return state.periodSettings.expectedWeekdays; },
+    isLocked: function () { return !state.activeWorkspace || !state.storageReady || state.workspaceLoading || state.files.some(function (file) { return file.reading; }); },
+    save: saveCoverageNote,
+    showEvidence: function (date) {
+      state.coverageDrilldown = { type: 'date', value: date };
+      renderCoverageDrilldown();
+      elements.coverageDrilldown.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   });
   window.addEventListener('resize', scheduleWorkspaceFrame);
   if (typeof window.ResizeObserver === 'function') {

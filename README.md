@@ -2,7 +2,7 @@
 
 OpenSlotting is an open-source, local-first web tool for analyzing warehouse order lines and building a data-driven foundation for warehouse slotting.
 
-The current development branch also contains a [warehouse editor and separate 3D analysis prototype](docs/warehouse-editor.md). Build physical racks first, assign Picking/Reserve use per level, then create locations explicitly and match current article-master codes in the read-only analysis. The editor supports rack drive-throughs, clearance-aware route warnings, parametric corner/T/cross modules for routes and walls, compatible magnetic ports, connected/grouped structures and straight-wall opening previews. These new changes use workspace schema 16 / layout 4; fresh functional and Edge acceptance remains pending. Legacy drawn routes remain readable; new routes are built from recipes.
+The current development branch also contains a [warehouse editor and separate 3D analysis prototype](docs/warehouse-editor.md). Build physical racks first, assign Picking/Reserve use per level, then create locations explicitly and match current article-master codes in the read-only analysis. The editor supports rack drive-throughs, clearance-aware route warnings, parametric corner/T/cross modules for routes and walls, compatible magnetic ports, connected/grouped structures and straight-wall opening previews. The current data contract uses workspace schema 18 / layout 4; fresh functional and Edge acceptance remains pending. Legacy drawn routes remain readable; new routes are built from recipes.
 
 The project starts with a deliberately small scope: importing and analyzing order-line data in the browser. The latest published application release is [`0.2.1`](https://github.com/SaikoAS/OpenSlotting/releases/tag/v0.2.1); current development continues the local-workspace, article-master, and period-comparison foundation. Future versions are planned to expand this foundation through ABC/XYZ classification, slotting scores, and warehouse slotting recommendations.
 
@@ -205,7 +205,7 @@ Different ERP, WMS, and CSV export headers are supported through configurable co
 7. Exclude visibly blocked files and invalid rows
 8. Warn about overlapping exports without removing rows
 9. Combine all valid normalized rows
-10. Review observed date coverage and configure expected weekdays
+10. Review coverage in the monthly calendar, record reasons for dates without data, and configure expected weekdays. Reasons remain local and part of backups; they do not create zero-demand days or change comparison results.
 11. Select two automatically detected ISO calendar weeks or define custom Period A and Period B boundaries
 12. Compare period metrics and article-level absolute and relative changes
 13. Inspect selling-unit conflicts, missing-day warnings, and source details
@@ -263,7 +263,7 @@ For example:
 | Menge | Quantity |
 | Qty | Quantity |
 
-Users can review and change the mapping independently for every file in the current batch. They can save the selected import's mapping, preparation rules, and source-column filters marked for reuse as a named, workspace-local import profile, then apply it to another import. The profile matches an identical column layout by position or uniquely named columns after reordering. Missing or ambiguous columns prevent application and leave the target import unchanged. Applying a profile replaces that import's source type, mappings, and rules; validation must then run again. Profiles are included in workspace backups, but are not shared between workspaces.
+The **Quellspalten / Columns & notes** menu separates the **Source-column editor / Quellspalteneditor** from **Apply profiles / Profile anwenden**. Edit one source and save/update its workspace-local profile in the editor. The profile overview provides filename search, source-type/status filters, selection across pages and a replacement preview for applying a profile to multiple compatible imports. Different source types, missing or ambiguous columns remain visible conflicts and are skipped. Reordered columns match only by unique names; an identical layout matches by position. A successful save replaces mappings and rules on compatible sources, retains original bytes, and requires a separate data-validation step. Both views show the last applied profile name and timestamp, with a notice when settings have since changed. This evidence survives reopening, backups and profile deletion; older imports without recorded evidence are explicitly identified. Profiles remain workspace-local and part of backups. See the [workflow and selection rules](docs/data-format.md#source-column-editor-and-profile-application).
 
 Article descriptions are optional display metadata. Articles are always grouped by
 `article_id`. If one article ID has multiple distinct non-empty descriptions,

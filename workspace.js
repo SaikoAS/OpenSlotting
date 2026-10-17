@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function (warehouseModel) {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 16;
+  const WORKSPACE_SCHEMA_VERSION = 18;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -342,6 +342,24 @@
     return { name: name, start: start, end: end };
   }
 
+  function normalizeCoverageNotes(value) {
+    if (value === undefined || value === null) return [];
+    if (!Array.isArray(value) || value.length > 4096) {
+      validationError('invalid_coverage_notes', 'Coverage notes must be a bounded list.');
+    }
+    const dates = new Set();
+    return value.map(function (entry) {
+      if (!isPlainObject(entry) || typeof entry.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(entry.date) ||
+          entry.date < '0001-01-01' || !Number.isFinite(Date.parse(entry.date + 'T00:00:00Z')) ||
+          new Date(entry.date + 'T00:00:00Z').toISOString().slice(0, 10) !== entry.date || dates.has(entry.date) ||
+          typeof entry.reason !== 'string' || !entry.reason.trim() || entry.reason.trim().length > 500 || !validIsoDate(entry.updatedAt)) {
+        validationError('invalid_coverage_notes', 'Coverage note date, reason or timestamp is invalid.');
+      }
+      dates.add(entry.date);
+      return { date: entry.date, reason: entry.reason.trim(), updatedAt: entry.updatedAt };
+    }).sort(function (a, b) { return a.date.localeCompare(b.date); });
+  }
+
   function normalizePeriodSettings(value) {
     const input = isPlainObject(value) ? value : {};
     const hasStoredBoundaries = (isPlainObject(input.periodA) && (input.periodA.start || input.periodA.end)) ||
@@ -601,6 +619,62 @@
         updatedAt: profile.updatedAt
       };
     });
+  }
+
+  // Keep the applied configuration as evidence, independent of the current
+  // profile registry. It contains settings only, never source rows or bytes.
+  function importProfileConfiguration(file) {
+    const mapping = normalizeMapping(file.mapping);
+    const customFieldMapping = normalizeCustomFieldMapping(file.customFieldMapping);
+    const preparationRules = normalizePreparationRules(file.preparationRules);
+    const sourceRules = normalizeSourceRules(file.sourceRules);
+    if (Object.keys(mapping).length + Object.keys(customFieldMapping).length > 4096 ||
+        Object.values(preparationRules).reduce(function (sum, rules) { return sum + rules.length; }, 0) > 100) {
+      validationError('invalid_applied_import_profile', 'Applied profile configuration exceeds its bounds.');
+    }
+    // Unassigned targets and empty rule lists do not change profile behavior.
+    [mapping, customFieldMapping].forEach(function (fields) {
+      Object.keys(fields).forEach(function (key) { if (fields[key] === null) delete fields[key]; });
+    });
+    Object.keys(preparationRules).forEach(function (key) { if (!preparationRules[key].length) delete preparationRules[key]; });
+    return { sourceType: normalizeSourceType(file.sourceType), mapping: mapping,
+      customFieldMapping: customFieldMapping, preparationRules: preparationRules, sourceRules: sourceRules };
+  }
+
+  function normalizeAppliedImportProfile(value) {
+    if (value === undefined || value === null) return null;
+    if (!isPlainObject(value) || !IMPORT_PROFILE_ID_PATTERN.test(String(value.profileId || '')) ||
+        typeof value.profileName !== 'string' || !value.profileName.trim() || value.profileName.length > 120 ||
+        !validIsoDate(value.appliedAt) || !validIsoDate(value.profileUpdatedAt) || !isPlainObject(value.configuration)) {
+      validationError('invalid_applied_import_profile', 'Applied profile metadata is invalid.');
+    }
+    return { profileId: value.profileId, profileName: value.profileName.trim(), appliedAt: value.appliedAt,
+      profileUpdatedAt: value.profileUpdatedAt, configuration: importProfileConfiguration(value.configuration) };
+  }
+
+  function recordImportProfileApplication(profile, file, options) {
+    return normalizeAppliedImportProfile({ profileId: profile.id, profileName: profile.name,
+      appliedAt: options && options.now || new Date().toISOString(), profileUpdatedAt: profile.updatedAt,
+      configuration: importProfileConfiguration(file) });
+  }
+
+  function canonicalSettings(value) {
+    if (Array.isArray(value)) return '[' + value.map(canonicalSettings).join(',') + ']';
+    if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(function (key) {
+      return JSON.stringify(key) + ':' + canonicalSettings(value[key]);
+    }).join(',') + '}';
+    return JSON.stringify(value);
+  }
+
+  function importProfileApplicationState(file, profiles) {
+    const application = file && file.appliedImportProfile;
+    if (!application) return { application: null, modified: false, profileMissing: false, profileChanged: false };
+    const profile = (profiles || []).find(function (entry) { return entry.id === application.profileId; });
+    let modified = true;
+    try { modified = canonicalSettings(importProfileConfiguration(file)) !== canonicalSettings(application.configuration); }
+    catch (error) { /* An incomplete edit cannot claim to match the applied settings. */ }
+    return { application: application, modified: modified, profileMissing: !profile,
+      profileChanged: Boolean(profile && (profile.updatedAt !== application.profileUpdatedAt || profile.name !== application.profileName)) };
   }
 
   function createImportProfile(file, name, customFields, options) {
@@ -940,6 +1014,7 @@
       preparationRules: preparationRules,
       sourceRules: sourceRules,
       customFieldMapping: customFieldMapping,
+      appliedImportProfile: normalizeAppliedImportProfile(file.appliedImportProfile),
       confirmedCustomFieldMapping: confirmedCustomFieldMapping,
       confirmedMapping: confirmedMapping,
       columnCatalog: columnCatalog,
@@ -971,6 +1046,7 @@
       language: settings.language === 'de' ? 'de' : 'en',
       analyzed: false,
       periodSettings: normalizePeriodSettings(settings.periodSettings),
+      coverageNotes: normalizeCoverageNotes(settings.coverageNotes),
       customFields: normalizeCustomFields(settings.customFields),
       importProfiles: normalizeImportProfiles(settings.importProfiles),
       warehouseLayout: warehouseModel.normalizeLayout(settings.warehouseLayout || warehouseModel.createLayout()),
@@ -1057,6 +1133,7 @@
       language: workspace.language,
       analyzed: workspace.analyzed,
       periodSettings: normalizePeriodSettings(workspace.periodSettings),
+      coverageNotes: normalizeCoverageNotes(workspace.coverageNotes),
       customFields: customFields,
       importProfiles: importProfiles,
       warehouseLayout: warehouseLayout,
@@ -1210,6 +1287,7 @@
       language: state && state.language === 'de' ? 'de' : 'en',
       analyzed: Boolean(state && state.analysis),
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
+      coverageNotes: normalizeCoverageNotes(state && state.coverageNotes),
       customFields: normalizeCustomFields(state && state.customFields),
       importProfiles: normalizeImportProfiles(state && state.importProfiles),
       warehouseLayout: warehouseModel.normalizeLayout(state && state.warehouseLayout || warehouseModel.createLayout()),
@@ -1258,6 +1336,7 @@
         preparationRules: preparationRules,
         sourceRules: sourceRules,
         customFieldMapping: file.customFieldMapping,
+        appliedImportProfile: normalizeAppliedImportProfile(file.appliedImportProfile),
         confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
         columnCatalog: normalizeColumnCatalog(file.columnCatalog, file.id, settings),
@@ -1274,6 +1353,7 @@
       language: state && state.language === 'de' ? 'de' : 'en',
       analyzed: Boolean(state && state.analysis),
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
+      coverageNotes: normalizeCoverageNotes(state && state.coverageNotes),
       customFields: normalizeCustomFields(state && state.customFields),
       importProfiles: normalizeImportProfiles(state && state.importProfiles),
       warehouseLayout: warehouseModel.normalizeLayout(state && state.warehouseLayout || warehouseModel.createLayout()),
@@ -1506,6 +1586,10 @@
     normalizeCustomFieldMapping: normalizeCustomFieldMapping,
     normalizeImportProfiles: normalizeImportProfiles,
     createImportProfile: createImportProfile,
+    normalizeAppliedImportProfile: normalizeAppliedImportProfile,
+    normalizeCoverageNotes: normalizeCoverageNotes,
+    recordImportProfileApplication: recordImportProfileApplication,
+    importProfileApplicationState: importProfileApplicationState,
     planImportProfile: planImportProfile,
     PREPARATION_RULE_TYPES: PREPARATION_RULE_TYPES,
     SOURCE_RULE_TYPES: SOURCE_RULE_TYPES,

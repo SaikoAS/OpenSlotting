@@ -14,6 +14,8 @@ keine Workspace-Datenbank, Uploadschnittstelle oder Backend-Daten-API.
 | `app.js` | Deutsch/englische UI, Navigation, Importsteuerung, Ansichten, Workerkoordination und Workspace-Lifecycle |
 | `src/application/workspace-preparation.js` | Direkt exportierte Dekodier-/Profil-, Workspace-Vorbereitungs-, Neuanalyse- und Restore-Vorgänge; benutzt dieselben Fachmodule wie der Controller-Fallback |
 | `src/application/worker-session.js` | Ein sequentieller Hintergrundtask, Workerwiederverwendung, Task-ID, Revisionsprüfung, Fortschritt, Abbruch, Timeout und Leerlauffreigabe |
+| `src/application/import-profile-batch.js` | Reine Vorschau-/Anwendungsplanung für ausgewählte Import-IDs; bestehende Profilprüfung, Quelltypgrenze und Erkennung veralteter Vorschauen |
+| `src/ui/import-profile-panel.js` | Deutsch/englische Profilübersicht mit Filtern, Mehrfachauswahl, 50 Dateien je Seite, Vorschau und expliziter Anwendung; keine eigene Speicherlogik |
 | `src/workers/workspace-worker.mjs` | Statischer lokaler Modul-Worker; importiert die vorhandenen Fachmodule und startet den gemeinsamen Taskhandler |
 | `src/ui/shared/windowed-dom.js` | Begrenzte Wiederverwendung sichtbarer Tabellenzeilen und geordneter DOM-Abgleich mit Fokusbehandlung |
 | `runtime.js` | Loopback-Erkennung, Startgrenzen und optionale Browserfähigkeiten |
@@ -99,7 +101,7 @@ ihre bestehenden Regeln.
 ## Datenschutz, Laufzeit und Datenkompatibilität
 
 IndexedDB bleibt im aktuellen Browserprofil und Origin: Datenbank
-`openslotting-workspaces`, Datenbankversion 3, Workspace-Schema 16. Neue
+`openslotting-workspaces`, Datenbankversion 3, Workspace-Schema 18. Neue
 Module und flüchtige Caches erfordern keine Datenmigration und verändern den
 Sicherungsvertrag nicht. Originalbytes und BigInt-/Binärkodierung bleiben
 verlustlos. Die Base64-Korrektur vermeidet die rekursiv gruppierte Prüfung

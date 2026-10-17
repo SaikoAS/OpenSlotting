@@ -14,7 +14,7 @@ The warehouse model, scene, editor-controller, workspace, storage, and backup te
 - scope selection across modes; wizard cancel and one-edit completion; explicit level or rack code generation without creating locations;
 - preserved IDs/codes, impact counts, confirmation cancellation, deletion, duplication, locks, undo/redo, save failures, and workspace history boundaries;
 - duplicate codes and IDs, orphaned references, subdivision invariants, and separate geometry/location limits;
-- populated schema-12/13 workspaces and layout-1 backups migrated to schema 16 / layout 4, including Unassigned legacy code editing and exact article matches; schema-14/15 migration preserves existing uses, geometry and codes;
+- populated schema-12/13 workspaces and layout-1 backups migrated to the current workspace schema / layout 4, including Unassigned legacy code editing and exact article matches; schema-14/15 migration preserves existing uses, geometry and codes;
 - metadata-only saves retaining actual source-byte and normalized-row chunks, plus backup round trips;
 - functional 3D colors without locations and the read-only analysis inspector, including the shared component palette and object/usage color selection;
 - common rack depth, stable junction ports, compatible magnetic connections, distance compilation and obstruction handling, passage clearance, groups, locks and wall openings;

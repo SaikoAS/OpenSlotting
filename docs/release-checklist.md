@@ -64,6 +64,9 @@ A checksum conflict leaves the original ZIP, manifest and record unchanged.
 - [ ] `node --check storage.js`
 - [ ] `node --check src/application/workspace-preparation.js`
 - [ ] `node --check src/application/worker-session.js`
+- [ ] `node --check src/application/import-profile-batch.js`
+- [ ] `node --check src/ui/import-profile-panel.js`
+- [ ] `node --check src/ui/coverage-calendar.js`
 - [ ] `node --check src/ui/shared/windowed-dom.js`
 - [ ] `node --check src/workers/workspace-worker.mjs`
 - [ ] `node --test tests/*.test.cjs`
