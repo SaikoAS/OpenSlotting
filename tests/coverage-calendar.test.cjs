@@ -162,6 +162,58 @@ function sourceWorkspace() {
   return record;
 }
 
+async function sourceClearingView(t) {
+  const repository = storage.createRepository({ indexedDB: createFakeIndexedDB(), databaseName: 'clear-coverage-notes' });
+  t.after(() => repository.close());
+  const record = sourceWorkspace(); record.coverageNotes = [note()];
+  const created = await repository.createWorkspace(record);
+  const state = { activeWorkspace: { id: record.id, name: record.name }, files: record.files,
+    coverageNotes: record.coverageNotes, fileSelectionVersion: 0 };
+  const pending = [];
+  const element = () => ({ value: '', replaceChildren() {}, classList: { add() {} } });
+  const elements = Object.fromEntries(['fileInput', 'articleFilter', 'importedFiles', 'mappingSourceSearch',
+    'importProfileName', 'mappingSourceList', 'mappingGrid', 'mappingPanel', 'resultsPanel', 'analyzeButton'].map(key => [key, element()]));
+  const context = vm.createContext({ state, elements, core, periods, window: { confirm: () => true },
+    sourceRowCache: { clear() {} }, terminalRowCache: { clear() {} }, closeMappingDrawer() {},
+    clearAnalysis: () => { state.result = null; }, setSourceStatus() {}, showMappingMessage() {}, translate: key => key,
+    setWorkspaceMessage() {}, refreshColumnCatalogOwnership() {}, renderMapping() {}, updateSourceStatus() {},
+    persistActiveWorkspace() {
+      const saved = { ...record, files: [...state.files], coverageNotes: structuredClone(state.coverageNotes), analyzed: false };
+      const task = repository.updateWorkspace(saved, { expectedRevision: created.storageRevision }); pending.push(task); return task;
+    } });
+  vm.runInContext(appFunction('clearWorkspaceView') + appFunction('removeImportedFile'), context);
+  const resetStart = appSource.indexOf('  function reset(');
+  vm.runInContext(appSource.slice(resetStart, appSource.indexOf('  elements.workspaceCreate.addEventListener', resetStart)), context);
+  return { state, context, pending, repository, record };
+}
+
+test('removing the final source and confirmed source reset preserve saved reasons through storage and backup', async t => {
+  for (const action of ['remove', 'reset']) {
+    const view = await sourceClearingView(t);
+    if (action === 'remove') view.context.removeImportedFile(view.record.files[0].id);
+    else view.context.reset();
+    await Promise.all(view.pending);
+    assert.equal(view.state.files.length, 0);
+    assert.deepEqual(view.state.coverageNotes, [note()]);
+    assert.equal(view.state.activeWorkspace.id, view.record.id);
+    const reopened = await view.repository.loadWorkspace(view.record.id);
+    assert.equal(reopened.files.length, 0);
+    assert.deepEqual(reopened.coverageNotes, [note()]);
+    assert.deepEqual(workspace.parseBackup(workspace.stringifyBackup(reopened)).coverageNotes, [note()]);
+  }
+});
+
+test('workspace view replacement clears previous reasons; cancelling source reset changes nothing', async t => {
+  const view = await sourceClearingView(t);
+  view.context.window.confirm = () => false;
+  view.context.reset();
+  assert.equal(view.state.files.length, 1);
+  assert.deepEqual(view.state.coverageNotes, [note()]);
+  assert.equal(view.pending.length, 0);
+  view.context.clearWorkspaceView();
+  assert.equal(view.state.coverageNotes.length, 0, 'workspace switches must not retain another workspace\'s reasons');
+});
+
 test('notes persist through metadata-only saves, worker activation, backup restore and workspace isolation', async () => {
   const indexedDB = createFakeIndexedDB(), databaseName = 'calendar-test';
   let repository = storage.createRepository({ indexedDB, databaseName });

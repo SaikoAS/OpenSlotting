@@ -65,7 +65,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   const deleteBody = appSource.match(/async function deleteActiveWorkspace\(\) \{([\s\S]*?)\n  async function exportWorkspaceBackup/);
   const renameBody = appSource.match(/async function renameActiveWorkspace\(\) \{([\s\S]*?)\n  async function deleteActiveWorkspace/);
   const removeCustomFieldBody = appSource.match(/async function removeCustomField\(fieldId\) \{([\s\S]*?)\n  async function deleteActiveWorkspace/);
-  const clearViewBody = appSource.match(/function clearWorkspaceView\(\) \{([\s\S]*?)\n  async function activateWorkspace/);
+  const clearViewBody = appSource.match(/function clearWorkspaceView\(options\) \{([\s\S]*?)\n  async function activateWorkspace/);
   const overviewClickBody = appSource.match(/elements\.workspaceOverview\.addEventListener\('click', function \(event\) \{([\s\S]*?)\n  \}\);\n  elements\.customFieldsList/);
 
   assert.ok(initializeBody);

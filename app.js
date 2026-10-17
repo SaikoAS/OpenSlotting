@@ -2988,7 +2988,7 @@
     if (state.files.length === 0) {
       elements.importedFiles.replaceChildren();
       elements.importedFiles.classList.add('hidden');
-      clearWorkspaceView();
+      clearWorkspaceView({ preserveCoverageNotes: true });
       persistActiveWorkspace().catch(function () {});
       return;
     }
@@ -6414,7 +6414,7 @@
     }
   }
 
-  function clearWorkspaceView() {
+  function clearWorkspaceView(options) {
     sourceRowCache.clear();
     terminalRowCache.clear();
     state.files = [];
@@ -6428,7 +6428,7 @@
     state.pendingSourceLine = null;
     closeMappingDrawer();
     state.periodSettings = periods.normalizeSettings();
-    state.coverageNotes = [];
+    if (!(options && options.preserveCoverageNotes)) state.coverageNotes = [];
     state.fileSelectionVersion += 1;
     clearAnalysis();
     elements.fileInput.value = '';
@@ -7165,7 +7165,7 @@
       return;
     }
     const name = state.activeWorkspace.name;
-    clearWorkspaceView();
+    clearWorkspaceView({ preserveCoverageNotes: true });
     persistActiveWorkspace('workspace_cleared').then(function () {
       setWorkspaceMessage('workspace_cleared', { name: name });
     }).catch(function () {});

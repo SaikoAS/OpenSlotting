@@ -47,6 +47,7 @@ and synthetic evidence reference; generation itself is not an acceptance pass.
 - [ ] Coverage and calendar-week/custom comparison match synthetic calculations.
 - [ ] An editor search matching source A must not redirect source B's "Open editor" action in the profile overview back to A. Verify B's label, fields and source rows, including after changing language.
 - [ ] Coverage remains available when every synthetic order row is invalid or excluded by a source rule. Verify the dated issue counts and source evidence, retained reasons after reopen/analysis reset, and a note-only workspace. Period comparison stays disabled without valid dated rows; an empty workspace without reasons keeps coverage unavailable.
+- [ ] Saved calendar reasons survive removing the final source and confirming source reset, including reopening and backup/restore. Cancelling reset changes nothing; switching to another workspace does not show the previous workspace's reasons.
 - [ ] Article details and analysis/comparison exports retain evidence.
 - [ ] Warehouse dimensions, placement, codes, locks, collisions, undo/redo and top/3D views work.
 - [ ] Separate 3D analysis matches current master locations without editing or inferring stock.
