@@ -45,6 +45,7 @@ and synthetic evidence reference; generation itself is not an acceptance pass.
 - [ ] Quantity, frequency, customer/order metrics, master enrichment and quality findings remain equivalent.
 - [ ] Desk charts, date/text filters, selectable columns and filtered CSV export work.
 - [ ] Coverage and calendar-week/custom comparison match synthetic calculations.
+- [ ] An editor search matching source A must not redirect source B's "Open editor" action in the profile overview back to A. Verify B's label, fields and source rows, including after changing language.
 - [ ] Coverage remains available when every synthetic order row is invalid or excluded by a source rule. Verify the dated issue counts and source evidence, retained reasons after reopen/analysis reset, and a note-only workspace. Period comparison stays disabled without valid dated rows; an empty workspace without reasons keeps coverage unavailable.
 - [ ] Article details and analysis/comparison exports retain evidence.
 - [ ] Warehouse dimensions, placement, codes, locks, collisions, undo/redo and top/3D views work.

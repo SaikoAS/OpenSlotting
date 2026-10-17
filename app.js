@@ -3894,7 +3894,10 @@
     if (requestedTarget !== 'mapping-panel' && state.mappingDrawerOpen) closeMappingDrawer();
     const config = PAGE_CONFIG[requestedTarget] || PAGE_CONFIG[fallbackTarget];
     state.activePageTarget = requestedTarget;
-    if (requestedTarget === 'coverage-panel') renderCoverage();
+    if (requestedTarget === 'coverage-panel') {
+      if (elements.coveragePanel.classList.contains('hidden') || !state.result) renderCoverage();
+      else if (coverageCalendar) coverageCalendar.refresh();
+    }
     document.body.classList.toggle('workspace-picker-mode', !state.activeWorkspace || requestedTarget === 'workspace-panel');
     elements.pageViews.forEach(function (view) {
       view.classList.toggle('hidden', view.id !== config.view);
@@ -4134,8 +4137,20 @@
   }
 
   function hasCoverageContent() {
-    return state.coverageNotes.length > 0 || Boolean(state.result &&
-      (analysisRowCount(state.result) > 0 || buildCoverageData().dates.length > 0));
+    if (state.coverageNotes.length > 0) return true;
+    if (!state.result) return false;
+    if (analysisRowCount(state.result) > 0) return true;
+    const sources = new Set((state.result.files || []).filter(function (file) {
+      return file.sourceType !== 'article-master';
+    }).map(function (file) { return file.id; }));
+    return sources.size > 0 && state.result.issues.some(function (issue) {
+      return isDatedCoverageIssue(issue, sources);
+    });
+  }
+
+  function isDatedCoverageIssue(issue, sources) {
+    return sources.has(issue.sourceFileId) && core.issueIsBlocking(issue) &&
+      periods.validDate(issue.deliveryDate) && Number.isInteger(issue.sourceLine);
   }
 
   function buildCoverageData() {
@@ -4180,7 +4195,7 @@
       }
     });
     state.result.issues.forEach(function (issue) {
-      if (!sourceMap.has(issue.sourceFileId) || !core.issueIsBlocking(issue) || !periods.validDate(issue.deliveryDate) || !Number.isInteger(issue.sourceLine)) {
+      if (!isDatedCoverageIssue(issue, sourceMap)) {
         return;
       }
       const entry = dateEntry(issue.deliveryDate);
@@ -8141,7 +8156,13 @@
     fieldLabel: function (key) { return core.getFieldLabel(key, state.language); },
     ruleLabel: function (type) { return translate(preparationRuleTypeKey(type)); },
     openEditor: function (id) {
-      if (id) { elements.mappingSourceList.value = id; elements.mappingSourceList.dispatchEvent(new Event('change')); }
+      if (id) {
+        if (!state.files.some(function (file) { return file.id === id; })) return;
+        elements.mappingSourceSearch.value = '';
+        renderMappingSourceList();
+        elements.mappingSourceList.value = id;
+        elements.mappingSourceList.dispatchEvent(new Event('change'));
+      }
       selectMappingView('editor');
       if (id) openMappingDrawer(null);
     },

@@ -32,17 +32,17 @@ function coverageView(result, notes = []) {
   const coverageCalendar = calendar.create({ root, getWorkspaceId: () => state.activeWorkspace.id,
     getLanguage: () => 'en', getNotes: () => state.coverageNotes,
     getExpectedWeekdays: () => state.periodSettings.expectedWeekdays, isLocked: () => false });
-  let renderedData;
+  let renderedData, renders = 0;
   const context = vm.createContext({ state, elements, periods, core, coverageCalendar,
     document: { createElement: element }, setText: (node, text) => { node.textContent = text; }, translate: key => key,
-    renderCoverageSources: data => { renderedData = data; }, renderCoverageDates() {}, renderCoverageDrilldown() {}, renderPeriodControls() {},
+    renderCoverageSources: data => { renderedData = data; renders++; }, renderCoverageDates() {}, renderCoverageDrilldown() {}, renderPeriodControls() {},
     coverageText: () => '', closeMappingDrawer() {}, PAGE_CONFIG: { 'coverage-panel': {}, 'mapping-panel': {}, 'main-menu-panel': {}, 'workspace-panel': {} } });
-  for (const name of ['analysisRowCount', 'resultHasRetainedData', 'buildCoverageData', 'hasCoverageContent', 'renderCoverage']) {
+  for (const name of ['analysisRowCount', 'resultHasRetainedData', 'isDatedCoverageIssue', 'buildCoverageData', 'hasCoverageContent', 'renderCoverage']) {
     vm.runInContext(appFunction(name), context);
   }
   const start = appSource.indexOf('  function renderWorkflow('), end = appSource.indexOf('    document.body.classList.toggle', start);
   vm.runInContext(appSource.slice(start, end) + 'return availability; }', context);
-  return { state, elements, root, context, data: () => renderedData };
+  return { state, elements, root, context, data: () => renderedData, renders: () => renders };
 }
 
 test('issue-only imports can enter coverage and show invalid or excluded evidence without enabling comparisons', () => {
@@ -63,7 +63,20 @@ test('issue-only imports can enter coverage and show invalid or excluded evidenc
     assert.equal(view.elements.comparePeriods.disabled, true);
     view.context.renderWorkflow('unavailable-page');
     assert.equal(view.state.activePageTarget, 'coverage-panel');
+    assert.equal(view.renders(), 1, 'route refresh must reuse the already rendered evidence');
   }
+});
+
+test('coverage availability stops at the first dated issue and skips master-only issues without aggregating dates', () => {
+  const issues = [{ sourceFileId: 'order', deliveryDate: '2026-10-03', sourceLine: 2 }];
+  Object.defineProperty(issues, 1, { get() { throw new Error('Availability scanned beyond its first match'); } });
+  const result = { files: [{ id: 'order' }], rows: [], analysisRows: 0, issues };
+  const view = coverageView(result);
+  assert.equal(view.context.hasCoverageContent(), true);
+  view.state.result = { files: [{ id: 'master', sourceType: 'article-master' }], analysisRows: 0,
+    get rows() { throw new Error('Availability must not read master rows'); },
+    get issues() { throw new Error('No order sources: no issue scan needed'); } };
+  assert.equal(view.context.hasCoverageContent(), false);
 });
 
 test('retained reasons remain accessible without an analysis result or source files', () => {
@@ -230,7 +243,9 @@ test('entering coverage refreshes calendar controls after background activation 
   const locks = [];
   const context = vm.createContext({ state, PAGE_CONFIG: { 'coverage-panel': {}, 'main-menu-panel': {} },
     analysisRowCount: result => result.rows.length, resultHasRetainedData: () => true, hasCoverageContent: () => true,
-    renderCoverage: () => locks.push(state.workspaceLoading), closeMappingDrawer() {} });
+    elements: { coveragePanel: { classList: { contains: () => false } } },
+    coverageCalendar: { refresh: () => locks.push(state.workspaceLoading) },
+    renderCoverage: () => assert.fail('Visible coverage should not rebuild tables just to unlock calendar controls'), closeMappingDrawer() {} });
   vm.runInContext(source.slice(start, end) + '  }', context);
   context.renderWorkflow('coverage-panel'); state.workspaceLoading = false; context.renderWorkflow('coverage-panel');
   assert.deepEqual(locks, [true, false]);

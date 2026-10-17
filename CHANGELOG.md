@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Open the requested profile-overview import even when an old editor search hides it; ignore stale source IDs. Check coverage availability without aggregating issue-line evidence and reuse visible coverage tables during navigation.
+
 - Keep coverage navigation and the calendar available for analyses containing only dated invalid or rule-excluded rows, and for retained reasons without a current analysis. Initialize note-only calendars from a saved date; do not enable period comparisons without valid dated rows.
 
 - Show ISO calendar-week numbers and week-years beside each coverage calendar row and in the selected-day detail, including month/year transitions. Reuse the period-selection week calculation; stored data is unchanged.
