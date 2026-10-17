@@ -3865,7 +3865,7 @@
       'warehouse-analysis-panel': Boolean(state.activeWorkspace),
       'import-panel': Boolean(state.activeWorkspace),
       'mapping-panel': state.files.length > 0,
-      'coverage-panel': Boolean(state.result && analysisRowCount(state.result) > 0),
+      'coverage-panel': hasCoverageContent(),
       'comparison-panel': Boolean(state.comparison),
       'results-panel': Boolean(state.result && resultHasRetainedData(state.result))
     };
@@ -3881,7 +3881,7 @@
     };
     const fallbackTarget = state.comparison
       ? 'comparison-panel'
-      : state.result && analysisRowCount(state.result) > 0
+      : hasCoverageContent()
         ? 'coverage-panel'
         : state.files.length
           ? 'mapping-panel'
@@ -3894,7 +3894,7 @@
     if (requestedTarget !== 'mapping-panel' && state.mappingDrawerOpen) closeMappingDrawer();
     const config = PAGE_CONFIG[requestedTarget] || PAGE_CONFIG[fallbackTarget];
     state.activePageTarget = requestedTarget;
-    if (coverageCalendar && requestedTarget === 'coverage-panel') coverageCalendar.refresh();
+    if (requestedTarget === 'coverage-panel') renderCoverage();
     document.body.classList.toggle('workspace-picker-mode', !state.activeWorkspace || requestedTarget === 'workspace-panel');
     elements.pageViews.forEach(function (view) {
       view.classList.toggle('hidden', view.id !== config.view);
@@ -4133,7 +4133,13 @@
     }
   }
 
+  function hasCoverageContent() {
+    return state.coverageNotes.length > 0 || Boolean(state.result &&
+      (analysisRowCount(state.result) > 0 || buildCoverageData().dates.length > 0));
+  }
+
   function buildCoverageData() {
+    if (!state.result) return { sources: [], dates: [] };
     const sourceMap = new Map((state.result.files || []).filter(function (file) {
       return file.sourceType !== 'article-master';
     }).map(function (file) {
@@ -4308,11 +4314,11 @@
   }
 
   function renderCoverage() {
-    if (!state.result || analysisRowCount(state.result) === 0) {
+    if (!hasCoverageContent()) {
       elements.coveragePanel.classList.add('hidden');
       return;
     }
-    const rows = state.result.rows;
+    const rows = state.result ? state.result.rows : [];
     const dates = Array.from(new Set(rows.map(function (row) { return periods.validDate(row.delivery_date) ? row.delivery_date : null; }).filter(Boolean))).sort();
     const datedRows = rows.filter(function (row) { return periods.validDate(row.delivery_date); }).length;
     elements.coverageOverview.replaceChildren();
@@ -5762,7 +5768,7 @@
     elements.resultsPanel.classList.remove('hidden');
     renderWorkflow(preserveView ? state.activePageTarget : state.comparison
       ? 'comparison-panel'
-      : analysisRowCount(result) > 0 ? 'coverage-panel' : 'mapping-panel');
+      : hasCoverageContent() ? 'coverage-panel' : 'mapping-panel');
   }
 
   function sourceContext(file) {

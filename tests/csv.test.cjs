@@ -215,9 +215,9 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
 test('responsive workflow handles empty results and shared-page navigation safely', () => {
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
-  assert.match(appSource, /'coverage-panel': Boolean\(state\.result && analysisRowCount\(state\.result\) > 0\)/);
+  assert.match(appSource, /'coverage-panel': hasCoverageContent\(\)/);
   assert.match(appSource, /'results-panel': Boolean\(state\.result && resultHasRetainedData\(state\.result\)\)/);
-  assert.match(appSource, /: state\.result && analysisRowCount\(state\.result\) > 0\s*\n\s*\? 'coverage-panel'/);
+  assert.match(appSource, /: hasCoverageContent\(\)\s*\n\s*\? 'coverage-panel'/);
   assert.match(appSource, /renderWorkflow\(button\.dataset\.workflowTarget\);\s*scrollActivePageToTop\(\)/);
   assert.match(fs.readFileSync(path.join(__dirname, '..', 'app.css'), 'utf8'), /\.app-page > \.panel \{ scroll-margin-top: 84px; \}/);
   assert.match(appSource, /article\.period_a\.article_name_variants/);

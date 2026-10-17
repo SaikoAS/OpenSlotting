@@ -116,7 +116,7 @@ test('a language refresh retains the active source-column view; explicit analysi
     elements: { articleFilter: {}, exportButton: {}, resultsPanel: { classList: { remove: noop } } },
     invalidateViewCaches: noop, settingsForDetectedCalendarWeeks: settings => settings, renderArticleSearch: noop, showArticleOverview: noop,
     renderIssues: noop, renderQualityOverview: noop, renderBatchWarnings: noop, renderSourceTable: noop, renderCoverage: noop, renderComparison: noop,
-    analysisRowCount: () => 1, renderWorkflow: target => targets.push(target)
+    hasCoverageContent: () => true, renderWorkflow: target => targets.push(target)
   });
   vm.runInContext(source.slice(start, end), context);
   const result = { rows: [], articleRegistry: [], issues: [], qualityFindings: [], warnings: [] }, analysis = { articles: [] };

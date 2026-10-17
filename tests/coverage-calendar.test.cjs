@@ -8,8 +8,89 @@ const calendar = require('../src/ui/coverage-calendar.js');
 const periods = require('../periods.js');
 const preparation = require('../src/application/workspace-preparation.js');
 const storage = require('../storage.js');
+const core = require('../csv.js');
 const { createFakeIndexedDB } = require('./fake-indexeddb.cjs');
 const note = (date = '2026-10-03', reason = 'Feiertag – keine Auslieferung') => ({ date, reason, updatedAt: '2026-10-17T12:00:00.000Z' });
+const appSource = fs.readFileSync(require('node:path').join(__dirname, '..', 'app.js'), 'utf8').replace(/\r\n/g, '\n');
+function appFunction(name) {
+  const start = appSource.indexOf('  function ' + name + '(');
+  assert.ok(start >= 0, name);
+  const end = appSource.slice(start + 1).search(/\n  (?:async )?function \w+\(/);
+  return appSource.slice(start, start + end + 1);
+}
+
+function coverageView(result, notes = []) {
+  const state = { activeWorkspace: { id: 'synthetic-coverage' }, files: result ? result.files : [], result,
+    coverageNotes: notes, warehouseLayout: { objects: [] }, periodSettings: periods.normalizeSettings(), comparison: null };
+  function element() {
+    const classes = new Set(['hidden']);
+    return { classList: { add: name => classes.add(name), remove: name => classes.delete(name), contains: name => classes.has(name) },
+      children: [], appendChild(child) { this.children.push(child); }, replaceChildren() { this.children = []; } };
+  }
+  const elements = Object.fromEntries(['coveragePanel', 'coverageOverview', 'periodAStatus', 'periodBStatus', 'comparePeriods'].map(key => [key, element()]));
+  const root = { innerHTML: '', addEventListener() {} };
+  const coverageCalendar = calendar.create({ root, getWorkspaceId: () => state.activeWorkspace.id,
+    getLanguage: () => 'en', getNotes: () => state.coverageNotes,
+    getExpectedWeekdays: () => state.periodSettings.expectedWeekdays, isLocked: () => false });
+  let renderedData;
+  const context = vm.createContext({ state, elements, periods, core, coverageCalendar,
+    document: { createElement: element }, setText: (node, text) => { node.textContent = text; }, translate: key => key,
+    renderCoverageSources: data => { renderedData = data; }, renderCoverageDates() {}, renderCoverageDrilldown() {}, renderPeriodControls() {},
+    coverageText: () => '', closeMappingDrawer() {}, PAGE_CONFIG: { 'coverage-panel': {}, 'mapping-panel': {}, 'main-menu-panel': {}, 'workspace-panel': {} } });
+  for (const name of ['analysisRowCount', 'resultHasRetainedData', 'buildCoverageData', 'hasCoverageContent', 'renderCoverage']) {
+    vm.runInContext(appFunction(name), context);
+  }
+  const start = appSource.indexOf('  function renderWorkflow('), end = appSource.indexOf('    document.body.classList.toggle', start);
+  vm.runInContext(appSource.slice(start, end) + 'return availability; }', context);
+  return { state, elements, root, context, data: () => renderedData };
+}
+
+test('issue-only imports can enter coverage and show invalid or excluded evidence without enabling comparisons', () => {
+  for (const excluded of [false, true]) {
+    const record = sourceWorkspace();
+    const text = 'article_id;quantity;delivery_date;flag\nSYN-1;' + (excluded ? '2' : 'invalid') + ';2026-10-03;skip\n';
+    record.files[0].buffer = new TextEncoder().encode(text).buffer;
+    record.files[0].size = record.files[0].buffer.byteLength;
+    record.files[0].sourceRules = excluded ? [{ sourcePosition: 3, type: 'exclude-equals', value: 'skip', name: 'Synthetic exclusion', description: 'Skip synthetic rows', enabled: true }] : [];
+    const prepared = preparation.prepareWorkspaceRecord(record, 'en', () => {});
+    assert.equal(prepared.result.rows.length, 0);
+    const view = coverageView(prepared.result);
+    assert.equal(view.context.renderWorkflow('coverage-panel')['coverage-panel'], true);
+    assert.equal(view.state.activePageTarget, 'coverage-panel');
+    assert.equal(view.elements.coveragePanel.classList.contains('hidden'), false);
+    assert.match(view.root.innerHTML, /coverage-calendar-day issues[^>]*data-calendar-date="2026-10-03"/);
+    assert.equal(view.data().dates[0][excluded ? 'filteredLines' : 'invalidLines'].size, 1);
+    assert.equal(view.elements.comparePeriods.disabled, true);
+    view.context.renderWorkflow('unavailable-page');
+    assert.equal(view.state.activePageTarget, 'coverage-panel');
+  }
+});
+
+test('retained reasons remain accessible without an analysis result or source files', () => {
+  const view = coverageView(null, [note()]);
+  assert.equal(view.context.renderWorkflow('coverage-panel')['coverage-panel'], true);
+  assert.equal(view.state.activePageTarget, 'coverage-panel');
+  assert.equal(view.elements.coveragePanel.classList.contains('hidden'), false);
+  assert.match(view.root.innerHTML, /Feiertag/);
+  assert.equal(view.data().dates.length, 0);
+  assert.equal(view.elements.comparePeriods.disabled, true);
+  assert.equal(view.state.result, null);
+});
+
+test('empty workspaces and undated, advisory or article-master issues do not unlock coverage', () => {
+  for (const result of [null, { files: [], rows: [], issues: [] },
+    { files: [{ id: 'order' }, { id: 'master', sourceType: 'article-master' }], rows: [], analysisRows: 0, issues: [
+      { sourceFileId: 'order', deliveryDate: 'invalid', sourceLine: 2 },
+      { sourceFileId: 'order', deliveryDate: '2026-10-03', sourceLine: 3, blocking: false },
+      { sourceFileId: 'master', deliveryDate: '2026-10-03', sourceLine: 2 }
+    ] }]) {
+    const view = coverageView(result);
+    assert.equal(view.context.renderWorkflow('coverage-panel')['coverage-panel'], false);
+    assert.notEqual(view.state.activePageTarget, 'coverage-panel');
+    view.context.renderCoverage();
+    assert.equal(view.elements.coveragePanel.classList.contains('hidden'), true);
+  }
+});
 
 test('calendar uses 42 Monday-first cells and handles leap days and year boundaries', () => {
   const days = calendar.monthDays('2024-02');
@@ -148,8 +229,8 @@ test('entering coverage refreshes calendar controls after background activation 
     result: { rows: [{}] }, activePageTarget: 'main-menu-panel', workspaceLoading: true };
   const locks = [];
   const context = vm.createContext({ state, PAGE_CONFIG: { 'coverage-panel': {}, 'main-menu-panel': {} },
-    analysisRowCount: result => result.rows.length, resultHasRetainedData: () => true,
-    coverageCalendar: { refresh: () => locks.push(state.workspaceLoading) }, closeMappingDrawer() {} });
+    analysisRowCount: result => result.rows.length, resultHasRetainedData: () => true, hasCoverageContent: () => true,
+    renderCoverage: () => locks.push(state.workspaceLoading), closeMappingDrawer() {} });
   vm.runInContext(source.slice(start, end) + '  }', context);
   context.renderWorkflow('coverage-panel'); state.workspaceLoading = false; context.renderWorkflow('coverage-panel');
   assert.deepEqual(locks, [true, false]);

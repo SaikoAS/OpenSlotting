@@ -128,7 +128,7 @@
         bounds = { first: sorted[0], last: sorted[sorted.length - 1] };
       }
       if (!month) {
-        const dates = Array.from(entries.keys()).sort();
+        const dates = Array.from(new Set(Array.from(entries.keys()).concat(options.getNotes().map(function (note) { return note.date; })))).sort();
         selected = dates.length ? dates[dates.length - 1] : new Date().toISOString().slice(0, 10);
         month = selected.slice(0, 7);
       }

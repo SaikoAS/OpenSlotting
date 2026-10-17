@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Keep coverage navigation and the calendar available for analyses containing only dated invalid or rule-excluded rows, and for retained reasons without a current analysis. Initialize note-only calendars from a saved date; do not enable period comparisons without valid dated rows.
+
 - Show ISO calendar-week numbers and week-years beside each coverage calendar row and in the selected-day detail, including month/year transitions. Reuse the period-selection week calculation; stored data is unchanged.
 
 - Replace the compact coverage strip with a monthly calendar and editable local reasons for dates without data. Distinguish valid, invalid/excluded, explained, unexplained and out-of-span days. Retain reasons through reopening, analysis and backup restore without changing demand or comparison completeness. Migrate workspace schema 17 to 18; database 3, backup format 1 and layout 4 remain unchanged.
