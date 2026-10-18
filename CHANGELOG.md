@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Preserve the selected location while rendering destructive previews; reconcile removed selections only after a successful save. Cancelling a passage preview or rejecting/failing its save retains the original ground location breadcrumb, highlight and focus.
+
 - Fall back to level navigation when the selected location no longer exists, including after disabling its ground scope. Keep breadcrumb, highlight and focus consistent while preserving selections on cancelled/failed edits and unrelated ground toggles.
 
 - Keep area-editor keyboard/pointer choices and add/duplicate/draw actions in sync with the exact location breadcrumb, 3D highlight and focus target. Return to level navigation after removal and restore the prior selection kind when saving fails.

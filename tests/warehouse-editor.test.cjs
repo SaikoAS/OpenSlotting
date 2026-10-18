@@ -530,6 +530,63 @@ function groundSelectionLayout() {
   return value;
 }
 
+async function groundPassagePreview() {
+  const initial=groundSelectionLayout(),h=harness(initial,[],model,false,true),object=h.layout.objects[0];
+  const slot=model.zoneLocations(h.layout,model.zoneForLevel(h.layout,object.bays[0].ground.id).id)[1];
+  h.pick={objectId:object.id,bayIndex:0,levelIndex:-1,slotId:slot.id};h.pointer('pointerdown');h.pointer('pointerup');
+  h.control('[data-tool="passage-height"]',1200);h.control('[data-tool="passage-levels"]',2);
+  h.control('[data-tool="passage-route"]','');h.root.querySelector('[data-tool="grow-frames"]').checked=true;
+  await h.click({action:'preview-passage'});
+  assert.match(h.root.innerHTML,/data-action="apply-preview"/);
+  return {h,initial,slot};
+}
+
+function assertPreviewGroundSelection(h) {
+  assert.match(h.root.innerHTML,/data-nav-kind="slot" aria-current="true">Location 2/);
+  assert.match(h.root.innerHTML,/data-nav-kind="level">Ground \(level 0\)/);
+  assert.equal(h.rendered.at(-1).selection,null,'preview highlights its candidate object instead of a hidden original slot');
+}
+
+test('destructive passage previews preserve ground slot navigation through redraw and cancellation', async () => {
+  for(const cancellation of ['button','escape']) {
+    const {h,initial,slot}=await groundPassagePreview();
+    assertPreviewGroundSelection(h);assert.deepEqual(h.layout,initial);assert.equal(h.saves.length,0);
+    assert.ok(!h.rendered.at(-1).boxes.some(box=>box.partId===slot.id),'preview actually removes the ground location');
+    h.render();await h.click({action:'markers'});await h.click({action:'markers'});
+    assertPreviewGroundSelection(h);
+    if(cancellation==='button') await h.click({action:'cancel-preview'});
+    else await h.placement('keydown',null,{key:'Escape'});
+    assert.doesNotMatch(h.root.innerHTML,/data-action="apply-preview"/);
+    assertSlotSelection(h,slot.id);assert.deepEqual(h.layout,initial);assert.equal(h.saves.length,0);
+    await h.click({action:'focus'});
+    const actual=h.rendered.at(-1),boxes=actual.boxes.filter(box=>box.partId===slot.id);
+    const expected=require('../warehouse-webgl.js').projectScene(boxes,{...actual.camera,target:null,baseScale:null,zoom:1},800,600,null,null,new Set(),'solid').view;
+    assert.deepEqual(actual.camera.target,expected.fitTarget);assert.equal(actual.camera.baseScale,expected.fitScale);
+  }
+});
+
+test('failed or unconfirmed passage saves preserve the ground slot through subsequent cancellation', async () => {
+  for(const failure of ['save','confirmation']) {
+    const {h,initial,slot}=await groundPassagePreview();
+    h.failSave=failure==='save';h.accept=failure!=='confirmation';
+    await h.click({action:'apply-preview'});
+    assert.deepEqual(h.layout,initial);assert.equal(h.saves.length,0);assertPreviewGroundSelection(h);
+    assert.match(h.root.innerHTML,/data-action="apply-preview"/);
+    await h.click({action:'cancel-preview'});assertSlotSelection(h,slot.id);assert.deepEqual(h.layout,initial);
+  }
+});
+
+test('successfully applying a passage reconciles the removed ground selection only after save', async () => {
+  const {h,initial,slot}=await groundPassagePreview();
+  assertPreviewGroundSelection(h);
+  await h.click({action:'apply-preview'});
+  assert.equal(h.saves.length,1);assert.equal(h.layout.objects[0].bays[0].ground.enabled,false);
+  assert.doesNotMatch(h.root.innerHTML,/data-action="apply-preview"|data-nav-kind="slot"/);
+  assert.match(h.root.innerHTML,/data-nav-kind="level" aria-current="true"/);
+  assert.equal(h.rendered.at(-1).selection.levelIndex,0);
+  await h.click({action:'undo'});assert.deepEqual(h.layout,initial);
+});
+
 test('disabling the selected ground scope returns breadcrumb, highlight and focus to an existing level', async () => {
   for(const mode of ['structure','zones','locations']) {
     const initial=groundSelectionLayout(),h=harness(initial,[],model,false,true),object=h.layout.objects[0];

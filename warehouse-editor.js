@@ -1284,7 +1284,8 @@
       }
       const object = selected();
       const slots = model.listSlots(warehouse);
-      if (!slots.some(function (slot) { return slot.slotId === choice.slotId; })) {
+      // A preview may hide the selection without removing it from the saved layout.
+      if (!preview && !slots.some(function (slot) { return slot.slotId === choice.slotId; })) {
         if (selectionKind === 'slot') selectLocation(null);
         else choice.slotId = null;
       }
