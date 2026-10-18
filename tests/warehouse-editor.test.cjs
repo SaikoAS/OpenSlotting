@@ -58,12 +58,83 @@ function harness(initial, registry = [], activeModel = model, draw = false, navi
   h.click = (dataset) => h.action('click', dataset);
   h.change = (dataset, value, type) => h.action('change', dataset, value, type);
   h.pointer = (type, extra = {}) => pointerListeners[type]({ clientX:100,clientY:100,button:0,pointerId:1,preventDefault() {},...extra });
+  const placementSvg = { setPointerCapture() {}, getScreenCTM() { return { inverse() { return {}; } }; },
+    createSVGPoint() { return { x:0,y:0,matrixTransform() { return {x:this.x,y:this.y}; } }; },
+    querySelector() { return {setAttribute() {},classList:{toggle() {}}}; } };
+  h.placement = async (type, id, extra = {}) => {
+    const target = { dataset:{placementRect:id}, closest(selector) {
+      return selector === '[data-placement-plane]' ? placementSvg : selector === '[data-placement-rect]' && id ? target : null;
+    }, classList:{contains() { return false; }} };
+    await listeners[type]({target,clientX:100,clientY:100,button:0,pointerId:1,preventDefault() {},...extra});
+    await new Promise(resolve=>setImmediate(resolve));
+  };
   editor.render();
   return h;
 }
 function fresh() {
   return model.normalizeLayout({ ...model.createLayout(), objects: [model.createRack('shelf-rack', { bayCount: 1, levelCount: 2 })] });
 }
+
+function placementLayout() {
+  let value=fresh();
+  value=model.setZoneUsage(value,value.zones[0].id,'picking');
+  return model.addLocation(value,value.zones[0].id,{x:0,z:0,width:200,depth:value.objects[0].bays[0].depth});
+}
+function assertSlotSelection(h,id) {
+  assert.match(h.root.innerHTML,/data-nav-kind="slot" aria-current="true"/);
+  assert.equal(h.rendered.at(-1).selection,id);
+}
+
+test('area keyboard and pointer choices promote level navigation to exact slot selection without saving', async () => {
+  const h=harness(placementLayout(),[],model,false,true),slot=h.layout.locations[0];
+  await h.click({mode:'locations'});await h.click({action:'location-open'});
+  for(const key of ['Enter',' ']) {
+    await h.click({navKind:'level'});
+    await h.placement('keydown',slot.id,{key});
+    assertSlotSelection(h,slot.id);
+    await h.click({action:'focus'});
+    const actual=h.rendered.at(-1),boxes=actual.boxes.filter(box=>box.partId===slot.id);
+    const expected=require('../warehouse-webgl.js').projectScene(boxes,{...actual.camera,target:null,baseScale:null,zoom:1},800,600,null,null,new Set(),'solid').view;
+    assert.deepEqual(actual.camera.target,expected.fitTarget);
+    assert.equal(actual.camera.baseScale,expected.fitScale);
+  }
+  await h.click({navKind:'level'});
+  await h.placement('pointerdown',slot.id);await h.placement('pointerup',slot.id);
+  assertSlotSelection(h,slot.id);assert.equal(h.saves.length,0);
+});
+
+test('area add duplicate and draw select the resulting slot; removal returns navigation to its level', async () => {
+  for(const action of ['location-add','location-duplicate','draw']) {
+    const h=harness(placementLayout(),[],model,false,true);
+    await h.click({mode:'locations'});await h.click({action:'location-open'});await h.click({navKind:'level'});
+    if(action==='draw') {
+      await h.click({action:'location-draw'});
+      await h.placement('pointerdown',null,{clientX:400});
+      await h.placement('pointermove',null,{clientX:600});
+      await h.placement('pointerup',null,{clientX:600});
+    } else await h.click({action});
+    assert.equal(h.layout.locations.length,2,action);
+    assertSlotSelection(h,h.layout.locations[1].id);
+    await h.click({action:'location-remove'});
+    assert.equal(h.layout.locations.length,1);
+    assert.match(h.root.innerHTML,/data-nav-kind="level" aria-current="true"/);
+    assert.doesNotMatch(h.root.innerHTML,/data-nav-kind="slot"/);
+    assert.equal(h.rendered.at(-1).selection.levelIndex,0);
+  }
+});
+
+test('failed area creation and removal restore both the selected ID and navigation kind', async () => {
+  const h=harness(placementLayout(),[],model,false,true),slot=h.layout.locations[0];
+  await h.click({mode:'locations'});await h.click({action:'location-open'});await h.click({navKind:'level'});
+  h.failSave=true;await h.click({action:'location-add'});
+  assert.equal(h.layout.locations.length,1);
+  assert.match(h.root.innerHTML,/data-nav-kind="level" aria-current="true"/);
+  assert.equal(h.rendered.at(-1).selection.levelIndex,0);
+  await h.placement('keydown',slot.id,{key:'Enter'});
+  await h.click({action:'location-remove'});
+  assertSlotSelection(h,slot.id);assert.equal(h.layout.locations.length,1);
+  assert.equal(h.saves.length,0);
+});
 
 test('top view defaults to panning over objects without editing or changing selection; explicit move saves one edit', async () => {
   const initial=fresh(),h=harness(initial,[],model,true);

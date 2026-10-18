@@ -557,6 +557,12 @@
       message = '';
       if (!deferRender) render();
     }
+    function selectLocation(locationId) {
+      focusedPart = null;
+      choice.slotId = locationId || null;
+      selectionKind = locationId ? 'slot' : 'level';
+      revealSelection = true;
+    }
     function focusPicked(found) {
       if (camera.mode === 'orbit') return focusObject(found.objectId, found.slotId, found.bayIndex === undefined ? null : found);
       const points = found.polygon, xs = points.map(function (p) { return p[0]; }), ys = points.map(function (p) { return p[1]; });
@@ -985,7 +991,7 @@
       const location = key && layout().locations.find(function (item) { return item.id === key; });
       if (!location && (!locationDraw || model.zoneLocations(layout(),zone.id).length >= 10)) return;
       event.preventDefault();
-      if (key) choice.slotId = key;
+      if (key) selectLocation(key);
       locationDrag = { svg: svg, scope: model.locationScope(layout(), zone.id), key: key, resize: Boolean(handle),
         origin: placementPoint(svg,event), start: location && Object.assign({},location.placement), area: null, valid: false, moved: false };
       svg.setPointerCapture(event.pointerId);
@@ -1014,10 +1020,10 @@
       if (!drag.valid) { message=drag.error || placementLabels().invalid; render(); return; }
       try {
         const next=drag.key?model.setLocationPlacement(layout(),drag.key,drag.area):model.addLocation(layout(),drag.scope.zone.id,drag.area);
-        const prior=choice.slotId;
-        if (!drag.key) choice.slotId=next.locations[next.locations.length-1].id;
+        const prior=choice.slotId, priorKind=selectionKind;
+        if (!drag.key) selectLocation(next.locations[next.locations.length-1].id);
         locationDraw=false;
-        if (!await commit(next)) { choice.slotId=prior; render(); }
+        if (!await commit(next)) { choice.slotId=prior; selectionKind=priorKind; render(); }
         else render();
       } catch(error) { message=placementError(error); render(); }
     });
@@ -1860,7 +1866,7 @@
         return;
       }
       const placementPick = event.target.closest('[data-placement-select]');
-      if (placementPick) { choice.slotId=placementPick.dataset.placementSelect; selectionKind='slot'; revealSelection=true; render(); return; }
+      if (placementPick) { selectLocation(placementPick.dataset.placementSelect); render(); return; }
       const navigation = event.target.closest('[data-nav-kind]');
       if (navigation) {
         selectionKind = navigation.dataset.navKind;
@@ -2009,9 +2015,9 @@
       if (['location-add','location-duplicate','location-remove'].includes(action)) {
         try {
           const next=action==='location-add'?model.addLocation(layout(),currentZone(object).id):action==='location-duplicate'?model.duplicateLocation(layout(),choice.slotId):model.removeLocation(layout(),choice.slotId);
-          const previousChoice=choice.slotId;
-          choice.slotId=action==='location-remove'?null:next.locations[next.locations.length-1].id;
-          if (!await commit(next)) { choice.slotId=previousChoice; render(); }
+          const previousChoice=choice.slotId, previousKind=selectionKind;
+          selectLocation(action==='location-remove'?null:next.locations[next.locations.length-1].id);
+          if (!await commit(next)) { choice.slotId=previousChoice; selectionKind=previousKind; render(); }
         } catch(error) { message=placementError(error); render(); }
         return;
       }
@@ -2072,7 +2078,7 @@
       if (saving) return;
       if (locationEditorOpen && event.key === 'Escape') { event.preventDefault(); locationDrag=null; locationDraw=false; locationEditorOpen=false; render(); return; }
       const placementNode=event.target.closest && event.target.closest('[data-placement-rect]');
-      if (placementNode && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); choice.slotId=placementNode.dataset.placementRect; render(); return; }
+      if (placementNode && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); selectLocation(placementNode.dataset.placementRect); render(); return; }
       if (!rackWizard && event.target.classList.contains('wh-canvas') && !event.ctrlKey && !event.metaKey && !event.altKey) {
         if (event.key === '+' || event.key === '=' || event.key === '-' || event.key === '−') {
           event.preventDefault(); zoomBy(event.key === '-' || event.key === '−' ? -0.14 : 0.14); return;

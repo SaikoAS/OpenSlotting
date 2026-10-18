@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Keep area-editor keyboard/pointer choices and add/duplicate/draw actions in sync with the exact location breadcrumb, 3D highlight and focus target. Return to level navigation after removal and restore the prior selection kind when saving fails.
+
 - Add explicit top-view tools for moving the view or moving objects. Default to panning over any surface, retain click selection and focus, restrict geometry dragging to Structure, preserve snapping/locks/undo, and cancel uncommitted drags when tools change. Keep the choice transient and reset it on workspace changes.
 
 - Add a read-only warehouse walk menu with true perspective, focus-scoped WASD movement, optional mouse look, physical-part clearance, an interactive minimap and exact location search. Reuse shared rack geometry, location assignments and analyzed article metrics; add assignment/usage/demand outlines, optional existing A/B comparison details and article/coverage links. Keep navigation local and transient, preserve editor geometry and add no runtime dependency or schema change.
