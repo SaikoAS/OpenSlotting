@@ -10,6 +10,18 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Add explicit top-view tools for moving the view or moving objects. Default to panning over any surface, retain click selection and focus, restrict geometry dragging to Structure, preserve snapping/locks/undo, and cancel uncommitted drags when tools change. Keep the choice transient and reset it on workspace changes.
+
+- Add a read-only warehouse walk menu with true perspective, focus-scoped WASD movement, optional mouse look, physical-part clearance, an interactive minimap and exact location search. Reuse shared rack geometry, location assignments and analyzed article metrics; add assignment/usage/demand outlines, optional existing A/B comparison details and article/coverage links. Keep navigation local and transient, preserve editor geometry and add no runtime dependency or schema change.
+
+- Add direct rack/bay/level/location navigation with a sticky selection path, contextual property shortcuts and internal field reveal. Preserve ground and exact location selection across modes; focus the clicked area on double-click and outline selected physical scopes without changing material colors. Clarify edit scope, retain lock/save boundaries and keep navigation out of persistence/history.
+
+- Keep physical decks visible beneath inset location outlines and zoom-aware front position numbers. Preserve blue/orange rack parts and gray decks, tint only the selected location, and keep exact full-footprint picking in an independent batch. Add transient marking visibility switches to editor and analysis; no workspace/schema or geometry change.
+
+- Add enabled-by-default ground scopes per rack bay with up to ten editable side-by-side locations at floor height. Support explicit disabling, impact confirmation, undo/redo, locks and passage exclusion. Add gold access-side markers and rotated builder previews before placement. Migrate workspace 19 / layout 5 to workspace 20 / layout 6 without renumbering elevated levels or changing existing IDs/codes; database 3 and backup format 1 remain unchanged.
+
+- Add up to ten side-by-side locations along each classified rack level. Move sideways, adjust width, draw and duplicate locations in a schematic front view; every new location uses the bay depth. Reject overlaps and out-of-bounds areas; retain earlier prototype depth rows until explicitly rearranged. Render the same footprints in the editor and read-only analysis. Preserve retained IDs/codes and migrate equal subdivisions to explicit placements in workspace schema 19 / layout 5; database 3 and backup format 1 remain unchanged.
+
 - Derive displayed coverage dates and per-source ranges from dated valid, invalid and rule-excluded evidence. Keep valid-row counts, demand and comparison completeness separate from those evidence ranges.
 
 - Preserve saved calendar reasons when removing the final source or resetting source data. Workspace switches still clear the previous workspace's notes from the view.

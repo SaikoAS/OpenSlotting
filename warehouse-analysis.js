@@ -56,6 +56,7 @@
     let currentInfo = null;
     let wallMode = 'transparent';
     let colorMode = 'structure';
+    let showLocations = true;
     const renderer = window.OpenSlottingWarehouseWebGL && window.OpenSlottingWarehouseWebGL.create(canvas, {
       onLost: function () { render(); }, onRestored: function () { render(); }
     });
@@ -66,7 +67,7 @@
       workspaceId = current;
       currentInfo = null;
       selectedSlotId = null; search = ''; message = '';
-      colorMode = 'structure';
+      colorMode = 'structure'; showLocations = true;
       camera.yaw = -0.62; camera.pitch = 0.62; camera.zoom = 1; camera.target = null; camera.baseScale = null;
     }
     function data(refresh) {
@@ -76,13 +77,13 @@
       return currentInfo;
     }
     function boxes(info) {
-      return window.OpenSlottingWarehouseScene.buildBoxes(model, info.layout, info.matches, { colorMode: colorMode });
+      return window.OpenSlottingWarehouseScene.buildBoxes(model, info.layout, info.matches, { colorMode: colorMode, showLocations: showLocations });
     }
     function colorLegend(info, t) {
       const palette = window.OpenSlottingWarehouseScene.PALLET_PART_COLORS;
-      const entries = colorMode === 'structure' ? [
+      const entries = [
         [palette.upright, t.palletFrameColor], [palette.beam, t.palletBeamColor], [palette.deck, t.palletDeckColor]
-      ] : [];
+      ];
       if (colorMode === 'usage' || info.layout.objects.some(function (object) { return object.type === 'shelf-rack'; })) {
         model.USAGES.forEach(function (usage) { entries.push([model.USAGE_COLORS[usage], t[usage]]); });
       }
@@ -123,7 +124,7 @@
         esc(t.fit) + '</button><button type="button" data-action="focus"' + (slot && renderer && renderer.available() ? '' : ' disabled') +
         '>' + esc(t.focus) + '</button><button type="button" data-action="colors" data-color-mode="structure" aria-pressed="' +
         (colorMode === 'structure') + '">' + esc(t.objectColors) + '</button><button type="button" data-action="colors" data-color-mode="usage" aria-pressed="' +
-        (colorMode === 'usage') + '">' + esc(t.usageColors) + '</button></div></div>' +
+        (colorMode === 'usage') + '">' + esc(t.usageColors) + '</button><button type="button" data-action="markers" aria-pressed="' + showLocations + '">' + esc((options.getLanguage() === 'de' ? 'Stellplätze: ' : 'Locations: ') + (showLocations ? (options.getLanguage() === 'de' ? 'an' : 'on') : (options.getLanguage() === 'de' ? 'aus' : 'off'))) + '</button></div></div>' +
         '<div class="wh-analysis-viewport"></div>' +
         '<p class="wh-view-hint">' + esc(renderer && renderer.available() ? t.hint : t.unavailable) + '</p>' +
         '<div class="wh-legend"><span><i class="matched"></i>' + esc(t.linked) + '</span><span><i class="coded"></i>' +
@@ -133,7 +134,7 @@
         '<button type="button" class="wh-small-button" data-action="find">' + esc(t.find) + '</button></div>' +
         '<h4>' + esc(t.selected) + '</h4>' + (slot ? '<div class="wh-selected-code">' + esc(slot.code || t.noCode) +
           '</div><p class="wh-slot-path">' + esc(slot.objectName) + ' · ' + esc(t.bay) + ' ' + (slot.bayIndex + 1) +
-          ' · ' + esc(t.level) + ' ' + (slot.levelIndex + 1) + ' · ' + esc(t.position) + ' ' + (slot.positionIndex + 1) +
+          ' · ' + (slot.ground ? (options.getLanguage() === 'de' ? 'Boden (Ebene 0)' : 'Ground (level 0)') : esc(t.level) + ' ' + (slot.levelIndex + 1)) + ' · ' + esc(t.position) + ' ' + (slot.positionIndex + 1) +
           ' · ' + esc(t[slot.usage] || slot.usage) + '</p>' +
           (articles.length ? '<div class="wh-selected-articles"><strong>' + esc(t.articles) + '</strong>' +
             articles.map(function (article) { return '<div>' + esc(article.articleId) + (article.name ? ' · ' + esc(article.name) : '') + '</div>'; }).join('') +
@@ -169,6 +170,7 @@
       if (action === 'find') find();
       else if (action === 'fit') { camera.zoom = 1; camera.target = null; camera.baseScale = null; paint(data()); }
       else if (action === 'focus') focusSelection();
+      else if (action === 'markers') { showLocations = !showLocations; render(); }
       else if (action === 'colors') {
         colorMode = event.target.closest('[data-action]').dataset.colorMode === 'usage' ? 'usage' : 'structure';
         render();

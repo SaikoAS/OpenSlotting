@@ -75,7 +75,7 @@
       view: '3D layout', planView: 'Floor plan', fit: 'Fit view', focus: 'Focus object', top: 'Top view', orbit: '3D view',
       zoomIn: 'Zoom in', zoomOut: 'Zoom out', zoomSensitivity: 'Zoom speed', zoomSlow: 'Fine', zoomNormal: 'Normal', zoomFast: 'Fast',
       zoomKeyboard: 'With the view focused: + / − zoom, 0 fits the view. Ctrl+wheel retains browser zoom.',
-      hint: 'Left drag: rotate · right or middle drag / Shift+drag: pan · wheel: zoom · double-click: focus object',
+      hint: 'Left drag: rotate · right or middle drag / Shift+drag: pan · wheel: zoom',
       hintTop: 'Drag an object to move it · drag empty space to pan · wheel to zoom · 100 mm grid',
       magnet: 'Magnetic snap', magnetTitle: 'Align compatible object endpoints in the floor plan',
       magnetHint: 'Magnetic snap is on: nearby compatible endpoints align before the grid. Persist links with Connect.',
@@ -172,7 +172,7 @@
       view: '3D-Lagerplan', planView: 'Grundriss', fit: 'Einpassen', focus: 'Objekt fokussieren', top: 'Draufsicht', orbit: '3D-Ansicht',
       zoomIn: 'Vergrößern', zoomOut: 'Verkleinern', zoomSensitivity: 'Zoomtempo', zoomSlow: 'Fein', zoomNormal: 'Normal', zoomFast: 'Schnell',
       zoomKeyboard: 'Bei fokussierter Ansicht: + / − zoomen, 0 passt ein. Strg+Mausrad bleibt für den Browserzoom verfügbar.',
-      hint: 'Links ziehen: drehen · rechts oder mittig ziehen / Umschalt+ziehen: verschieben · Mausrad: zoomen · Doppelklick: Objekt fokussieren',
+      hint: 'Links ziehen: drehen · rechts oder mittig ziehen / Umschalt+ziehen: verschieben · Mausrad: zoomen',
       hintTop: 'Objekt ziehen: verschieben · freie Fläche ziehen: Ansicht bewegen · Mausrad: zoomen · 100-mm-Raster',
       magnet: 'Magnet', magnetTitle: 'Passende Objektendpunkte im Grundriss ausrichten',
       magnetHint: 'Magnet aktiv: Nahe passende Endpunkte rasten vor dem Raster ein. Verbindungen über Verbinden speichern.',
@@ -249,9 +249,13 @@
     const camera = { yaw: -0.62, pitch: 0.62, zoom: 1, target: null, baseScale: null, mode: 'orbit' };
     const topView = { ready: false, centerX: 0, centerZ: 0, scale: 1, zoom: 1 };
     const choice = { objectId: null, bay: 0, level: 0, upright: 0, slotId: null };
+    let selectionKind = 'object', revealSelection = false, lastModelClick = null, lastManualFocusAt = 0;
     let codePrefix = 'R01';
     let recipeType = model.RACK_TYPES[0] || model.AREA_TYPES[0];
     let mode = 'structure';
+    let topDragMode = 'pan';
+    let cancelTopGesture = null;
+    let locationEditorOpen = false, locationDraw = false, locationGrid = 10, locationDrag = null;
     let message = '';
     let pickFaces = [];
     let canvas = null;
@@ -261,6 +265,7 @@
     const wiredCanvases = new WeakSet();
     let webglRenderer = null;
     let wallMode = 'solid';
+    let showLocations = true;
     let historyWorkspaceId = null;
     let undoStack = [];
     let redoStack = [];
@@ -275,17 +280,17 @@
     const groupSelection = new Set();
     const boxesFor = function (warehouse, matches) {
       return window.OpenSlottingWarehouseScene.buildBoxes(model, warehouse, matches, {
-        colorMode: mode === 'structure' ? 'structure' : 'usage'
+        colorMode: mode === 'zones' ? 'usage' : 'structure', orientationObjectId: choice.objectId, showLocations: showLocations
       });
     };
 
     function colorLegend(warehouse, t) {
-      const materialColors = mode === 'structure' && camera.mode === 'orbit';
+      const materialColors = camera.mode === 'orbit';
       const palette = window.OpenSlottingWarehouseScene.PALLET_PART_COLORS;
       const entries = materialColors ? [
         [palette.upright, t.palletFrameColor], [palette.beam, t.palletBeamColor], [palette.deck, t.palletDeckColor]
       ] : [];
-      if (!materialColors || warehouse.objects.some(function (object) { return object.type === 'shelf-rack'; })) {
+      if (!materialColors || mode === 'zones' || warehouse.objects.some(function (object) { return object.type === 'shelf-rack'; })) {
         model.USAGES.forEach(function (usage) { entries.push([model.USAGE_COLORS[usage], t[usage]]); });
       }
       return entries.map(function (entry) {
@@ -305,10 +310,10 @@
       return preview ? preview.layout : layout();
     }
     const scrollSelectors = ['.wh-sidebar', '.wh-main', '.wh-objects', '.wh-collision-list', '.wh-properties .wh-card',
-      '.wh-group-members', '.wh-wizard', '.wh-wizard-table-wrap'];
+      '.wh-group-members', '.wh-wizard', '.wh-wizard-table-wrap', '.wh-location-editor'];
     const focusAttributes = ['data-field', 'data-select', 'data-tool', 'data-zone', 'data-location', 'data-object',
       'data-group-member', 'data-action', 'data-wizard-field', 'data-wizard-action', 'data-focus-object', 'data-scope-bay',
-      'data-zoom-sensitivity', 'data-mode', 'data-ui-key'];
+      'data-zoom-sensitivity', 'data-mode', 'data-ui-key', 'data-placement-rect', 'data-placement-select', 'data-placement-grid', 'data-nav-kind'];
     function captureUi() {
       const active = root.contains(document.activeElement) ? document.activeElement : null;
       const attributes = active ? Array.from(active.attributes).filter(function (attribute) {
@@ -317,7 +322,7 @@
       }).map(function (attribute) { return [attribute.name, attribute.value]; }) : [];
       const focus = active && (attributes.length || active.classList.contains('wh-canvas')) ? {
         canvas: active.classList.contains('wh-canvas'), attributes: attributes,
-        contextual: active.closest('.wh-properties, .wh-wizard') !== null,
+        contextual: active.closest('.wh-properties, .wh-wizard, .wh-location-editor') !== null,
         start: active.selectionStart, end: active.selectionEnd, direction: active.selectionDirection
       } : null;
       return { workspace: historyWorkspaceId, objectId: lastRenderedObjectId, scope: lastRenderedScope, focus: focus,
@@ -357,7 +362,7 @@
       }
       state.scrolls.forEach(function (saved) {
         if (!sameObject && ['.wh-properties .wh-card', '.wh-group-members'].includes(saved.selector)) return;
-        if (!sameScope && ['.wh-wizard', '.wh-wizard-table-wrap'].includes(saved.selector)) return;
+        if (!sameScope && ['.wh-wizard', '.wh-wizard-table-wrap', '.wh-location-editor'].includes(saved.selector)) return;
         const element = root.querySelectorAll(saved.selector)[saved.index];
         if (element) { element.scrollTop = saved.top; element.scrollLeft = saved.left; }
       });
@@ -403,8 +408,11 @@
         undoStack = [];
         redoStack = [];
         rackWizard = null;
+        locationEditorOpen = false; locationDraw = false; locationDrag = null; showLocations = true;
         preview = null; focusedPart = null; groupSelection.clear();
+        selectionKind = 'object'; revealSelection = false; lastModelClick = null; lastManualFocusAt = 0;
         mode = 'structure';
+        topDragMode = 'pan';
         camera.yaw = -0.62; camera.pitch = 0.62; camera.zoom = 1;
         camera.target = null; camera.baseScale = null;
         topView.ready = false; topView.zoom = 1;
@@ -413,6 +421,54 @@
     function keepRecent(stack, value) {
       stack.push(value);
       if (stack.length > 20) stack.shift();
+    }
+    function markerToggleLabel() { return options.getLanguage() === 'de' ? 'Stellplätze: ' + (showLocations ? 'an' : 'aus') : 'Locations: ' + (showLocations ? 'on' : 'off'); }
+    function topInteraction() { return mode === 'structure' && !preview ? topDragMode : 'pan'; }
+    function topInteractionLabels() {
+      return options.getLanguage() === 'de' ? {
+        title: 'Ziehen in der Draufsicht', pan: 'Ansicht bewegen', move: 'Objekte bewegen',
+        panHint: 'Ansicht bewegen: Ziehen verschiebt die Ansicht, auch über Objekten · Klick: auswählen · Mausrad: zoomen',
+        moveHint: 'Objekte bewegen: Objekt ziehen zum Verschieben · freie Fläche ziehen zum Bewegen der Ansicht · Mausrad: zoomen · 100-mm-Raster',
+        moveHelp: 'Nur unter Struktur verfügbar; gesperrte Objekte bleiben geschützt'
+      } : {
+        title: 'Drag in top view', pan: 'Move view', move: 'Move objects',
+        panHint: 'Move view: drag anywhere, including over objects · click to select · wheel to zoom',
+        moveHint: 'Move objects: drag an object to reposition it · drag empty space to pan · wheel to zoom · 100 mm grid',
+        moveHelp: 'Available in Structure only; locked objects remain protected'
+      };
+    }
+    function topInteractionToolbar() {
+      if (camera.mode !== 'top') return '';
+      const t = topInteractionLabels(), current = topInteraction();
+      return '<div class="wh-top-tools" role="group" aria-label="' + esc(t.title) + '">' +
+        '<button type="button" data-action="top-pan" aria-pressed="' + (current === 'pan') + '">✋ ' + esc(t.pan) + '</button>' +
+        '<button type="button" data-action="top-move" aria-pressed="' + (current === 'move') + '" title="' + esc(t.moveHelp) + '"' +
+        (mode !== 'structure' || preview ? ' disabled' : '') + '>↔ ' + esc(t.move) + '</button></div>';
+    }
+    function groundLabels() {
+      return options.getLanguage() === 'de' ? {
+        name: 'Boden (Ebene 0)', toggle: 'Bodenstellplätze in diesem Fach aktiv',
+        hint: 'Standardmäßig aktiv. Nutzung unter Zonen festlegen, dann bis zu 10 Stellplätze mit eigener Breite und Position anlegen. Deaktivieren entfernt vorhandene Bodenplätze nach Bestätigung.',
+        front: 'Bedienseite / Regalfront', direction: 'Gold markiert die Bedienseite. Der Pfeil zeigt aus dem Regal zum Gang. Fächer und Plätze werden von dieser Seite links nach rechts betrachtet.',
+        ground: 'Boden', rotation: 'Ausrichtung im Hallenplan (°)', map: 'Draufsicht zur Platzierung'
+      } : {
+        name: 'Ground (level 0)', toggle: 'Ground locations enabled in this bay',
+        hint: 'Enabled by default. Classify under Zones, then create up to 10 locations with individual widths and positions. Disabling removes existing ground locations after confirmation.',
+        front: 'Access side / rack front', direction: 'Gold marks the access side. The arrow points out of the rack toward the aisle. View bays and locations from this side, left to right.',
+        ground: 'Ground', rotation: 'Orientation in the hall plan (°)', map: 'Top view for placement'
+      };
+    }
+    function groundToggle(object) {
+      const bay = object.bays[choice.bay], t = groundLabels();
+      return '<div class="wh-section" data-selection-section="ground"><label class="wh-check"><input type="checkbox" data-field="ground.enabled"' +
+        (bay.ground.enabled ? ' checked' : '') + (bay.passage ? ' disabled' : '') + '><span>' + esc(t.toggle) +
+        '</span></label><p class="wh-scope-hint">' + esc(t.hint) + '</p></div>';
+    }
+    function scopeSelector(object, t) {
+      const bay = object.bays[choice.bay];
+      return '<label class="wh-field"><span>' + esc(t.level) + '</span><select data-select="level">' +
+        (bay.ground.enabled ? '<option value="-1"' + (choice.level === -1 ? ' selected' : '') + '>' + esc(groundLabels().name) + '</option>' : '') +
+        bay.levels.map(function (_, index) { return '<option value="' + index + '"' + (choice.level === index ? ' selected' : '') + '>' + (index + 1) + '</option>'; }).join('') + '</select></label>';
     }
     function selected() { return layout().objects.find(function (object) { return object.id === choice.objectId; }) || null; }
     function objectName(object, t) { return object.name || t[TYPE_LABELS[object.type]]; }
@@ -423,10 +479,64 @@
       if (!Number.isFinite(camera.baseScale) || camera.baseScale <= 0) camera.baseScale = view.fitScale;
       return view;
     }
-    function focusObject(objectId, partId) {
+    function navigationLabels() {
+      return options.getLanguage() === 'de' ? {
+        selection: 'Auswahl', slot: 'Stellplatz', object: 'Regal', focus: 'Auswahl fokussieren',
+        bayImpact: 'Fachbreite und Ebenenanzahl gelten für das gesamte gewählte Fach.',
+        levelImpact: 'Höhe, Traverse und Fachboden gelten für die gewählte Ebene dieses Fachs.',
+        depthImpact: 'Die Regaltiefe gilt für die gesamte Regalzeile.',
+        groundImpact: 'Die Bodenebene liegt auf Hallenbodenhöhe und hat keine Traverse oder Fachboden.',
+        pickHint: 'Klick: Bereich auswählen · Doppelklick: Bereich fokussieren'
+      } : {
+        selection: 'Selection', slot: 'Location', object: 'Rack', focus: 'Focus selection',
+        bayImpact: 'Bay width and level count affect the entire selected bay.',
+        levelImpact: 'Height, beam and deck affect the selected level in this bay.',
+        depthImpact: 'Rack depth affects the entire rack row.',
+        groundImpact: 'The ground level is at hall floor height and has no beam or deck.',
+        pickHint: 'Click: select area · Double-click: focus area'
+      };
+    }
+    function selectionScope() {
+      return { objectId: choice.objectId, bayIndex: choice.bay,
+        levelIndex: selectionKind === 'bay' ? undefined : choice.level };
+    }
+    function selectionNavigation(object, t) {
+      if (!object) return '';
+      const n = navigationLabels(), rack = model.RACK_TYPES.includes(object.type);
+      const crumbs = [['object', objectName(object, t)]];
+      if (rack) {
+        crumbs.push(['bay', t.bay + ' ' + (choice.bay + 1)]);
+        crumbs.push(['level', choice.level === -1 ? groundLabels().name : t.level + ' ' + (choice.level + 1)]);
+        const location = layout().locations.find(function (item) { return item.id === choice.slotId; });
+        if (selectionKind === 'slot' && location) crumbs.push(['slot', n.slot + ' ' + (location.positionIndex + 1) + (location.code ? ' · ' + location.code : '')]);
+      }
+      return '<div class="wh-selection-nav"><strong>' + esc(n.selection) + '</strong><nav aria-label="' + esc(n.selection) + '">' +
+        crumbs.map(function (item, index) { return (index ? '<span aria-hidden="true">›</span>' : '') +
+          '<button type="button" data-nav-kind="' + item[0] + '"' + (item[0] === selectionKind ? ' aria-current="true"' : '') + '>' + esc(item[1]) + '</button>'; }).join('') +
+        '</nav>' + (rack ? '<div class="wh-context-modes">' + ['structure', 'zones', 'locations'].map(function (step) {
+          return '<button type="button" data-mode="' + step + '" aria-pressed="' + (step === mode) + '">' + esc(t[step]) + '</button>';
+        }).join('') + '</div>' : '') + '</div>';
+    }
+    function revealProperties() {
+      if (!revealSelection) return;
+      revealSelection = false;
+      const panel = root.querySelector('.wh-properties .wh-card');
+      const section = selectionKind === 'object' ? 'object' : mode === 'zones' ? 'usage' :
+        mode === 'locations' ? (selectionKind === 'slot' ? 'location' : 'locations') :
+        selectionKind === 'bay' ? 'bay' : choice.level === -1 ? 'ground' : 'level';
+      const target = root.querySelector('[data-selection-section="' + section + '"]');
+      const header = root.querySelector('.wh-selection-nav');
+      if (panel && target && typeof target.getBoundingClientRect === 'function') {
+        panel.scrollTop = Math.max(0, panel.scrollTop + target.getBoundingClientRect().top - panel.getBoundingClientRect().top -
+          (header ? header.getBoundingClientRect().height : 0) - 12);
+      }
+    }
+    function focusObject(objectId, partId, scope) {
       if (camera.mode !== 'orbit' || !objectId) return false;
       const targetBoxes = boxesFor(viewLayout())
-        .filter(function (item) { return item.object.id === objectId && (!partId || item.partId === partId); });
+        .filter(function (item) { return item.object.id === objectId && (!partId || item.partId === partId) &&
+          (!scope || item.slotRef && item.slotRef.bayIndex === scope.bayIndex &&
+            (scope.levelIndex === undefined || item.slotRef.levelIndex === scope.levelIndex)); });
       if (!targetBoxes.length) return false;
       const view = window.OpenSlottingWarehouseWebGL.projectScene(targetBoxes,
         { yaw: camera.yaw, pitch: camera.pitch, zoom: 1 },
@@ -437,13 +547,38 @@
       camera.zoom = 1;
       return true;
     }
-    function selectSlot(slot) {
+    function selectSlot(slot, deferRender) {
       focusedPart = null;
       choice.objectId = slot.objectId;
       choice.bay = slot.bayIndex;
       choice.level = slot.levelIndex;
       choice.slotId = slot.slotId || null;
+      selectionKind = slot.slotId ? 'slot' : 'level'; revealSelection = true;
       message = '';
+      if (!deferRender) render();
+    }
+    function focusPicked(found) {
+      if (camera.mode === 'orbit') return focusObject(found.objectId, found.slotId, found.bayIndex === undefined ? null : found);
+      const points = found.polygon, xs = points.map(function (p) { return p[0]; }), ys = points.map(function (p) { return p[1]; });
+      const minX = Math.min.apply(null, xs), maxX = Math.max.apply(null, xs), minY = Math.min.apply(null, ys), maxY = Math.max.apply(null, ys);
+      const rect = canvas.getBoundingClientRect();
+      const center = topWorld(rect.left + (minX + maxX) / 2, rect.top + (minY + maxY) / 2);
+      topView.zoom = Math.max(.25, Math.min(4, topView.zoom * Math.min(Math.max(1, canvas.clientWidth - 90) / Math.max(1, maxX - minX),
+        Math.max(1, canvas.clientHeight - 100) / Math.max(1, maxY - minY))));
+      topView.centerX = center.x; topView.centerZ = center.z;
+      return true;
+    }
+    function clickModel(found, event, forceFocus) {
+      if (!found) { lastModelClick = null; return; }
+      const key = JSON.stringify([camera.mode, found.objectId, found.bayIndex, found.levelIndex, found.slotId]);
+      const now = Date.now(), repeat = lastModelClick && lastModelClick.key === key && now - lastModelClick.time < 450 &&
+        Math.abs(event.clientX - lastModelClick.x) + Math.abs(event.clientY - lastModelClick.y) < 8;
+      if (found.bayIndex !== undefined) selectSlot(found, true);
+      else { focusedPart = null; selectionKind = 'object'; revealSelection = true; choice.objectId = found.objectId;
+        choice.bay = 0; choice.level = 0; choice.upright = 0; choice.slotId = null; }
+      if (forceFocus || repeat) { focusPicked(found); if (!forceFocus) lastManualFocusAt = now; }
+      // Full property redraws reattach the canvas, so native dblclick alone is not reliable.
+      lastModelClick = forceFocus || repeat ? null : { key:key,time:now,x:event.clientX,y:event.clientY };
       render();
     }
 
@@ -461,13 +596,15 @@
           next.objects.forEach(function (object) { object.locked = currentLocks.get(object.id) || false; });
         }
         if (!historyAction && !toggleLockId) model.applyAssemblyChanges(before, next, assemblyPose);
-        normalized = model.reconcileLayout(next);
+        normalized = model.reconcileLayout(next, historyAction ? null : before);
         if (model.lockedEditConflict(before, normalized, toggleLockId)) {
           message = labels().lockedEdit; render(); return false;
         }
         if (JSON.stringify(normalized) === JSON.stringify(before)) { render(); return false; }
         const impact = model.layoutImpact(before, normalized, options.getRegistry ? options.getRegistry() : []);
-        if (impact.locations) {
+        const withoutPlacement = function (value) { return Object.assign({},value,{locations:value.locations.map(function (item) { return Object.assign({},item,{placement:null}); })}); };
+        const placementOnly = JSON.stringify(withoutPlacement(before)) === JSON.stringify(withoutPlacement(normalized));
+        if (impact.locations && !placementOnly) {
           const warning = labels().impactWarning.replace(/\{\{(locations|codes|articles|removed)\}\}/g,
             function (_, key) { return impact[key]; });
           if (!window.confirm(warning)) { render(); return false; }
@@ -563,6 +700,7 @@
           uprightWidth + '" height="' + upright.height * scaleY + '" fill="#80a5b5"/>');
         x += upright.width * scaleX;
         const bayWidth = bay.width * scaleX;
+        if (bay.ground.enabled) shapes.push('<rect x="' + x + '" y="212" width="' + bayWidth + '" height="4" fill="#62b3cb"/>');
         let height = 0;
         bay.levels.forEach(function (level) {
           height += level.clearHeight;
@@ -582,7 +720,7 @@
         esc(t.wizardFront) + '">' + shapes.join('') + '</svg><div class="wh-wizard-metrics"><span>' +
         esc(t.wizardTotalWidth) + ': <strong>' + totalWidth + ' mm</strong></span><span>' + esc(t.wizardMaxDepth) +
         ': <strong>' + depth + ' mm</strong></span><span>' + esc(t.wizardMaxHeight) + ': <strong>' + maxHeight +
-        ' mm</strong></span></div></div>';
+        ' mm</strong></span></div><p class="wh-front-hint">' + esc(groundLabels().direction) + '</p><svg viewBox="0 0 250 145" role="img" aria-label="' + esc(groundLabels().map) + '"><g transform="translate(125 75) rotate(' + rack.rotation + ')"><rect x="-65" y="-19" width="130" height="38" fill="#344e60" stroke="#91aab7"/><path d="M-65 19 H65 M0 19 V59 M-8 47 L0 59 L8 47" fill="none" stroke="#ffd78a" stroke-width="3"/></g></svg><p class="wh-scope-hint">' + esc(groundLabels().map) + ' · ' + rack.rotation + '°</p></div>';
     }
     function wizardHtml(t) {
       const state = rackWizard, rack = state.draft;
@@ -604,13 +742,13 @@
             '</span>' + wizardInput('defaultLevels', rack.bays[0].levels.length, 1, 12) + '</label>' : '') +
           '<label class="wh-field"><span>' + esc(t.rackDepth) + '</span>' +
           wizardInput('rackDepth', rowDepth === null ? '' : rowDepth, 200, 3000) +
-          '</label><p class="wh-scope-hint wh-wizard-depth-hint">' + esc(rowDepth === null ? t.mixedDepth : t.rackDepthHint) + '</p></div>';
+          '</label><label class="wh-field"><span>' + esc(groundLabels().rotation) + '</span>' + wizardInput('rotation', rack.rotation, -360, 360) + '</label><p class="wh-scope-hint wh-wizard-depth-hint">' + esc(rowDepth === null ? t.mixedDepth : t.rackDepthHint) + '</p></div>';
       } else if (state.step === 1) {
         body = '<h4>' + esc(t.wizardBayTable) + '</h4><div class="wh-wizard-table-wrap"><table class="wh-wizard-table"><thead><tr><th>' +
-          esc(t.wizardBayNumber) + '</th><th>' + esc(t.width) + '</th><th>' + esc(t.levels) +
+          esc(t.wizardBayNumber) + '</th><th>' + esc(t.width) + '</th><th>' + esc(groundLabels().ground) + '</th><th>' + esc(t.levels) +
           '</th><th></th></tr></thead><tbody>' + rack.bays.map(function (bay, index) {
             return '<tr><th scope="row">' + (index + 1) + '</th><td>' + wizardInput('bay.width', bay.width, 300, 6000, index) +
-              '</td><td>' + wizardInput('bay.levels', bay.levels.length, 1, 12, index) + '</td><td><button type="button" data-wizard-action="edit-bay" data-index="' +
+              '</td><td><input type="checkbox" data-wizard-field="bay.groundEnabled" data-index="' + index + '" aria-label="' + esc(groundLabels().toggle) + '"' + (bay.ground.enabled ? ' checked' : '') + (bay.passage ? ' disabled' : '') + '></td><td>' + wizardInput('bay.levels', bay.levels.length, 1, 12, index) + '</td><td><button type="button" data-wizard-action="edit-bay" data-index="' +
               index + '">' + esc(t.wizardLevelTable) + '</button></td></tr>';
           }).join('') + '</tbody></table></div><h4>' + esc(t.wizardUprightTable) +
           '</h4><div class="wh-wizard-table-wrap"><table class="wh-wizard-table"><thead><tr><th>' + esc(t.wizardUprightNumber) +
@@ -691,6 +829,11 @@
           const name = input.value.trim();
           if (!name || name.length > 120) throw new Error(labels().wizardName + ': 1–120');
           draft.name = name;
+        } else if (field === 'rotation') {
+          draft.rotation = wizardNumber(input.value, -360, 360);
+        } else if (field === 'bay.groundEnabled') {
+          if (input.checked && draft.bays[index].passage) throw new Error(groundLabels().toggle);
+          draft.bays[index].ground.enabled = input.checked;
         } else if (field === 'rackDepth') {
           state.draft = model.setRackDepth(draft, wizardNumber(input.value, 200, 3000));
         } else if (field === 'bayCount') {
@@ -751,17 +894,147 @@
         '>' + esc(t[value] || value) + '</option>'; }).join('');
     }
     function currentZone(object) {
-      return model.zoneForLevel(layout(), object.bays[choice.bay].levels[choice.level].id);
+      return model.zoneForLevel(layout(), model.scopeLevel(object, choice.bay, choice.level).id);
     }
+    function placementLabels() {
+      return options.getLanguage() === 'de' ? {
+        title: 'Stellplätze · Ansicht von vorn (schematisch)', open: 'Ebene bearbeiten', close: 'Ebenenansicht schließen', draw: 'Stellfläche aufziehen',
+        add: 'Stellplatz hinzufügen', duplicate: 'Stellplatz duplizieren', remove: 'Stellplatz entfernen',
+        divide: 'Stellplätze nebeneinander aufteilen', grid: 'Raster (mm)', hint: 'Ansicht von vorn: Stellplätze liegen von links nach rechts nebeneinander. Seitlich ziehen: verschieben · rechten Griff ziehen: Breite ändern · Alt: ohne Raster und Kantenfang. Jeder Platz nutzt die Fachtiefe. Maximal 10 Stellplätze.',
+        x: 'Abstand links (mm)', width: 'Breite (mm)', depth: 'Tiefe (mm)', select: 'Stellplatz auswählen',
+        selected: 'Gewählter Stellplatz', limit: 'Maximal 10 Stellplätze pro Ebene.', outside: 'Die Stellfläche liegt außerhalb der nutzbaren Ebene.',
+        overlap: 'Die Stellfläche überschneidet einen anderen Stellplatz.', noSpace: 'Keine passende Lücke entlang der Regalfront. Vorhandene Stellplätze verkleinern oder neu nebeneinander aufteilen.',
+        align: 'Diese Ebene enthält frühere Versuchsflächen mit Tiefenversatz. Zum Bearbeiten ausdrücklich nebeneinander aufteilen; IDs und Codes bleiben erhalten.',
+        divideHint: 'Aufteilen ordnet die Stellplätze nebeneinander über die Fachbreite an. IDs und vorhandene Codes bleiben erhalten.', valid: 'Platzierung möglich', invalid: 'Platzierung nicht möglich'
+      } : {
+        title: 'Locations · front view (schematic)', open: 'Edit level areas', close: 'Close level view', draw: 'Draw location area',
+        add: 'Add location', duplicate: 'Duplicate location', remove: 'Remove location', divide: 'Divide locations side by side', grid: 'Grid (mm)',
+        hint: 'Front view: locations stand side by side from left to right. Drag sideways to move · drag the right handle to change width · Alt disables snapping. Each location uses the bay depth. Maximum 10 locations.',
+        x: 'Left offset (mm)', width: 'Width (mm)', depth: 'Depth (mm)', select: 'Select location', selected: 'Selected location',
+        limit: 'Maximum 10 locations per level.', outside: 'The location area exceeds the usable level bounds.', overlap: 'The location area overlaps another location.',
+        noSpace: 'No suitable gap along the rack front. Resize locations or divide them side by side.',
+        align: 'This level contains earlier prototype areas with depth offsets. Explicitly divide them side by side to edit; IDs and codes are retained.',
+        divideHint: 'Dividing arranges locations side by side across the bay width. Existing IDs and codes are retained.', valid: 'Valid placement', invalid: 'Invalid placement'
+      };
+    }
+    function placementError(error) {
+      const t = placementLabels(), value = error.message || String(error);
+      if (value === 'Location area exceeds the usable level bounds.') return t.outside;
+      if (value === 'Location areas overlap in this level.') return t.overlap;
+      if (value === 'A level supports up to 10 locations.') return t.limit;
+      if (value.startsWith('No free location area.')) return t.noSpace;
+      if (value.startsWith('Locations must share one row')) return t.align;
+      return value;
+    }
+    function frontLocationsReady(object) {
+      const zone = currentZone(object), bay = object.bays[choice.bay];
+      return model.zoneLocations(layout(), zone.id).every(function (location) {
+        return location.placement.z === 0 && location.placement.depth === bay.depth;
+      });
+    }
+    function locationPanel(object) {
+      if (!locationEditorOpen || mode !== 'locations' || !object || !model.RACK_TYPES.includes(object.type)) return '';
+      const t = placementLabels(), zone = currentZone(object), scope = model.locationScope(layout(), zone.id);
+      const locations = model.zoneLocations(layout(), zone.id), aligned = frontLocationsReady(object);
+      const locked = object.locked || zone.usage === 'unassigned' || saving || !aligned;
+      const frontHeight = Math.min(600, scope.bay.width * .4);
+      return '<section class="wh-location-editor" aria-label="' + esc(t.title) + '"><div class="wh-location-toolbar"><strong>' + esc(t.title) + ' · ' +
+        scope.bay.width + ' × ' + scope.bay.depth + ' mm · ' + locations.length + '/10</strong><button type="button" class="wh-small-button" data-action="location-close">' + esc(t.close) + '</button></div>' +
+        '<div class="wh-location-toolbar"><button type="button" class="wh-small-button" data-action="location-draw" aria-pressed="' + locationDraw + '"' + (locked || locations.length >= 10 ? ' disabled' : '') + '>' + esc(t.draw) + '</button>' +
+        '<label class="wh-field">' + esc(t.grid) + '<select data-placement-grid>' + [1,10,50,100].map(function (value) { return '<option value="' + value + '"' + (value === locationGrid ? ' selected' : '') + '>' + value + '</option>'; }).join('') + '</select></label></div>' +
+        '<p class="wh-scope-hint">' + esc(t.hint) + '</p>' + (!aligned ? '<p class="wh-location-warning" role="status">' + esc(t.align) + '</p>' : '') + '<div class="wh-location-surface"><svg data-placement-plane viewBox="0 0 ' + scope.bay.width + ' ' + frontHeight + '" role="group" aria-label="' + esc(t.title) + '">' +
+        '<rect class="wh-location-background" x="0" y="0" width="' + scope.bay.width + '" height="' + frontHeight + '"></rect>' +
+        (aligned ? locations : []).map(function (location) {
+          const a = location.placement, chosen = location.id === choice.slotId, label = location.code || '#' + (location.positionIndex + 1);
+          return '<g class="wh-location-area' + (chosen ? ' selected' : '') + '" data-placement-rect="' + esc(location.id) + '" role="button" tabindex="0" aria-label="' + esc(t.select + ': ' + label) + '">' +
+            '<title>' + esc(label) + ' · ' + a.x + ' mm · ' + a.width + ' × ' + a.depth + ' mm</title><rect x="' + a.x + '" y="0" width="' + a.width + '" height="' + frontHeight + '"></rect>' +
+            '<text x="' + (a.x + a.width / 2) + '" y="' + (frontHeight / 2) + '" font-size="' + Math.min(40, a.width / Math.max(4, Math.min(14,label.length) * .62)) + '">' + esc(label.slice(0,14)) + '</text>' +
+            (chosen && !locked ? '<circle data-placement-handle="' + esc(location.id) + '" cx="' + (a.x+a.width) + '" cy="' + (frontHeight / 2) + '" r="' + Math.max(8,scope.bay.width/100) + '"></circle>' : '') + '</g>';
+        }).join('') + '<rect data-placement-ghost class="wh-location-ghost" visibility="hidden"></rect></svg></div><p class="wh-scope-hint" data-placement-feedback role="status"></p></section>';
+    }
+    function placementPoint(svg, event) {
+      const point = svg.createSVGPoint(); point.x = event.clientX; point.y = event.clientY;
+      const result = point.matrixTransform(svg.getScreenCTM().inverse());
+      return { x: result.x, z: result.y };
+    }
+    function snapLocationArea(area, scope, excludeId, disabled, operation) {
+      const result = { x: Math.round(area.x), z: 0, width: Math.max(1, Math.round(area.width)), depth: scope.bay.depth };
+      if (disabled) return result;
+      if (operation !== 'resize') result.x = model.snapCoordinate(result.x, locationGrid);
+      if (operation !== 'move') result.width = Math.max(1, model.snapCoordinate(result.width, locationGrid));
+      const edges = [0, scope.bay.width].concat(model.zoneLocations(layout(), scope.zone.id)
+        .filter(function (item) { return item.id !== excludeId; })
+        .flatMap(function (item) { return [item.placement.x, item.placement.x + item.placement.width]; }));
+      const candidates = operation === 'resize' ? edges.filter(function (edge) { return edge > result.x; }) :
+        edges.flatMap(function (edge) { return [edge, edge - result.width]; });
+      const target = operation === 'resize' ? result.x + result.width : result.x;
+      candidates.sort(function (a, b) { return Math.abs(a - target) - Math.abs(b - target); });
+      if (candidates.length && Math.abs(candidates[0] - target) <= locationGrid * 1.5) {
+        if (operation === 'resize') result.width = candidates[0] - result.x;
+        else result.x = candidates[0];
+      }
+      return result;
+    }
+    root.addEventListener('pointerdown', function (event) {
+      const svg = event.target.closest('[data-placement-plane]');
+      if (!svg || event.button !== 0 || saving) return;
+      const object = selected(), zone = currentZone(object);
+      if (object.locked || zone.usage === 'unassigned' || !frontLocationsReady(object)) return;
+      const handle = event.target.closest('[data-placement-handle]'), hit = event.target.closest('[data-placement-rect]');
+      const key = handle ? handle.dataset.placementHandle : hit ? hit.dataset.placementRect : null;
+      const location = key && layout().locations.find(function (item) { return item.id === key; });
+      if (!location && (!locationDraw || model.zoneLocations(layout(),zone.id).length >= 10)) return;
+      event.preventDefault();
+      if (key) choice.slotId = key;
+      locationDrag = { svg: svg, scope: model.locationScope(layout(), zone.id), key: key, resize: Boolean(handle),
+        origin: placementPoint(svg,event), start: location && Object.assign({},location.placement), area: null, valid: false, moved: false };
+      svg.setPointerCapture(event.pointerId);
+    });
+    root.addEventListener('pointermove', function (event) {
+      if (!locationDrag) return;
+      const drag = locationDrag, point = placementPoint(drag.svg,event), dx=point.x-drag.origin.x;
+      if (Math.abs(dx) < 2 && !drag.moved) return;
+      drag.moved = true;
+      const raw = !drag.start ? { x: Math.min(point.x,drag.origin.x), width:Math.abs(dx) } :
+        drag.resize ? { x:drag.start.x, width:drag.start.width+dx } :
+          { x:drag.start.x+dx, width:drag.start.width };
+      drag.area = snapLocationArea(raw,drag.scope,drag.key,event.altKey,drag.resize?'resize':drag.start?'move':'draw');
+      const ghost=drag.svg.querySelector('[data-placement-ghost]');
+      ['x','width'].forEach(function (key) { ghost.setAttribute(key,drag.area[key]); });
+      ghost.setAttribute('y',0); ghost.setAttribute('height',Math.min(600,drag.scope.bay.width*.4)); ghost.setAttribute('visibility','visible');
+      try { model.checkLocationPlacement(layout(),drag.scope.zone.id,drag.area,drag.key); drag.valid=true; }
+      catch(error) { drag.valid=false; drag.error=placementError(error); }
+      ghost.classList.toggle('invalid',!drag.valid);
+      root.querySelector('[data-placement-feedback]').textContent=(drag.valid?placementLabels().valid:drag.error)+' · '+drag.area.width+' × '+drag.area.depth+' mm';
+    });
+    root.addEventListener('pointerup', async function () {
+      if (!locationDrag) return;
+      const drag=locationDrag; locationDrag=null;
+      if (!drag.moved) { render(); return; }
+      if (!drag.valid) { message=drag.error || placementLabels().invalid; render(); return; }
+      try {
+        const next=drag.key?model.setLocationPlacement(layout(),drag.key,drag.area):model.addLocation(layout(),drag.scope.zone.id,drag.area);
+        const prior=choice.slotId;
+        if (!drag.key) choice.slotId=next.locations[next.locations.length-1].id;
+        locationDraw=false;
+        if (!await commit(next)) { choice.slotId=prior; render(); }
+        else render();
+      } catch(error) { message=placementError(error); render(); }
+    });
+    root.addEventListener('pointercancel', function () { if(locationDrag) { locationDrag=null; render(); } });
+    root.addEventListener('lostpointercapture', function () { if(locationDrag) { locationDrag=null; render(); } });
     function scopeProperties(object, t) {
       if (!model.RACK_TYPES.includes(object.type)) return '<p class="wh-empty">' + esc(t.spatialHint) +
         '</p><button type="button" class="wh-small-button" data-mode="structure">' + esc(t.structure) + '</button>';
-      const bay = object.bays[choice.bay], level = bay.levels[choice.level];
+      const bay = object.bays[choice.bay], level = model.scopeLevel(object, choice.bay, choice.level);
       const zone = currentZone(object);
       const locations = model.zoneLocations(layout(), zone.id);
       let html = '<div class="wh-property-grid">' + selectField(t.bay, 'bay', object.bays.length, choice.bay) +
-        selectField(t.level, 'level', bay.levels.length, choice.level) + '</div>' + scopeProgress(object, level, t);
+        scopeSelector(object, t) + '</div>' + groundToggle(object) + scopeProgress(object, level, t);
       if (mode === 'zones') {
+        html += '<div class="wh-section" data-selection-section="usage"><strong>' + esc(t.bay) + ' ' + (choice.bay + 1) + ' · ' +
+          esc(level.ground ? groundLabels().name : t.level + ' ' + (choice.level + 1)) + '</strong><label class="wh-field"><span>' + esc(t.usage) +
+          '</span><select data-zone="' + esc(zone.id) + '">' + usageOptions(zone.usage, t) + '</select></label></div>';
         html += '<div class="wh-section"><label class="wh-field"><span>' + esc(t.bulkUsage) + '</span><select data-bulk-usage>' +
           usageOptions('picking', t) + '</select></label><button type="button" class="wh-small-button" data-action="usage-bay">' +
           esc(t.applyUsageBay) + '</button><button type="button" class="wh-small-button" data-action="usage-rack">' + esc(t.applyUsageRack) +
@@ -769,7 +1042,7 @@
           .map(function (scope) {
             return '<div class="wh-zone-row' + (scope.levelId === level.id ? ' selected' : '') + '"><button type="button" data-scope-bay="' +
               scope.bayIndex + '" data-scope-level="' + scope.levelIndex + '">' + esc(t.bay) + ' ' + (scope.bayIndex + 1) +
-              ' · ' + esc(t.level) + ' ' + (scope.levelIndex + 1) + '</button><label class="wh-field"><span>' + esc(t.usage) +
+              ' · ' + (scope.ground ? esc(groundLabels().name) : esc(t.level) + ' ' + (scope.levelIndex + 1)) + '</button><label class="wh-field"><span>' + esc(t.usage) +
               '</span><select data-zone="' + esc(scope.zoneId) + '" style="border-left:4px solid ' +
               (model.USAGE_COLORS[scope.usage] || model.USAGE_COLORS.unassigned) + '">' + usageOptions(scope.usage, t) +
               '</select></label><small>' + scope.codedCount + '/' + scope.locationCount + ' ' + esc(t.coded) + '</small></div>';
@@ -779,10 +1052,20 @@
       const classified = zone.usage !== 'unassigned';
       if (!classified) html += '<p class="wh-scope-hint">' + esc(t.classificationNeeded) + '</p><button type="button" class="wh-small-button" data-mode="zones">' +
         esc(t.gotoZones) + '</button>' + (locations.some(function (location) { return location.legacy; }) ? '<p class="wh-scope-hint">' + esc(t.legacyHint) + '</p>' : '');
-      html += '<div class="wh-section">' + numberField(t.positions, 'count.locations', locations.length, 0, 4) +
-        '<button type="button" class="wh-small-button" data-action="resize-locations"' + (!classified ? ' disabled' : '') + '>' + esc(t.applyLevelPositions) + '</button></div>';
+      html += '<div class="wh-section" data-selection-section="locations">' + numberField(t.positions, 'count.locations', locations.length, 0, 10) +
+        '<button type="button" class="wh-small-button" data-action="resize-locations"' + (!classified ? ' disabled' : '') + '>' + esc(placementLabels().divide) + '</button></div>';
+      const placementText = placementLabels();
+      if (!frontLocationsReady(object)) html += '<p class="wh-location-warning" role="status">' + esc(placementText.align) + '</p>';
+      html += '<p class="wh-scope-hint">' + esc(placementText.divideHint) + '</p><div class="wh-section"><button type="button" class="wh-small-button" data-action="location-open">' + esc(placementText.open) + '</button><button type="button" class="wh-small-button" data-action="location-add"' + (!classified || !frontLocationsReady(object) || locations.length >= 10 ? ' disabled' : '') + '>' + esc(placementText.add) + '</button></div>';
+      const location = locations.find(function (item) { return item.id === choice.slotId; }) || locations[0];
+      if (location) {
+        choice.slotId = location.id;
+        html += '<div class="wh-section" data-selection-section="location"><strong>' + esc(placementText.selected) + ' · ' + esc(location.code || '#' + (location.positionIndex+1)) + '</strong><div class="wh-property-grid">' +
+          ['x','width'].map(function (key) { const control = numberField(placementText[key], 'location.'+key, location.placement[key], key==='x'?0:1, 50000); return frontLocationsReady(object) ? control : control.replace('<input ', '<input disabled '); }).join('') +
+          '</div><p class="wh-scope-hint">' + esc(placementText.depth) + ': ' + bay.depth + '</p><button type="button" class="wh-small-button" data-action="location-duplicate"' + (!classified || !frontLocationsReady(object) || locations.length>=10?' disabled':'') + '>' + esc(placementText.duplicate) + '</button><button type="button" class="wh-small-button" data-action="location-remove"' + (!classified?' disabled':'') + '>' + esc(placementText.remove) + '</button></div>';
+      }
       html += '<div class="wh-section"><strong>' + esc(t.codes) + '</strong>' + (locations.length ? locations.map(function (location) {
-        return '<label class="wh-code-row' + (location.id === choice.slotId ? ' selected' : '') + '"><span>' + (location.positionIndex + 1) +
+        return '<label class="wh-code-row' + (location.id === choice.slotId ? ' selected' : '') + '"><span>' + '<button type="button" class="wh-location-pick" data-placement-select="' + esc(location.id) + '" aria-label="' + esc(placementText.select) + ' ' + (location.positionIndex+1) + '">' + (location.positionIndex+1) + '</button>' +
           '</span><input type="text" data-location="' + esc(location.id) + '" value="' + esc(location.code) +
           '" maxlength="80" placeholder="' + esc(t.code) + '"' + (!classified && !location.legacy ? ' disabled' : '') + '></label>';
       }).join('') : '<p class="wh-empty">' + esc(t.noLocations) + '</p>') + '</div>';
@@ -895,10 +1178,10 @@
       if (!object) return '<p class="wh-empty">' + esc(t.selected) + '</p>';
       if (model.RACK_TYPES.includes(object.type)) {
         choice.bay = Math.min(choice.bay, object.bays.length - 1);
-        choice.level = Math.min(choice.level, object.bays[choice.bay].levels.length - 1);
+        choice.level = Math.max(!object.bays[choice.bay].ground.enabled ? 0 : -1, Math.min(choice.level, object.bays[choice.bay].levels.length - 1));
       }
       if (mode !== 'structure') return scopeProperties(object, t);
-      let html = '<div class="wh-property-grid">' + textField(t.name, 'name', object.name) +
+      let html = '<div class="wh-property-grid" data-selection-section="object">' + textField(t.name, 'name', object.name) +
         numberField(t.x, 'x', object.x, -500000, 500000) + numberField(t.z, 'z', object.z, -500000, 500000) +
         numberField(t.rotation, 'rotation', object.rotation, -360, 360) + '</div>';
       if (!model.RACK_TYPES.includes(object.type)) {
@@ -927,25 +1210,25 @@
       choice.upright = Math.min(choice.upright, object.uprights.length - 1);
       const bay = object.bays[choice.bay];
       choice.level = Math.min(choice.level, bay.levels.length - 1);
-      const level = bay.levels[choice.level];
+      const level = model.scopeLevel(object, choice.bay, choice.level);
       const stand = object.uprights[choice.upright];
       const depth = model.rackDepth(object);
       html += '<div class="wh-section">' + numberField(t.rackDepth, 'rack.depth', depth === null ? '' : depth, 200, 3000) +
-        '<p class="wh-scope-hint">' + esc(depth === null ? t.mixedDepth : t.rackDepthHint) + '</p></div>';
+        '<p class="wh-scope-hint">' + esc(depth === null ? t.mixedDepth : navigationLabels().depthImpact) + '</p></div>' + groundToggle(object) + '<p class="wh-front-hint">' + esc(groundLabels().direction) + '</p>';
       html += '<div class="wh-section"><div class="wh-property-grid">' +
         numberField(t.bays, 'count.bays', object.bays.length, 1, 30) +
         '</div><button type="button" class="wh-small-button" data-action="resize">' + esc(t.applyCounts) + '</button></div>';
-      html += '<div class="wh-section"><div class="wh-property-grid">' +
+      html += '<div class="wh-section" data-selection-section="bay"><p class="wh-scope-hint">' + esc(navigationLabels().bayImpact) + '</p><div class="wh-property-grid">' +
         selectField(t.bay, 'bay', object.bays.length, choice.bay) +
         numberField(t.width, 'bay.width', bay.width, 300, 6000) +
         numberField(t.levels, 'count.bayLevels', bay.levels.length, 1, 12) +
         '</div><button type="button" class="wh-small-button" data-action="resize-bay">' + esc(t.applyBayLevels) + '</button></div>';
-      html += '<div class="wh-section"><div class="wh-property-grid">' +
-        selectField(t.level, 'level', bay.levels.length, choice.level) +
+      html += '<div class="wh-section" data-selection-section="level"><p class="wh-scope-hint">' + esc(level.ground ? navigationLabels().groundImpact : navigationLabels().levelImpact) + '</p><div class="wh-property-grid">' +
+        scopeSelector(object, t) + (level.ground ? '' :
         numberField(t.clearHeight, 'level.clearHeight', level.clearHeight, 100, 8000) +
         numberField(t.thickness, 'level.thickness', level.thickness, 10, 300) +
         '</div><label class="wh-check"><input type="checkbox" data-field="level.deck"' + (level.deck ? ' checked' : '') + '><span>' + esc(t.deck) + '</span></label>' +
-        numberField(t.deckThickness, 'level.deckThickness', level.deckThickness, 10, 200) + '</div>';
+        numberField(t.deckThickness, 'level.deckThickness', level.deckThickness, 10, 200)) + (level.ground ? '</div>' : '') + '</div>';
       html += '<div class="wh-section"><div class="wh-property-grid">' +
         selectField(t.upright, 'upright', object.uprights.length, choice.upright) +
         numberField(t.width, 'upright.width', stand.width, 20, 500) +
@@ -982,6 +1265,7 @@
     }
 
     function render() {
+      if (cancelTopGesture) cancelTopGesture();
       const uiState = captureUi();
       const recipeInput = root.querySelector('#wh-recipe');
       if (recipeInput && model.RECIPE_TYPES.includes(recipeInput.value)) recipeType = recipeInput.value;
@@ -1001,6 +1285,7 @@
       const warnings = collisions.filter(function (item) { return item.severity !== 'info'; });
       const collisionIds = new Set(warnings.flatMap(function (item) { return [item.firstId, item.secondId]; }));
       const objectsById = new Map(warehouse.objects.map(function (item) { return [item.id, item]; }));
+      const propertyHtml = properties(object, t);
       const collisionSummary = warnings.length + ' ' + (warnings.length === 1 ? t.collision : t.collisions);
       const collisionPanel = collisions.length ? '<div class="wh-card wh-collisions' + (warnings.length ? '' : ' is-info') + '"><h4>' + esc(t.checks) +
         ' · ' + esc(collisionSummary) + '</h4><div class="wh-collision-list" tabindex="0" data-ui-key="layout-checks" aria-label="' + esc(t.checks) + '">' + collisions.slice(0, 12).map(function (item) {
@@ -1041,7 +1326,7 @@
             (collisionIds.has(item.id) ? ' · ⚠ ' + esc(t.collision) : '') + '</small></span></button>';
         }).join('') : '<p class="wh-empty">' + esc(t.empty) + '</p>') + '</div></aside>' +
         '<div class="wh-main"><div class="wh-view-toolbar"><strong>' + esc(camera.mode === 'top' ? t.planView : t.view) +
-        '</strong><div><button type="button" data-action="undo"' + (undoStack.length ? '' : ' disabled') +
+        '</strong><div>' + topInteractionToolbar() + '<button type="button" data-action="undo"' + (undoStack.length ? '' : ' disabled') +
         ' title="Ctrl+Z">' + esc(t.undo) + '</button><button type="button" data-action="redo"' +
         (redoStack.length ? '' : ' disabled') + ' title="Ctrl+Y / Ctrl+Shift+Z">' + esc(t.redo) +
         '</button><button type="button" data-action="fit">' + esc(t.fit) +
@@ -1052,27 +1337,28 @@
         [[0.5, t.zoomSlow], [1, t.zoomNormal], [2, t.zoomFast]].map(function (item) { return '<option value="' + item[0] + '"' +
           (zoomSensitivity === item[0] ? ' selected' : '') + '>' + esc(item[1]) + '</option>'; }).join('') + '</select></label>' +
         (camera.mode === 'orbit' ? '<button type="button" data-action="focus"' +
-          (object ? '' : ' disabled') + '>' + esc(t.focus) + '</button>' : '') + '<button type="button" data-action="magnet" aria-pressed="' + magnetEnabled +
+          (object ? '' : ' disabled') + '>' + esc(navigationLabels().focus) + '</button>' : '') + '<button type="button" data-action="magnet" aria-pressed="' + magnetEnabled +
         '" title="' + esc(t.magnetTitle) + '">⌁ ' + esc(t.magnet) +
         '</button>' + (camera.mode === 'orbit' ? '<button type="button" data-action="wall-mode" title="' +
           esc(t.wallModeHelp) + '">' + esc(t[wallMode === 'solid' ? 'wallSolid' : wallMode === 'transparent' ? 'wallTransparent' : 'wallHidden']) +
-          '</button>' : '') + '<button type="button" data-action="top" aria-pressed="' + (camera.mode === 'top') + '">' + esc(t.top) +
+          '</button>' : '') + '<button type="button" data-action="markers" aria-pressed="' + showLocations + '">' + esc(markerToggleLabel()) + '</button><button type="button" data-action="top" aria-pressed="' + (camera.mode === 'top') + '">' + esc(t.top) +
         '</button><button type="button" data-action="orbit" aria-pressed="' + (camera.mode === 'orbit') +
         '"' + (!webglRenderer || !webglRenderer.available() ? ' disabled title="' + esc(t.webglUnavailable) + '"' : '') + '>' +
         esc(t.orbit) + '</button></div></div><div class="wh-viewport"><canvas class="wh-canvas is-top' +
-        (camera.mode === 'top' ? '' : ' is-hidden') + '" role="img" tabindex="0" aria-label="' + esc(t.planView) + '" title="' + esc(t.zoomKeyboard) + '"></canvas>' +
-        '<div class="wh-webgl-slot' + (camera.mode === 'orbit' ? '' : ' is-hidden') + '"></div></div>' +
-        '<div class="wh-view-hint" id="wh-navigation-hint">' + esc(camera.mode === 'top' ? (mode === 'structure' ? t.hintTop + (magnetEnabled ? ' · ' + t.magnetHint : '') : t.inspectHint) + ' · ' + t.topZonesHint : t.hint) + ' · ' + esc(t.zoomKeyboard) + '</div>' +
-        '<div class="wh-legend">' + colorLegend(warehouse, t) + '</div>' +
+        (camera.mode === 'top' ? '' : ' is-hidden') + '" data-top-drag="' + topInteraction() + '" role="img" tabindex="0" aria-label="' + esc(t.planView) + '" title="' + esc(t.zoomKeyboard) + '"></canvas>' +
+        '<div class="wh-webgl-slot' + (camera.mode === 'orbit' ? '' : ' is-hidden') + '"></div>' + locationPanel(object) + '</div>' +
+        '<div class="wh-view-hint" id="wh-navigation-hint">' + esc(camera.mode === 'top' ? topInteractionLabels()[topInteraction() === 'pan' ? 'panHint' : 'moveHint'] +
+          (topInteraction() === 'move' && magnetEnabled ? ' · ' + t.magnetHint : '') + ' · ' + t.topZonesHint : t.hint) + ' · ' + esc(navigationLabels().pickHint) + ' · ' + esc(t.zoomKeyboard) + '</div>' +
+        '<div class="wh-legend">' + colorLegend(warehouse, t) + '<span style="color:#ffd78a">↗ ' + esc(groundLabels().front) + '</span></div>' +
         '</div><aside class="wh-properties"' + (preview ? ' inert' : '') + '><div class="wh-card" tabindex="0" data-ui-key="properties" aria-label="' + esc(t.properties) + '"><div class="wh-properties-head"><h4>' + esc(t.properties) + '</h4>' +
         (object && mode === 'structure' ? '<button type="button" class="wh-delete" data-action="delete">' + esc(t.delete) + '</button>' : '') +
-        '</div>' + (object ? '<div class="wh-object-actions"><button type="button" class="wh-lock-toggle" data-action="toggle-lock" aria-pressed="' +
+        '</div>' + selectionNavigation(object, t) + (object ? '<div class="wh-object-actions"><button type="button" class="wh-lock-toggle" data-action="toggle-lock" aria-pressed="' +
           Boolean(object.locked) + '">' + (object.locked ? '🔓 ' + esc(t.unlock) : '🔒 ' + esc(t.lock)) +
         '</button>' + (mode === 'structure' ? (model.RACK_TYPES.includes(object.type) ? '<button type="button" data-action="edit-rack">' +
           esc(t.wizardEditButton) + '</button>' : '') + '<button type="button" data-action="duplicate">' +
           esc(t.duplicate) + '</button><button type="button" data-action="rotate-left" title="' + esc(t.rotateLeft) +
           '">↶ 90°</button><button type="button" data-action="rotate-right" title="' + esc(t.rotateRight) +
-          '">↷ 90°</button>' : '') + '</div>' + (object.locked ? '<p class="wh-locked-hint">🔒 ' + esc(t.lockedHint) + '</p>' : '') : '') + properties(object, t) +
+          '">↷ 90°</button>' : '') + '</div>' + (object.locked ? '<p class="wh-locked-hint">🔒 ' + esc(t.lockedHint) + '</p>' : '') : '') + propertyHtml +
         '</div></aside></div>' + (rackWizard ? wizardHtml(t) : '') +
         '<p class="wh-message" role="status" aria-live="polite">' + esc(message) + '</p>';
       if (object && object.locked) {
@@ -1081,7 +1367,7 @@
       }
       if (preview) {
         root.querySelectorAll('.wh-view-toolbar [data-action]').forEach(function (control) {
-          const allowed = ['fit', 'focus', 'wall-mode', 'top', 'orbit', 'zoom-in', 'zoom-out'];
+          const allowed = ['fit', 'focus', 'wall-mode', 'markers', 'top', 'orbit', 'zoom-in', 'zoom-out', 'top-pan'];
           if (!allowed.includes(control.dataset.action)) control.disabled = true;
         });
       }
@@ -1101,6 +1387,7 @@
       });
       const scope = JSON.stringify([historyWorkspaceId, choice.objectId, mode, choice.bay, choice.level, choice.upright, rackWizard && rackWizard.step]);
       restoreUi(uiState, scope);
+      revealProperties();
       lastRenderedObjectId = choice.objectId; lastRenderedScope = scope;
       paint(warehouse, collisionIds, collisions);
       wireCanvas();
@@ -1212,26 +1499,30 @@
           object.bays.forEach(function (bay, index) {
             const local = function (x, z) { return topPoint(object.x + Math.cos(angle) * x - Math.sin(angle) * z,
               object.z + Math.sin(angle) * x + Math.cos(angle) * z, width, height); };
-            bay.levels.forEach(function (level, levelIndex) {
+            const displayLevels = bay.ground.enabled ? [model.scopeLevel(object, index, -1)].concat(bay.levels) : bay.levels;
+            displayLevels.forEach(function (level, displayIndex) {
+              const levelIndex = level.ground ? -1 : displayIndex - (bay.ground.enabled ? 1 : 0);
               const zone = scopeIndex.zonesByLevel.get(level.id);
               const locations = zone && scopeIndex.locationsByZone.get(zone.id) || [];
-              const bandDepth = bay.depth / bay.levels.length;
-              const parts = mode === 'locations' && locations.length ? locations : [null];
+              const bandDepth = bay.depth / displayLevels.length;
+              const parts = mode === 'locations' && showLocations && locations.length ? locations : [null];
               parts.forEach(function (location, positionIndex) {
-                const x = divider + positionIndex * bay.width / parts.length;
-                const z = levelIndex * bandDepth;
-                const band = [local(x, z), local(x + bay.width / parts.length, z),
-                  local(x + bay.width / parts.length, z + bandDepth), local(x, z + bandDepth)];
+                const area = location && location.placement;
+                const x = divider + (area ? area.x : 0), z = displayIndex * bandDepth + (area ? area.z / displayLevels.length : 0);
+                const areaWidth = area ? area.width : bay.width, areaDepth = area ? area.depth / displayLevels.length : bandDepth;
+                const band = [local(x, z), local(x + areaWidth, z), local(x + areaWidth, z + areaDepth), local(x, z + areaDepth)];
                 ctx.beginPath(); ctx.moveTo(band[0][0], band[0][1]);
                 band.slice(1).forEach(function (point) { ctx.lineTo(point[0], point[1]); }); ctx.closePath();
                 ctx.fillStyle = model.USAGE_COLORS[zone ? zone.usage : 'unassigned'] || model.USAGE_COLORS.unassigned;
                 ctx.globalAlpha = 0.55; ctx.fill(); ctx.globalAlpha = 1;
-                ctx.strokeStyle = object.id === choice.objectId && index === choice.bay && levelIndex === choice.level ? '#efffff' : '#253941';
-                ctx.lineWidth = 1; ctx.stroke();
-                if (bandDepth * scale > 16 && bay.width * scale / parts.length > 32) {
-                  const center = local(x + bay.width / parts.length / 2, z + bandDepth / 2);
+                const chosen = object.id === choice.objectId && index === choice.bay &&
+                  (selectionKind === 'bay' || levelIndex === choice.level) && (selectionKind !== 'slot' || location && location.id === choice.slotId);
+                ctx.strokeStyle = chosen ? '#fff2a3' : '#253941';
+                ctx.lineWidth = chosen ? 2 : 1; ctx.stroke();
+                if (areaDepth * scale > 16 && areaWidth * scale > 32) {
+                  const center = local(x + areaWidth / 2, z + areaDepth / 2);
                   ctx.font = '10px Segoe UI, sans-serif'; ctx.fillStyle = '#10202a'; ctx.textAlign = 'center';
-                  ctx.fillText('L' + (levelIndex + 1) + (location ? ' · ' + (positionIndex + 1) : ''), center[0], center[1]);
+                  ctx.fillText((level.ground ? groundLabels().ground : 'L' + (levelIndex + 1)) + (location ? ' · ' + (positionIndex + 1) : ''), center[0], center[1]);
                 }
                 pickFaces.push({ objectId: object.id, bayIndex: index, levelIndex: levelIndex,
                   slotId: location && location.id, polygon: band });
@@ -1252,6 +1543,17 @@
             ctx.strokeStyle = '#a5bdc7'; ctx.lineWidth = 1; ctx.stroke();
             divider += object.uprights[index + 1].width;
           });
+        }
+        if (model.RACK_TYPES.includes(object.type)) {
+          const front = model.rackFront(object), a = topPoint(front.left.x, front.left.z, width, height), b = topPoint(front.right.x, front.right.z, width, height);
+          const c = topPoint(front.center.x, front.center.z, width, height), tip = topPoint(front.tip.x, front.tip.z, width, height);
+          ctx.strokeStyle = '#ffd78a'; ctx.fillStyle = '#ffd78a'; ctx.lineWidth = 3;
+          ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.moveTo(c[0],c[1]); ctx.lineTo(tip[0],tip[1]); ctx.stroke();
+          const angle = Math.atan2(tip[1]-c[1],tip[0]-c[0]);
+          ctx.beginPath(); ctx.moveTo(tip[0],tip[1]);
+          ctx.lineTo(tip[0]-9*Math.cos(angle-.5),tip[1]-9*Math.sin(angle-.5));
+          ctx.lineTo(tip[0]-9*Math.cos(angle+.5),tip[1]-9*Math.sin(angle+.5)); ctx.closePath(); ctx.fill();
+          if (object.id === choice.objectId) { ctx.font='11px Segoe UI, sans-serif'; ctx.textAlign='center'; ctx.fillText(groundLabels().front,tip[0],tip[1]-14); }
         }
         const center = object.junction ? topPoint(object.x, object.z, width, height) : null;
         const centerX = center ? center[0] : polygon.reduce(function (sum, point) { return sum + point[0]; }, 0) / 4;
@@ -1313,7 +1615,8 @@
         if (webglRenderer && webglRenderer.available()) {
           const partConflicts = new Set(issues.flatMap(function (item) { return item.partId ? [item.partId, item.secondPartId].filter(Boolean) : [item.firstId, item.secondId]; }));
           webglRenderer.render(boxesFor(warehouse),
-            camera, preview ? preview.selectionId : choice.objectId, preview ? null : choice.slotId || focusedPart, partConflicts, wallMode);
+            camera, preview ? preview.selectionId : choice.objectId, preview ? null : focusedPart ||
+              (selectionKind === 'slot' ? choice.slotId : selectionKind === 'level' || selectionKind === 'bay' ? selectionScope() : null), partConflicts, wallMode);
         }
         return;
       }
@@ -1335,6 +1638,7 @@
       if (wiredCanvases.has(inputCanvas)) return;
       wiredCanvases.add(inputCanvas);
       let drag = null;
+      if (camera.mode === 'top') cancelTopGesture = function () { drag = null; snapPreview = null; };
       inputCanvas.addEventListener('pointerdown', function (event) {
         if (saving) return;
         inputCanvas.focus({ preventScroll: true });
@@ -1346,19 +1650,22 @@
           const rect = canvas.getBoundingClientRect();
           const x = event.clientX - rect.left, y = event.clientY - rect.top;
           const found = preview ? null : topHit(x, y);
-          if (found) {
+          if (topInteraction() === 'pan') {
+            drag = { mode: 'pan', found: found, x: event.clientX, y: event.clientY, moved: false,
+              centerX: topView.centerX, centerZ: topView.centerZ };
+          } else if (found) {
             const object = layout().objects.find(function (item) { return item.id === found.objectId; });
-            choice.objectId = object.id; choice.slotId = null;
-            if (found.bayIndex !== undefined) { choice.bay = found.bayIndex; choice.level = found.levelIndex; choice.slotId = found.slotId || null; }
+            if (found.bayIndex !== undefined) selectSlot(found, true);
+            else { choice.objectId = object.id; choice.slotId = null; selectionKind = 'object'; revealSelection = true; }
             const members = model.relatedObjects(layout(), object.id);
             const lockedAssembly = layout().objects.some(function (member) { return members.has(member.id) && member.locked; });
             if (lockedAssembly || mode !== 'structure') {
               if (lockedAssembly && mode === 'structure') message = labels().lockedEdit;
-              drag = { mode: 'select', x: event.clientX, y: event.clientY, moved: false };
+              drag = { mode: 'select', found: found, x: event.clientX, y: event.clientY, moved: false };
             }
             else {
               const next = clone(layout());
-              drag = { mode: 'move', x: event.clientX, y: event.clientY, moved: false,
+              drag = { mode: 'move', found: found, x: event.clientX, y: event.clientY, moved: false,
                 origin: topWorld(event.clientX, event.clientY), startX: object.x, startZ: object.z,
                 next: next, target: next.objects.find(function (item) { return item.id === object.id; }) };
             }
@@ -1379,6 +1686,7 @@
         const dx = event.clientX - drag.x, dy = event.clientY - drag.y;
         if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
         if (!drag.moved) return;
+        lastModelClick = null; lastManualFocusAt = 0;
         if (drag.mode === 'move') {
           const world = topWorld(event.clientX, event.clientY);
           const rawX = Math.max(-500000, Math.min(500000, drag.startX + world.x - drag.origin.x));
@@ -1429,20 +1737,25 @@
       });
       inputCanvas.addEventListener('pointerup', function (event) {
         if (!drag) return;
-        if (drag.mode === 'select') { drag = null; snapPreview = null; render(); return; }
+        if (drag.mode === 'pan') {
+          const picked = drag.found, moved = drag.moved;
+          drag = null;
+          if (!moved && picked) clickModel(picked, event);
+          return;
+        }
+        if (drag.mode === 'select') { const picked = drag.found, moved = drag.moved; drag = null; snapPreview = null; if (!moved) clickModel(picked, event); else render(); return; }
         if (drag.mode === 'move') {
           const moved = drag.target.x !== drag.startX || drag.target.z !== drag.startZ;
-          const next = drag.next;
+          const next = drag.next, picked = drag.found;
           drag = null;
           snapPreview = null;
           if (moved) commit(next);
-          else render();
+          else clickModel(picked, event);
           return;
         }
         if (drag.mode === 'orbit' && !drag.moved && !preview) {
           const found = webglRenderer && webglRenderer.pick(event.clientX, event.clientY);
-          if (found && found.bayIndex !== undefined) selectSlot(found);
-          else if (found) { choice.objectId = found.objectId; choice.bay = 0; choice.level = 0; choice.upright = 0; choice.slotId = null; render(); }
+          clickModel(found, event);
         }
         drag = null;
       });
@@ -1457,20 +1770,15 @@
         drag = null; snapPreview = null;
         if (restore && root.getClientRects().length) paint(viewLayout(), null, currentFindings);
       });
-      if (inputCanvas === glCanvas) {
-        inputCanvas.addEventListener('contextmenu', function (event) { event.preventDefault(); });
-        inputCanvas.addEventListener('dblclick', function (event) {
+      if (inputCanvas === glCanvas) inputCanvas.addEventListener('contextmenu', function (event) { event.preventDefault(); });
+      inputCanvas.addEventListener('dblclick', function (event) {
           event.preventDefault();
-          if (preview) return;
-          const found = webglRenderer && webglRenderer.pick(event.clientX, event.clientY);
-          if (!found || !focusObject(found.objectId)) return;
-          if (found.slotId) selectSlot(found);
-          else {
-            choice.objectId = found.objectId; choice.slotId = null;
-            render();
-          }
+          if (preview || Date.now() - lastManualFocusAt < 450) return;
+          const rect = inputCanvas.getBoundingClientRect();
+          const found = camera.mode === 'top' ? topHit(event.clientX - rect.left, event.clientY - rect.top) :
+            webglRenderer && webglRenderer.pick(event.clientX, event.clientY);
+          clickModel(found, event, true);
         });
-      }
     }
 
     root.addEventListener('wheel', function (event) {
@@ -1487,6 +1795,7 @@
         }
         return;
       }
+      if (event.target.closest('.wh-location-editor')) return;
       if (!event.target.closest('.wh-viewport')) return;
       if (event.cancelable) event.preventDefault();
       event.stopPropagation();
@@ -1499,6 +1808,12 @@
       if (saving) return;
       const globalButton = event.target.closest('[data-action]');
       const globalAction = globalButton && globalButton.dataset.action;
+      if (!rackWizard && (globalAction === 'top-pan' || globalAction === 'top-move')) {
+        if (camera.mode !== 'top' || globalAction === 'top-move' && (mode !== 'structure' || preview)) return;
+        topDragMode = globalAction === 'top-pan' ? 'pan' : 'move';
+        snapPreview = null; lastModelClick = null; lastManualFocusAt = 0;
+        render(); return;
+      }
       if (!rackWizard && (globalAction === 'zoom-in' || globalAction === 'zoom-out')) { zoomBy(globalAction === 'zoom-in' ? 0.14 : -0.14); return; }
       if (preview) {
         if (globalAction === 'cancel-preview') { preview = null; render(); }
@@ -1510,6 +1825,7 @@
         if (globalAction === 'orbit' && webglRenderer && webglRenderer.available()) { camera.mode = 'orbit'; render(); }
         if (globalAction === 'fit') { fitView(); render(); }
         if (globalAction === 'focus' && focusObject(preview.selectionId)) render();
+        if (globalAction === 'markers') { showLocations = !showLocations; render(); }
         if (globalAction === 'wall-mode') { wallMode = wallMode === 'solid' ? 'transparent' : wallMode === 'transparent' ? 'hidden' : 'solid'; render(); }
         return;
       }
@@ -1543,12 +1859,20 @@
         }
         return;
       }
+      const placementPick = event.target.closest('[data-placement-select]');
+      if (placementPick) { choice.slotId=placementPick.dataset.placementSelect; selectionKind='slot'; revealSelection=true; render(); return; }
+      const navigation = event.target.closest('[data-nav-kind]');
+      if (navigation) {
+        selectionKind = navigation.dataset.navKind;
+        if (selectionKind !== 'slot') choice.slotId = null;
+        focusedPart = null; revealSelection = true; render(); return;
+      }
       const modeButton = event.target.closest('[data-mode]');
-      if (modeButton) { mode = modeButton.dataset.mode; message = ''; render(); return; }
+      if (modeButton) { mode = modeButton.dataset.mode; revealSelection = true; message = ''; render(); return; }
       const scopeButton = event.target.closest('[data-scope-bay]');
       if (scopeButton) {
         choice.bay = Number(scopeButton.dataset.scopeBay); choice.level = Number(scopeButton.dataset.scopeLevel);
-        choice.slotId = null; render(); return;
+        choice.slotId = null; selectionKind = 'level'; revealSelection = true; focusedPart = null; render(); return;
       }
       const conflictButton = event.target.closest('[data-focus-object]');
       if (conflictButton) {
@@ -1564,6 +1888,7 @@
       if (objectButton) {
         choice.objectId = objectButton.dataset.object;
         focusedPart = null;
+        selectionKind = 'object'; revealSelection = true;
         choice.bay = 0; choice.level = 0; choice.upright = 0; choice.slotId = null; message = ''; render(); return;
       }
       const button = event.target.closest('[data-action]');
@@ -1574,12 +1899,14 @@
         snapPreview = null;
         render(); return;
       }
+      if (action === 'markers') { showLocations = !showLocations; render(); return; }
       if (action === 'wall-mode') {
         wallMode = wallMode === 'solid' ? 'transparent' : wallMode === 'transparent' ? 'hidden' : 'solid';
         render(); return;
       }
       if (action === 'focus') {
-        if (focusObject(choice.objectId)) render();
+        if (focusObject(choice.objectId, selectionKind === 'slot' ? choice.slotId : focusedPart,
+          selectionKind === 'level' || selectionKind === 'bay' || selectionKind === 'slot' ? selectionScope() : null)) render();
         return;
       }
       if (action === 'undo' || action === 'redo') {
@@ -1677,6 +2004,17 @@
         });
         commit(next); return;
       }
+      if (action === 'location-open' || action === 'location-close') { locationEditorOpen=action==='location-open'; locationDraw=false; render(); return; }
+      if (action === 'location-draw') { locationDraw=!locationDraw; render(); return; }
+      if (['location-add','location-duplicate','location-remove'].includes(action)) {
+        try {
+          const next=action==='location-add'?model.addLocation(layout(),currentZone(object).id):action==='location-duplicate'?model.duplicateLocation(layout(),choice.slotId):model.removeLocation(layout(),choice.slotId);
+          const previousChoice=choice.slotId;
+          choice.slotId=action==='location-remove'?null:next.locations[next.locations.length-1].id;
+          if (!await commit(next)) { choice.slotId=previousChoice; render(); }
+        } catch(error) { message=placementError(error); render(); }
+        return;
+      }
       if (action === 'resize-locations') {
         try { commit(model.resizeZoneLocations(layout(), currentZone(object).id, Number(root.querySelector('[data-field="count.locations"]').value))); }
         catch (error) { message = error.message; render(); }
@@ -1725,13 +2063,16 @@
         if (!prefix) { message = labels().codePrefix + ': 1–80'; render(); return; }
         try {
           commit(model.fillLocationCodes(layout(), object.id, prefix,
-            action === 'generate' ? object.bays[choice.bay].levels[choice.level].id : null));
+            action === 'generate' ? model.scopeLevel(object, choice.bay, choice.level).id : null));
         } catch (error) { message = error.message; render(); }
       }
     });
 
     root.addEventListener('keydown', function (event) {
       if (saving) return;
+      if (locationEditorOpen && event.key === 'Escape') { event.preventDefault(); locationDrag=null; locationDraw=false; locationEditorOpen=false; render(); return; }
+      const placementNode=event.target.closest && event.target.closest('[data-placement-rect]');
+      if (placementNode && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); choice.slotId=placementNode.dataset.placementRect; render(); return; }
       if (!rackWizard && event.target.classList.contains('wh-canvas') && !event.ctrlKey && !event.metaKey && !event.altKey) {
         if (event.key === '+' || event.key === '=' || event.key === '-' || event.key === '−') {
           event.preventDefault(); zoomBy(event.key === '-' || event.key === '−' ? -0.14 : 0.14); return;
@@ -1772,6 +2113,7 @@
 
     root.addEventListener('change', function (event) {
       if (saving) return;
+      if (event.target.dataset.placementGrid !== undefined) { locationGrid=Number(event.target.value); return; }
       if (event.target.dataset.zoomSensitivity !== undefined) {
         const value = Number(event.target.value);
         if ([0.5, 1, 2].includes(value)) zoomSensitivity = value;
@@ -1798,10 +2140,26 @@
       }
       const selector = event.target.dataset.select;
       if (selector) {
-        choice[selector] = Number(event.target.value); choice.slotId = null; render(); return;
+        choice[selector] = Number(event.target.value); choice.slotId = null;
+        selectionKind = selector === 'bay' ? 'bay' : selector === 'level' ? 'level' : 'object';
+        revealSelection = true; focusedPart = null; render(); return;
       }
       const field = event.target.dataset.field;
       if (!field) return;
+      if (field === 'ground.enabled') {
+        const object = selected();
+        try { commit(model.setGroundEnabled(layout(), object.id, choice.bay, event.target.checked)); }
+        catch(error) { message=error.message; render(); }
+        return;
+      }
+      if (field.startsWith('location.')) {
+        if (!['location.x','location.width'].includes(field) || !frontLocationsReady(selected())) { message=placementLabels().align; render(); return; }
+        const location=layout().locations.find(function (item) { return item.id===choice.slotId; });
+        if (!location) return;
+        try { commit(model.setLocationPlacement(layout(),location.id,Object.assign({},location.placement,{[field.slice(9)]:Number(event.target.value)}))); }
+        catch(error) { message=placementError(error); render(); }
+        return;
+      }
       if (field === 'prefix') { codePrefix = event.target.value.trim(); return; }
       if (field.startsWith('count.')) return;
       const object = selected(); if (!object) return;

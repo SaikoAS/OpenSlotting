@@ -283,7 +283,7 @@ test('schema 17 migration adds no invented reasons and preserves profile applica
   record.schemaVersion = 17;
   record.files[0].appliedImportProfile = workspace.recordImportProfileApplication(profile, source);
   const migrated = workspace.migrateWorkspace(record);
-  assert.equal(migrated.schemaVersion, 18); assert.deepEqual(migrated.coverageNotes, []);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION); assert.deepEqual(migrated.coverageNotes, []);
   assert.deepEqual(migrated.files[0].appliedImportProfile, record.files[0].appliedImportProfile);
 });
 

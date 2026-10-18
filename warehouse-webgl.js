@@ -48,6 +48,17 @@
     };
   }
 
+  const DIGIT_SEGMENTS = ['abcdef','bc','abged','abgcd','fgbc','afgcd','afgecd','abc','abcdefg','abfgcd'];
+  const SEGMENT_POINTS = { a:[0,0,1,0], b:[1,0,1,.5], c:[1,.5,1,1], d:[0,1,1,1], e:[0,.5,0,1], f:[0,0,0,.5], g:[0,.5,1,.5] };
+  function isMarker(item) { return item.kind === 'location' || item.kind === 'ground-scope'; }
+  function isSelected(item, selection) {
+    if (!selection) return false;
+    if (typeof selection !== 'object') return Boolean(item.slotRef && item.slotRef.slotId === selection || item.partId === selection);
+    const scope = item.slotRef;
+    return item.kind !== 'location' && Boolean(scope && item.object.id === selection.objectId &&
+      scope.bayIndex === selection.bayIndex && (selection.levelIndex === undefined || scope.levelIndex === selection.levelIndex));
+  }
+
   function projectScene(boxes, camera, width, height, selectedId, selectedSlotId, collisionIds, wallMode) {
     const visible = boxes.filter(function (item) { return wallMode !== 'hidden' || item.object.type !== 'wall'; });
     const yaw = camera.yaw, pitch = camera.pitch;
@@ -118,22 +129,29 @@
         z: (near - p.depth) / (near - far) * 2 - 1 };
     }
     function transparentBox(item) { return FLOOR_TYPES.includes(item.object.type) || (wallMode === 'transparent' && item.object.type === 'wall'); }
-    let opaqueCount = 0, edgeCount = 0;
-    projected.forEach(function (entry) {
-      const isTransparent = transparentBox(entry.item);
-      if (!isTransparent) opaqueCount += 1;
-      if (!isTransparent || entry.item.object.id === selectedId) edgeCount += 1;
-    });
-    const opaque = vertexBuffer(opaqueCount * FACES.length * 6), edges = vertexBuffer(edgeCount * EDGES.length * 2);
-    const transparent = [], pickMap = [null];
+    let opaqueCount = 0, edgeVertices = 0, markerCount = 0, selectedMarkers = 0;
     projected.forEach(function (entry) {
       const item = entry.item;
+      entry.digits = isMarker(item) && item.number && item.width * scale >= 30 && item.depth * scale >= 20 ? String(item.number) : '';
+      if (isMarker(item)) {
+        markerCount += 1;
+        if (isSelected(item,selectedSlotId)) selectedMarkers += 1;
+        edgeVertices += 8 + Array.from(entry.digits).reduce(function (sum,digit) { return sum + DIGIT_SEGMENTS[Number(digit)].length * 2; },0);
+      } else {
+        const transparent = transparentBox(item);
+        if (!transparent) opaqueCount += 1;
+        if (!transparent || item.object.id === selectedId) edgeVertices += EDGES.length * 2;
+      }
+    });
+    const opaque = vertexBuffer(opaqueCount * FACES.length * 6), edges = vertexBuffer(edgeVertices);
+    const pickMarkers = vertexBuffer(markerCount * FACES.length * 6), markerSelection = vertexBuffer(selectedMarkers * 6);
+    const transparent = [], pickMap = [null];
+    projected.forEach(function (entry) {
+      const item = entry.item, marker = isMarker(item), selected = isSelected(item,selectedSlotId);
       const isTransparent = transparentBox(item);
       const alpha = item.object.type === 'wall' ? .28 : .32;
       const isRoute = item.object.type === 'aisle';
-      // Routes are markings: only their top is visible. Keep the full box in
-      // the independent ID pass so this display change does not alter picking.
-      const vertices = isTransparent ? vertexBuffer((isRoute ? 1 : FACES.length) * 6) : opaque;
+      const vertices = marker ? pickMarkers : isTransparent ? vertexBuffer((isRoute ? 1 : FACES.length) * 6) : opaque;
       const pickingVertices = isRoute ? vertexBuffer(FACES.length * 6) : vertices;
       const corners = entry.corners.map(clip);
       const pickId = pickMap.length;
@@ -146,15 +164,42 @@
           if (isRoute) pushVertex(pickingVertices, corners[index], rgba, pick);
         });
       });
+      if (marker) {
+        // Display a thin inset outline; the independent ID pass keeps the exact full footprint.
+        const inset = item.markerInset === undefined ? Math.min(12,item.width/8,item.depth/8) : item.markerInset;
+        const top = item.y + item.height;
+        const point = function (x,z) { return clip(transform(item.object,x,top,z)); };
+        const ring = [point(item.x+inset,item.z+inset), point(item.x+item.width-inset,item.z+inset),
+          point(item.x+item.width-inset,item.z+item.depth-inset),point(item.x+inset,item.z+item.depth-inset)];
+        const rgba = frameColor(selected ? '#fff2a3' : item.color,1,1);
+        ring.forEach(function (p,index) { pushLine(edges,p,ring[(index+1)%4],rgba,-.0003); });
+        if (selected) [0,1,2,0,2,3].forEach(function (index) {
+          pushVertex(markerSelection,ring[index],frameColor('#fff2a3',1,.14),NO_PICK,-.00015);
+        });
+        if (entry.digits) {
+          const glyphHeight = Math.min(item.depth*.18,item.width/(entry.digits.length*1.3),Math.max(60,10/scale));
+          const glyphWidth = glyphHeight*.55, gap = glyphWidth*.3;
+          const start = item.x + (item.width-entry.digits.length*glyphWidth-(entry.digits.length-1)*gap)/2;
+          const z = item.z + item.depth-inset-glyphHeight-10;
+          Array.from(entry.digits).forEach(function (digit,index) {
+            const x = start + index*(glyphWidth+gap);
+            Array.from(DIGIT_SEGMENTS[Number(digit)]).forEach(function (segment) {
+              const p = SEGMENT_POINTS[segment];
+              pushLine(edges,point(x+p[0]*glyphWidth,z+p[1]*glyphHeight),point(x+p[2]*glyphWidth,z+p[3]*glyphHeight),rgba,-.0003);
+            });
+          });
+        }
+        return;
+      }
       if (isTransparent) {
         const averageDepth = entry.corners.reduce(function (sum, p) { return sum + p.depth; }, 0) / 8;
         transparent.push({ depth: averageDepth, vertices: vertices, pickingVertices: pickingVertices, route: isRoute });
       }
       if (!isTransparent || item.object.id === selectedId) {
-        const selected = item.slotRef && item.slotRef.slotId === selectedSlotId || item.partId && item.partId === selectedSlotId;
         const conflict = collisionIds.has(item.object.id) || collisionIds.has(item.partId);
-        const edgeColor = frameColor(selected ? '#fff2a3' : conflict ? '#ff9c72' :
-          item.object.id === selectedId ? '#79f2de' : '#273844', 1, 1);
+        const rack = item.object.type === 'pallet-rack' || item.object.type === 'shelf-rack';
+        const edgeColor = frameColor(item.kind === 'orientation' ? item.color : selected ? '#fff2a3' : conflict ? '#ff9c72' :
+          item.object.id === selectedId && !rack ? '#79f2de' : '#273844', 1, 1);
         EDGES.forEach(function (edge) { pushLine(edges, corners[edge[0]], corners[edge[1]], edgeColor, -.0003); });
       }
     });
@@ -177,7 +222,7 @@
       pushLine(grid, a, b, gridColor);
       pushLine(grid, c, d, gridColor);
     }
-    return { opaque: opaque.values, transparent: transparent.map(function (item) { return item.vertices.values; }),
+    return { opaque: opaque.values, pickMarkers: pickMarkers.values, markerSelection: markerSelection.values, transparent: transparent.map(function (item) { return item.vertices.values; }),
       pickTransparent: transparent.map(function (item) { return item.pickingVertices.values; }),
       routeCoverage: transparent.map(function (item) { return item.route; }),
       edges: edges.values, grid: grid.values, pickMap: pickMap,
@@ -252,6 +297,7 @@
         draw(vertices, gl.TRIANGLES, false);
       });
       gl.disable(gl.STENCIL_TEST);
+      draw(scene.markerSelection, gl.TRIANGLES, false);
       draw(scene.edges, gl.LINES, false);
       gl.depthMask(true); gl.disable(gl.BLEND);
       return true;
@@ -282,6 +328,7 @@
       gl.clearColor(0, 0, 0, 0); gl.clearDepth(1); gl.depthMask(true); gl.disable(gl.BLEND); gl.disable(gl.STENCIL_TEST);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       draw(scene.opaque, gl.TRIANGLES, true);
+      draw(scene.pickMarkers, gl.TRIANGLES, true);
       scene.pickTransparent.forEach(function (vertices) { draw(vertices, gl.TRIANGLES, true); });
       const pixel = new Uint8Array(4);
       gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);

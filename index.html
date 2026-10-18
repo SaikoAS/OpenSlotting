@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="app.css">
     <link rel="stylesheet" href="terminal-theme.css?v=6">
     <link rel="stylesheet" href="warehouse-editor.css">
+    <link rel="stylesheet" href="warehouse-walk.css">
   </head>
 <body class="workspace-picker-mode">
     <header class="app-header">
@@ -38,6 +39,7 @@
           <button class="terminal-nav-item" type="button" data-workflow-target="results-panel" title="Articles" data-i18n-title="terminal_articles" data-i18n-aria-label="terminal_articles"><span aria-hidden="true">⌕</span><strong data-i18n="terminal_articles">Articles</strong></button>
           <button class="terminal-nav-item" type="button" data-workflow-target="warehouse-panel" title="Warehouse editor" data-i18n-title="warehouse_nav" data-i18n-aria-label="warehouse_nav"><span aria-hidden="true">▧</span><strong data-i18n="warehouse_nav">Warehouse editor</strong></button>
           <button class="terminal-nav-item" type="button" data-workflow-target="warehouse-analysis-panel" title="3D warehouse analysis" data-i18n-title="warehouse_analysis_title" data-i18n-aria-label="warehouse_analysis_title"><span aria-hidden="true">◈</span><strong data-i18n="warehouse_analysis_nav">3D analysis</strong></button>
+          <button class="terminal-nav-item" type="button" data-workflow-target="warehouse-walk-panel" title="Warehouse walk" data-i18n-title="warehouse_walk_title" data-i18n-aria-label="warehouse_walk_title"><span aria-hidden="true">⌾</span><strong data-i18n="warehouse_walk_nav">Walk</strong></button>
           <div class="terminal-rail-divider"></div>
           <button class="terminal-nav-item" type="button" data-workflow-target="import-panel" title="Import sources" data-i18n-title="workflow_import" data-i18n-aria-label="workflow_import"><span aria-hidden="true">⇧</span><strong data-i18n="nav_import">Import</strong></button>
           <button class="terminal-nav-item" type="button" data-workflow-target="mapping-panel" title="Mapping &amp; quality" data-i18n-title="workflow_mapping" data-i18n-aria-label="workflow_mapping"><span aria-hidden="true">☷</span><strong data-i18n="nav_mapping">Columns &amp; notes</strong></button>
@@ -235,6 +237,11 @@
               <span class="main-menu-card-copy"><strong data-i18n="warehouse_analysis_nav">3D analysis</strong><small data-i18n="main_menu_warehouse_analysis_description">Inspect locations and imported article assignments.</small></span>
               <span class="main-menu-arrow" aria-hidden="true">›</span>
             </button>
+            <button class="main-menu-card" type="button" data-workflow-target="warehouse-walk-panel">
+              <span class="main-menu-icon" aria-hidden="true">⌾</span>
+              <span class="main-menu-card-copy"><strong data-i18n="warehouse_walk_nav">Walk</strong><small data-i18n="main_menu_warehouse_walk_description">Explore the warehouse and inspect locations at eye level.</small></span>
+              <span class="main-menu-arrow" aria-hidden="true">›</span>
+            </button>
             <button id="return-workspace-selection" class="main-menu-card" type="button" data-workflow-target="workspace-panel">
               <span class="main-menu-icon" aria-hidden="true">⌂</span>
               <span class="main-menu-card-copy"><strong data-i18n="workspace_selection_back">Workspace selection</strong><small data-i18n="main_menu_workspace_selection_description">Switch or manage workspaces.</small></span>
@@ -253,6 +260,12 @@
       <div id="warehouse-analysis-page" class="app-page hidden">
         <section id="warehouse-analysis-panel" class="warehouse-panel" aria-label="Warehouse analysis">
           <div id="warehouse-analysis-root"></div>
+        </section>
+      </div>
+
+      <div id="warehouse-walk-page" class="app-page hidden">
+        <section id="warehouse-walk-panel" class="warehouse-panel" aria-label="Warehouse walk">
+          <div id="warehouse-walk-root"></div>
         </section>
       </div>
 
@@ -691,6 +704,9 @@
     <script src="warehouse-scene.js"></script>
     <script src="warehouse-editor.js"></script>
     <script src="warehouse-analysis.js"></script>
+    <script src="warehouse-walk-model.js"></script>
+    <script src="warehouse-walk-renderer.js"></script>
+    <script src="warehouse-walk.js"></script>
     <script src="src/application/workspace-preparation.js"></script>
     <script src="src/application/worker-session.js"></script>
     <script src="src/ui/shared/windowed-dom.js"></script>
