@@ -521,6 +521,66 @@ test('ground controls preserve codes, confirm disabling, support undo and protec
   await h.click({action:'undo'}); assert.deepEqual(h.layout,before);
 });
 
+function groundSelectionLayout() {
+  let value=fresh();
+  for(const zone of value.zones) {
+    value=model.setZoneUsage(value,zone.id,'picking');
+    value=model.resizeZoneLocations(value,zone.id,2);
+  }
+  return value;
+}
+
+test('disabling the selected ground scope returns breadcrumb, highlight and focus to an existing level', async () => {
+  for(const mode of ['structure','zones','locations']) {
+    const initial=groundSelectionLayout(),h=harness(initial,[],model,false,true),object=h.layout.objects[0];
+    const groundZone=model.zoneForLevel(h.layout,object.bays[0].ground.id),slot=model.zoneLocations(h.layout,groundZone.id)[1];
+    h.pick={objectId:object.id,bayIndex:0,levelIndex:-1,slotId:slot.id};
+    h.pointer('pointerdown');h.pointer('pointerup');await h.click({mode});
+    assertSlotSelection(h,slot.id);
+    await h.change({field:'ground.enabled'},false,'checkbox');
+    assert.equal(h.layout.objects[0].bays[0].ground.enabled,false);
+    assert.ok(!h.layout.locations.some(item=>item.id===slot.id));
+    assert.match(h.root.innerHTML,/data-nav-kind="level" aria-current="true">Level 1/);
+    assert.doesNotMatch(h.root.innerHTML,/data-nav-kind="slot"/);
+    assert.equal(h.rendered.at(-1).selection.levelIndex,0);
+    await h.click({action:'focus'});
+    const actual=h.rendered.at(-1),boxes=actual.boxes.filter(box=>box.object.id===object.id&&box.slotRef&&box.slotRef.bayIndex===0&&box.slotRef.levelIndex===0);
+    const expected=require('../warehouse-webgl.js').projectScene(boxes,{...actual.camera,target:null,baseScale:null,zoom:1},800,600,null,null,new Set(),'solid').view;
+    assert.deepEqual(actual.camera.target,expected.fitTarget);assert.equal(actual.camera.baseScale,expected.fitScale);
+    await h.click({action:'undo'});assert.deepEqual(h.layout,initial);
+    await h.click({action:'redo'});
+    assert.match(h.root.innerHTML,/data-nav-kind="level" aria-current="true"/);
+    assert.equal(h.rendered.at(-1).selection.levelIndex,0);
+  }
+});
+
+test('cancelled, failed and locked ground disables retain the selected ground location', async () => {
+  const initial=groundSelectionLayout(),h=harness(initial,[],model,false,true),object=h.layout.objects[0];
+  const slot=model.zoneLocations(h.layout,model.zoneForLevel(h.layout,object.bays[0].ground.id).id)[1];
+  h.pick={objectId:object.id,bayIndex:0,levelIndex:-1,slotId:slot.id};h.pointer('pointerdown');h.pointer('pointerup');
+  await h.click({mode:'locations'});
+  h.accept=false;await h.change({field:'ground.enabled'},false,'checkbox');
+  assert.deepEqual(h.layout,initial);assertSlotSelection(h,slot.id);
+  h.accept=true;h.failSave=true;await h.change({field:'ground.enabled'},false,'checkbox');
+  assert.deepEqual(h.layout,initial);assertSlotSelection(h,slot.id);
+  h.failSave=false;await h.click({action:'toggle-lock'});
+  const locked=structuredClone(h.layout);await h.change({field:'ground.enabled'},false,'checkbox');
+  assert.deepEqual(h.layout,locked);assertSlotSelection(h,slot.id);
+  assert.equal(h.saves.length,1,'only the explicit lock change was saved');
+});
+
+test('ground toggles preserve a selected elevated location', async () => {
+  const h=harness(groundSelectionLayout(),[],model,false,true),object=h.layout.objects[0];
+  const slot=model.zoneLocations(h.layout,model.zoneForLevel(h.layout,object.bays[0].levels[1].id).id)[1];
+  h.pick={objectId:object.id,bayIndex:0,levelIndex:1,slotId:slot.id};h.pointer('pointerdown');h.pointer('pointerup');
+  await h.click({mode:'locations'});
+  for(const enabled of [false,true]) {
+    await h.change({field:'ground.enabled'},enabled,'checkbox');
+    assert.equal(h.layout.objects[0].bays[0].ground.enabled,enabled);
+    assertSlotSelection(h,slot.id);
+  }
+});
+
 test('rack builder shows front orientation before insertion and retains ground choices per bay', async () => {
   const h=harness(model.createLayout());
   h.control('#wh-recipe','shelf-rack');

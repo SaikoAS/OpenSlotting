@@ -1284,7 +1284,10 @@
       }
       const object = selected();
       const slots = model.listSlots(warehouse);
-      if (!slots.some(function (slot) { return slot.slotId === choice.slotId; })) choice.slotId = null;
+      if (!slots.some(function (slot) { return slot.slotId === choice.slotId; })) {
+        if (selectionKind === 'slot') selectLocation(null);
+        else choice.slotId = null;
+      }
       const coded = slots.filter(function (slot) { return Boolean(slot.code); }).length;
       const collisions = model.findCollisions(warehouse);
       currentFindings = collisions;

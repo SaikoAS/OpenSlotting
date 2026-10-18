@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Fall back to level navigation when the selected location no longer exists, including after disabling its ground scope. Keep breadcrumb, highlight and focus consistent while preserving selections on cancelled/failed edits and unrelated ground toggles.
+
 - Keep area-editor keyboard/pointer choices and add/duplicate/draw actions in sync with the exact location breadcrumb, 3D highlight and focus target. Return to level navigation after removal and restore the prior selection kind when saving fails.
 
 - Add explicit top-view tools for moving the view or moving objects. Default to panning over any surface, retain click selection and focus, restrict geometry dragging to Structure, preserve snapping/locks/undo, and cancel uncommitted drags when tools change. Keep the choice transient and reset it on workspace changes.
