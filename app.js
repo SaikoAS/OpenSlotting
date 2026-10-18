@@ -96,6 +96,9 @@
       warehouse_nav: 'Warehouse editor',
       warehouse_title: 'Warehouse editor',
       warehouse_description: 'Build racks and areas and assign location codes.',
+      warehouse_walk_nav: 'Walk',
+      warehouse_walk_title: 'Warehouse walk',
+      main_menu_warehouse_walk_description: 'Walk through the warehouse and inspect locations at eye level.',
       warehouse_analysis_nav: '3D analysis',
       warehouse_analysis_title: '3D warehouse analysis',
       terminal_scope_label: 'Analysis level',
@@ -807,6 +810,9 @@
       warehouse_nav: '3D-Editor',
       warehouse_title: 'Lagereditor',
       warehouse_description: 'Regale und Bereiche aufbauen und Stellplatzcodes vergeben.',
+      warehouse_walk_nav: 'Rundgang',
+      warehouse_walk_title: 'Lager-Rundgang',
+      main_menu_warehouse_walk_description: 'Lager aus Augenhöhe erkunden und Stellplätze auswerten.',
       warehouse_analysis_nav: '3D-Auswertung',
       warehouse_analysis_title: '3D-Lagerauswertung',
       terminal_scope_label: 'Auswertungsebene',
@@ -1511,6 +1517,7 @@
   };
   let warehouseEditor = null;
   let warehouseAnalysis = null;
+  let warehouseWalk = null;
   let importProfilePanel = null;
   let coverageCalendar = null;
   let workspaceFrameRequest = null;
@@ -1568,6 +1575,7 @@
     'workspace-panel': { view: 'workspace-page', kicker: 'nav_kicker', title: 'workspace_title', status: 'page_status_workspace' },
     'main-menu-panel': { view: 'main-menu-page', kicker: 'main_menu_eyebrow', title: 'main_menu_title', status: 'page_status_ready' },
     'warehouse-panel': { view: 'warehouse-page', kicker: 'main_menu_eyebrow', title: 'warehouse_title', status: 'page_status_ready' },
+    'warehouse-walk-panel': { view: 'warehouse-walk-page', kicker: 'main_menu_eyebrow', title: 'warehouse_walk_title', status: 'page_status_ready' },
     'warehouse-analysis-panel': { view: 'warehouse-analysis-page', kicker: 'main_menu_eyebrow', title: 'warehouse_analysis_title', status: 'page_status_ready' },
     'import-panel': { view: 'import-page', kicker: 'workflow_import', title: 'select_file_title', status: 'page_status_import' },
     'mapping-panel': { view: 'mapping-page', kicker: 'workflow_mapping', title: 'mapping_title', status: 'page_status_mapping' },
@@ -3863,6 +3871,7 @@
       'main-menu-panel': Boolean(state.activeWorkspace),
       'warehouse-panel': Boolean(state.activeWorkspace),
       'warehouse-analysis-panel': Boolean(state.activeWorkspace),
+      'warehouse-walk-panel': Boolean(state.activeWorkspace),
       'import-panel': Boolean(state.activeWorkspace),
       'mapping-panel': state.files.length > 0,
       'coverage-panel': hasCoverageContent(),
@@ -3873,6 +3882,7 @@
       'workspace-panel': Boolean(state.activeWorkspace),
       'warehouse-panel': Boolean(state.warehouseLayout.objects.length),
       'warehouse-analysis-panel': false,
+      'warehouse-walk-panel': false,
       'import-panel': state.files.length > 0,
       'mapping-panel': Boolean(state.result && analysisRowCount(state.result) > 0),
       'coverage-panel': Boolean(state.comparison),
@@ -3894,6 +3904,7 @@
     if (requestedTarget !== 'mapping-panel' && state.mappingDrawerOpen) closeMappingDrawer();
     const config = PAGE_CONFIG[requestedTarget] || PAGE_CONFIG[fallbackTarget];
     state.activePageTarget = requestedTarget;
+    if (typeof warehouseWalk !== 'undefined' && warehouseWalk) warehouseWalk.setActive(requestedTarget === 'warehouse-walk-panel');
     if (requestedTarget === 'coverage-panel') {
       if (elements.coveragePanel.classList.contains('hidden') || !state.result) renderCoverage();
       else if (coverageCalendar) coverageCalendar.refresh();
@@ -3921,6 +3932,7 @@
     if (requestedTarget === 'main-menu-panel') renderTerminal();
     if (requestedTarget === 'warehouse-panel' && warehouseEditor) warehouseEditor.render();
     if (requestedTarget === 'warehouse-analysis-panel' && warehouseAnalysis) warehouseAnalysis.render();
+    if (requestedTarget === 'warehouse-walk-panel' && warehouseWalk) warehouseWalk.render();
     scheduleWorkspaceFrame();
   }
 
@@ -8149,6 +8161,19 @@
     getRegistry: function () { return state.articleRegistry; },
     getWorkspaceId: function () { return state.activeWorkspace ? state.activeWorkspace.id : null; },
     getLanguage: function () { return state.language; }
+  });
+  warehouseWalk = window.OpenSlottingWarehouseWalk.create({
+    root: document.getElementById('warehouse-walk-root'), model: warehouseModel,
+    getLayout: function () { return state.warehouseLayout; },
+    getRegistry: function () { return state.articleRegistry; },
+    getArticles: function () { return state.analysis ? state.analysis.articles : []; },
+    getComparison: function () { return state.comparison; },
+    getWorkspaceId: function () { return state.activeWorkspace ? state.activeWorkspace.id : null; },
+    getLanguage: function () { return state.language; },
+    isVisible: function () { return Boolean(state.activeWorkspace) && state.activePageTarget === 'warehouse-walk-panel'; },
+    formatQuantity: formatQuantity, openArticle: openArticleDetail,
+    canCoverage: hasCoverageContent,
+    openCoverage: function () { renderWorkflow('coverage-panel'); }
   });
   importProfilePanel = window.OpenSlottingImportProfilePanel.create({
     root: document.getElementById('import-profile-batch-root'), model: workspaceModel,

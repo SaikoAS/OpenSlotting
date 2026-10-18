@@ -8,7 +8,8 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
-  const LAYOUT_VERSION = 4;
+  const LAYOUT_VERSION = 6;
+  const MAX_LEVEL_LOCATIONS = 10;
   const USAGES = ['unassigned', 'picking', 'reserve'];
   const USAGE_COLORS = { unassigned: '#8795a4', picking: '#55c69c', reserve: '#c7a0ef' };
   const RACK_TYPES = ['pallet-rack', 'shelf-rack'];
@@ -72,7 +73,7 @@
     if (bayCount < 1 || bayCount > 30 || levelCount < 1 || levelCount > 12) fail('Rack size is outside the supported range.');
     const bays = Array.from({ length: bayCount }, function () {
       return {
-        id: id('bay'), width: pallet ? 2700 : 1000, depth: pallet ? 1100 : 450,
+        id: id('bay'), ground: { id: id('ground'), enabled: true }, width: pallet ? 2700 : 1000, depth: pallet ? 1100 : 450,
         levels: Array.from({ length: levelCount }, function () {
           return {
             id: id('level'), clearHeight: pallet ? 1500 : 450,
@@ -282,6 +283,8 @@
             deckThickness: measure(level.deckThickness, 'Deck thickness', 10, 200)
           };
         });
+        if (bay.ground !== undefined && (!bay.ground || typeof bay.ground !== 'object' || Array.isArray(bay.ground) || typeof bay.ground.enabled !== 'boolean')) fail('Ground settings are invalid.');
+        if (bay.passage && bay.ground && bay.ground.enabled) fail('Disable ground locations before designating a passage.');
         const totalHeight = levels.reduce(function (sum, level) { return sum + level.clearHeight + level.thickness; }, 0);
         if (bay.passage !== undefined && bay.passage !== null && (typeof bay.passage !== 'object' || Array.isArray(bay.passage))) fail('Passage settings are invalid.');
         if (totalHeight > Math.min(uprights[bayIndex].height, uprights[bayIndex + 1].height)) {
@@ -292,6 +295,8 @@
           width: measure(bay.width, 'Bay width', 300, 6000),
           depth: measure(bay.depth, 'Bay depth', 200, 3000),
           passage: bay.passage ? { routeId: bay.passage.routeId === undefined || bay.passage.routeId === null || bay.passage.routeId === '' ? null : text(bay.passage.routeId, 'Route ID', 128) } : null,
+          ground: bay.ground ? { id: objectId(bay.ground.id, usedIds), enabled: bay.ground.enabled !== false } :
+            { id: objectId(id('ground'), usedIds), enabled: !bay.passage },
           levels: levels
         };
       });
@@ -317,12 +322,17 @@
         objectId: scope.objectId, bayId: scope.bayId, levelId: scope.levelId, usage: 'unassigned' });
     });
     const byZone = new Map(zones.map(function (zone) { return [zone.id, zone]; }));
-    const indices = new Map();
+    const indices = new Map(), geometry = new Map(), counts = new Map();
+    (layout.locations || []).forEach(function (location) { if (location) counts.set(location.zoneId, (counts.get(location.zoneId) || 0) + 1); });
+    function scopeGeometry(zoneId) {
+      if (!geometry.has(zoneId)) geometry.set(zoneId, locationScope({ objects: objects, zones: zones }, zoneId));
+      return geometry.get(zoneId);
+    }
     if (layout.locations.length > 5000) fail('A layout can contain at most 5000 locations.');
     const locations = layout.locations.map(function (location) {
       if (!location || typeof location !== 'object' || Array.isArray(location)) fail('Location is invalid.');
       if (!byZone.has(location.zoneId)) fail('Location references an unknown functional zone.');
-      if (!Number.isInteger(location.positionIndex) || location.positionIndex < 0 || location.positionIndex > 3) fail('A level supports up to 4 locations.');
+      if (!Number.isInteger(location.positionIndex) || location.positionIndex < 0 || location.positionIndex >= MAX_LEVEL_LOCATIONS) fail('A level supports up to 10 locations.');
       if (!indices.has(location.zoneId)) indices.set(location.zoneId, new Set());
       const used = indices.get(location.zoneId);
       if (used.has(location.positionIndex)) fail('Location subdivisions must be unique within a zone.');
@@ -332,10 +342,17 @@
       if (code && usedCodes.has(code)) fail('Location codes must be unique: ' + code);
       if (code) usedCodes.add(code);
       return { id: objectId(location.id, usedIds), zoneId: location.zoneId, positionIndex: location.positionIndex,
-        code: code, legacy: location.legacy === true };
+        code: code, legacy: location.legacy === true,
+        placement: normalizePlacement(location.placement || equalPlacement(scopeGeometry(location.zoneId).bay, location.positionIndex, counts.get(location.zoneId)), scopeGeometry(location.zoneId)) };
     });
     indices.forEach(function (used) {
       for (let index = 0; index < used.size; index += 1) if (!used.has(index)) fail('Location subdivisions must be consecutive.');
+    });
+    const placed = new Map();
+    locations.forEach(function (location) {
+      const peers = placed.get(location.zoneId) || [];
+      if (peers.some(function (other) { return placementsOverlap(location.placement, other.placement); })) fail('Location areas overlap in this level.');
+      peers.push(location); placed.set(location.zoneId, peers);
     });
     const byObject = new Map(objects.map(function (object) { return [object.id, object]; }));
     objects.forEach(function (object) {
@@ -380,17 +397,19 @@
   }
 
   function physicalScopes(layout) {
-    const scopes = [];
+    const scopes = [], groundScopes = [];
     (layout.objects || []).forEach(function (object) {
       if (!RACK_TYPES.includes(object.type)) return;
       object.bays.forEach(function (bay, bayIndex) {
+        if (bay.ground && bay.ground.enabled) groundScopes.push({ objectId: object.id, objectName: object.name,
+          bayId: bay.id, levelId: bay.ground.id, bayIndex: bayIndex, levelIndex: -1, ground: true });
         bay.levels.forEach(function (level, levelIndex) {
           scopes.push({ objectId: object.id, objectName: object.name, bayId: bay.id, levelId: level.id,
             bayIndex: bayIndex, levelIndex: levelIndex });
         });
       });
     });
-    return scopes;
+    return scopes.concat(groundScopes);
   }
 
   function zoneForLevel(layout, levelId) {
@@ -430,7 +449,7 @@
     const objectOrder = new Map((layout.objects || []).map(function (object, index) { return [object.id, index]; }));
     return (layout.locations || []).map(function (location) {
       return Object.assign({}, byZone.get(location.zoneId), { locationId: location.id, slotId: location.id,
-        code: location.code, positionIndex: location.positionIndex, legacy: location.legacy });
+        code: location.code, positionIndex: location.positionIndex, legacy: location.legacy, placement: location.placement });
     }).sort(function (a, b) {
       return objectOrder.get(a.objectId) - objectOrder.get(b.objectId) || a.bayIndex - b.bayIndex ||
         a.levelIndex - b.levelIndex || a.positionIndex - b.positionIndex;
@@ -445,17 +464,110 @@
     zone.usage = usage;
     return normalizeLayout(next);
   }
+  function scopeLevel(object, bayIndex, levelIndex) {
+    const bay = object.bays[bayIndex];
+    return levelIndex === -1 ? { id: bay.ground.id, clearHeight: 0, thickness: 0, deck: false, deckThickness: 0, ground: true } : bay.levels[levelIndex];
+  }
+  function setGroundEnabled(layout, key, bayIndex, enabled) {
+    const next = cloneLayout(layout), rack = editableObject(next, key), bay = rack.bays && rack.bays[bayIndex];
+    if (!bay || typeof enabled !== 'boolean') fail('Choose a rack bay and ground setting.');
+    if (enabled && bay.passage) fail('A passage cannot contain ground locations.');
+    bay.ground.enabled = enabled;
+    return reconcileLayout(next);
+  }
+  // The access side is the positive-Z edge, matching the default 3D view and +X slot order.
+  function rackFront(object) {
+    const footprint = objectFootprint(object), width = footprint.width, depth = footprint.depth;
+    return { center: localPoint(object, width / 2, depth), tip: localPoint(object, width / 2, depth + 600),
+      left: localPoint(object, 0, depth), right: localPoint(object, width, depth), rotation: object.rotation };
+  }
+  function locationScope(layout, zoneId) {
+    const zone = (layout.zones || []).find(function (item) { return item.id === zoneId; });
+    if (!zone) fail('Choose a functional zone.');
+    const object = layout.objects.find(function (item) { return item.id === zone.objectId; });
+    const bayIndex = object.bays.findIndex(function (bay) { return bay.id === zone.bayId; });
+    const bay = object.bays[bayIndex], levelIndex = bay.ground && bay.ground.id === zone.levelId ? -1 : bay.levels.findIndex(function (level) { return level.id === zone.levelId; });
+    const level = scopeLevel(object, bayIndex, levelIndex);
+    let x = object.uprights[bayIndex].width;
+    for (let index = 0; index < bayIndex; index += 1) x += object.uprights[index].width + object.bays[index].width;
+    const y = levelIndex === -1 ? 0 : bay.levels.slice(0, levelIndex + 1).reduce(function (sum, entry) { return sum + entry.clearHeight + entry.thickness; }, 0) + (level.deck ? level.deckThickness : 0);
+    return { object: object, bay: bay, level: level, zone: zone, bayIndex: bayIndex, levelIndex: levelIndex, x: x, y: y };
+  }
+  function equalPlacement(bay, index, count) {
+    const start = Math.floor(index * bay.width / count), end = Math.floor((index + 1) * bay.width / count);
+    return { x: start, z: 0, width: end - start, depth: bay.depth };
+  }
+  function normalizePlacement(value, scope) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) fail('Location area is invalid.');
+    const area = { x: measure(value.x, 'Location X', 0, 50000), z: measure(value.z, 'Location Z', 0, 50000),
+      width: measure(value.width, 'Location width', 1, 50000), depth: measure(value.depth, 'Location depth', 1, 50000) };
+    if (area.x + area.width > scope.bay.width || area.z + area.depth > scope.bay.depth) fail('Location area exceeds the usable level bounds.');
+    return area;
+  }
+  function placementsOverlap(a, b) { return a.x < b.x + b.width && a.x + a.width > b.x && a.z < b.z + b.depth && a.z + a.depth > b.z; }
+  function editableLocationScope(layout, zoneId) {
+    const scope = locationScope(layout, zoneId);
+    if (scope.object.locked) fail('Unlock the object before editing it.');
+    if (scope.zone.usage === 'unassigned') fail('Classify the scope before creating or resizing locations.');
+    return scope;
+  }
+  function checkLocationPlacement(layout, zoneId, value, excludeId) {
+    const scope = locationScope(layout, zoneId), area = normalizePlacement(value, scope);
+    if (area.z !== 0 || area.depth !== scope.bay.depth) fail('Locations must share one row along the rack front and use the full bay depth.');
+    if (zoneLocations(layout, zoneId).some(function (other) {
+      return other.id !== excludeId && area.x < other.placement.x + other.placement.width && area.x + area.width > other.placement.x;
+    })) fail('Location areas overlap in this level.');
+    return area;
+  }
   function resizeZoneLocations(layout, zoneId, count) {
-    const next = JSON.parse(JSON.stringify(layout));
-    const zone = next.zones.find(function (item) { return item.id === zoneId; });
-    if (!zone || zone.usage === 'unassigned') fail('Classify the scope before creating or resizing locations.');
-    if (next.objects.find(function (item) { return item.id === zone.objectId; }).locked) fail('Unlock the object before editing it.');
-    if (!Number.isInteger(count) || count < 0 || count > 4) fail('Choose 0–4 locations in this level.');
+    const next = JSON.parse(JSON.stringify(layout)), scope = editableLocationScope(next, zoneId);
+    if (!Number.isInteger(count) || count < 0 || count > MAX_LEVEL_LOCATIONS) fail('Choose 0–10 locations in this level.');
     const old = zoneLocations(next, zoneId);
     next.locations = next.locations.filter(function (item) { return item.zoneId !== zoneId; }).concat(
       Array.from({ length: count }, function (_, index) {
-        return old[index] || { id: id('location'), zoneId: zoneId, positionIndex: index, code: '', legacy: false };
+        return Object.assign({}, old[index] || { id: id('location'), zoneId: zoneId, positionIndex: index, code: '', legacy: false },
+          { placement: equalPlacement(scope.bay, index, count) });
       }));
+    return normalizeLayout(next);
+  }
+  function setLocationPlacement(layout, locationId, value) {
+    const next = JSON.parse(JSON.stringify(layout)), location = next.locations.find(function (item) { return item.id === locationId; });
+    if (!location) fail('Choose a location.');
+    editableLocationScope(next, location.zoneId);
+    location.placement = checkLocationPlacement(next, location.zoneId, value, location.id);
+    return normalizeLayout(next);
+  }
+  function findLocationSpace(layout, zoneId, width, depth) {
+    const scope = locationScope(layout, zoneId), peers = zoneLocations(layout, zoneId);
+    const xs = [0].concat(peers.map(function (other) { return other.placement.x + other.placement.width; }));
+    for (const x of xs.sort(function (a, b) { return a - b; })) {
+      const area = { x: x, z: 0, width: width, depth: depth };
+      if (x + width <= scope.bay.width && !peers.some(function (other) { return placementsOverlap(area, other.placement); })) return area;
+    }
+    fail('No free location area. Resize an existing location or draw into a free area.');
+  }
+  function addLocation(layout, zoneId, value) {
+    const next = JSON.parse(JSON.stringify(layout)), scope = editableLocationScope(next, zoneId), peers = zoneLocations(next, zoneId);
+    if (peers.length >= MAX_LEVEL_LOCATIONS) fail('A level supports up to 10 locations.');
+    const area = value || findLocationSpace(next, zoneId, Math.min(800, Math.floor(scope.bay.width / 2)), scope.bay.depth);
+    next.locations.push({ id: id('location'), zoneId: zoneId, positionIndex: peers.length, code: '', legacy: false,
+      placement: checkLocationPlacement(next, zoneId, area) });
+    return normalizeLayout(next);
+  }
+  function duplicateLocation(layout, locationId) {
+    const location = layout.locations.find(function (item) { return item.id === locationId; });
+    if (!location) fail('Choose a location.');
+    editableLocationScope(layout, location.zoneId);
+    if (zoneLocations(layout, location.zoneId).length >= MAX_LEVEL_LOCATIONS) fail('A level supports up to 10 locations.');
+    const area = findLocationSpace(layout, location.zoneId, location.placement.width, locationScope(layout, location.zoneId).bay.depth);
+    return addLocation(layout, location.zoneId, area);
+  }
+  function removeLocation(layout, locationId) {
+    const next = JSON.parse(JSON.stringify(layout)), location = next.locations.find(function (item) { return item.id === locationId; });
+    if (!location) fail('Choose a location.');
+    editableLocationScope(next, location.zoneId);
+    next.locations = next.locations.filter(function (item) { return item.id !== locationId; });
+    zoneLocations(next, location.zoneId).forEach(function (item, index) { item.positionIndex = index; });
     return normalizeLayout(next);
   }
   function setLocationCode(layout, locationId, code) {
@@ -471,6 +583,8 @@
 
   function migrateLayout(layout) {
     if (layout && layout.version === LAYOUT_VERSION) return normalizeLayout(layout);
+    if (layout && layout.version === 5) return normalizeLayout(Object.assign({}, layout, { version: LAYOUT_VERSION }));
+    if (layout && layout.version === 4) return normalizeLayout(Object.assign({}, layout, { version: LAYOUT_VERSION }));
     if (layout && layout.version === 3) return normalizeLayout(Object.assign({}, layout, { version: LAYOUT_VERSION }));
     if (layout && layout.version === 2) return normalizeLayout(Object.assign({}, layout, { version: LAYOUT_VERSION, groups: [], connections: [] }));
     if (!layout || layout.version !== 1 || !Array.isArray(layout.objects)) fail('Warehouse layout format is invalid.');
@@ -518,7 +632,27 @@
 
   // Produces a destructive candidate; the editor must confirm its impact before saving.
   // Validation itself never drops orphaned references.
-  function reconcileLayout(layout) {
+  function reconcileLayout(layout, before) {
+    if (before) {
+      const depths = function (value) {
+        const result = new Map();
+        value.objects.filter(function (object) { return RACK_TYPES.includes(object.type); })
+          .forEach(function (object) { object.bays.forEach(function (bay) { result.set(bay.id, bay.depth); }); });
+        return result;
+      };
+      const oldDepths = depths(before), newDepths = depths(layout);
+      const oldLocations = new Map(before.locations.map(function (item) { return [item.id, item]; }));
+      const oldZones = new Map(before.zones.map(function (item) { return [item.id, item]; }));
+      layout.locations = (layout.locations || []).map(function (location) {
+        const old = oldLocations.get(location.id), zone = old && oldZones.get(old.zoneId);
+        const oldDepth = zone && oldDepths.get(zone.bayId), newDepth = zone && newDepths.get(zone.bayId);
+        if (old && location.zoneId === old.zoneId && old.placement.z === 0 && old.placement.depth === oldDepth &&
+            location.placement.z === 0 && location.placement.depth === oldDepth && newDepth !== undefined && newDepth !== oldDepth) {
+          return Object.assign({}, location, { placement: Object.assign({}, location.placement, { depth: newDepth }) });
+        }
+        return location;
+      });
+    }
     const objectIds = new Set(layout.objects.map(function (object) { return object.id; }));
     layout.objects.forEach(function (object) {
       if (RACK_TYPES.includes(object.type)) object.bays.forEach(function (bay) {
@@ -545,10 +679,14 @@
         object.bays.forEach(function (bay, bayIndex) {
           x += object.uprights[bayIndex].width;
           let y = 0;
+          if (bay.ground && bay.ground.enabled) {
+            const groundScope = byLevel.get(bay.ground.id);
+            result.set(bay.ground.id, JSON.stringify([object.x, object.z, object.rotation, x, bay.width, bay.depth, groundScope.usage]));
+          }
           bay.levels.forEach(function (level) {
             const scope = byLevel.get(level.id);
             result.set(level.id, JSON.stringify([object.x, object.z, object.rotation, x, y, bay.width, bay.depth,
-              level, object.uprights[bayIndex], object.uprights[bayIndex + 1], scope.usage, scope.locationCount]));
+              level, object.uprights[bayIndex], object.uprights[bayIndex + 1], scope.usage]));
             y += level.clearHeight + level.thickness;
           });
           x += bay.width;
@@ -561,7 +699,7 @@
     const affected = listLocations(before).filter(function (location) {
       const next = proposed.get(location.locationId);
       return !next || location.zoneId !== next.zoneId || (location.code && location.code !== next.code) ||
-        location.positionIndex !== next.positionIndex || oldGeometry.get(location.levelId) !== newGeometry.get(next.levelId);
+        location.positionIndex !== next.positionIndex || JSON.stringify(location.placement) !== JSON.stringify(next.placement) || oldGeometry.get(location.levelId) !== newGeometry.get(next.levelId);
     });
     const matches = matchArticles(before, registry);
     return { locations: affected.length, codes: affected.filter(function (location) { return location.code; }).length,
@@ -839,6 +977,7 @@
     if (settings.levelCount !== undefined) Object.assign(object, resizeBayLevels(object, bayIndex, Number(settings.levelCount)));
     object.bays[bayIndex].levels[0].clearHeight = measure(height, 'Passage height', 100, 8000);
     object.bays[bayIndex].passage = { routeId: routeId || null };
+    object.bays[bayIndex].ground.enabled = false;
     if (settings.growFrames) {
       const total = object.bays[bayIndex].levels.reduce(function (sum, level) { return sum + level.clearHeight + level.thickness; }, 0);
       object.uprights[bayIndex].height = Math.max(object.uprights[bayIndex].height, total);
@@ -862,7 +1001,8 @@
     target.x += Math.cos(angle) * offset; target.z += Math.sin(angle) * offset;
     target.bays[targetBay].levels[0].clearHeight = source.bays[sourceBay].levels[0].clearHeight;
     target.bays[targetBay].passage = Object.assign({}, source.bays[sourceBay].passage);
-    return next;
+    target.bays[targetBay].ground.enabled = false;
+    return reconcileLayout(next);
   }
   function createRoute(points, width, name) {
     if (!Array.isArray(points) || points.length < 2) fail('Draw at least two route points.');
@@ -1338,6 +1478,7 @@
       copy.uprights.forEach(function (upright) { upright.id = id('upright'); });
       copy.bays.forEach(function (bay) {
         bay.id = id('bay');
+        if (bay.ground) bay.ground.id = id('ground');
         if (bay.passage) bay.passage.routeId = null;
         bay.levels.forEach(function (level) {
           level.id = id('level');
@@ -1413,13 +1554,16 @@
   }
 
   return {
-    LAYOUT_VERSION: LAYOUT_VERSION, RACK_TYPES: RACK_TYPES, AREA_TYPES: AREA_TYPES,
+    LAYOUT_VERSION: LAYOUT_VERSION, MAX_LEVEL_LOCATIONS: MAX_LEVEL_LOCATIONS, RACK_TYPES: RACK_TYPES, AREA_TYPES: AREA_TYPES,
     RECIPE_TYPES: RECIPE_TYPES, JUNCTION_SHAPES: JUNCTION_SHAPES, JUNCTION_DIRECTIONS: JUNCTION_DIRECTIONS,
     USAGES: USAGES, USAGE_COLORS: USAGE_COLORS,
     CONNECTOR_TYPES: CONNECTOR_TYPES,
     WarehouseValidationError: WarehouseValidationError,
     createLayout: createLayout, createRack: createRack, createArea: createArea, createRecipe: createRecipe,
     resizeRack: resizeRack, resizeBayLevels: resizeBayLevels, resizeZoneLocations: resizeZoneLocations,
+    scopeLevel: scopeLevel, setGroundEnabled: setGroundEnabled, rackFront: rackFront,
+    locationScope: locationScope, checkLocationPlacement: checkLocationPlacement,
+    setLocationPlacement: setLocationPlacement, addLocation: addLocation, duplicateLocation: duplicateLocation, removeLocation: removeLocation,
     rackDepth: rackDepth, setRackDepth: setRackDepth,
     localPoint: localPoint, routeSegments: routeSegments, physicalParts: physicalParts,
     configurePassage: configurePassage, continuePassage: continuePassage, bayCenter: bayCenter,

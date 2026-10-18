@@ -28,7 +28,7 @@ test('technical and analysis views share geometry while article matches change o
   assert.equal(JSON.stringify(layout), before);
 });
 
-test('levels have distinct functional colors and scope picking without any location markers', () => {
+test('physical decks remain gray and scopes remain pickable without configured locations', () => {
   let layout = model.normalizeLayout({ ...model.createLayout(), objects: [model.createRack('shelf-rack', { bayCount: 1, levelCount: 3 })] });
   layout = model.setZoneUsage(layout, layout.zones[0].id, 'picking');
   layout = model.setZoneUsage(layout, layout.zones[1].id, 'reserve');
@@ -36,8 +36,9 @@ test('levels have distinct functional colors and scope picking without any locat
   const boxes = scene.buildBoxes(model, layout);
   for (const zone of layout.zones) {
     const level = boxes.filter((box) => box.slotRef && box.slotRef.zoneId === zone.id);
-    assert.ok(level.length >= 2);
-    assert.ok(level.every((box) => box.color === model.USAGE_COLORS[zone.usage]));
+    assert.ok(level.length >= (zone.levelId === layout.objects[0].bays[0].ground.id ? 1 : 2));
+    assert.ok(level.filter(box => box.kind === 'deck').every(box => box.color === scene.PALLET_PART_COLORS.deck));
+    assert.ok(level.filter(box => box.kind === 'ground-scope').every(box => box.color === model.USAGE_COLORS[zone.usage]));
   }
   assert.equal(boxes.filter((box) => box.slotRef && box.slotRef.slotId).length, 0);
   assert.deepEqual(layout, before);

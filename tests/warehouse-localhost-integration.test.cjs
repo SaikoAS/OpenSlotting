@@ -84,9 +84,9 @@ test('rack code generation respects legacy/classification, locks and global code
 test('physical capacity is independent of the 5000 logical-location limit', () => {
   const { uncodedScopeFixture } = require('./fixtures/warehouse-performance.cjs');
   const layout = uncodedScopeFixture(warehouse);
-  assert.equal(layout.objects.length, 150); assert.equal(layout.zones.length, 54000);
+  assert.equal(layout.objects.length, 150); assert.equal(layout.zones.length, 58500);
   assert.equal(layout.locations.length, 0);
   const index = warehouse.createScopeIndex(layout);
-  assert.equal(index.zonesByLevel.size, 54000); assert.equal(index.locationsByZone.size, 0);
+  assert.equal(index.zonesByLevel.size, 58500); assert.equal(index.locationsByZone.size, 0);
   assert.equal(warehouse.listLocations(layout).length, 0);
 });

@@ -27,7 +27,7 @@ function configure(layout, index, usage, count, prefix = '') {
 test('fresh geometry has stable physical scopes and zero locations or codes', () => {
   let layout = fresh();
   assert.equal(layout.version, warehouse.LAYOUT_VERSION);
-  assert.equal(layout.zones.length, 4);
+  assert.equal(layout.zones.length, 6);
   assert.deepEqual(layout.locations, []);
   assert.ok(layout.zones.every((zone) => zone.usage === 'unassigned'));
   assert.ok(layout.objects[0].bays.every((bay) => bay.levels.every((level) => !('positions' in level))));
@@ -42,14 +42,14 @@ test('mixed uses and independent subdivision allow partial completion', () => {
   let layout = configure(fresh(), 0, 'picking', 3, 'P-');
   layout = configure(layout, 1, 'reserve', 1, 'R-');
   assert.deepEqual(warehouse.listScopes(layout).map((scope) => [scope.usage, scope.locationCount]),
-    [['picking', 3], ['reserve', 1], ['unassigned', 0], ['unassigned', 0]]);
+    [['picking', 3], ['reserve', 1], ['unassigned', 0], ['unassigned', 0], ['unassigned', 0], ['unassigned', 0]]);
   const first = structuredClone(warehouse.zoneLocations(layout, layout.zones[0].id));
   const expanded = warehouse.resizeZoneLocations(layout, layout.zones[1].id, 4);
   assert.deepEqual(warehouse.zoneLocations(expanded, layout.zones[0].id), first);
   assert.equal(warehouse.zoneLocations(expanded, layout.zones[1].id)[0].id, layout.locations[3].id);
   assert.equal(warehouse.zoneLocations(expanded, layout.zones[1].id)[0].code, 'R-1');
-  assert.throws(() => warehouse.resizeZoneLocations(layout, layout.zones[0].id, 5), /0–4/);
-  assert.throws(() => warehouse.resizeZoneLocations(layout, layout.zones[0].id, 1.5), /0–4/);
+  assert.throws(() => warehouse.resizeZoneLocations(layout, layout.zones[0].id, 11), /0–10/);
+  assert.throws(() => warehouse.resizeZoneLocations(layout, layout.zones[0].id, 1.5), /0–10/);
   assert.equal(warehouse.resizeZoneLocations(layout, layout.zones[0].id, 0).locations.length, 1);
   assert.equal(warehouse.setZoneUsage(layout, layout.zones[2].id, 'future-use').zones[2].usage, 'future-use');
 });
@@ -97,7 +97,7 @@ test('validation rejects duplicate codes, duplicate or orphaned references, and 
 test('physical geometry is independent of the workspace-wide location limit', () => {
   const objects = Array.from({ length: 11 }, () => warehouse.createRack('shelf-rack', { bayCount: 30, levelCount: 4 }));
   const layout = warehouse.normalizeLayout({ ...warehouse.createLayout(), objects });
-  assert.equal(layout.zones.length, 1320);
+  assert.equal(layout.zones.length, 1650);
   assert.equal(layout.locations.length, 0);
   layout.zones.forEach((zone) => {
     zone.usage = 'picking';

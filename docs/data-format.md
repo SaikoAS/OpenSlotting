@@ -172,7 +172,7 @@ dokumentiert**, including imports from older versions. No profile is inferred.
 
 Selection, filters, the current subview and preview are session-only; changing
 workspace resets them. Application evidence is stored locally with each source
-and included in backups using workspace schema 18 (database 3, backup format 1).
+and included in backups using workspace schema 20 (database 3, backup format 1).
 No additional package or data service is introduced. See the
 [workspace contract](workspace-format.md#workspace-record).
 

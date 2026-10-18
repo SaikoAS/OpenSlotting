@@ -1,10 +1,14 @@
 # Architektur und Projektkarte
 
-Stand: 2026-10-10. Die aktive Anwendung läuft im Browser am festen Loopback-
+Stand: 2026-10-18. Die aktive Anwendung läuft im Browser am festen Loopback-
 Origin `http://127.0.0.1:8765`. Python liefert lokale, ausdrücklich erlaubte
 Anwendungsdateien mit seiner Standardbibliothek. CSV-Import, Aufbereitung,
 Fachanalyse und IndexedDB-Speicherung bleiben im Browser. Der Server besitzt
 keine Workspace-Datenbank, Uploadschnittstelle oder Backend-Daten-API.
+
+## Lager-Rundgang
+
+`warehouse-walk.js` bietet eine getrennte, nur lesende First-Person-Ansicht. Getter liefern Lagerplan, exakte Artikelzuordnungen, vorhandene Analyse und optional den bestehenden Periodenvergleich; einen Speicheraufruf gibt es nicht. Die gemeinsame Geometrie aus `warehouse-scene.js` speist `warehouse-walk-model.js` (Meterkoordinaten, räumliche Kollisions-/Strahlabfragen und Perspektivmathematik) sowie `warehouse-walk-renderer.js` (typisierte GPU-Puffer und Kameramatrizen). Editor und bisheriger orthografischer Renderer bleiben getrennt. Bewegung, Auswahl und Kamera sind flüchtig; Fokusverlust, ausgeblendeter Tab und Menüwechsel stoppen die Bewegung. Die Laufzeit- und ZIP-Dateilisten enthalten die neuen Module und das Stylesheet. Bedienung und Datengrenzen: [Lager-Rundgang](warehouse-walk.md).
 
 ## Aktuelle Modulgrenzen
 
@@ -22,8 +26,10 @@ keine Workspace-Datenbank, Uploadschnittstelle oder Backend-Daten-API.
 | `encoding.js`, `csv.js` | Decoder, Streaming-CSV, Mapping, Regeln, Profile, Validierung, Artikelregister und vollständige exakte Analyse |
 | `periods.js`, `terminal.js` | Abdeckung und Periodenvergleich; begrenzter Datumsindex; Analyseschreibtisch, Ranglisten und Locale-Suchprojektionen |
 | `workspace.js`, `storage.js` | Workspace-/Sicherungsvertrag, Validierung/Migration, stapelsichere Base64-Prüfung und atomare Chunk-Speicherung in IndexedDB |
-| `warehouse.js` | Layout-Schema 3: Struktur, Zonen, Locations, Gruppen, Endpunktverbindungen und Fahrwege; Migration, stabile IDs, gemeinsame Bauteilgeometrie und Kollisionsprüfung mit Höhen |
+| `warehouse.js` | Layout-Schema 6: Struktur, Zonen, Locations, Gruppen, Endpunktverbindungen und Fahrwege; Migration, stabile IDs, gemeinsame Bauteilgeometrie und Kollisionsprüfung mit Höhen |
 | `warehouse-scene.js`, `warehouse-webgl.js` | Gemeinsame Szene, CPU-Projektion, Framepuffer und lokales WebGL2-Rendering |
+| `warehouse-walk-model.js`, `warehouse-walk-renderer.js` | Perspektivische Kamera, Metergeometrie, räumliche Kollisions-/Strahlabfragen und statische GPU-Puffer |
+| `warehouse-walk.js`, `warehouse-walk.css` | Nur lesender Lager-Rundgang, Eingaben, Minikarte, Stellplatzdetails und vorhandene Analyseverknüpfungen |
 | `warehouse-editor.js`, `warehouse-editor.css` | Layoutbearbeitung, bestätigtes Speichern, Sperren, 20-stufige Undo/Redo-Historie und Draufsicht/3D |
 | `warehouse-analysis.js` | Lesende Stellplatz-/Artikelstammanalyse; verändert keine gespeicherten Layouts |
 | `Start-OpenSlotting-Localhost.py` | Statischer Loopback-Dienst, Launcheridentität und begrenzter Cache erlaubter Runtime-Assets mit ETag-Revalidierung |
@@ -101,7 +107,7 @@ ihre bestehenden Regeln.
 ## Datenschutz, Laufzeit und Datenkompatibilität
 
 IndexedDB bleibt im aktuellen Browserprofil und Origin: Datenbank
-`openslotting-workspaces`, Datenbankversion 3, Workspace-Schema 18. Neue
+`openslotting-workspaces`, Datenbankversion 3, Workspace-Schema 20. Neue
 Module und flüchtige Caches erfordern keine Datenmigration und verändern den
 Sicherungsvertrag nicht. Originalbytes und BigInt-/Binärkodierung bleiben
 verlustlos. Die Base64-Korrektur vermeidet die rekursiv gruppierte Prüfung
@@ -175,7 +181,11 @@ Siehe [Lagerübernahme und neue Messungen](performance/warehouse-layout-v2.md).
 
 ## Lagereditor-Fortschreibung vom 2026-10-10
 
-Der gemeinsame Migrator überführt Layout 1/2/3 nach Layout 4 und Workspace 16.
+Der gemeinsame Migrator überführt Layout 1/2/3/4/5 nach Layout 6 und Workspace 20.
+Stellplätze speichern rechteckige Flächen in lokalen Millimeterkoordinaten je
+Ebene (maximal zehn). Neue Plätze liegen nebeneinander an der Regalfront und
+nutzen die gesamte Fachtiefe. Alte gleichmäßige Teilungen erhalten explizite Flächen;
+IDs und Codes bleiben erhalten. Editor und Auswertung nutzen dieselbe Geometrie.
 Gruppen und Endpunktverbindungen sind eigene Metadatenlisten. Durchfahrten
 verweisen optional auf einen Fahrweg; Fahrzeugmaße werden ausdrücklich erfasst.
 Bestehende gezeichnete Fahrwege behalten lokale Punkte und eine separate Breite.
@@ -281,3 +291,15 @@ mit den tatsächlichen Canvas-Abmessungen. Unter 1001 px stapeln die 3D-Ansichte
 ihre Bereiche mit interner Scrollmöglichkeit. Es werden keine zusätzlichen
 Bibliotheken geladen und keine Workspace-Metadaten ergänzt. Visuelle Edge-
 Abnahme bei verschiedenen Fenstergrößen und Browser-Zoomstufen steht noch aus.
+
+Bodenebenen sind pro Fach standardmäßig aktiv (bei Durchfahrten aus). Sie
+verwenden eigene stabile IDs und `levelIndex: -1`, ohne höhere Ebenen umzunummerieren.
+Die Bedienseite liegt an der positiven Z-Kante; Richtungsmarkierungen werden aus derselben
+Rotation wie die Regalgeometrie abgeleitet und sind keine Kollisionskörper.
+
+Stellplatzmarkierungen besitzen eigene gebündelte Zeichen- und Picking-Puffer.
+Die sichtbaren Rahmen sind nur optisch eingerückt; der ID-Pass nutzt weiterhin
+alle Flächen in Originalgröße. Positionsziffern werden bei ausreichendem Zoom
+als Linien erzeugt. Nur die Auswahl erhält eine schwache Flächentönung. Fachböden
+bleiben als physische Bauteile grau. Sichtbarkeit und Farbdarstellung sind reine
+Sitzungszustände und ändern weder Workspace-Schema 20 noch Layout-Schema 6.

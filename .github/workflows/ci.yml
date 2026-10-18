@@ -67,6 +67,9 @@ jobs:
           node --check warehouse-scene.js
           node --check warehouse-editor.js
           node --check warehouse-analysis.js
+          node --check warehouse-walk-model.js
+          node --check warehouse-walk-renderer.js
+          node --check warehouse-walk.js
           node --check src/application/workspace-preparation.js
           node --check src/application/worker-session.js
           node --check src/application/import-profile-batch.js

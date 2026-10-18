@@ -22,7 +22,22 @@ function buffersEqual(actual, expected, name) {
 }
 
 function sameProjection(actual, expected) {
-  for (const field of ['opaque', 'edges', 'grid']) buffersEqual(actual[field], expected[field], field);
+  // Location faces now live only in an independent ID buffer; visible outlines
+  // and selection edges deliberately differ. Preserve every full vertex/pick ID.
+  function byPick(buffers) {
+    const groups = new Map();
+    for (const buffer of buffers) for (let offset=0; offset<buffer.length; offset+=10) {
+      const key = [buffer[offset+7],buffer[offset+8],buffer[offset+9]].join(':');
+      if (!groups.has(key)) groups.set(key,[]);
+      for (let index=0; index<10; index++) groups.get(key).push(buffer[offset+index]);
+    }
+    return groups;
+  }
+  const rendered = byPick([actual.opaque,actual.pickMarkers,...actual.pickTransparent]);
+  const frozen = byPick([expected.opaque,...expected.transparent]);
+  assert.deepEqual([...rendered.keys()].sort(),[...frozen.keys()].sort());
+  for (const [key,values] of rendered) buffersEqual(new Float32Array(values),new Float32Array(frozen.get(key)),'full picking '+key);
+  buffersEqual(actual.grid,expected.grid,'grid');
   assert.equal(actual.transparent.length, expected.transparent.length);
   actual.transparent.forEach(function (vertices, index) {
     const legacy = expected.transparent[index];

@@ -155,7 +155,8 @@ test('Python server is loopback-only, blocks data transmission, and serves only 
   assert.equal(terminalTheme.status, 200);
   assert.match(terminalTheme.headers.get('content-type'), /^text\/css/);
   await terminalTheme.arrayBuffer();
-  for (const asset of ['warehouse.js', 'warehouse-webgl.js', 'warehouse-scene.js', 'warehouse-editor.js', 'warehouse-analysis.js', 'warehouse-editor.css']) {
+  for (const asset of ['warehouse.js', 'warehouse-webgl.js', 'warehouse-scene.js', 'warehouse-editor.js', 'warehouse-analysis.js', 'warehouse-editor.css',
+    'warehouse-walk-model.js', 'warehouse-walk-renderer.js', 'warehouse-walk.js', 'warehouse-walk.css']) {
     const response = await fetch(origin + '/' + asset);
     assert.equal(response.status, 200, asset);
     await response.arrayBuffer();

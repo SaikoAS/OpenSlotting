@@ -1,0 +1,43 @@
+.wh-walk-root { height: 100%; min-height: 0; display: grid; grid-template-rows: auto auto minmax(180px, 1fr) auto; gap: 10px; overflow: hidden; }
+.wh-walk-root .wh-header { margin: 0; }
+.wh-walk-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; padding: 10px; border: 1px solid #313d47; border-radius: 8px; background: #1b222b; }
+.wh-walk-toolbar label { display: grid; gap: 4px; min-width: 0; color: #b4c5cd; font-size: .72rem; }
+.wh-walk-toolbar input, .wh-walk-toolbar select { width: auto; max-width: 180px; padding: 7px; border: 1px solid #40515d; border-radius: 5px; color: #dfeded; background: #202c37; }
+.wh-walk-toolbar [data-walk-eye] { width: 80px; }
+.wh-walk-toolbar button, .wh-walk-inspector button { padding: 8px 10px; border: 1px solid #42635f; border-radius: 5px; color: #bff2e8; background: #203c3a; font-size: .72rem; cursor: pointer; }
+.wh-walk-root button:disabled { opacity: .5; cursor: not-allowed; }
+.wh-walk-root button:focus-visible, .wh-walk-root canvas:focus-visible, .wh-walk-root input:focus-visible, .wh-walk-root select:focus-visible { outline: 2px solid #85e8d5; outline-offset: -2px; }
+.wh-walk-body { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, 300px); gap: 12px; }
+.wh-walk-body:has(> [hidden]) { grid-template-columns: minmax(0, 1fr); }
+.wh-walk-viewport { position: relative; min-height: 180px; min-width: 0; overflow: hidden; border: 1px solid #334650; border-radius: 9px; background: #0d151c; }
+.wh-walk-canvas { display: block; width: 100%; height: 100%; min-height: 180px; touch-action: none; }
+.wh-walk-labels { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+.wh-walk-labels button { position: absolute; max-width: 140px; padding: 3px 6px; transform: translate(-50%, -50%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 1px solid #647c86; border-radius: 4px; background: #14242bed; color: #ddf4f0; font-size: .66rem; pointer-events: auto; cursor: pointer; }
+.wh-walk-labels [aria-pressed="true"] { border-color: #fff2a3; color: #fff2a3; }
+.wh-walk-crosshair { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #d8eeec; pointer-events: none; opacity: .6; }
+.wh-walk-map-wrap { position: absolute; left: 10px; bottom: 10px; z-index: 2; max-width: 42%; padding: 6px; border: 1px solid #526771; border-radius: 7px; color: #d1e4e5; background: #132029ed; }
+.wh-walk-map-wrap small { display: block; max-width: 240px; margin-bottom: 4px; font-size: .65rem; }
+.wh-walk-map { display: block; width: 240px; max-width: 100%; height: auto; cursor: crosshair; }
+.wh-walk-inspector { min-height: 0; margin: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; overflow-wrap: anywhere; }
+.wh-walk-inspector[hidden] { display: none; }
+.wh-walk-inspector h3 { color: #fff2a3; }
+.wh-walk-inspector p { font-size: .76rem; line-height: 1.5; }
+.wh-walk-inspector dl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; font-size: .72rem; }
+.wh-walk-inspector dd { margin: 0; color: #d8efeb; }
+.wh-walk-article { margin-top: 14px; padding-top: 12px; border-top: 1px solid #35444d; }
+.wh-walk-footer { min-width: 0; color: #a2bac4; font-size: .68rem; }
+.wh-walk-footer p { margin: 3px 0; }
+.wh-walk-footer [role="status"] { color: #ffd78a; }
+#warehouse-walk-page { overflow: hidden; }
+#warehouse-walk-panel { height: 100%; min-height: 0; }
+@media (max-width: 850px) {
+  .wh-walk-body { grid-template-columns: minmax(0, 1fr) minmax(190px, 230px); }
+  .wh-walk-toolbar { gap: 5px; }
+  .wh-walk-toolbar input, .wh-walk-toolbar select { max-width: 135px; }
+}
+@media (max-width: 650px), (max-height: 560px) {
+  #warehouse-walk-page { overflow: auto; }
+  .wh-walk-root { height: auto; min-height: 100%; overflow: visible; grid-template-rows: auto auto minmax(300px, 55dvh) auto; }
+  .wh-walk-body { position: relative; grid-template-columns: minmax(0, 1fr); }
+  .wh-walk-inspector { position: absolute; right: 0; top: 0; bottom: 0; width: min(240px, 65%); z-index: 3; background: #1b222bf5; }
+}

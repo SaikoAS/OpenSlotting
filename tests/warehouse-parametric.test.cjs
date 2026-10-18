@@ -137,7 +137,7 @@ test('layout 2/3 migrations retain source geometry and codes through workspace 1
     record.schemaVersion = schema; record.warehouseLayout = { ...structuredClone(layout), version };
     if (version === 2) { delete record.warehouseLayout.groups; delete record.warehouseLayout.connections; }
     const before = structuredClone(record), migrated = workspace.migrateWorkspace(record);
-    assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION); assert.equal(migrated.warehouseLayout.version, 4);
+    assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION); assert.equal(migrated.warehouseLayout.version, workspace.createWorkspace('Version').warehouseLayout.version);
     assert.deepEqual(migrated.warehouseLayout.objects, layout.objects);
     assert.deepEqual(migrated.warehouseLayout.locations, layout.locations);
     assert.deepEqual(migrated.warehouseLayout.zones, layout.zones);
@@ -146,7 +146,7 @@ test('layout 2/3 migrations retain source geometry and codes through workspace 1
   }
 });
 
-test('component/usage palettes share geometry and retain article/location marker colors', () => {
+test('component/usage modes keep materials and geometry while markers carry status or usage', () => {
   const rack = model.createRack('pallet-rack', { bayCount: 1, levelCount: 1 }); rack.bays[0].levels[0].deck = true;
   let layout = layoutOf(rack); layout = model.setZoneUsage(layout, layout.zones[0].id, 'picking');
   layout = model.resizeZoneLocations(layout, layout.zones[0].id, 1); layout.locations[0].code = 'P-1';
@@ -157,8 +157,9 @@ test('component/usage palettes share geometry and retain article/location marker
   assert.equal(structure.find(part => part.kind === 'upright').color, scene.PALLET_PART_COLORS.upright);
   assert.equal(structure.find(part => part.kind === 'beam').color, scene.PALLET_PART_COLORS.beam);
   assert.equal(structure.find(part => part.kind === 'deck').color, scene.PALLET_PART_COLORS.deck);
-  assert.equal(usage.find(part => part.kind === 'beam').color, model.USAGE_COLORS.picking);
+  assert.equal(usage.find(part => part.kind === 'beam').color, scene.PALLET_PART_COLORS.beam);
+  assert.equal(usage.find(part => part.kind === 'deck').color, scene.PALLET_PART_COLORS.deck);
   assert.equal(structure.find(part => part.slotRef && part.slotRef.slotId).color, '#45d3b1');
-  assert.equal(usage.find(part => part.slotRef && part.slotRef.slotId).color, '#45d3b1');
+  assert.equal(usage.find(part => part.slotRef && part.slotRef.slotId).color, model.USAGE_COLORS.picking);
   assert.deepEqual(layout, before);
 });

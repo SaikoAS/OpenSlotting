@@ -2,6 +2,14 @@
 
 The **Warehouse editor / 3D-Editor** has three freely selectable modes: **Structure / Struktur**, **Zones / Zonen**, and **Locations / Lagerplätze**. The separate **3D analysis / 3D-Auswertung** reads the saved plan and current article-master data. Complete one level or rack while leaving others unfinished; there is no warehouse-wide completion gate.
 
+## Direct selection and contextual editing
+
+Click a beam, deck, ground outline or location in 3D, or a level band in the top view, to select its rack, bay and level. A location click also selects that exact location. Clicking an upright selects the whole rack. The sticky **Selection / Auswahl** path in Properties shows rack → bay → level → location (including its code); click an ancestor to select that broader area. Selected levels/bays receive bright outlines on their physical parts; only an individually selected location receives the faint surface tint. Physical material colors remain unchanged.
+
+The Properties panel scrolls internally to the relevant controls without moving the whole page or taking keyboard focus from the view. Its Structure, Zones and Locations shortcuts retain the selected bay, level and location, including **Ground / Boden (level 0)**. Structure shows bay dimensions or selected-level geometry; Zones puts the selected level's functional use before bulk actions; Locations exposes the selected position's width, left offset and codes. Ground has no elevated beam, clear-height or deck controls. Notes explain that bay dimensions affect the full bay, level dimensions affect that level, and rack depth affects the entire row.
+
+Double-click the area to center and frame that location or level. **Focus selection / Auswahl fokussieren** also frames the selected bay or rack from the selection path. Top-view double-click focuses the clicked band, with the existing 25–400% zoom limit. In 3D, zoom percentages remain relative to the newly focused base. Click recognition survives the property redraw; dragging still rotates/pans in 3D. Top-view object movement requires explicitly selecting **Move objects** in Structure. Locked racks allow navigation and focusing while edits remain disabled. Selection, focus and panel position are session state and do not save geometry or add undo entries.
+
 ## Structure
 
 The **Add recipe / Rezept hinzufügen** dropdown groups recipes into **Racks / Regale**, **Wall modules / Wandmodule**, **Route modules / Fahrwegmodule**, **Building & access / Gebäude & Zugänge**, and **Routes & functional areas / Wege & Funktionsflächen**. Wall and route categories each offer a straight segment, corner, T-junction and crossroads. Recipes within each category are sorted alphabetically in the selected interface language. Native select groups retain keyboard navigation; category headings are not selectable recipes. The selected recipe survives editor redraws and mode changes. New rack types join the rack category automatically; future recipes appear under **Other recipes / Weitere Rezepte** until classified. Empty categories are omitted.
@@ -68,11 +76,59 @@ Assign each rack level **Picking / Kommissionierung**, **Reserve**, or **Unassig
 
 In the **Structure** mode's 3D view, pallet racks use blue upright frames (including their top and bottom frame members), orange beams, and light steel-gray decks. These illustrative component colors make adjacent rack parts easier to distinguish; they are not a manufacturer-specific or calibrated RAL specification. The legend labels each component in German or English. Selection and collision outlines remain visible over the component colors. Shelf racks retain their existing colors, with the functional legend also shown when they are present.
 
-Green represents Picking, purple Reserve, and gray Unassigned. In **Zones** and **Locations**, beams and decks show the functional color even when there are no locations. The separate **3D analysis** defaults to the same component palette as Structure/3D. Its **Object colors / Objektfarben** and **Usage colors / Nutzungsfarben** buttons select the presentation; the legend follows the selected view. This choice is session-only and resets to object colors when changing workspace. Shelf racks retain their existing functional colors. In the floor plan (including Structure mode), each bay's functional bands represent its levels from bottom to top, not separate physical floor areas. Clicking a band or 3D beam/deck selects that level; bay/level selectors remain available. Location-code and article-match marker colors remain independent of the component palette. Switching modes changes presentation only; dimensions, zones, IDs, codes, collision checks, and saved workspace data are unaffected.
+Green represents Picking, purple Reserve, and gray Unassigned. In 3D, pallet frames remain blue, beams orange, and physical decks light gray in every workflow step. Functional use is carried by location outlines in Zones and by the existing bands in the top plan. The separate **3D analysis** defaults to the same component palette as Structure/3D. Its **Object colors / Objektfarben** and **Usage colors / Nutzungsfarben** buttons select the presentation; the legend follows the selected view. This choice is session-only and resets to object colors when changing workspace. Shelf racks retain their existing functional colors. In the floor plan (including Structure mode), each bay's functional bands represent its levels from bottom to top, not separate physical floor areas. Clicking a band or 3D beam/deck selects that level; bay/level selectors remain available. The default location outlines show code/article status; **Usage colors** changes their color to functional use. Physical component colors remain unchanged. Switching modes changes presentation only; dimensions, zones, IDs, codes, collision checks, and saved workspace data are unaffected.
 
 ## Locations
 
-Select a classified level and explicitly choose **0–4 locations**. Counts are independent per level. Existing IDs and codes survive expansion; only added subdivisions receive new IDs. Enter codes individually or fill empty codes in the selected level from a prefix in `PREFIX-BAY-LEVEL-POSITION` form with two-digit indices. The level action does not touch other levels. A separate rack action fills empty codes on existing eligible locations throughout the selected rack. Neither action creates locations or changes existing codes.
+### Ground locations and orientation
+
+Each bay has an **enabled ground level by default**, shown as **Ground (level 0)**
+in Zones and Locations. It has no beam/deck and its locations render at floor
+height. Enabled means available for configuration, not implicitly occupied:
+classify its use, then explicitly add/divide up to ten locations and assign codes.
+Width and left offset are editable just like elevated locations. Existing upper
+levels retain their numbers; automatic ground codes use the level component `00`.
+
+Disable ground locations per bay in properties or in the builder's bay table.
+Disabling removes that bay's ground zone/locations through the existing impact
+confirmation; cancel, failed saves and undo retain/restore the saved state.
+Re-enabling starts with an empty Unassigned scope. Designating a passage disables
+its ground scope; remove the passage designation before enabling ground storage.
+Ground positions are logical configured locations, not modeled stored goods.
+
+The builder shows a rotated top-view preview and an orientation angle before
+insertion. Gold marks the **access side / rack front**, with an arrow pointing
+out toward the aisle. The top plan marks every rack front; 3D marks the selected
+rack. The same transform moves these cues when rotating or grouping racks.
+The positive-Z edge is the access side, matching the default 3D view; viewed
+from there, bays/locations run left to right along local +X. This is a planning convention, not an inferred hall compass.
+Orientation cues do not change collision geometry or create aisle connections.
+
+Select a classified level and create **0–10 locations side by side along the rack front**. Counts are independent per level. **Edit level areas** opens a schematic front view: drag sideways to move a location, drag its right handle to change width, or choose **Draw location area** and drag horizontally into a gap. Grid options are 1/10/50/100 mm, with edge alignment; Alt disables snapping. Exact left offset and width are editable in the properties. Every new location starts at the front and inherits the full bay depth, including later rack-depth edits; depth is displayed, not individually edited. Locations must fit the bay width and cannot overlap; touching edges and unequal widths are allowed. Rack geometry stays unchanged.
+
+**Add location** searches for a gap along the front; **Duplicate location** searches for room for the same width and creates a fresh ID with an empty code. Removing a location retains the other locations' coordinates, IDs and codes. Moving/resizing areas retains their IDs/codes without another confirmation. Removing coded areas and edits affecting other scope metadata retain impact confirmation. Undo/redo and confirmed local saves use the existing editor history; failed saves retain the committed layout.
+
+**Divide locations side by side** explicitly rearranges all areas in that level into equal full-depth strips for the chosen count. Retained positions keep their IDs/codes; additional positions receive new IDs. It is not a count-only operation. Enter codes individually or fill empty codes from a prefix in `PREFIX-BAY-LEVEL-POSITION` form with two-digit indices. Code generation affects only existing locations and never changes existing codes. The rack-wide action covers eligible levels without creating locations. Position numbers describe identity/order, not a left-to-right sort after free placement.
+
+Earlier prototype areas with depth offsets remain readable without automatic geometry changes. The front editor requests explicit side-by-side division before individual editing. This retains existing IDs and codes and uses the existing impact confirmation.
+
+The editor and separate analysis display locations as thin rectangular outlines at
+support elevation, inset by up to 12 mm solely for display. The physical deck
+stays visible underneath, with a narrow border; a level without a deck receives
+no invented plate. Position numbers 1–10 appear along the front edge when zoom
+makes them readable. Only the selected location has a bright outline and a 14%
+selection tint; selecting a whole rack does not flood its component edges with
+an accent color. Usage and code/article status change outlines, not deck material.
+
+**Locations: on/off / Stellplätze: an/aus** switches the markings in both views.
+This session preference never saves geometry, clears codes or enters undo history;
+it resets when changing workspace. The editor's focused level editor remains
+available for editing even when 3D markings are hidden. A separate full-footprint
+ID pass keeps picking at the exact stored dimensions despite the visual inset.
+Visible outlines/numbers and the selected tint are batched, rather than issuing
+one transparent surface draw per location.
+
+The saved rectangular footprints retain their actual dimensions. These describe configured areas, not stored-goods volume or certified load/clearance capacity. Locked racks and Unassigned scopes cannot receive new or moved areas; legacy code editing before classification remains available.
 
 Codes are trimmed at their ends, case-sensitive, at most 80 characters, and unique workspace-wide. Leading zeros remain significant. Progress for the selected level shows its modeled state, functional use, and the number of coded locations. A scope can have an assigned use and no locations yet.
 
@@ -86,11 +142,14 @@ Changing dimensions, placement, functional use, subdivision counts, or existing 
 
 ## Views and layout checks
 
-The bundled WebGL2 renderer uses a depth buffer and an offscreen color-ID pass for picking. In 3D, left drag rotates; right/middle drag or Shift+drag pans; the wheel zooms. Double-click or **Focus object** focuses the selected object. **Fit view** restores framing. **Walls** cycles solid/transparent/hidden without changing saved geometry. If WebGL2 is unavailable or lost, the top view remains available. Camera settings are session-only.
+The bundled WebGL2 renderer uses a depth buffer and an offscreen color-ID pass for picking. In 3D, left drag rotates; right/middle drag or Shift+drag pans; the wheel zooms. Double-click focuses the clicked location/level or rack; **Focus selection** uses the current selection. **Fit view** restores framing. **Walls** cycles solid/transparent/hidden without changing saved geometry. If WebGL2 is unavailable or lost, the top view remains available. Camera settings are session-only.
 
 Route markings render as translucent top surfaces in the editor and read-only 3D analysis. A stencil coverage mask paints each visible route-covered sample only once, so overlapping straight pieces, junction arms and legacy segments retain the same opacity as a single piece. This avoids shaded side faces and darker overlap patterns. Rack occlusion still uses the depth buffer. The separate picking pass retains the original complete geometry and object references; selected-object outlines remain visible. Goods-in/out overlays and transparent walls retain their separate colors and transparency. WebGL2 is requested with a stencil buffer; if unavailable, the editor retains its top view. In the top view, all route rectangles share one fill operation, keeping overlap opacity uniform while preserving individual outlines, labels and selection. This is a display change only; no stored geometry, dimensions, connection, clearance or workspace format changes. Native Edge visual acceptance of the new coverage rendering remains pending.
 
 ### Scrolling, zoom and working space
+
+- The top-view toolbar has a visible **Move view / Ansicht bewegen** and **Move objects / Objekte bewegen** button group. **Move view** is the initial state for each workspace: dragging pans over any surface, including racks, routes and walls, without changing selection, saving layout changes or adding undo entries. A stationary click still selects; double-click still focuses the clicked area. Cursor and navigation hints identify the active tool.
+- **Move objects** is available in Structure and preserves snapping, connected/grouped movement, locks, impact confirmation and one-edit undo. Empty-space drags still pan. Zones, Locations and unapplied previews force **Move view** and disable object movement. The explicit Structure choice survives ordinary redraws, 3D/top transitions and workflow-mode changes, and resets to **Move view** on workspace change. Switching tools or redrawing cancels any uncommitted top-view drag. Tool choice is transient UI state and has no schema or persistence change.
 
 - Wheel movements over the viewport zoom the editor; object lists, layout checks, properties, groups and builder tables scroll within their own regions. At their boundaries, scrolling does not transfer to the page. Wheel movements over a number input or select scroll the nearest available editor panel without changing the control's value or removing its focus. Explicit typing, arrow keys, spin buttons and selection remain available.
 - Zoom handles pixel, line and page wheel units, scales continuously with movement, and redraws at most once per animation frame. Choose **Fine / Fein**, **Normal** or **Fast / Schnell** in **Zoom speed / Zoomtempo**. **− / +** zoom buttons and **Fit view / Einpassen** remain available during previews and route drawing. The displayed percentage is relative to the camera's fit/focus base; zoom is limited to 25–400%. Resizing preserves the camera state; Fit view recomputes framing for the available viewport.
@@ -102,7 +161,7 @@ Route markings render as translucent top surfaces in the editor and read-only 3D
 
 Zoom speed, scroll positions and focus are session UI state; the workspace frame is a presentation rule. These do not change layout geometry, codes, saved workspace format or source data. The navigation and frame changes have received static syntax/whitespace checks only; native Edge mouse, touchpad, keyboard, browser-zoom and window-size acceptance remains pending.
 
-In Structure's top view, drag an object to move it with 100 mm snapping, or use X/Z for exact coordinates. In Zones and Locations, the plan selects scopes and pans without moving geometry. Optional **Magnetic snap**, initially off, aligns nearby compatible endpoints before grid snapping, previews the target, and uses release hysteresis. It does not persist a connection; use the explicit Connect action for that. Wall corners are supported. Locked objects can be stationary targets. Placing a gate over an uncut wall does not create an opening; use Insert wall opening.
+In Structure's top view, explicitly activate **Move objects**, then drag an object to move it with 100 mm snapping, or use X/Z for exact coordinates. **Move view** pans over both empty space and objects. In Zones and Locations, the plan selects scopes and pans without moving geometry. Optional **Magnetic snap**, initially off, aligns nearby compatible endpoints before grid snapping, previews the target, and uses release hysteresis. It does not persist a connection; use the explicit Connect action for that. Wall corners are supported. Locked objects can be stationary targets. Placing a gate over an uncut wall does not create an opening; use Insert wall opening.
 
 Collision checks first use rotated footprints to find candidates, then check the actual posts, beams, decks, frames, door leaves and solid bodies with their vertical extents. Rendering and checks share the same physical parts. Routes check their full modeled lane and junction area from their base elevation up to the required height plus margin; required width plus two lateral margins must fit inside the lane. Without height, solids intersecting the base plane still block, while overhead clearance remains incomplete. Overlapping route markings are permitted. Results distinguish blocked, too narrow, too low and incomplete. Select a reported part to focus it in 3D; the floor plan marks designated rack passages and their clear height. Goods-in/out remain intentional overlays and edge contact is permitted. Wall-wall and wall-gate/exit intersections retain their existing exemptions.
 
@@ -114,7 +173,7 @@ The separate analysis matches only current `location` values from imported **art
 
 ## Storage, migration, and limits
 
-Workspace schema **18** stores layout schema **4**: physical `objects`, level-reference `zones`, explicit `locations`, `groups`, and `connections`. Migrating a populated layout schema 1 moves nested `levels[].positions[]` into the location collection, preserving every position ID and code. Those migrated scopes are Unassigned; no Picking/Reserve classification is inferred. Layout 2 retains its existing uses and adds empty groups/connections, no passage designation, and unknown route requirements. Layout 3 retains all of its geometry, point paths, connections, groups, passages, uses and codes; no junctions are inferred. Current article-master matching therefore remains exact. Workspaces predating a warehouse plan receive an empty schema-4 plan. Applications supporting workspace schema 17 or earlier cannot read schema-18 workspaces; keep a pre-update backup for returning to an older application.
+Workspace schema **20** stores layout schema **6**: physical `objects`, level-reference `zones`, explicit `locations` with local rectangular `placement`, `groups`, and `connections`. Migrating a populated layout schema 1 moves nested `levels[].positions[]` into the location collection, preserving every position ID and code. Those migrated scopes are Unassigned; no Picking/Reserve classification is inferred. Layout 2 retains its existing uses and adds empty groups/connections, no passage designation, and unknown route requirements. Layout 3 retains all geometry and paths without inferring junctions. Layout 4 gains explicit equal-width, full-depth areas matching its former subdivisions, preserving IDs, codes, groups, uses and connections. Layout 5 gains an enabled ground scope per bay, except designated passages, without moving elevated areas or changing their IDs/codes. Current article-master matching therefore remains exact. Workspaces predating a warehouse plan receive an empty schema-6 plan. Readers supporting workspace schema 19 or earlier cannot read schema-20 workspaces; keep a pre-update backup for returning to an older application.
 
 Layout changes use metadata-only, revision-checked IndexedDB writes and do not rewrite CSV bytes, normalized row chunks, or article-registry chunks. Existing workspace backups include the complete plan and migrate legacy backups during restore. The database version remains 3. The plan is limited to 150 physical objects and 5,000 logical locations.
 
