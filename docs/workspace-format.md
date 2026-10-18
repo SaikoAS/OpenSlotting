@@ -39,13 +39,14 @@ Every workspace has:
 | Field | Type | Contract |
 | --- | --- | --- |
 | `id` | string | Stable browser-local identity. |
-| `schemaVersion` | integer | Stored-workspace schema version; currently `16`. |
+| `schemaVersion` | integer | Stored-workspace schema version; currently `18`. |
 | `name` | string | Trimmed, non-empty, at most 120 characters. Names do not have to be unique. |
 | `createdAt` | ISO timestamp | Creation time. |
 | `updatedAt` | ISO timestamp | Time of the latest successful snapshot. |
 | `language` | `en` or `de` | Interface language restored with the workspace. |
 | `analyzed` | boolean | Whether the saved source state had an analysis result. |
 | `periodSettings` | object | Selection mode (`weeks` or `custom`), expected weekdays, and the names and inclusive boundaries of Period A and Period B. Detected week options remain derived from normalized rows. |
+| `coverageNotes` | array | Up to 4,096 unique date/reason records: real `YYYY-MM-DD` `date` (years 0001–9999), trimmed non-empty `reason` of at most 500 characters, and ISO `updatedAt`. Manual explanations only; they never create source rows or change period statistics. |
 | `customFields` | array | Workspace-level custom-field definitions with stable IDs, supported types (`text`, `number`, or `date`), and active/inactive lifecycle state. |
 | `importProfiles` | array | Up to 50 named profiles containing source type, decoded header layout, field/custom-field mappings, ordered preparation rules, and selected named source-column filters. Profiles belong only to this workspace and are included in its backup. |
 | `warehouseLayout` | object | Layout schema 4 with physical `objects`, per-level functional `zones`, explicit logical `locations`, object `groups`, and endpoint `connections`. Stable references and codes are stored in metadata and backups; generated 3D meshes are derived. |
@@ -73,10 +74,45 @@ Each source retains:
 - parser, mapping, structural, and row-validation results
 - source-file and physical source-line provenance
 - compact normalized rows with source-file and physical source-line provenance
+- last applied import-profile name, identity, timestamps and configuration evidence (`appliedImportProfile`, or `null` when unrecorded)
 - original raw field values are reconstructed on demand from the retained bytes and decoded headers, including duplicate headers
 - normalized rows mark target fields changed by preparation rules; original values remain reconstructable from retained bytes
 
 The browser `File` object, DOM nodes, object URLs, rendered tables, filters, page numbers, and other transient UI objects are not stored.
+
+Source-column editor/profile-application view state, selected import IDs and
+batch previews are also transient. Applying a profile to multiple compatible
+sources changes their existing mapping/rule fields in one workspace save;
+unmatched sources retain their configuration. The application exposes staged
+changes after the save commits, invalidates derived analysis and requires
+explicit validation afterward. Source bytes remain unchanged.
+
+Schema 17 adds `appliedImportProfile` to each source (`null` when no application
+was recorded). A successful application records `profileId`, the historical
+`profileName`, `profileUpdatedAt`, `appliedAt` and a normalized `configuration`
+snapshot (source type, field/custom-field mappings, preparation and source rules).
+The snapshot contains settings only, with no source rows or bytes. It is retained
+in source metadata, worker activation/reanalysis and backups independently of the
+current profile registry. Renaming, updating or deleting a saved profile does not
+rewrite this evidence. Saving a profile alone does not mark a source as applied.
+The UI compares current settings with the snapshot to flag subsequent edits;
+equivalent mapping key order, unassigned targets and empty rule lists are ignored.
+This records the latest application, not a complete change history. Legacy
+sources migrate without inferring a profile from their name or current settings.
+IndexedDB version 3, backup format 1 and warehouse layout 4 remain unchanged.
+A schema-16 or earlier reader cannot restore a schema-17 backup; keep a backup
+from the previous application if returning to it is required.
+
+## Coverage calendar notes
+
+Schema 18 stores `coverageNotes` with workspace metadata, independently of CSV
+sources and period settings. Editing or removing a reason uses a revision-checked
+metadata-only transaction and retains the source/row/issue/registry chunks.
+Activation, capture and backup/restore preserve these records. Workspaces from
+schema 17 or earlier migrate with an empty list; neither holidays nor reasons are
+inferred. Calendar month, selected date and unsaved drafts remain session-only.
+Readers supporting schema 17 or earlier cannot read schema-18 backups. Keep a
+pre-update backup when returning to an older application is required.
 
 ## Article registry and derived analysis
 
@@ -237,7 +273,7 @@ The restore worker returns the already validated persisted payload and prepared 
 
 ## Schema migration
 
-Workspace records carry `schemaVersion`. The current reader uses version `16`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, accepts version `5` catalogs without column profiles by supplying an empty profile, adds the workspace custom-field registry and source mappings in version `7`, and adds an empty article registry when migrating version `7` records to version `8`. Version `8` mappings, normalized rows, issue fields, issue date evidence, and registry provenance are migrated from `order_date` to `delivery_date` for version `9`. Version `9` sources gain empty preparation-rule lists for version `10`; version `10` workspaces gain an empty `importProfiles` list for version `11`. Version `11` workspaces gain an empty `warehouseLayout` for version `12`; version `12` sources gain empty `sourceRules` lists for version `13`. Version `13` workspaces migrate warehouse layout schema `1` to `2`: physical levels lose nested positions, per-level functional zones are Unassigned, and explicit locations retain the old position IDs and codes (marked `legacy` for code editing before classification). No use is inferred, and article-master matching is preserved. Version `14` workspaces migrate layout `2` to `3`, retaining physical IDs, zones, locations and codes, and supplying empty groups/connections, no rack passages, closed modeled doors and unknown route requirements. Version `15` workspaces migrate layout `3` to `4`, preserving all existing geometry, paths, groups, connections, IDs and codes without inferring junction recipes. Existing imports therefore keep their prior behavior. Legacy `sales_value` mappings and values remain unchanged and unclassified. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `3` creates the chunk stores, including article-registry chunks. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis and the registry are rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
+Workspace records carry `schemaVersion`. The current reader uses version `18`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, accepts version `5` catalogs without column profiles by supplying an empty profile, adds the workspace custom-field registry and source mappings in version `7`, and adds an empty article registry when migrating version `7` records to version `8`. Version `8` mappings, normalized rows, issue fields, issue date evidence, and registry provenance are migrated from `order_date` to `delivery_date` for version `9`. Version `9` sources gain empty preparation-rule lists for version `10`; version `10` workspaces gain an empty `importProfiles` list for version `11`. Version `11` workspaces gain an empty `warehouseLayout` for version `12`; version `12` sources gain empty `sourceRules` lists for version `13`. Version `13` workspaces migrate warehouse layout schema `1` to `2`: physical levels lose nested positions, per-level functional zones are Unassigned, and explicit locations retain the old position IDs and codes (marked `legacy` for code editing before classification). No use is inferred, and article-master matching is preserved. Version `14` workspaces migrate layout `2` to `3`, retaining physical IDs, zones, locations and codes, and supplying empty groups/connections, no rack passages, closed modeled doors and unknown route requirements. Version `15` workspaces migrate layout `3` to `4`, preserving all existing geometry, paths, groups, connections, IDs and codes without inferring junction recipes. Version `16` sources gain a null last-profile application record for version `17`; existing applications are not inferred. Version `17` workspaces gain an empty `coverageNotes` list for version `18`, without inferred holidays or reasons. Existing imports therefore keep their prior behavior. Legacy `sales_value` mappings and values remain unchanged and unclassified. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `3` creates the chunk stores, including article-registry chunks. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis and the registry are rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
 
 Future migrations must produce a fully valid current workspace before saving it and require automated migration and backup-round-trip tests.
 

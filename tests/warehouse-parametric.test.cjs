@@ -137,7 +137,7 @@ test('layout 2/3 migrations retain source geometry and codes through workspace 1
     record.schemaVersion = schema; record.warehouseLayout = { ...structuredClone(layout), version };
     if (version === 2) { delete record.warehouseLayout.groups; delete record.warehouseLayout.connections; }
     const before = structuredClone(record), migrated = workspace.migrateWorkspace(record);
-    assert.equal(migrated.schemaVersion, 16); assert.equal(migrated.warehouseLayout.version, 4);
+    assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION); assert.equal(migrated.warehouseLayout.version, 4);
     assert.deepEqual(migrated.warehouseLayout.objects, layout.objects);
     assert.deepEqual(migrated.warehouseLayout.locations, layout.locations);
     assert.deepEqual(migrated.warehouseLayout.zones, layout.zones);

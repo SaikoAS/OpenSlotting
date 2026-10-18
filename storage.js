@@ -80,6 +80,7 @@
       language: workspace.language,
       analyzed: workspace.analyzed,
       periodSettings: workspace.periodSettings,
+      coverageNotes: workspaceModel.normalizeCoverageNotes(workspace.coverageNotes),
       customFields: workspace.customFields,
       importProfiles: workspace.importProfiles,
       warehouseLayout: workspace.warehouseLayout,
@@ -286,6 +287,7 @@
         mapping: file.mapping,
         preparationRules: file.preparationRules,
         sourceRules: file.sourceRules,
+        appliedImportProfile: file.appliedImportProfile,
         customFieldMapping: file.customFieldMapping,
         confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
@@ -358,6 +360,7 @@
       periodSettings: values.periodSettings
         ? workspaceModel.normalizePeriodSettings(values.periodSettings)
         : workspaceModel.normalizePeriodSettings(metadata.periodSettings),
+      coverageNotes: workspaceModel.normalizeCoverageNotes(values.coverageNotes === undefined ? metadata.coverageNotes : values.coverageNotes),
       customFields: values.customFields
         ? workspaceModel.normalizeCustomFields(values.customFields)
         : (Array.isArray(metadata.customFields) ? workspaceModel.normalizeCustomFields(metadata.customFields) : []),
@@ -442,6 +445,7 @@
           mapping: source.mapping,
           preparationRules: source.preparationRules,
           sourceRules: source.sourceRules,
+          appliedImportProfile: source.appliedImportProfile,
           customFieldMapping: source.customFieldMapping,
           confirmedCustomFieldMapping: source.confirmedCustomFieldMapping,
           confirmedMapping: source.confirmedMapping,
@@ -475,6 +479,7 @@
         language: metadata.language,
         analyzed: metadata.analyzed,
         periodSettings: metadata.periodSettings,
+        coverageNotes: metadata.coverageNotes,
         customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
         importProfiles: Array.isArray(metadata.importProfiles) ? metadata.importProfiles : [],
         warehouseLayout: metadata.warehouseLayout || null,
@@ -504,6 +509,7 @@
       language: metadata.language,
       analyzed: metadata.analyzed,
       periodSettings: metadata.periodSettings,
+      coverageNotes: metadata.coverageNotes,
       customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
       importProfiles: Array.isArray(metadata.importProfiles) ? metadata.importProfiles : [],
       warehouseLayout: metadata.warehouseLayout || null,
@@ -802,6 +808,7 @@
           updated.schemaVersion = persisted.schemaVersion;
           updated.language = persisted.language;
           updated.importProfiles = persisted.importProfiles;
+          updated.coverageNotes = persisted.coverageNotes;
           updated.warehouseLayout = persisted.warehouseLayout;
           await clearChunkedWorkspace(stores, workspaceId);
           stores.workspacePayloads.delete(workspaceId);

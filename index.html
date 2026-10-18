@@ -278,6 +278,12 @@
       </div>
 
       <div id="mapping-page" class="app-page hidden">
+      <div class="mapping-view-switch" role="group" aria-label="Source-column views" data-i18n-aria-label="mapping_views">
+        <button type="button" class="secondary-button" data-mapping-view="profiles" aria-pressed="true" data-i18n="mapping_profiles_view">Apply profiles</button>
+        <button type="button" class="secondary-button" data-mapping-view="editor" aria-pressed="false" data-i18n="mapping_editor_view">Source-column editor</button>
+      </div>
+      <section id="mapping-profiles-view" class="panel"><div id="import-profile-batch-root"></div></section>
+      <div id="mapping-editor-view" class="hidden">
       <section class="panel mapping-source-toolbar" aria-label="Selected import" data-i18n-aria-label="mapping_source_toolbar">
         <div class="mapping-source-picker">
           <label class="compact-field" for="mapping-source-search">
@@ -290,6 +296,7 @@
           </label>
         </div>
         <p id="mapping-source-meta" class="table-note" role="status"></p>
+        <p id="mapping-source-profile" class="table-note" role="status"></p>
         <div class="mapping-toolbar-actions">
           <button id="mapping-editor-open" class="secondary-button" type="button" data-i18n="mapping_editor_open">Spalten &amp; Regeln</button>
           <button id="analyze-button" class="primary-button" type="button" data-i18n="analyze_button">Validate and analyze data</button>
@@ -309,7 +316,6 @@
             <span data-i18n="import_profile_choose">Gespeichertes Profil</span>
             <select id="import-profile-select"></select>
           </label>
-          <button id="import-profile-apply" class="primary-button" type="button" data-i18n="import_profile_apply">Auf Import anwenden</button>
           <button id="import-profile-update" class="secondary-button" type="button" data-i18n="import_profile_update">Profil aktualisieren</button>
           <button id="import-profile-delete" class="secondary-button" type="button" data-i18n="import_profile_delete">Profil löschen</button>
           <p id="import-profile-preview" class="table-note" role="status"></p>
@@ -430,6 +436,7 @@
 
       </div>
 
+      </div>
       <div id="coverage-page" class="app-page hidden">
 
       <section id="coverage-panel" class="panel hidden" aria-labelledby="coverage-title">
@@ -442,7 +449,7 @@
           <div class="coverage-caution" role="note" data-i18n="coverage_unknown_note">Dates without imported rows remain unknown coverage, not zero demand.</div>
         </div>
         <div id="coverage-overview" class="coverage-overview" role="status"></div>
-        <div id="coverage-timeline" class="coverage-timeline" aria-label="Observed date coverage" data-i18n-aria-label="coverage_timeline_label"></div>
+        <section id="coverage-timeline" class="coverage-calendar"></section>
         <div class="coverage-detail-grid">
           <section class="coverage-detail-card" aria-labelledby="coverage-sources-title">
             <h3 id="coverage-sources-title" data-i18n="coverage_sources_title">Coverage by source</h3>
@@ -687,6 +694,9 @@
     <script src="src/application/workspace-preparation.js"></script>
     <script src="src/application/worker-session.js"></script>
     <script src="src/ui/shared/windowed-dom.js"></script>
+    <script src="src/application/import-profile-batch.js"></script>
+    <script src="src/ui/import-profile-panel.js"></script>
+    <script src="src/ui/coverage-calendar.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

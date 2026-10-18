@@ -122,6 +122,60 @@ remain available through the selected source file and workspace backup, while
 the order-line analysis result contains only rows with the complete order-line
 shape.
 
+## Source-column editor and profile application
+
+The **Columns & notes / Quellspalten** menu has two separate views:
+
+- **Apply profiles / Profile anwenden** is the default overview. Choose a
+  workspace-local profile, search by filename, filter by source type or profile
+  compatibility, and select imports across pages. The table renders at most
+  50 imports per page. The selection count includes selected imports outside
+  the current filter; **Select compatible imports in this filter** acts on the
+  complete filtered set, including other pages. Clearing selection clears all
+  selected IDs, including hidden ones.
+- **Source-column editor / Quellspalteneditor** edits one selected source:
+  field/custom-field mappings, source type, preparation and source rules, data
+  quality and the raw table. Create/update/delete profiles here. Open a specific
+  source directly from the overview. Raw row indexing/rendering is deferred
+  until this editor view is opened.
+
+**Preview changes** checks every selected import with the existing profile
+planner: an identical header layout matches by position; reordered columns
+require unique names. Missing or ambiguous columns, unavailable custom fields
+and source-rule conflicts prevent applying to that source. Bulk application
+also rejects a different source type; changing a type is an explicit editor
+action. A structurally compatible profile does not establish valid data.
+
+The preview counts compatible and skipped imports and describes replacement
+fields/rules per source. At most 100 preview details are rendered; the summary
+and application cover every selected source. Applying replaces mappings,
+custom-field mappings, preparation and selected source rules on compatible
+imports only. Conflicting/unavailable sources retain their configuration.
+There is no filename-based profile assignment or automatic conversion between
+order lines and master data.
+
+Changing the profile, headers, mappings, rules, custom fields or selected source
+set invalidates the preview. Application replans against the live inputs and
+uses one central workspace save. Until that save commits, the visible source
+configuration and existing analysis remain unchanged; a failed save reports
+failure. After commit the configuration is shown and derived analysis is
+invalidated. **Validate and analyze data** is an explicit next step and continues
+to process the full workspace; it is not limited to the selected profile batch.
+Original source bytes, physical source lines and field positions are retained.
+
+Both views show the last applied profile and application time for each import.
+Later changes to mappings, source type or rules are marked separately; changes
+to or deletion of the saved profile retain its historical name. Creating or
+updating a profile alone does not count as applying it. Imports without an
+application record display **No application recorded / Keine Anwendung
+dokumentiert**, including imports from older versions. No profile is inferred.
+
+Selection, filters, the current subview and preview are session-only; changing
+workspace resets them. Application evidence is stored locally with each source
+and included in backups using workspace schema 18 (database 3, backup format 1).
+No additional package or data service is introduced. See the
+[workspace contract](workspace-format.md#workspace-record).
+
 ## Column mapping
 
 Header matching is case-insensitive. It ignores outer whitespace, punctuation, and common German characters by normalizing `ä`, `ö`, `ü`, and `ß` to `ae`, `oe`, `ue`, and `ss`.

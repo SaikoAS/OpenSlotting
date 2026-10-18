@@ -17,7 +17,7 @@ test('release version is defined centrally for the UI and package', () => {
 });
 
 test('browser runtime has no remote assets or data transmission', () => {
-  const runtimeFiles = ['index.html', 'app.css', 'terminal-theme.css', 'warehouse-editor.css', 'runtime.js', 'app.js', 'terminal.js', 'warehouse-webgl.js', 'warehouse-scene.js', 'warehouse-editor.js', 'warehouse-analysis.js', 'warehouse.js', 'encoding.js', 'csv.js', 'periods.js', 'workspace.js', 'storage.js', 'src/application/workspace-preparation.js', 'src/application/worker-session.js', 'src/ui/shared/windowed-dom.js', 'src/workers/workspace-worker.mjs'];
+  const runtimeFiles = ['index.html', 'app.css', 'terminal-theme.css', 'warehouse-editor.css', 'runtime.js', 'app.js', 'terminal.js', 'warehouse-webgl.js', 'warehouse-scene.js', 'warehouse-editor.js', 'warehouse-analysis.js', 'warehouse.js', 'encoding.js', 'csv.js', 'periods.js', 'workspace.js', 'storage.js', 'src/application/workspace-preparation.js', 'src/application/worker-session.js', 'src/ui/shared/windowed-dom.js', 'src/workers/workspace-worker.mjs', 'src/application/import-profile-batch.js', 'src/ui/import-profile-panel.js', 'src/ui/coverage-calendar.js'];
   const forbiddenPattern = /https?:\/\/|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b/;
 
   runtimeFiles.forEach((fileName) => {
@@ -32,7 +32,7 @@ test('persistent workspace runtime uses IndexedDB without localStorage payloads'
   const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
   const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8');
 
-  assert.match(indexSource, /<script src="runtime\.js"><\/script>\s*<script src="encoding\.js"><\/script>\s*<script src="csv\.js"><\/script>\s*<script src="periods\.js"><\/script>\s*<script src="warehouse\.js"><\/script>\s*<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="terminal\.js"><\/script>\s*<script src="warehouse-webgl\.js"><\/script>\s*<script src="warehouse-scene\.js"><\/script>\s*<script src="warehouse-editor\.js"><\/script>\s*<script src="warehouse-analysis\.js"><\/script>\s*<script src="src\/application\/workspace-preparation\.js"><\/script>\s*<script src="src\/application\/worker-session\.js"><\/script>\s*<script src="src\/ui\/shared\/windowed-dom\.js"><\/script>\s*<script src="app\.js"><\/script>/);
+  assert.match(indexSource, /<script src="runtime\.js"><\/script>\s*<script src="encoding\.js"><\/script>\s*<script src="csv\.js"><\/script>\s*<script src="periods\.js"><\/script>\s*<script src="warehouse\.js"><\/script>\s*<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="terminal\.js"><\/script>\s*<script src="warehouse-webgl\.js"><\/script>\s*<script src="warehouse-scene\.js"><\/script>\s*<script src="warehouse-editor\.js"><\/script>\s*<script src="warehouse-analysis\.js"><\/script>\s*<script src="src\/application\/workspace-preparation\.js"><\/script>\s*<script src="src\/application\/worker-session\.js"><\/script>\s*<script src="src\/ui\/shared\/windowed-dom\.js"><\/script>\s*<script src="src\/application\/import-profile-batch\.js"><\/script>\s*<script src="src\/ui\/import-profile-panel\.js"><\/script>\s*<script src="src\/ui\/coverage-calendar\.js"><\/script>\s*<script src="app\.js"><\/script>/);
   assert.match(storageSource, /indexedDb\.open\(databaseName, DATABASE_VERSION\)/);
   assert.match(appSource, /workspaceRepository\.updateWorkspace/);
   assert.match(appSource, /workspaceRepository\.createWorkspace/);
@@ -65,7 +65,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   const deleteBody = appSource.match(/async function deleteActiveWorkspace\(\) \{([\s\S]*?)\n  async function exportWorkspaceBackup/);
   const renameBody = appSource.match(/async function renameActiveWorkspace\(\) \{([\s\S]*?)\n  async function deleteActiveWorkspace/);
   const removeCustomFieldBody = appSource.match(/async function removeCustomField\(fieldId\) \{([\s\S]*?)\n  async function deleteActiveWorkspace/);
-  const clearViewBody = appSource.match(/function clearWorkspaceView\(\) \{([\s\S]*?)\n  async function activateWorkspace/);
+  const clearViewBody = appSource.match(/function clearWorkspaceView\(options\) \{([\s\S]*?)\n  async function activateWorkspace/);
   const overviewClickBody = appSource.match(/elements\.workspaceOverview\.addEventListener\('click', function \(event\) \{([\s\S]*?)\n  \}\);\n  elements\.customFieldsList/);
 
   assert.ok(initializeBody);
@@ -215,9 +215,9 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
 test('responsive workflow handles empty results and shared-page navigation safely', () => {
   const appSource = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8');
 
-  assert.match(appSource, /'coverage-panel': Boolean\(state\.result && analysisRowCount\(state\.result\) > 0\)/);
+  assert.match(appSource, /'coverage-panel': hasCoverageContent\(\)/);
   assert.match(appSource, /'results-panel': Boolean\(state\.result && resultHasRetainedData\(state\.result\)\)/);
-  assert.match(appSource, /: state\.result && analysisRowCount\(state\.result\) > 0\s*\n\s*\? 'coverage-panel'/);
+  assert.match(appSource, /: hasCoverageContent\(\)\s*\n\s*\? 'coverage-panel'/);
   assert.match(appSource, /renderWorkflow\(button\.dataset\.workflowTarget\);\s*scrollActivePageToTop\(\)/);
   assert.match(fs.readFileSync(path.join(__dirname, '..', 'app.css'), 'utf8'), /\.app-page > \.panel \{ scroll-margin-top: 84px; \}/);
   assert.match(appSource, /article\.period_a\.article_name_variants/);
@@ -335,9 +335,12 @@ test('browser UI declares multi-file selection and bilingual source traceability
   assert.match(indexSource, /id="import-profile-name"/);
   assert.match(indexSource, /id="import-profile-select"/);
   assert.match(indexSource, /id="import-profile-save"/);
-  assert.match(indexSource, /id="import-profile-apply"/);
-  assert.match(appSource, /workspaceModel\.planImportProfile\(profile, file, state\.customFields\)/);
-  assert.match(appSource, /if \(!plan\.compatible\) return setImportProfileMessage\('import_profile_unresolved'/);
+  assert.match(indexSource, /id="import-profile-batch-root"/);
+  assert.match(indexSource, /data-mapping-view="editor"/);
+  assert.match(indexSource, /data-mapping-view="profiles"/);
+  const batchSource = fs.readFileSync(path.join(__dirname, '..', 'src/application/import-profile-batch.js'), 'utf8');
+  assert.match(batchSource, /model\.planImportProfile\(profile, file, customFields\)/);
+  assert.match(batchSource, /status: plan\.compatible \? 'compatible' : 'conflict'/);
   assert.match(indexSource, /id="mapping-editor-open"/);
   assert.match(indexSource, /id="mapping-drawer-backdrop"/);
   assert.match(indexSource, /id="mapping-panel"[^>]*\binert\b/);

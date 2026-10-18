@@ -13,6 +13,41 @@ function functionSource(name) {
   return source.slice(start, start + next + 1);
 }
 
+test('profile overview opens the requested import even when the editor search hides it', () => {
+  const state = { files: [{ id: 'source-first', label: 'First.csv' }, { id: 'source-second', label: 'Second.csv' }],
+    selectedMappingFileId: 'source-first', workspaceLoading: false, issueRows: [] };
+  let value = '', change;
+  const options = [], opened = [];
+  const select = { replaceChildren() { options.length = 0; value = ''; },
+    get value() { return value; }, set value(id) { value = options.includes(id) ? id : ''; },
+    addEventListener(type, listener) { change = listener; }, dispatchEvent() { change(); } };
+  const elements = { mappingSourceList: select, mappingSourceSearch: { value: 'first' }, mappingSourceMeta: {}, mappingEditorOpen: {},
+    mappingPage: {}, sourceTableFilters: { querySelectorAll: () => [] } };
+  const context = vm.createContext({ state, elements, Event: class Event {},
+    addOption: (node, id) => options.push(id), translate: key => key, setText() {},
+    accessiblePreparationRuleCount: () => 0, mappingStatusKey: () => '', renderImportProfileControls() {},
+    closeMappingDrawer() {}, renderIssues() {}, renderQualityOverview() {},
+    openMappingDrawer: () => opened.push(state.selectedMappingFileId),
+    renderMapping: () => context.renderMappingSourceList() });
+  vm.runInContext(functionSource('renderMappingSourceList') + functionSource('selectMappingView'), context);
+  const handlerStart = source.indexOf("  elements.mappingSourceList.addEventListener('change'");
+  vm.runInContext(source.slice(handlerStart, source.indexOf('  elements.importProfileSave.addEventListener', handlerStart)), context);
+  const editorStart = source.indexOf('    openEditor: function (id) {');
+  vm.runInContext('globalThis.panel = {' + source.slice(editorStart, source.indexOf('    validate: analyze,', editorStart)) + '};', context);
+  context.renderMappingSourceList();
+  assert.deepEqual(options, ['source-first']);
+  context.panel.openEditor('source-second');
+  assert.equal(state.selectedMappingFileId, 'source-second');
+  assert.equal(select.value, 'source-second');
+  assert.equal(state.mappingView, 'editor');
+  assert.deepEqual(opened, ['source-second']);
+  context.panel.openEditor('source-removed');
+  assert.deepEqual(opened, ['source-second'], 'stale rows must not open an unrelated source');
+  context.panel.openEditor(null);
+  assert.equal(state.selectedMappingFileId, 'source-second');
+  assert.deepEqual(opened, ['source-second']);
+});
+
 test('cancel before worker dispatch leaves the next task available and original buffers attached', async () => {
   let starts = 0;
   const context = vm.createContext({ ArrayBuffer, Set, workspaceLoadRevision: 2, workspaceWorkerTask: null,

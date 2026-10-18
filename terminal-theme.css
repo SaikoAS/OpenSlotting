@@ -97,7 +97,7 @@ h2, h3, h4 { color: var(--ink); }
 .mapping-file, .mapping-source-toolbar, .quality-overview-panel, .source-table-panel,
 .article-detail-section, .article-detail-header, .article-search-panel, .article-empty-state,
 .workspace-selected-panel, .workspace-catalog, .runtime-diagnostics,
-.coverage-overview, .coverage-timeline, .source-inspection { border-color: var(--line); color: var(--ink); background: var(--card); }
+.coverage-overview, .coverage-calendar, .coverage-calendar-detail, .source-inspection { border-color: var(--line); color: var(--ink); background: var(--card); }
 .mapping-file-heading { border-color: var(--line); background: #222a34; }
 .mapping-field, .source-column-table th, .source-column-table td { border-color: var(--line); }
 .source-column-table th, th { color: #a9b8c7; background: #202833; }
@@ -143,7 +143,6 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
 .status-badge.positive { color: #83e3b7; background: #204137; }
 .status-badge.warning, .warning-message, .batch-warnings { color: #f1c77e; background: #3b3022; }
 .status-badge.excluded, .message { color: #f4adaf; background: #3d272d; }
-.coverage-day { background: #303a45; }
 .coverage-caution { color: #f0c783; background: #392f21; }
 .article-detail-tab.active { color: #87e2d3; border-color: var(--accent); }
 .app-footer { border-top: 1px solid var(--line); color: var(--muted); background: #151a21; }
@@ -155,7 +154,7 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
 .workspace-selector-layout { gap: 26px; }
 .workspace-selected-panel { background: #1d2630; }
 .workspace-picker-mode .app-footer { max-width: none; }
-#mapping-page > #mapping-panel { top: 58px; border-left: 1px solid var(--line); background: #1b222b; box-shadow: -12px 0 35px #0007; }
+#mapping-page #mapping-panel { top: 58px; border-left: 1px solid var(--line); background: #1b222b; box-shadow: -12px 0 35px #0007; }
 .mapping-editor-panel .panel-heading { background: #1b222b; }
 .mapping-drawer-backdrop { inset: 58px 0 0; background: #0009; }
 
@@ -299,7 +298,7 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
   .terminal-chart { min-height: 300px; overflow-x: auto; }
   .terminal-chart svg { width: 900px; max-width: none; height: 300px; }
   .terminal-selection-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  #mapping-page > #mapping-panel { top: 0; }
+  #mapping-page #mapping-panel { top: 0; }
 }
 @media (max-width: 480px) {
   .header-actions { gap: 6px; }
@@ -406,14 +405,14 @@ body > .app-footer, .workspace-picker-mode > .app-footer {
   inset: var(--workspace-top, 66px) var(--workspace-right, 8px) var(--workspace-bottom, 38px) var(--workspace-left, 96px);
   border-radius: 8px;
 }
-#mapping-page > #mapping-panel, #mapping-page > #mapping-panel.focused {
+#mapping-page #mapping-panel, #mapping-page #mapping-panel.focused {
   top: var(--workspace-top, 66px);
   right: var(--workspace-right, 8px);
   bottom: var(--workspace-bottom, 38px);
   width: min(1040px, var(--workspace-width, calc(100vw - 104px)));
   border-radius: 8px;
 }
-#mapping-page > #mapping-panel.focused { width: min(520px, var(--workspace-width, calc(100vw - 104px))); }
+#mapping-page #mapping-panel.focused { width: min(520px, var(--workspace-width, calc(100vw - 104px))); }
 
 @media (max-width: 760px) {
   .app-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); padding: 4px; gap: 4px; }
