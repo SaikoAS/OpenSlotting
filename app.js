@@ -114,7 +114,10 @@
       terminal_all_lines: 'All order lines',
       terminal_lines_display: 'Show lines',
       terminal_recent_25: 'Latest 25',
-      terminal_choose_columns: 'Choose columns',
+      terminal_choose_columns: 'Choose and arrange columns',
+      terminal_column_up: 'Move column left', terminal_column_down: 'Move column right',
+      terminal_column_hint: 'Drag or use the arrows. Saved per workspace. Required columns remain visible.',
+      terminal_column_reset: 'Reset columns', terminal_master_source: 'Article master',
       terminal_customer: 'Customer',
       terminal_watchlist: 'Watchlist',
       terminal_search: 'Search ID or name',
@@ -828,7 +831,10 @@
       terminal_all_lines: 'Alle Auftragszeilen',
       terminal_lines_display: 'Zeilen anzeigen',
       terminal_recent_25: 'Letzte 25',
-      terminal_choose_columns: 'Spalten auswählen',
+      terminal_choose_columns: 'Spalten auswählen und anordnen',
+      terminal_column_up: 'Spalte nach links', terminal_column_down: 'Spalte nach rechts',
+      terminal_column_hint: 'Ziehen oder Pfeile verwenden. Wird pro Workspace gespeichert. Pflichtspalten bleiben sichtbar.',
+      terminal_column_reset: 'Spalten zurücksetzen', terminal_master_source: 'Artikelstamm',
       terminal_customer: 'Kunde',
       terminal_watchlist: 'Beobachtungsliste',
       terminal_search: 'ID oder Name suchen',
@@ -1463,6 +1469,8 @@
     selectedWorkspaceId: null,
     lastActiveWorkspaceId: null,
     activeWorkspace: null,
+    walkPreferences: workspaceModel.normalizeWalkPreferences(),
+    tablePreferences: workspaceModel.normalizeTablePreferences(),
     customFields: [],
     importProfiles: [],
     selectedImportProfileId: null,
@@ -1814,7 +1822,7 @@
   const terminalRowCache = window.OpenSlottingWindowedDom.createRowCache();
   let workspaceSaveChain = Promise.resolve();
   const terminalView = { rows: null, indexes: {}, scope: 'article', selected: { article: null, customer: null, order: null },
-    lineMode: 'recent', columns: new Set(), lineContext: null, allLines: null, filteredLines: null,
+    lineMode: 'recent', lineContext: null, allLines: null, filteredLines: null,
     sortKey: 'delivery_date', sortDirection: 'desc', day: null, watchlist: null, watchMatches: null,
     coverage: null, chartData: null, selectionCache: null,
     renderedWindow: null };
@@ -2153,6 +2161,8 @@
           analyzed: Boolean(state.analysis),
           periodSettings: periods.normalizeSettings(state.periodSettings),
           coverageNotes: workspaceModel.normalizeCoverageNotes(options && options.coverageNotes !== undefined ? options.coverageNotes : state.coverageNotes),
+          tablePreferences: workspaceModel.normalizeTablePreferences(options && options.tablePreferences !== undefined ? options.tablePreferences : state.tablePreferences),
+          walkPreferences: workspaceModel.normalizeWalkPreferences(options && options.walkPreferences !== undefined ? options.walkPreferences : state.walkPreferences),
           customFields: state.customFields,
           importProfiles: state.importProfiles,
           warehouseLayout: state.warehouseLayout,
@@ -5056,6 +5066,13 @@
 
   const TERMINAL_LINE_ROW_HEIGHT = 36;
 
+  function revealCoverageEvidence() {
+    const page = elements.coverageDrilldown.closest('.app-page');
+    if (!page) return;
+    const offset = elements.coverageDrilldown.getBoundingClientRect().top - page.getBoundingClientRect().top;
+    page.scrollTo({ top: page.scrollTop + offset - 12, behavior: 'smooth' });
+  }
+
   function terminalOptionalColumns() {
     const fields = [
       { key: 'article_name', label: translate('column_article_name') },
@@ -5071,36 +5088,123 @@
     return fields;
   }
 
-  function terminalLineColumns() {
+  function terminalColumnCatalog() {
     return [
-      { key: 'delivery_date', label: translate('detail_order_date') },
-      { key: 'article_id', label: translate('column_article_id') },
-      { key: 'order_id', label: translate('detail_order_id') },
-      { key: 'customer', label: translate('terminal_customer') },
-      { key: 'quantity', label: translate('column_quantity'), number: true }
-    ].concat(terminalOptionalColumns().filter(function (column) {
-      return terminalView.columns.has(column.key);
-    }), [
-      { key: 'source_file', label: translate('detail_source_file') },
-      { key: 'source_line', label: translate('detail_source_line'), number: true }
+      { key: 'delivery_date', label: translate('detail_order_date'), required: true },
+      { key: 'article_id', label: translate('column_article_id'), required: true },
+      { key: 'order_id', label: translate('detail_order_id'), required: true },
+      { key: 'customer', label: translate('terminal_customer'), required: true },
+      { key: 'quantity', label: translate('column_quantity'), number: true, required: true }
+    ].concat(terminalOptionalColumns(), [
+      { key: 'source_file', label: translate('detail_source_file'), required: true },
+      { key: 'source_line', label: translate('detail_source_line'), number: true, required: true }
     ]);
   }
 
+  let terminalPreferencesSaving = false, terminalDraggedColumn = null;
+  function terminalOrderedColumns() {
+    return terminalModel.orderedColumns(terminalColumnCatalog(), state.tablePreferences.columnOrder);
+  }
+  function terminalLineColumns() {
+    const visible = new Set(state.tablePreferences.visibleColumns);
+    return terminalOrderedColumns().filter(function (column) { return column.required || visible.has(column.key); });
+  }
+  async function saveTerminalPreferences(proposed, focusKey, focusType) {
+    if (terminalPreferencesSaving || state.workspaceLoading || !state.storageReady || !state.activeWorkspace ||
+        state.files.some(function (file) { return file.reading; })) { renderTerminalColumnOptions(); return; }
+    const workspaceId = state.activeWorkspace.id;
+    proposed = workspaceModel.normalizeTablePreferences(proposed);
+    terminalPreferencesSaving = true;
+    state.workspaceLoading = true;
+    renderWorkspaceControls(); renderTerminalColumnOptions();
+    try {
+      await persistActiveWorkspace(undefined, { metadataOnly: true, allowWhileLoading: true, tablePreferences: proposed,
+        onCommitted: function () {
+          if (state.activeWorkspace && state.activeWorkspace.id === workspaceId) state.tablePreferences = proposed;
+        } });
+    } catch (error) { showWorkspaceError(error); }
+    finally {
+      terminalPreferencesSaving = false; state.workspaceLoading = false; renderWorkspaceControls();
+      if (state.activeWorkspace && state.activeWorkspace.id === workspaceId && terminalView.lineContext) {
+        renderTerminalLineTable(false);
+        if (focusKey) {
+          const selector = focusType === 'visibility' ? '[data-terminal-column]' : '[data-terminal-move]';
+          const replacement = Array.from(elements.terminalLinesColumnOptions.querySelectorAll(selector))
+            .find(function (node) { return !node.disabled && (node.dataset.terminalMove || node.dataset.terminalColumn) === focusKey; });
+          if (replacement) replacement.focus({ preventScroll: true });
+        }
+      }
+    }
+  }
+  async function saveWarehouseWalkPreferences(value) {
+    if (!state.activeWorkspace || state.workspaceLoading || !state.storageReady || state.files.some(function (file) { return file.reading; })) {
+      throw new Error('workspace-not-ready');
+    }
+    const workspaceId = state.activeWorkspace.id, proposed = workspaceModel.normalizeWalkPreferences(value);
+    let committed = false;
+    state.workspaceLoading = true; renderWorkspaceControls();
+    try {
+      try {
+        await persistActiveWorkspace(undefined, { metadataOnly: true, allowWhileLoading: true, walkPreferences: proposed,
+          onCommitted: function () {
+            committed = true;
+            if (state.activeWorkspace && state.activeWorkspace.id === workspaceId) state.walkPreferences = proposed;
+          } });
+      } catch (error) { if (!committed) throw error; }
+      if (!committed || !state.activeWorkspace || state.activeWorkspace.id !== workspaceId) throw new Error('workspace-changed');
+    } finally { state.workspaceLoading = false; renderWorkspaceControls(); }
+  }
+
+  function moveTerminalColumn(key, direction, beforeKey) {
+    const order = terminalOrderedColumns().map(function (column) { return column.key; });
+    const from = order.indexOf(key); if (from < 0) return;
+    let to = beforeKey ? order.indexOf(beforeKey) : from + direction;
+    if (to < 0 || to >= order.length || to === from) return;
+    order.splice(from, 1);
+    order.splice(to, 0, key);
+    const hidden = state.tablePreferences.columnOrder.filter(function (item) { return order.indexOf(item) < 0; });
+    saveTerminalPreferences({ columnOrder: order.concat(hidden), visibleColumns: state.tablePreferences.visibleColumns }, key);
+  }
   function renderTerminalColumnOptions() {
-    const fragment = document.createDocumentFragment();
-    terminalOptionalColumns().forEach(function (column) {
-      const label = document.createElement('label');
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.dataset.terminalColumn = column.key;
-      checkbox.checked = terminalView.columns.has(column.key);
-      const name = document.createElement('span');
-      setText(name, column.label);
-      label.appendChild(checkbox);
-      label.appendChild(name);
-      fragment.appendChild(label);
+    const scrollTop = elements.terminalLinesColumnOptions.scrollTop;
+    const fragment = document.createDocumentFragment(), columns = terminalOrderedColumns();
+    const visible = new Set(state.tablePreferences.visibleColumns);
+    const hint = document.createElement('p'); hint.className = 'table-note'; setText(hint, translate('terminal_column_hint')); fragment.appendChild(hint);
+    columns.forEach(function (column, index) {
+      const row = document.createElement('div'); row.className = 'terminal-column-row'; row.dataset.terminalColumnRow = column.key;
+      row.draggable = !terminalPreferencesSaving;
+      const label = document.createElement('label'), checkbox = document.createElement('input');
+      checkbox.type = 'checkbox'; checkbox.dataset.terminalColumn = column.key;
+      checkbox.checked = Boolean(column.required || visible.has(column.key));
+      checkbox.disabled = Boolean(column.required || terminalPreferencesSaving);
+      const name = document.createElement('span'); setText(name, column.label);
+      label.appendChild(checkbox); label.appendChild(name); row.appendChild(label);
+      [-1, 1].forEach(function (direction) {
+        const button = document.createElement('button'); button.type = 'button';
+        button.dataset.terminalMove = column.key; button.dataset.direction = String(direction);
+        button.textContent = direction < 0 ? '←' : '→';
+        button.setAttribute('aria-label', translate(direction < 0 ? 'terminal_column_up' : 'terminal_column_down') + ': ' + column.label);
+        button.disabled = terminalPreferencesSaving || (direction < 0 ? index === 0 : index === columns.length - 1);
+        row.appendChild(button);
+      });
+      fragment.appendChild(row);
     });
+    const reset = document.createElement('button'); reset.type = 'button'; reset.dataset.terminalReset = 'true';
+    setText(reset, translate('terminal_column_reset')); reset.disabled = terminalPreferencesSaving; fragment.appendChild(reset);
     elements.terminalLinesColumnOptions.replaceChildren(fragment);
+    elements.terminalLinesColumnOptions.scrollTop = scrollTop;
+  }
+
+  function ensureTerminalMasterFields() {
+    if (terminalView.masterRegistry !== state.articleRegistry) {
+      terminalView.masterRegistry = state.articleRegistry;
+      terminalView.masterFields = terminalModel.masterFieldIndex(state.articleRegistry);
+      terminalView.filteredLines = null; terminalView.renderedWindow = null; terminalRowCache.clear();
+    }
+    return terminalView.masterFields;
+  }
+  function terminalCustomValue(line, key) {
+    return terminalModel.customLineValue(line, key.slice(7), ensureTerminalMasterFields());
   }
 
   function terminalLineValue(line, key) {
@@ -5109,7 +5213,7 @@
     if (key === 'quantity' || key === 'sales_unit_count' || key === 'quantity_per_sales_unit') return formatQuantity(line[key]);
     if (key === 'source_file') return line.source_file_label || line.source_file_name || '';
     if (key === 'source_line') return Number.isInteger(line.source_line) ? String(line.source_line) : '';
-    if (key.indexOf('custom:') === 0) return optionalText(line.custom_fields && line.custom_fields[key.slice(7)]);
+    if (key.indexOf('custom:') === 0) return optionalText(terminalCustomValue(line, key).value);
     return optionalText(line[key]);
   }
 
@@ -5127,8 +5231,14 @@
         setText(button, line.article_id);
         cell.appendChild(button);
         row.appendChild(cell);
-      } else appendCell(row, terminalLineValue(line, column.key), column.number ? 'number' :
-        column.key === 'source_file' ? 'terminal-source-cell' : '');
+      } else {
+        appendCell(row, terminalLineValue(line, column.key), column.number ? 'number' : column.key === 'source_file' ? 'terminal-source-cell' : '');
+        if (column.key.indexOf('custom:') === 0) {
+          const resolved = terminalCustomValue(line, column.key), evidence = resolved.provenance;
+          if (evidence) row.lastElementChild.title = translate('terminal_master_source') + ' · ' +
+            (evidence.source_file_label || evidence.source_file_name || '') + ' · ' + (evidence.source_line || '');
+        }
+      }
     });
     return row;
   }
@@ -5145,6 +5255,7 @@
   }
 
   function terminalCurrentLines() {
+    ensureTerminalMasterFields();
     const context = terminalView.lineContext;
     if (!context || !context.key) return [];
     if (terminalView.lineMode === 'recent') return context.summary.latest;
@@ -5158,7 +5269,8 @@
         customer: elements.terminalFilterCustomer.value.trim(),
         order: elements.terminalFilterOrder.value.trim(),
         source: elements.terminalFilterSource.value.trim()
-      }), terminalView.sortKey, terminalView.sortDirection);
+      }), terminalView.sortKey, terminalView.sortDirection, terminalView.sortKey.indexOf('custom:') === 0 ?
+        function (line, key) { return terminalCustomValue(line, key).value; } : undefined);
     }
     return terminalView.filteredLines;
   }
@@ -6243,6 +6355,8 @@
       sourceBytes: Number(record.sourceBytes || 0),
       normalizedRowCount: Number(record.normalizedRowCount || 0),
       customFields: workspaceModel.normalizeCustomFields(record.customFields),
+      tablePreferences: workspaceModel.normalizeTablePreferences(record.tablePreferences),
+      walkPreferences: workspaceModel.normalizeWalkPreferences(record.walkPreferences),
       importProfiles: workspaceModel.normalizeImportProfiles(record.importProfiles),
       warehouseLayout: warehouseModel.normalizeLayout(record.warehouseLayout || warehouseModel.createLayout())
     };
@@ -6446,7 +6560,11 @@
     state.pendingSourceLine = null;
     closeMappingDrawer();
     state.periodSettings = periods.normalizeSettings();
-    if (!(options && options.preserveCoverageNotes)) state.coverageNotes = [];
+    if (!(options && options.preserveCoverageNotes)) {
+      state.coverageNotes = [];
+      state.tablePreferences = workspaceModel.normalizeTablePreferences();
+      state.walkPreferences = workspaceModel.normalizeWalkPreferences();
+    }
     state.fileSelectionVersion += 1;
     clearAnalysis();
     elements.fileInput.value = '';
@@ -6603,6 +6721,8 @@
       state.warehouseLayout = warehouseModel.normalizeLayout(prepared.workspace.warehouseLayout);
       state.periodSettings = periods.normalizeSettings(prepared.workspace.periodSettings);
       state.coverageNotes = workspaceModel.normalizeCoverageNotes(prepared.workspace.coverageNotes);
+      state.tablePreferences = workspaceModel.normalizeTablePreferences(prepared.workspace.tablePreferences);
+      state.walkPreferences = workspaceModel.normalizeWalkPreferences(prepared.workspace.walkPreferences);
       state.files = prepared.files;
       state.articleRegistry = workspaceModel.normalizeArticleRegistry(prepared.workspace.articleRegistry);
       if (state.files.length > 0) {
@@ -7903,10 +8023,30 @@
   elements.terminalLinesColumnOptions.addEventListener('change', function (event) {
     const checkbox = event.target.closest('input[data-terminal-column]');
     if (!checkbox) return;
-    if (checkbox.checked) terminalView.columns.add(checkbox.dataset.terminalColumn);
-    else terminalView.columns.delete(checkbox.dataset.terminalColumn);
-    renderTerminalLineTable(false);
+    const visible = new Set(state.tablePreferences.visibleColumns);
+    if (checkbox.checked) visible.add(checkbox.dataset.terminalColumn); else visible.delete(checkbox.dataset.terminalColumn);
+    saveTerminalPreferences({ columnOrder: state.tablePreferences.columnOrder, visibleColumns: Array.from(visible) }, checkbox.dataset.terminalColumn, 'visibility');
   });
+  elements.terminalLinesColumnOptions.addEventListener('click', function (event) {
+    const move = event.target.closest('[data-terminal-move]');
+    if (move) { moveTerminalColumn(move.dataset.terminalMove, Number(move.dataset.direction)); return; }
+    if (event.target.closest('[data-terminal-reset]')) saveTerminalPreferences(workspaceModel.normalizeTablePreferences());
+  });
+  elements.terminalLinesColumnOptions.addEventListener('dragstart', function (event) {
+    const row = event.target.closest('[data-terminal-column-row]');
+    if (!row || terminalPreferencesSaving) { event.preventDefault(); return; }
+    terminalDraggedColumn = row.dataset.terminalColumnRow;
+    event.dataTransfer.setData('text/plain', terminalDraggedColumn); event.dataTransfer.effectAllowed = 'move';
+  });
+  elements.terminalLinesColumnOptions.addEventListener('dragover', function (event) {
+    if (terminalDraggedColumn && !terminalPreferencesSaving) event.preventDefault();
+  });
+  elements.terminalLinesColumnOptions.addEventListener('drop', function (event) {
+    const row = event.target.closest('[data-terminal-column-row]');
+    if (row && terminalDraggedColumn) { event.preventDefault(); moveTerminalColumn(terminalDraggedColumn, 0, row.dataset.terminalColumnRow); }
+    terminalDraggedColumn = null;
+  });
+  elements.terminalLinesColumnOptions.addEventListener('dragend', function () { terminalDraggedColumn = null; });
   elements.terminalLinesScroll.addEventListener('scroll', function () {
     if (terminalView.lineMode === 'all') renderTerminalLineRows();
   });
@@ -8002,7 +8142,7 @@
         ? { type: 'date', value: button.dataset.coverageDate }
         : { type: 'source', value: button.dataset.coverageSourceId };
       renderCoverageDrilldown();
-      elements.coverageDrilldown.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      revealCoverageEvidence();
     });
   });
   elements.coverageDrilldownClose.addEventListener('click', function () {
@@ -8164,9 +8304,11 @@
   });
   warehouseWalk = window.OpenSlottingWarehouseWalk.create({
     root: document.getElementById('warehouse-walk-root'), model: warehouseModel,
+    getPreferences: function () { return state.walkPreferences; }, savePreferences: saveWarehouseWalkPreferences,
     getLayout: function () { return state.warehouseLayout; },
     getRegistry: function () { return state.articleRegistry; },
     getArticles: function () { return state.analysis ? state.analysis.articles : []; },
+    getCustomFields: function () { return state.customFields; },
     getComparison: function () { return state.comparison; },
     getWorkspaceId: function () { return state.activeWorkspace ? state.activeWorkspace.id : null; },
     getLanguage: function () { return state.language; },
@@ -8210,7 +8352,7 @@
     showEvidence: function (date) {
       state.coverageDrilldown = { type: 'date', value: date };
       renderCoverageDrilldown();
-      elements.coverageDrilldown.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      revealCoverageEvidence();
     }
   });
   window.addEventListener('resize', scheduleWorkspaceFrame);

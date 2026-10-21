@@ -275,13 +275,42 @@
     return { expected: expectedCount, observed: observedCount, unknown: expectedCount - observedCount };
   }
 
-  function sortLines(lines, key, direction) {
+  function customLineValue(line, fieldId, masterIndex) {
+    const own = line.custom_fields && line.custom_fields[fieldId];
+    if (own !== undefined && own !== null && own !== '') return { value: own, source: 'order-lines' };
+    const master = masterIndex && masterIndex.get(line.article_id);
+    return master && master.get(fieldId) || { value: '', source: null };
+  }
+
+  function masterFieldIndex(registry) {
+    const result = new Map();
+    (registry || []).forEach(function (article) {
+      const fields = new Map();
+      (article.value_provenance || []).forEach(function (item) {
+        if (item.source_type !== 'article-master' || typeof item.field !== 'string' || !item.field.startsWith('custom:')) return;
+        const key = item.field.slice(7);
+        if (!fields.has(key) && item.value !== undefined && item.value !== null && item.value !== '') {
+          fields.set(key, { value: item.value, source: 'article-master', provenance: item });
+        }
+      });
+      result.set(article.article_id, fields);
+    });
+    return result;
+  }
+
+  function orderedColumns(columns, order) {
+    const remaining = new Map(columns.map(function (column) { return [column.key, column]; })), result = [];
+    (order || []).forEach(function (key) { if (remaining.has(key)) { result.push(remaining.get(key)); remaining.delete(key); } });
+    return result.concat(Array.from(remaining.values()));
+  }
+
+  function sortLines(lines, key, direction, valueFor) {
     const factor = direction === 'asc' ? 1 : -1;
     return (lines || []).slice().sort(function (a, b) {
-      const av = key === 'customer' ? a.customer_name || a.customer_id || '' :
+      const av = valueFor ? valueFor(a, key) : key === 'customer' ? a.customer_name || a.customer_id || '' :
         key === 'source_file' ? a.source_file_label || a.source_file_name || '' :
         key.indexOf('custom:') === 0 ? (a.custom_fields && a.custom_fields[key.slice(7)]) || '' : a[key];
-      const bv = key === 'customer' ? b.customer_name || b.customer_id || '' :
+      const bv = valueFor ? valueFor(b, key) : key === 'customer' ? b.customer_name || b.customer_id || '' :
         key === 'source_file' ? b.source_file_label || b.source_file_name || '' :
         key.indexOf('custom:') === 0 ? (b.custom_fields && b.custom_fields[key.slice(7)]) || '' : b[key];
       let result = 0;
@@ -290,7 +319,7 @@
         const right = typeof bv === 'bigint' ? bv : 0n;
         result = left === right ? 0 : left > right ? 1 : -1;
       } else if (key === 'source_line') result = Number(av || 0) - Number(bv || 0);
-      else result = String(av || '').localeCompare(String(bv || ''), undefined, { numeric: true });
+      else result = String(av == null ? '' : av).localeCompare(String(bv == null ? '' : bv), undefined, { numeric: true });
       return result * factor || compareLatestLines(a, b);
     });
   }
@@ -362,6 +391,7 @@
   }
 
   return { buildIndex: buildIndex, entityKey: entityKey, rangeStart: rangeStart,
+    customLineValue: customLineValue, masterFieldIndex: masterFieldIndex, orderedColumns: orderedColumns,
     selectedSummary: selectedSummary, selectedLines: selectedLines, visibleLineWindow: visibleLineWindow,
     rankEntities: rankEntities, filterLines: filterLines, sortLines: sortLines, exportLinesCsv: exportLinesCsv,
     prepareEntitySearchProjections: prepareEntitySearchProjections,

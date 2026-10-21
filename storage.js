@@ -81,6 +81,8 @@
       analyzed: workspace.analyzed,
       periodSettings: workspace.periodSettings,
       coverageNotes: workspaceModel.normalizeCoverageNotes(workspace.coverageNotes),
+      tablePreferences: workspaceModel.normalizeTablePreferences(workspace.tablePreferences),
+      walkPreferences: workspaceModel.normalizeWalkPreferences(workspace.walkPreferences),
       customFields: workspace.customFields,
       importProfiles: workspace.importProfiles,
       warehouseLayout: workspace.warehouseLayout,
@@ -361,6 +363,8 @@
         ? workspaceModel.normalizePeriodSettings(values.periodSettings)
         : workspaceModel.normalizePeriodSettings(metadata.periodSettings),
       coverageNotes: workspaceModel.normalizeCoverageNotes(values.coverageNotes === undefined ? metadata.coverageNotes : values.coverageNotes),
+      tablePreferences: workspaceModel.normalizeTablePreferences(values.tablePreferences === undefined ? metadata.tablePreferences : values.tablePreferences),
+      walkPreferences: workspaceModel.normalizeWalkPreferences(values.walkPreferences === undefined ? metadata.walkPreferences : values.walkPreferences),
       customFields: values.customFields
         ? workspaceModel.normalizeCustomFields(values.customFields)
         : (Array.isArray(metadata.customFields) ? workspaceModel.normalizeCustomFields(metadata.customFields) : []),
@@ -480,6 +484,8 @@
         analyzed: metadata.analyzed,
         periodSettings: metadata.periodSettings,
         coverageNotes: metadata.coverageNotes,
+        tablePreferences: metadata.tablePreferences,
+        walkPreferences: metadata.walkPreferences,
         customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
         importProfiles: Array.isArray(metadata.importProfiles) ? metadata.importProfiles : [],
         warehouseLayout: metadata.warehouseLayout || null,
@@ -510,6 +516,8 @@
       analyzed: metadata.analyzed,
       periodSettings: metadata.periodSettings,
       coverageNotes: metadata.coverageNotes,
+      tablePreferences: metadata.tablePreferences,
+      walkPreferences: metadata.walkPreferences,
       customFields: Array.isArray(metadata.customFields) ? metadata.customFields : [],
       importProfiles: Array.isArray(metadata.importProfiles) ? metadata.importProfiles : [],
       warehouseLayout: metadata.warehouseLayout || null,
@@ -809,6 +817,8 @@
           updated.language = persisted.language;
           updated.importProfiles = persisted.importProfiles;
           updated.coverageNotes = persisted.coverageNotes;
+          updated.tablePreferences = persisted.tablePreferences;
+          updated.walkPreferences = persisted.walkPreferences;
           updated.warehouseLayout = persisted.warehouseLayout;
           await clearChunkedWorkspace(stores, workspaceId);
           stores.workspacePayloads.delete(workspaceId);

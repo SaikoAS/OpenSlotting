@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function (warehouseModel) {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 20;
+  const WORKSPACE_SCHEMA_VERSION = 21;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -85,6 +85,21 @@
       validationError('custom_field_name_too_long', 'Custom field name is too long.');
     }
     return name;
+  }
+
+  function normalizeWalkPreferences(value) {
+    const input = isPlainObject(value) ? value : {};
+    return { fov: Number.isFinite(input.fov) ? Math.round(Math.min(100, Math.max(45, input.fov))) : 60 };
+  }
+
+  function normalizeTablePreferences(value) {
+    const input = isPlainObject(value) ? value : {};
+    const keys = function (items) {
+      return Array.from(new Set((Array.isArray(items) ? items : []).filter(function (key) {
+        return typeof key === 'string' && /^(?:[a-z_]+|custom:[A-Za-z0-9_-]{1,128})$/.test(key);
+      }))).slice(0, 512);
+    };
+    return { columnOrder: keys(input.columnOrder), visibleColumns: keys(input.visibleColumns) };
   }
 
   function normalizeCustomFields(fields, options) {
@@ -1047,6 +1062,8 @@
       analyzed: false,
       periodSettings: normalizePeriodSettings(settings.periodSettings),
       coverageNotes: normalizeCoverageNotes(settings.coverageNotes),
+      tablePreferences: normalizeTablePreferences(settings.tablePreferences),
+      walkPreferences: normalizeWalkPreferences(settings.walkPreferences),
       customFields: normalizeCustomFields(settings.customFields),
       importProfiles: normalizeImportProfiles(settings.importProfiles),
       warehouseLayout: warehouseModel.normalizeLayout(settings.warehouseLayout || warehouseModel.createLayout()),
@@ -1134,6 +1151,8 @@
       analyzed: workspace.analyzed,
       periodSettings: normalizePeriodSettings(workspace.periodSettings),
       coverageNotes: normalizeCoverageNotes(workspace.coverageNotes),
+      tablePreferences: normalizeTablePreferences(workspace.tablePreferences),
+      walkPreferences: normalizeWalkPreferences(workspace.walkPreferences),
       customFields: customFields,
       importProfiles: importProfiles,
       warehouseLayout: warehouseLayout,
@@ -1288,6 +1307,8 @@
       analyzed: Boolean(state && state.analysis),
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
       coverageNotes: normalizeCoverageNotes(state && state.coverageNotes),
+      tablePreferences: normalizeTablePreferences(state && state.tablePreferences),
+      walkPreferences: normalizeWalkPreferences(state && state.walkPreferences),
       customFields: normalizeCustomFields(state && state.customFields),
       importProfiles: normalizeImportProfiles(state && state.importProfiles),
       warehouseLayout: warehouseModel.normalizeLayout(state && state.warehouseLayout || warehouseModel.createLayout()),
@@ -1354,6 +1375,8 @@
       analyzed: Boolean(state && state.analysis),
       periodSettings: normalizePeriodSettings(state && state.periodSettings),
       coverageNotes: normalizeCoverageNotes(state && state.coverageNotes),
+      tablePreferences: normalizeTablePreferences(state && state.tablePreferences),
+      walkPreferences: normalizeWalkPreferences(state && state.walkPreferences),
       customFields: normalizeCustomFields(state && state.customFields),
       importProfiles: normalizeImportProfiles(state && state.importProfiles),
       warehouseLayout: warehouseModel.normalizeLayout(state && state.warehouseLayout || warehouseModel.createLayout()),
@@ -1598,6 +1621,8 @@
     countAccessiblePreparationRules: countAccessiblePreparationRules,
     validateCustomFieldMappingRange: validateCustomFieldMappingRange,
     createId: createId,
+    normalizeWalkPreferences: normalizeWalkPreferences,
+    normalizeTablePreferences: normalizeTablePreferences,
     createWorkspace: createWorkspace,
     validateMappingRange: validateMappingRange,
     normalizeColumnCatalog: normalizeColumnCatalog,

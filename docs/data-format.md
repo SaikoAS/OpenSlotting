@@ -172,7 +172,7 @@ dokumentiert**, including imports from older versions. No profile is inferred.
 
 Selection, filters, the current subview and preview are session-only; changing
 workspace resets them. Application evidence is stored locally with each source
-and included in backups using workspace schema 20 (database 3, backup format 1).
+and included in backups using workspace schema 21 (database 3, backup format 1).
 No additional package or data service is introduced. See the
 [workspace contract](workspace-format.md#workspace-record).
 
@@ -390,3 +390,11 @@ score is derived.
 Import and analysis calculations run locally in the browser. In the current development implementation, the active workspace retains original source bytes, mappings, normalized rows, validation results, and provenance in IndexedDB; derived article analysis is rebuilt when an analyzed workspace is reopened. Active use runs at the localhost origin with Python 3.8+ and its standard library serving interface files only. It requires no data upload, remote backend, internet connection, Node.js, or additional packages. Portable Mode is paused indefinitely; its preserved basis and backup migration are documented in [portable-mode-paused.md](portable-mode-paused.md). See [workspace-format.md](workspace-format.md) for the persistent storage and backup contract and [SECURITY.md](../SECURITY.md) for repository and operational-data rules.
 
 Period coverage and comparison semantics are defined separately in [period-comparison.md](period-comparison.md).
+
+## Order-line display enrichment
+
+The order-line overview can display active custom fields from the article master without changing normalized order rows. A non-empty value on the order line takes precedence, including a literal zero. Otherwise the view resolves the first retained article-master provenance value for that field and exact article ID. Movement-only registry values are not used as master defaults. Missing values remain unavailable; conflicting evidence remains in the registry and article detail. Sorting and filtered CSV export use the displayed resolved value. Master-derived cells show the source file and line in their tooltip.
+
+Column visibility and order are saved immediately per workspace through metadata updates. Drag a column in the column chooser or use its left/right buttons; required identity, quantity and source columns can be reordered but remain visible. Reset restores defaults. Preferences survive reopening and backup/restore and are isolated across workspaces. These display changes do not alter imported bytes or analytical results.
+
+The warehouse walk also stores `walkPreferences.fov` in workspace schema 21: an integer vertical angle from 45 to 100 degrees, default/reset 60. It uses the same local metadata and backup lifecycle; position and viewing direction remain transient. Rendering, labels and click rays share the selected angle. Missing settings from earlier workspaces default to 60 without changing geometry or source data.
