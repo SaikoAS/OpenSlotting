@@ -206,7 +206,7 @@ async function sourceClearingView(t) {
   const element = () => ({ value: '', replaceChildren() {}, classList: { add() {} } });
   const elements = Object.fromEntries(['fileInput', 'articleFilter', 'importedFiles', 'mappingSourceSearch',
     'importProfileName', 'mappingSourceList', 'mappingGrid', 'mappingPanel', 'resultsPanel', 'analyzeButton'].map(key => [key, element()]));
-  const context = vm.createContext({ state, elements, core, periods, window: { confirm: () => true },
+  const context = vm.createContext({ state, elements, core, periods, workspaceModel: workspace, window: { confirm: () => true },
     sourceRowCache: { clear() {} }, terminalRowCache: { clear() {} }, closeMappingDrawer() {},
     clearAnalysis: () => { state.result = null; }, setSourceStatus() {}, showMappingMessage() {}, translate: key => key,
     setWorkspaceMessage() {}, refreshColumnCatalogOwnership() {}, renderMapping() {}, updateSourceStatus() {},

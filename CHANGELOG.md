@@ -10,6 +10,18 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Place downward-dragged columns before the requested target without changing keyboard move behavior; ignore unchanged drops and retain hidden-column preferences.
+
+- Keep coverage evidence navigation inside the active page so the header and navigation rail stay fixed.
+- Show article-master custom-field fallbacks in order-line cells, sorting and CSV export, preserving order-line values and source provenance.
+- Add draggable and keyboard-accessible column ordering, visibility and reset, saved per workspace in schema 21 with backup/restore support.
+- Add a native fullscreen warehouse walk with reduced controls, mouse-look entry, pause/resume, crosshair selection and owned fullscreen/pointer cleanup.
+- Add a workspace-local vertical FOV slider (45–100 degrees, default/reset 60) with live preview, consistent location selection, fullscreen controls and backup support.
+- Add walking/free-flight movement modes, precise 0.1–20 m/s speed controls with km/h display, jump/gravity/physical landing and clearance-aware crouching. Keep movement settings and poses transient, with mode-specific controls and fullscreen height feedback.
+- Add E-based location interaction with a bounded, occlusion-aware aim prompt and an in-fullscreen article dialog: mouse controls, per-article metrics/master data/comparison, focus containment and explicit return to movement without changing the pose.
+- Show the E interaction prompt only for a reachable location; name its exact code or rack/bay/level/position and clear it when the target is lost or movement is paused.
+
+
 - Preserve the selected location while rendering destructive previews; reconcile removed selections only after a successful save. Cancelling a passage preview or rejecting/failing its save retains the original ground location breadcrumb, highlight and focus.
 
 - Fall back to level navigation when the selected location no longer exists, including after disabling its ground scope. Keep breadcrumb, highlight and focus consistent while preserving selections on cancelled/failed edits and unrelated ground toggles.

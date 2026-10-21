@@ -242,6 +242,9 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
 .terminal-columns:not([open]) .terminal-column-options { display: none; }
 .terminal-column-options label { display: flex; align-items: center; gap: 7px; color: #dce8eb; overflow-wrap: anywhere; cursor: pointer; }
 .terminal-column-options label span { min-width: 0; }
+.terminal-column-row { display: grid; grid-template-columns: minmax(0, 1fr) 28px 28px; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px solid #35434e; }
+.terminal-column-row[draggable="true"] { cursor: grab; }
+.terminal-column-row button { padding: 3px; min-width: 0; }
 .terminal-lines-scroll { max-height: min(58vh, 560px); overflow: auto; overscroll-behavior: contain; }
 .terminal-lines-scroll table { width: max-content; min-width: 100%; }
 .terminal-lines-scroll thead th { position: sticky; z-index: 2; top: 0; background: #202b35; }

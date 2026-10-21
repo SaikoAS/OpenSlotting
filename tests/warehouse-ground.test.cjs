@@ -87,7 +87,7 @@ test('layout 5 and workspace 19 migration add empty ground scopes without moving
   record.schemaVersion = 19; record.warehouseLayout = legacy;
   record.coverageNotes = [{ date:'2026-10-03', reason:'Synthetic closure', updatedAt:'2026-10-18T10:00:00.000Z' }];
   const migrated = workspace.migrateWorkspace(record);
-  assert.equal(migrated.schemaVersion, 20);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION);
   assert.equal(migrated.warehouseLayout.version, 6);
   assert.deepEqual(migrated.warehouseLayout.locations, oldSlots);
   assert.deepEqual(migrated.coverageNotes, record.coverageNotes);

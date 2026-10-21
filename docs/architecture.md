@@ -8,7 +8,7 @@ keine Workspace-Datenbank, Uploadschnittstelle oder Backend-Daten-API.
 
 ## Lager-Rundgang
 
-`warehouse-walk.js` bietet eine getrennte, nur lesende First-Person-Ansicht. Getter liefern Lagerplan, exakte Artikelzuordnungen, vorhandene Analyse und optional den bestehenden Periodenvergleich; einen Speicheraufruf gibt es nicht. Die gemeinsame Geometrie aus `warehouse-scene.js` speist `warehouse-walk-model.js` (Meterkoordinaten, räumliche Kollisions-/Strahlabfragen und Perspektivmathematik) sowie `warehouse-walk-renderer.js` (typisierte GPU-Puffer und Kameramatrizen). Editor und bisheriger orthografischer Renderer bleiben getrennt. Bewegung, Auswahl und Kamera sind flüchtig; Fokusverlust, ausgeblendeter Tab und Menüwechsel stoppen die Bewegung. Die Laufzeit- und ZIP-Dateilisten enthalten die neuen Module und das Stylesheet. Bedienung und Datengrenzen: [Lager-Rundgang](warehouse-walk.md).
+`warehouse-walk.js` bietet eine getrennte, nur lesende First-Person-Ansicht. Getter liefern Lagerplan, exakte Artikelzuordnungen, vorhandene Analyse und optional den bestehenden Periodenvergleich. Nur das vertikale Sichtfeld (45 bis 100 Grad, Standard 60) wird als lokale Workspace-Darstellungseinstellung gespeichert; Geometrie und Artikeldaten bleiben unverändert. Die gemeinsame Geometrie aus `warehouse-scene.js` speist `warehouse-walk-model.js` (Meterkoordinaten, räumliche Kollisions-/Strahlabfragen und Perspektivmathematik) sowie `warehouse-walk-renderer.js` (typisierte GPU-Puffer und Kameramatrizen). Editor und bisheriger orthografischer Renderer bleiben getrennt. Gehen mit Sprung/Schwerkraft und Ducken sowie Freiflug ohne Kollisionen verwenden dieselbe Kamera; präzise Geschwindigkeiten, Bewegungsmodus, Auswahl, Kameraposition und Blickrichtung sind flüchtig; Fokusverlust, ausgeblendeter Tab und Menüwechsel stoppen die Bewegung. Die Laufzeit- und ZIP-Dateilisten enthalten die neuen Module und das Stylesheet. Bedienung und Datengrenzen: [Lager-Rundgang](warehouse-walk.md).
 
 ## Aktuelle Modulgrenzen
 
@@ -107,7 +107,7 @@ ihre bestehenden Regeln.
 ## Datenschutz, Laufzeit und Datenkompatibilität
 
 IndexedDB bleibt im aktuellen Browserprofil und Origin: Datenbank
-`openslotting-workspaces`, Datenbankversion 3, Workspace-Schema 20. Neue
+`openslotting-workspaces`, Datenbankversion 3, Workspace-Schema 21. Neue
 Module und flüchtige Caches erfordern keine Datenmigration und verändern den
 Sicherungsvertrag nicht. Originalbytes und BigInt-/Binärkodierung bleiben
 verlustlos. Die Base64-Korrektur vermeidet die rekursiv gruppierte Prüfung
@@ -302,4 +302,4 @@ Die sichtbaren Rahmen sind nur optisch eingerückt; der ID-Pass nutzt weiterhin
 alle Flächen in Originalgröße. Positionsziffern werden bei ausreichendem Zoom
 als Linien erzeugt. Nur die Auswahl erhält eine schwache Flächentönung. Fachböden
 bleiben als physische Bauteile grau. Sichtbarkeit und Farbdarstellung sind reine
-Sitzungszustände und ändern weder Workspace-Schema 20 noch Layout-Schema 6.
+Sitzungszustände und ändern weder Workspace-Schema 21 noch Layout-Schema 6.

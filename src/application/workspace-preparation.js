@@ -298,6 +298,8 @@
         analyzed: validated.analyzed,
         periodSettings: validated.periodSettings,
         coverageNotes: validated.coverageNotes,
+        tablePreferences: validated.tablePreferences,
+        walkPreferences: validated.walkPreferences,
         customFields: validated.customFields,
         importProfiles: validated.importProfiles,
         warehouseLayout: validated.warehouseLayout,
