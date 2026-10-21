@@ -20,6 +20,34 @@ function appFunction(name) {
 const plain = value => JSON.parse(JSON.stringify(value));
 const prefs = () => ({columnOrder:['custom:custom-zone','article_id','quantity'],visibleColumns:['custom:custom-zone']});
 
+function movedColumns(key, direction, beforeKey) {
+  const state = { tablePreferences: { columnOrder: ['A', 'B', 'C', 'retired'], visibleColumns: ['A', 'C'] } };
+  const saved = [];
+  const context = vm.createContext({ state, terminalOrderedColumns: () => ['A', 'B', 'C'].map(key => ({ key })),
+    saveTerminalPreferences: (value, focusKey) => saved.push({ value: plain(value), focusKey }) });
+  vm.runInContext(appFunction('moveTerminalColumn'), context);
+  context.moveTerminalColumn(key, direction, beforeKey);
+  assert.deepEqual(state.tablePreferences, { columnOrder: ['A', 'B', 'C', 'retired'], visibleColumns: ['A', 'C'] }, 'the save path owns committing preferences');
+  return saved;
+}
+
+test('column drag inserts before the target in either direction and preserves hidden keys and visibility', () => {
+  for (const [key, target, expected] of [['A', 'C', ['B', 'A', 'C', 'retired']], ['C', 'A', ['C', 'A', 'B', 'retired']]]) {
+    assert.deepEqual(movedColumns(key, 0, target), [{ value: { columnOrder: expected, visibleColumns: ['A', 'C'] }, focusKey: key }]);
+  }
+  for (const [key, target] of [['A', 'B'], ['B', 'C'], ['B', 'B'], ['missing', 'C'], ['A', 'missing']]) {
+    assert.deepEqual(movedColumns(key, 0, target), [], 'unchanged or invalid drops must not save');
+  }
+});
+
+test('column move buttons still swap with the next or previous column and stop at the boundaries', () => {
+  for (const [key, direction, expected] of [['A', 1, ['B', 'A', 'C', 'retired']], ['C', -1, ['A', 'C', 'B', 'retired']]]) {
+    assert.deepEqual(movedColumns(key, direction), [{ value: { columnOrder: expected, visibleColumns: ['A', 'C'] }, focusKey: key }]);
+  }
+  assert.deepEqual(movedColumns('A', -1), []);
+  assert.deepEqual(movedColumns('C', 1), []);
+});
+
 test('day evidence scrolls only the page, without touching document, frame or rail', () => {
   const rail={scrollTop:33},frame={scrollTop:0},doc={scrollTop:0};
   let requested;

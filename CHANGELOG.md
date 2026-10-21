@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Place downward-dragged columns before the requested target without changing keyboard move behavior; ignore unchanged drops and retain hidden-column preferences.
+
 - Keep coverage evidence navigation inside the active page so the header and navigation rail stay fixed.
 - Show article-master custom-field fallbacks in order-line cells, sorting and CSV export, preserving order-line values and source provenance.
 - Add draggable and keyboard-accessible column ordering, visibility and reset, saved per workspace in schema 21 with backup/restore support.

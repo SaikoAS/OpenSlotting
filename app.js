@@ -5159,6 +5159,7 @@
     const order = terminalOrderedColumns().map(function (column) { return column.key; });
     const from = order.indexOf(key); if (from < 0) return;
     let to = beforeKey ? order.indexOf(beforeKey) : from + direction;
+    if (beforeKey && from < to) to -= 1;
     if (to < 0 || to >= order.length || to === from) return;
     order.splice(from, 1);
     order.splice(to, 0, key);
