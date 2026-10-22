@@ -1637,6 +1637,14 @@
     createBackup: createBackup,
     stringifyBackup: stringifyBackup,
     parseBackup: parseBackup,
+    encodeBackupValue: encodePortable,
+    decodeBackupValue: decodePortable,
+    validateBackupRows: function (rows, sourceId) {
+      return rows.map(function (row) { return normalizeRow(row, sourceId, { clonePayload: false }); });
+    },
+    validateBackupIssues: function (issues, sourceId) {
+      return issues.map(function (issue) { return normalizeIssue(issue, sourceId, { clonePayload: false }); });
+    },
     prepareRestore: prepareRestore,
     normalizePeriodSettings: normalizePeriodSettings,
     backupFilename: backupFilename

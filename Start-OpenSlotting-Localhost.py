@@ -45,6 +45,7 @@ RUNTIME_FILES = frozenset(
         "OpenSlotting.ico",
         "src/application/workspace-preparation.js",
         "src/application/worker-session.js",
+        "src/application/workspace-archive.js",
         "src/application/import-profile-batch.js",
         "src/ui/import-profile-panel.js",
         "src/ui/coverage-calendar.js",

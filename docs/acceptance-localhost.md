@@ -91,7 +91,7 @@ and synthetic evidence reference; generation itself is not an acceptance pass.
 - [ ] Opening, finishing or cancelling a task re-enables file/mapping controls.
 - [ ] Source and desk tables keep bounded rows, correct source-line/ARIA indexes, focus and selected columns through scrolling/filtering/language changes.
 - [ ] Repeated narrow and broad period comparisons equal the scan result, including overlapping dates and unknown coverage.
-- [ ] Large backup restore succeeds above 8 MiB source bytes; corrupt Base64 leaves existing workspaces intact.
+- [ ] Large `.osworkspace` export/restore succeeds at 700,000 synthetic rows; compare all bytes, result blocks and manual settings. Check native file save, policy/download fallback, cancellation, checksums, missing blocks, quota and concurrent-tab replacement. Legacy JSON restore above 8 MiB source bytes still succeeds; corrupt Base64 leaves existing workspaces intact.
 - [ ] ETags return `304` for unchanged assets and new bytes after edits; unlisted nested paths are blocked.
 
 Current developer evidence and its browser/version limits are recorded in

@@ -103,7 +103,7 @@
             <p class="workspace-actions-note" data-i18n="workspace_actions_scope">Actions apply only to the selected workspace. Delete and replace ask for confirmation.</p>
           </aside>
         </div>
-        <input id="workspace-restore-file" class="hidden" type="file" accept=".json,.workspace.json,application/json">
+        <input id="workspace-restore-file" class="hidden" type="file" accept=".osworkspace,.json,.workspace.json,application/json,application/octet-stream">
         <section id="custom-fields-panel" class="custom-fields-panel" aria-labelledby="custom-fields-title">
           <div class="panel-heading compact-heading">
             <div>
@@ -713,6 +713,7 @@
     <script src="src/application/import-profile-batch.js"></script>
     <script src="src/ui/import-profile-panel.js"></script>
     <script src="src/ui/coverage-calendar.js"></script>
+    <script src="src/application/workspace-archive.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

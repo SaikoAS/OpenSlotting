@@ -24,6 +24,7 @@ node --check periods.js
 node --check runtime.js
 node --check workspace.js
 node --check storage.js
+node --check src/application/workspace-archive.js
 node --check terminal.js
 node --check warehouse.js
 node --check warehouse-webgl.js

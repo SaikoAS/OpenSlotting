@@ -83,7 +83,7 @@ in [acceptance-localhost.md](acceptance-localhost.md).
 
 ## Backup and restore
 
-34. [ ] Exporting a workspace downloads exactly one `.workspace.json` backup.
+34. [ ] Exporting a workspace saves exactly one `.osworkspace` archive. Verify both native save and browser-download fallback; fallback reports download started, not confirmed file persistence.
 35. [ ] The backup contains all sources, original bytes, mappings, normalized rows, validation state, metadata, and provenance required for an equivalent workspace.
 36. [ ] Restore as new creates a separate workspace and changes no existing workspace.
 37. [ ] The restored workspace reproduces the source counts, row counts, article analysis, mappings, exact quantities, validation notes, source files, and source lines.
@@ -96,6 +96,11 @@ in [acceptance-localhost.md](acceptance-localhost.md).
 44. [ ] A backup with an unsupported format version is rejected without changing stored data.
 45. [ ] A backup with a newer workspace schema is rejected without changing stored data.
 46. [ ] A backup with duplicate source IDs or cross-workspace provenance is rejected without changing stored data.
+
+- [ ] Export/restore at least 700,000 synthetic rows. Compare every source byte, normalized row, exact quantity, issue, profile, coverage reason and warehouse ID/code.
+- [ ] Cancel export/staging; reject damaged payloads, removed/reordered blocks, missing completion markers and trailing bytes without changing the target.
+- [ ] Fail staging/commit quota and change the target in another tab; the old workspace remains complete. Temporary stages never appear in selection.
+- [ ] Restore an existing format-1 JSON backup; verify migration and original bytes. Older apps cannot read format 2 or the upgraded IndexedDB database.
 
 ## Language, privacy, and portability boundary
 

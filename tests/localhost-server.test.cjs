@@ -161,7 +161,7 @@ test('Python server is loopback-only, blocks data transmission, and serves only 
     assert.equal(response.status, 200, asset);
     await response.arrayBuffer();
   }
-  for (const asset of ['src/application/workspace-preparation.js', 'src/application/worker-session.js',
+  for (const asset of ['src/application/workspace-preparation.js', 'src/application/worker-session.js', 'src/application/workspace-archive.js',
     'src/ui/shared/windowed-dom.js', 'src/workers/workspace-worker.mjs',
     'src/application/import-profile-batch.js', 'src/ui/import-profile-panel.js', 'src/ui/coverage-calendar.js']) {
     const response = await fetch(origin + '/' + asset);

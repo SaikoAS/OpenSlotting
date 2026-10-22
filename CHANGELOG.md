@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Replace monolithic JSON backup exports with blockwise `.osworkspace` archives containing original binary sources, settings, normalized results and fragmented provenance. Use optional native gzip block compression and verify SHA-256 checksums, ordered inventory and source/row counts; stage restores invisibly before an atomic create/replace. Keep legacy JSON backups readable, support cancellable progress and native file streaming with a browser-download fallback. IndexedDB version 4 adds only a temporary backup staging store; workspace schema 21 and layout 6 are unchanged.
+
 - Place downward-dragged columns before the requested target without changing keyboard move behavior; ignore unchanged drops and retain hidden-column preferences.
 
 - Keep coverage evidence navigation inside the active page so the header and navigation rail stay fixed.

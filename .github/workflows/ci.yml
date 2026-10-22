@@ -72,6 +72,7 @@ jobs:
           node --check warehouse-walk.js
           node --check src/application/workspace-preparation.js
           node --check src/application/worker-session.js
+          node --check src/application/workspace-archive.js
           node --check src/application/import-profile-batch.js
           node --check src/ui/import-profile-panel.js
           node --check src/ui/shared/windowed-dom.js

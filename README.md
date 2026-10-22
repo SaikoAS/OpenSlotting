@@ -69,6 +69,7 @@ The current implementation includes:
 - persistent, strictly isolated browser-local workspaces backed by IndexedDB
 - chunked workspace persistence with independently stored sources, source bytes, normalized rows, and validation issues
 - automatic storage of original source bytes, mappings, normalized rows, validation results, and provenance
+- complete blockwise `.osworkspace` backups with SHA-256 verification, cancellable progress and atomic staged restore; legacy `.workspace.json` backups remain readable (see [backup format](docs/workspace-format.md#current-archive-format-version-2))
 - workspace creation, selection, rename, confirmed clearing, and confirmed deletion
 - metadata-first workspace overview without automatically loading the last large payload
 - cancellable background validation, CSV profiling, preparation, and analysis in a reusable local module worker
