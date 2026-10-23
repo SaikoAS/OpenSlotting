@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Remove outer layout gutters and unify the workspace background to eliminate darker strips around the app on desktop and narrow screens.
+
 - Remove the outer workspace border and rounded header corners while retaining panel boundaries and keyboard focus indicators.
 
 - Remove the bottom banner and divide Settings into Global application/runtime information and Workspace language/data actions. Move Clear workspace data into the Workspace section, keep workspace-scoped language persistence and session-only selection before opening a workspace, and clarify reset effects. Guard reset execution while storage/import/workspace tasks are busy; keep the existing confirmation and reset/save path.

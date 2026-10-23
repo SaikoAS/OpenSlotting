@@ -6,7 +6,7 @@
   --muted: #9aa7b7;
   --line: #303843;
   --cool-line: #303843;
-  --paper: #10141a;
+  --paper: #10171e;
   --rail: #151a21;
   --card: #1a2029;
   --accent: #2db5a8;
@@ -319,8 +319,8 @@ body > .app-header { position: relative; top: auto; min-width: 0; }
   grid-template-columns: 88px minmax(0, 1fr);
   height: 100%;
   min-height: 0;
-  padding: 8px 8px 8px 0;
-  gap: 8px;
+  padding: 0;
+  gap: 0;
   overflow: hidden;
 }
 .terminal-rail {
@@ -354,7 +354,7 @@ body > .app-header { position: relative; top: auto; min-width: 0; }
   overflow: hidden;
   border: 0;
   border-radius: 0;
-  background: #10171e;
+  background: var(--paper);
 }
 .workflow-content > .page-context {
   flex: none;
@@ -377,7 +377,7 @@ body > .app-header { position: relative; top: auto; min-width: 0; }
   animation: none;
 }
 .workflow-content > .app-page:focus-visible { outline: 2px solid var(--focus); outline-offset: -3px; }
-.workspace-picker-mode .app-layout { grid-template-columns: minmax(0, 1fr); padding-left: 8px; }
+.workspace-picker-mode .app-layout { grid-template-columns: minmax(0, 1fr); padding-left: 0; }
 .workspace-picker-mode .workflow-content > #workspace-page { max-width: none; }
 @media (min-width: 761px) {
   .terminal-watchlist { top: 0; height: var(--terminal-watchlist-height, calc(100dvh - 190px)); min-height: 180px; }
@@ -403,12 +403,12 @@ body > .app-header { position: relative; top: auto; min-width: 0; }
 #mapping-page #mapping-panel.focused { width: min(520px, var(--workspace-width, calc(100vw - 104px))); }
 
 @media (max-width: 760px) {
-  .app-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); padding: 4px; gap: 4px; }
+  .app-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); padding: 0; gap: 0; }
   .terminal-rail { height: auto; overflow-x: auto; overflow-y: hidden; }
   .workflow-content > .page-context { display: flex; min-height: 48px; padding: 6px 10px; gap: 8px; }
   .page-context-actions { margin-top: 0; }
   .workflow-content > .app-page { padding: 10px; }
-  .workspace-picker-mode .app-layout { grid-template-rows: minmax(0, 1fr); padding: 4px; }
+  .workspace-picker-mode .app-layout { grid-template-rows: minmax(0, 1fr); padding: 0; }
 }
 @media (max-height: 600px) {
   .terminal-rail { padding-top: 5px; padding-bottom: 5px; }

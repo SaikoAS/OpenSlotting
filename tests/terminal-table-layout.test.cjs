@@ -99,5 +99,10 @@ test('workspace surface has no outer border or rounded header corners', () => {
   assert.match(surface, /border:\s*0;/);
   assert.match(surface, /border-radius:\s*0;/);
   assert.match(heading, /border-radius:\s*0;/);
+  assert.match(surface, /background:\s*var\(--paper\);/);
+  const layout = css.match(/\.app-layout, \.workspace-picker-mode \.app-layout\s*\{([^}]+)\}/)[1];
+  assert.match(layout, /padding:\s*0;/);
+  assert.match(layout, /gap:\s*0;/);
+  assert.doesNotMatch(css, /\.app-layout\s*\{[^}]*\b(?:padding|gap|padding-left):\s*[1-9]\d*px/);
   assert.match(css, /\.workflow-content > \.app-page:focus-visible\s*\{\s*outline:\s*2px solid var\(--focus\)/);
 });
