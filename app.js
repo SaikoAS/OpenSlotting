@@ -3964,6 +3964,31 @@
     if (page) { page.scrollTop = 0; page.scrollLeft = 0; }
   }
 
+  function resizeTerminalWatchlist() {
+    const watchlist = elements.terminalWatchlistRows.closest('.terminal-watchlist');
+    const page = elements.terminalPanel.closest('.app-page');
+    const grid = elements.terminalData.querySelector('.terminal-grid');
+    if (!watchlist || !page || !grid || !elements.terminalData.getClientRects().length) return;
+    if (window.innerWidth <= 760) {
+      watchlist.style.removeProperty('--terminal-watchlist-height');
+    } else {
+      const pageRect = page.getBoundingClientRect();
+      const pageTop = pageRect.top + page.clientTop;
+      const pageStyle = window.getComputedStyle(page);
+      const paddingBottom = parseFloat(pageStyle.paddingBottom) || 0;
+      const paddingTop = parseFloat(pageStyle.paddingTop) || 0;
+      const top = Math.max(pageTop + paddingTop, grid.getBoundingClientRect().top);
+      const height = Math.max(180, Math.floor(pageTop + page.clientHeight - paddingBottom - top));
+      const value = height + 'px';
+      if (watchlist.style.getPropertyValue('--terminal-watchlist-height') !== value) {
+        watchlist.style.setProperty('--terminal-watchlist-height', value);
+      }
+    }
+    // Refill the virtual window when more entries fit, retaining search/scroll/selection.
+    const selectedKey = terminalView.selected[terminalView.scope];
+    renderTerminalWatchlistWindow(selectedKey ? { key: selectedKey } : null);
+  }
+
   function scheduleWorkspaceFrame() {
     if (workspaceFrameRequest !== null) return;
     workspaceFrameRequest = window.requestAnimationFrame(function () {
@@ -3976,6 +4001,7 @@
       Object.keys(values).forEach(function (key) {
         document.documentElement.style.setProperty('--workspace-' + key, Math.round(values[key]) + 'px');
       });
+      resizeTerminalWatchlist();
     });
   }
 
@@ -8421,9 +8447,10 @@
     }
   });
   window.addEventListener('resize', scheduleWorkspaceFrame);
+  elements.terminalPanel.closest('.app-page').addEventListener('scroll', scheduleWorkspaceFrame, { passive: true });
   if (typeof window.ResizeObserver === 'function') {
     const observer = new window.ResizeObserver(scheduleWorkspaceFrame);
-    ['.app-header', '.app-footer', '.workflow-content'].forEach(function (selector) {
+    ['.app-header', '.app-footer', '.workflow-content', '.page-context', '.terminal-toolbar', '#terminal-watchlist-rows'].forEach(function (selector) {
       const element = document.querySelector(selector);
       if (element) observer.observe(element);
     });
