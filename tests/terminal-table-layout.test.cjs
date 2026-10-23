@@ -88,6 +88,6 @@ test('fitted desk contains scrolling and observes chart, controls and virtual vi
   assert.match(css, /#main-menu-page\.terminal-fitted\s*\{\s*overflow-y:\s*hidden/);
   assert.match(css, /\.terminal-lines-scroll\s*\{[^}]*--terminal-lines-height/);
   assert.match(css, /\.terminal-lines-scroll\s*\{[^}]*overscroll-behavior:\s*contain/);
-  assert.match(source, /resizeTerminalTable\(\);\s*resizeTerminalWatchlist\(\);/);
+  assert.match(source, /resizeTerminalTable\(\);\s*resizeTerminalChart\(\);\s*resizeTerminalWatchlist\(\);/);
   assert.match(source, /'\.terminal-titlebar', '\.terminal-chart-panel', '\.terminal-lines-toolbar', '\.terminal-lines-filters', '#terminal-lines-scroll'/);
 });

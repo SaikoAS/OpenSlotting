@@ -4039,6 +4039,7 @@
         document.documentElement.style.setProperty('--workspace-' + key, Math.round(values[key]) + 'px');
       });
       resizeTerminalTable();
+      resizeTerminalChart();
       resizeTerminalWatchlist();
     });
   }
@@ -4866,6 +4867,31 @@
     return node;
   }
 
+  function terminalChartSize() {
+    if (window.innerWidth <= 760) return { width: 900, height: 300 };
+    const chart = elements.terminalChart;
+    const style = window.getComputedStyle(chart);
+    return {
+      width: Math.max(240, chart.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0)),
+      height: Math.max(160, chart.clientHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0))
+    };
+  }
+
+  function resizeTerminalChart() {
+    if (!elements.terminalData.getClientRects().length || !terminalView.lineContext) return;
+    const svg = elements.terminalChart.querySelector('svg[data-selectable]');
+    if (!svg) return;
+    const size = terminalChartSize();
+    if (svg.getAttribute('viewBox') === '0 0 ' + size.width + ' ' + size.height) return;
+    if (terminalChartDrag) {
+      if (terminalChartDrag.svg.hasPointerCapture(terminalChartDrag.pointerId)) {
+        terminalChartDrag.svg.releasePointerCapture(terminalChartDrag.pointerId);
+      }
+      terminalChartDrag = null;
+    }
+    renderTerminalChart(terminalView.lineContext.summary);
+  }
+
   function renderTerminalChart(summary) {
     elements.terminalChart.replaceChildren();
     terminalView.chartPoints = summary.points;
@@ -4913,15 +4939,30 @@
       elements.terminalChart.appendChild(empty);
       return;
     }
-    const svg = terminalSvg('svg', { viewBox: '0 0 900 360', role: 'img', 'aria-label': translate('terminal_trend'), preserveAspectRatio: 'none', 'data-selectable': 'true' });
-    const plotLeft = 64;
-    const plotRight = 836;
-    const plotTop = 25;
-    const plotBottom = 265;
+    const size = terminalChartSize();
+    const svg = terminalSvg('svg', { viewBox: '0 0 ' + size.width + ' ' + size.height, role: 'img',
+      'aria-label': translate('terminal_trend'), preserveAspectRatio: 'xMinYMin meet', 'data-selectable': 'true' });
+    const plotTop = 18;
+    const plotBottom = size.height - 92;
+    const volumeBottom = size.height - 36;
+    const coverageY = size.height - 27;
     const values = buckets.map(function (bucket) {
       return bucket.hasRows ? (metric === 'quantity' ? Number(bucket.quantity) / Number(core.QUANTITY_SCALE) : bucket.lines) : 0;
     });
-    const maxValue = values.reduce(function (max, value) { return Math.max(max, value); }, 1);
+    const observedMax = values.reduce(function (max, value) { return Math.max(max, value); }, 0) || 1;
+    const tickCount = metric === 'quantity' ? 4 : Math.min(4, Math.max(1, Math.floor(observedMax)));
+    const maxValue = metric === 'quantity' ? observedMax : Math.ceil(observedMax / tickCount) * tickCount;
+    const digits = metric === 'quantity' ? Math.min(8, Math.max(3, 2 - Math.floor(Math.log10(maxValue)))) : 0;
+    const tickLabels = Array.from({ length: tickCount + 1 }, function (_, tick) {
+      return formatNumber(maxValue * tick / tickCount, digits);
+    });
+    // Conservative character widths reserve space for grouped numbers in either locale.
+    const plotLeft = Math.max(54, Math.max.apply(null, tickLabels.map(function (label) { return label.length * 7; })) + 20);
+    const plotRight = size.width - 16;
+    svg.setAttribute('data-plot-left', plotLeft);
+    svg.setAttribute('data-plot-right', plotRight);
+    svg.setAttribute('data-plot-top', plotTop);
+    svg.setAttribute('data-selection-bottom', coverageY + 7);
     const minTime = Date.parse(chartData.start + 'T00:00:00Z');
     const maxTime = Date.parse(chartData.end + 'T00:00:00Z');
     const span = Math.max(86400000, maxTime - minTime + 86400000);
@@ -4930,11 +4971,10 @@
     };
     const x = function (bucket) { return (dateX(bucket.from, false) + dateX(bucket.to, true)) / 2; };
     const y = function (value) { return plotBottom - Math.max(0, value) / maxValue * (plotBottom - plotTop); };
-    for (let tick = 0; tick <= 4; tick += 1) {
-      const tickY = plotBottom - tick * (plotBottom - plotTop) / 4;
+    for (let tick = 0; tick <= tickCount; tick += 1) {
+      const tickY = plotBottom - tick * (plotBottom - plotTop) / tickCount;
       svg.appendChild(terminalSvg('line', { x1: plotLeft, y1: tickY, x2: plotRight, y2: tickY, class: 'terminal-grid-line' }));
-      const scaleValue = metric === 'quantity' ? BigInt(Math.round(maxValue * tick / 4 * Number(core.QUANTITY_SCALE))) : maxValue * tick / 4;
-      svg.appendChild(terminalSvg('text', { x: plotLeft - 12, y: tickY + 4, 'text-anchor': 'end', class: 'terminal-axis-label' }, metric === 'quantity' ? formatQuantity(scaleValue) : formatNumber(scaleValue, 0)));
+      svg.appendChild(terminalSvg('text', { x: plotLeft - 10, y: tickY + 4, 'text-anchor': 'end', class: 'terminal-axis-label' }, tickLabels[tick]));
     }
     if (!terminalView.day && (filterFrom || filterTo) && (!filterFrom || filterFrom <= chartData.end) &&
         (!filterTo || filterTo >= chartData.start) && (!filterFrom || !filterTo || filterFrom <= filterTo)) {
@@ -4943,7 +4983,7 @@
       const bandX = plotLeft + (bandStart - minTime) / span * (plotRight - plotLeft);
       const bandWidth = Math.max(2, (bandEnd - bandStart + 86400000) / span * (plotRight - plotLeft));
       svg.appendChild(terminalSvg('rect', { x: bandX, y: plotTop, width: bandWidth,
-        height: 305, class: 'terminal-chart-range' }));
+        height: coverageY + 7 - plotTop, class: 'terminal-chart-range' }));
     }
     const points = buckets.map(function (bucket, index) { return [x(bucket), y(values[index])]; });
     const segments = [];
@@ -4963,7 +5003,7 @@
       const activeIndex = buckets.findIndex(function (bucket) { return bucket.from <= terminalView.day && bucket.to >= terminalView.day; });
       if (activeIndex >= 0) {
         svg.appendChild(terminalSvg('line', { x1: points[activeIndex][0], y1: plotTop,
-          x2: points[activeIndex][0], y2: 330, class: 'terminal-chart-selection' }));
+          x2: points[activeIndex][0], y2: coverageY + 7, class: 'terminal-chart-selection' }));
         if (buckets[activeIndex].hasRows) svg.appendChild(terminalSvg('circle', {
           cx: points[activeIndex][0], cy: points[activeIndex][1],
           r: 7, class: 'terminal-chart-selected-point' }));
@@ -4982,19 +5022,19 @@
       });
     }
     const maxLines = buckets.reduce(function (max, bucket) { return Math.max(max, bucket.lines); }, 1);
-    const barWidth = Math.max(1, Math.min(12, 600 / buckets.length));
+    const barWidth = Math.max(1, Math.min(12, (plotRight - plotLeft) / buckets.length * .8));
     buckets.forEach(function (bucket) {
       if (!bucket.hasRows) return;
-      const barHeight = bucket.lines / maxLines * 48;
-      svg.appendChild(terminalSvg('rect', { x: x(bucket) - barWidth / 2, y: 330 - barHeight,
+      const barHeight = bucket.lines / maxLines * Math.min(48, size.height * .13);
+      svg.appendChild(terminalSvg('rect', { x: x(bucket) - barWidth / 2, y: volumeBottom - barHeight,
         width: barWidth, height: barHeight, class: 'terminal-volume-bar' }));
     });
     buckets.forEach(function (bucket) {
       const className = bucket.expectedDays === 0 ? 'terminal-coverage-unavailable' :
         bucket.observedDays === 0 ? 'terminal-coverage-unknown' :
         bucket.observedDays < bucket.expectedDays ? 'terminal-coverage-partial' : 'terminal-coverage-complete';
-      const rect = terminalSvg('rect', { x: dateX(bucket.from, false), y: 336,
-        width: Math.max(1, dateX(bucket.to, true) - dateX(bucket.from, false)), height: 8, class: className });
+      const rect = terminalSvg('rect', { x: dateX(bucket.from, false), y: coverageY,
+        width: Math.max(1, dateX(bucket.to, true) - dateX(bucket.from, false)), height: 7, class: className });
       rect.appendChild(terminalSvg('title', {}, bucket.expectedDays > 0
         ? translate(bucket.hasRows ? 'terminal_chart_bucket_title' : 'terminal_chart_bucket_empty', {
           from: formatCalendarDate(bucket.from), to: formatCalendarDate(bucket.to),
@@ -5003,15 +5043,15 @@
         }) : translate('terminal_chart_no_expected')));
       svg.appendChild(rect);
     });
-    [0, Math.floor((buckets.length - 1) / 2), buckets.length - 1].filter(function (index, position, array) { return array.indexOf(index) === position; }).forEach(function (index) {
+    (plotRight - plotLeft >= 280 ? [0, Math.floor((buckets.length - 1) / 2), buckets.length - 1] : [0, buckets.length - 1]).filter(function (index, position, array) { return array.indexOf(index) === position; }).forEach(function (index) {
       const bucket = buckets[index];
-      svg.appendChild(terminalSvg('text', { x: x(bucket), y: 357,
+      svg.appendChild(terminalSvg('text', { x: x(bucket), y: size.height - 6,
         'text-anchor': index === 0 ? 'start' : index === buckets.length - 1 ? 'end' : 'middle',
         class: 'terminal-axis-label' }, chartData.granularity === 'month'
         ? new Intl.DateTimeFormat(state.language === 'de' ? 'de-DE' : 'en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(bucket.from + 'T00:00:00Z'))
         : formatCalendarDate(bucket.from)));
     });
-    if (summary.points.length === 0) svg.appendChild(terminalSvg('text', { x: 450, y: 150,
+    if (summary.points.length === 0) svg.appendChild(terminalSvg('text', { x: (plotLeft + plotRight) / 2, y: (plotTop + plotBottom) / 2,
       'text-anchor': 'middle', class: 'terminal-axis-label' }, translate('terminal_no_period_rows')));
     elements.terminalChart.appendChild(svg);
   }
@@ -8049,24 +8089,27 @@
   let terminalChartDrag = null;
   function terminalChartPointerX(event, svg) {
     const bounds = svg.getBoundingClientRect();
-    return (event.clientX - bounds.left) / bounds.width * 900;
+    return (event.clientX - bounds.left) / bounds.width * svg.viewBox.baseVal.width;
   }
   elements.terminalChart.addEventListener('pointerdown', function (event) {
     if (event.button !== 0 || !event.isPrimary) return;
     const svg = event.target.closest('svg[data-selectable]');
     if (!svg || !terminalView.chartData || !terminalView.chartData.buckets.length) return;
     const chartX = terminalChartPointerX(event, svg);
-    if (chartX < 64 || chartX > 836) return;
-    const band = terminalSvg('rect', { x: chartX, y: 25, width: 1, height: 305, class: 'terminal-chart-drag-range' });
+    const left = Number(svg.dataset.plotLeft), right = Number(svg.dataset.plotRight);
+    if (chartX < left || chartX > right) return;
+    const top = Number(svg.dataset.plotTop);
+    const band = terminalSvg('rect', { x: chartX, y: top, width: 1,
+      height: Number(svg.dataset.selectionBottom) - top, class: 'terminal-chart-drag-range' });
     svg.appendChild(band);
-    terminalChartDrag = { svg: svg, pointerId: event.pointerId, startX: chartX, endX: chartX, band: band };
+    terminalChartDrag = { svg: svg, pointerId: event.pointerId, startX: chartX, endX: chartX, left: left, right: right, band: band };
     svg.setPointerCapture(event.pointerId);
     event.preventDefault();
   });
   elements.terminalChart.addEventListener('pointermove', function (event) {
     const drag = terminalChartDrag;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    drag.endX = Math.max(64, Math.min(836, terminalChartPointerX(event, drag.svg)));
+    drag.endX = Math.max(drag.left, Math.min(drag.right, terminalChartPointerX(event, drag.svg)));
     drag.band.setAttribute('x', String(Math.min(drag.startX, drag.endX)));
     drag.band.setAttribute('width', String(Math.max(1, Math.abs(drag.endX - drag.startX))));
   });
@@ -8074,12 +8117,12 @@
     const drag = terminalChartDrag;
     if (!drag || drag.pointerId !== event.pointerId) return;
     terminalChartDrag = null;
-    drag.endX = Math.max(64, Math.min(836, terminalChartPointerX(event, drag.svg)));
+    drag.endX = Math.max(drag.left, Math.min(drag.right, terminalChartPointerX(event, drag.svg)));
     if (drag.svg.hasPointerCapture(event.pointerId)) drag.svg.releasePointerCapture(event.pointerId);
     const chartData = terminalView.chartData;
     if (!chartData || !chartData.buckets.length) return;
     const domain = [{ date: chartData.start }, { date: chartData.end }];
-    const range = terminalModel.chartDateRange(domain, drag.startX, drag.endX, 64, 836);
+    const range = terminalModel.chartDateRange(domain, drag.startX, drag.endX, drag.left, drag.right);
     if (Math.abs(drag.endX - drag.startX) > 6 && range && range.from !== range.to) {
       terminalView.day = null;
       elements.terminalFilterFrom.value = range.from;
@@ -8088,7 +8131,7 @@
       updateTerminalFilters();
       return;
     }
-    const clickedDate = terminalModel.chartDateAtX(domain, drag.endX, 64, 836);
+    const clickedDate = terminalModel.chartDateAtX(domain, drag.endX, drag.left, drag.right);
     if (chartData.granularity === 'day') {
       const points = terminalView.chartPoints || [];
       const target = Date.parse(clickedDate + 'T00:00:00Z');

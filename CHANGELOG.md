@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Draw analysis charts in their actual pixel dimensions to prevent stretched or flattened axis text. Reserve a gutter for long localized numbers, keep axis precision readable (including small quantities), use integer line-count intervals and preserve exact tooltip values. Recompute chart geometry and pointer selection bounds after resizing.
+
 - Fit the analysis desk order-line viewport to the remaining workspace height and reduce the chart height when needed. Preserve independent table/watchlist scrolling, refill virtual rows on resize and remeasure wrapped controls. Keep a compact table and accessible page-scroll fallback when the controls cannot fit in very small or highly zoomed windows.
 
 - Always show the analysis desk period summary, defaulting to the entire displayed period and following date selections. Remove duplicate KPI cards, preserve scope-specific customer/article counts and compact the summary to make more room for order lines.

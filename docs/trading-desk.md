@@ -32,6 +32,11 @@ The controls and labels are available in English and German.
   totals remain exact. In day view the line connects consecutive observed
   days; in grouped views it connects adjacent buckets that have rows. Empty
   buckets break the line. Missing days are unknown coverage, not zero demand.
+  Axis labels retain their proportions when the chart changes size. The left
+  gutter adapts to localized number lengths. Quantity-axis ticks normally use
+  up to three decimal places, with extra precision for small quantities;
+  line-count ticks use integer intervals. These display choices do not round
+  stored quantities, displayed totals, or the exact values in tooltips.
 - The chart groups values by calendar day, ISO week (Monday to Sunday), or
   calendar month. Auto uses days for up to 45 calendar days, weeks through 180,
   and months for longer ranges. Each bucket adds only the selected entity's

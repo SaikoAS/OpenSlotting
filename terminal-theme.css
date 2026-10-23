@@ -200,7 +200,7 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
 .terminal-selection-metrics strong { margin-left: auto; color: #f5e7cf; font-size: .98rem; }
 .terminal-selection-coverage { margin: 6px 0 0; color: #cfbd9e; font-size: .69rem; }
 .terminal-chart { min-height: 350px; padding: 0 8px 4px; }
-.terminal-chart svg { display: block; width: 100%; height: 350px; overflow: visible; }
+.terminal-chart svg { display: block; width: 100%; height: 350px; overflow: hidden; }
 .terminal-chart svg[data-selectable="true"] { cursor: crosshair; }
 .terminal-chart-range, .terminal-chart-drag-range { fill: #f4bd68; fill-opacity: .16; stroke: #f4bd68; stroke-opacity: .75; stroke-width: 1; pointer-events: none; }
 .terminal-chart-drag-range { fill-opacity: .24; }
