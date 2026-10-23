@@ -18,13 +18,17 @@ availability. The choice lasts for the current app session and does not change
 workspace data or backups. Charts and tables resize to the available width.
 Narrow screens retain horizontal navigation.
 
-The former top banner is removed. **Settings** in the rail footer contains
-language selection, build/runtime information and the active workspace name.
+The former top and bottom banners are removed. **Settings** in the rail footer
+is divided into **Global** (build/runtime details and local-processing
+information) and **Workspace** (active identity, language and clearing data).
 A Settings button on workspace selection is available before opening any
 workspace. Language changes keep their existing workspace-save and rollback
 behavior; without an open workspace the choice applies to this app session.
-The active workspace remains visible beside the page title, and the bottom
-bar retains version and local-processing information.
+The active workspace remains visible beside the page title. Clearing data
+requires confirmation and is disabled without a ready workspace containing
+source files, or during a running operation. It removes source files, import
+profiles and analysis/comparison results and resets comparison periods;
+the workspace, warehouse layout and coverage notes remain.
 
 ## Data shown
 

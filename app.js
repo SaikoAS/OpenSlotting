@@ -94,6 +94,11 @@
       settings_application: 'Application & local processing',
       settings_version: 'Version',
       settings_workspace: 'Active workspace',
+      settings_global: 'Global',
+      settings_workspace_scope: 'Workspace',
+      settings_workspace_data: 'Workspace data',
+      settings_reset_help: 'Remove imported source files, import profiles and analysis/comparison results and reset comparison periods. The workspace and warehouse layout remain.',
+      settings_no_workspace: 'Open a workspace to save its settings or clear its data. Language selection remains available for this session.',
       settings_language_help: 'Choose the interface language. In an open workspace it is saved with that workspace; before opening one it applies to this session.',
       nav_import: 'Import',
       nav_mapping: 'Columns & notes',
@@ -205,7 +210,7 @@
       workspace_rename_prompt: 'Enter the new workspace name:',
       workspace_delete_confirm: 'Delete workspace “{{name}}” and all of its locally stored data? This cannot be undone.',
       workspace_replace_confirm: 'Replace workspace “{{name}}” with this backup? All current data in that workspace will be removed.',
-      workspace_reset_confirm: 'Remove every source file and analysis result from workspace “{{name}}”? The workspace itself will remain.',
+      workspace_reset_confirm: 'Remove all source files, import profiles and analysis/comparison results from workspace “{{name}}” and reset its comparison periods? The workspace and warehouse layout will remain.',
       workspace_default_name: 'Workspace {{number}}',
       workspace_loading: 'Opening local workspace storage…',
       workspace_none_status: 'Select and open a workspace, create one, or restore a backup before selecting CSV files.',
@@ -827,6 +832,11 @@
       settings_application: 'Anwendung & lokale Verarbeitung',
       settings_version: 'Versionsstand',
       settings_workspace: 'Aktiver Workspace',
+      settings_global: 'Global',
+      settings_workspace_scope: 'Workspace',
+      settings_workspace_data: 'Workspace-Daten',
+      settings_reset_help: 'Importierte Quelldateien, Importprofile sowie Analyse- und Vergleichsergebnisse entfernen und Vergleichszeiträume zurücksetzen. Der Workspace und der Lagerplan bleiben erhalten.',
+      settings_no_workspace: 'Öffne einen Workspace, um dessen Einstellungen zu speichern oder Daten zu leeren. Die Sprachauswahl bleibt für diese Sitzung verfügbar.',
       settings_language_help: 'Wähle die Sprache der Oberfläche. In einem geöffneten Workspace wird sie mit diesem gespeichert; vor dem Öffnen gilt sie für diese Sitzung.',
       nav_import: 'Import',
       nav_mapping: 'Quellspalten',
@@ -938,7 +948,7 @@
       workspace_rename_prompt: 'Neuen Namen des Arbeitsbereichs eingeben:',
       workspace_delete_confirm: 'Arbeitsbereich „{{name}}“ und alle lokal gespeicherten Daten löschen? Dies kann nicht rückgängig gemacht werden.',
       workspace_replace_confirm: 'Arbeitsbereich „{{name}}“ durch dieses Backup ersetzen? Alle aktuellen Daten dieses Arbeitsbereichs werden entfernt.',
-      workspace_reset_confirm: 'Alle Quelldateien und Analyseergebnisse aus „{{name}}“ entfernen? Der Arbeitsbereich selbst bleibt erhalten.',
+      workspace_reset_confirm: 'Alle Quelldateien, Importprofile sowie Analyse- und Vergleichsergebnisse aus „{{name}}“ entfernen und die Vergleichszeiträume zurücksetzen? Der Workspace und der Lagerplan bleiben erhalten.',
       workspace_default_name: 'Arbeitsbereich {{number}}',
       workspace_loading: 'Lokaler Arbeitsbereichsspeicher wird geöffnet …',
       workspace_none_status: 'Bitte einen Arbeitsbereich auswählen und öffnen, neu erstellen oder aus einem Backup wiederherstellen.',
@@ -1631,6 +1641,7 @@
     settingsBuildStatus: document.getElementById('settings-build-status'),
     activeWorkspaceName: document.getElementById('active-workspace-name'),
     settingsWorkspaceName: document.getElementById('settings-workspace-name'),
+    settingsWorkspaceHint: document.getElementById('settings-workspace-hint'),
     workflowSteps: Array.from(document.querySelectorAll('[data-workflow-target]')),
     navigationToggle: document.getElementById('navigation-toggle'),
     navigationToggleIcon: document.getElementById('navigation-toggle-icon'),
@@ -1852,7 +1863,6 @@
     qualityOverviewPrevious: document.getElementById('quality-overview-previous'),
     qualityOverviewNext: document.getElementById('quality-overview-next'),
     qualityOverviewPageStatus: document.getElementById('quality-overview-page-status'),
-    appVersion: document.getElementById('app-version'),
     resetButton: document.getElementById('reset-button')
   };
 
@@ -2080,6 +2090,7 @@
 
   function renderWorkspaceIdentity() {
     const name = state.activeWorkspace ? state.activeWorkspace.name : translate('workspace_none');
+    elements.settingsWorkspaceHint.classList.toggle('hidden', Boolean(state.activeWorkspace));
     [elements.activeWorkspaceName, elements.settingsWorkspaceName].forEach(function (element) {
       setText(element, name);
       element.setAttribute('title', name);
@@ -3876,7 +3887,6 @@
     const build = window.OpenSlottingRuntimeFactory.describeBuild(core, workspaceModel, warehouseModel);
     const visibleVersion = core.APP_VERSION + ' · ' + translate(BUILD_STATUS_TRANSLATION_KEYS[build.status]);
     setText(elements.settingsBuildStatus, 'v' + visibleVersion);
-    setText(elements.appVersion, 'OpenSlotting v' + visibleVersion);
     document.querySelectorAll('[data-i18n]').forEach(function (element) {
       setText(element, translate(element.dataset.i18n));
     });
@@ -7509,7 +7519,8 @@
   }
 
   function reset() {
-    if (!state.activeWorkspace || state.files.length === 0) {
+    if (!state.activeWorkspace || !state.storageReady || state.workspaceLoading ||
+        state.files.some(function (file) { return Boolean(file.reading); }) || state.files.length === 0) {
       return;
     }
     if (!window.confirm(translate('workspace_reset_confirm', { name: state.activeWorkspace.name }))) {
@@ -8579,7 +8590,7 @@
   elements.terminalPanel.closest('.app-page').addEventListener('scroll', scheduleWorkspaceFrame, { passive: true });
   if (typeof window.ResizeObserver === 'function') {
     const observer = new window.ResizeObserver(scheduleWorkspaceFrame);
-    ['.app-footer', '.workflow-content', '.page-context', '.terminal-toolbar', '#terminal-watchlist-rows',
+    ['.workflow-content', '.page-context', '.terminal-toolbar', '#terminal-watchlist-rows',
       '.terminal-titlebar', '.terminal-chart-panel', '.terminal-lines-toolbar', '.terminal-lines-filters', '#terminal-lines-scroll'].forEach(function (selector) {
       const element = document.querySelector(selector);
       if (element) observer.observe(element);

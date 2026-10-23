@@ -201,7 +201,7 @@ async function sourceClearingView(t) {
   const record = sourceWorkspace(); record.coverageNotes = [note()];
   const created = await repository.createWorkspace(record);
   const state = { activeWorkspace: { id: record.id, name: record.name }, files: record.files,
-    coverageNotes: record.coverageNotes, fileSelectionVersion: 0 };
+    coverageNotes: record.coverageNotes, fileSelectionVersion: 0, storageReady: true, workspaceLoading: false };
   const pending = [];
   const element = () => ({ value: '', replaceChildren() {}, classList: { add() {} } });
   const elements = Object.fromEntries(['fileInput', 'articleFilter', 'importedFiles', 'mappingSourceSearch',

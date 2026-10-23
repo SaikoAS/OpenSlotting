@@ -14,7 +14,7 @@ function fixture(open = false) {
   const state = { activeWorkspace: open ? { id: 'synthetic', name: 'Synthetic <workspace>' } : null,
     activePageTarget: 'workspace-panel', files: [], result: null, comparison: null, warehouseLayout: { objects: [] }, mappingDrawerOpen: false };
   const elements = Object.fromEntries(['pageContextKicker', 'pageContextTitle', 'pageContextStatus', 'returnMainMenu',
-    'returnWorkspaceSelection', 'activeWorkspaceName', 'settingsWorkspaceName'].map(key => [key, node(key)]));
+    'returnWorkspaceSelection', 'activeWorkspaceName', 'settingsWorkspaceName', 'settingsWorkspaceHint'].map(key => [key, node(key)]));
   elements.pageViews = ['settings-page', 'workspace-page', 'main-menu-page'].map(node);
   elements.workflowSteps = ['settings-panel', 'workspace-panel', 'main-menu-panel'].map(target => Object.assign(node(target), { dataset: { workflowTarget: target } }));
   const body = node('body'); let frames = 0, desks = 0;
@@ -57,7 +57,9 @@ test('workspace identity is readable in settings and page context as escaped tex
     assert.equal(element.textContent, 'Synthetic <workspace>');
     assert.equal(element.attributes.get('title'), 'Synthetic <workspace>');
   }
+  assert.equal(f.elements.settingsWorkspaceHint.classList.contains('hidden'), true);
   f.state.activeWorkspace = null; f.identity();
+  assert.equal(f.elements.settingsWorkspaceHint.classList.contains('hidden'), false);
   assert.equal(f.elements.settingsWorkspaceName.textContent, 'workspace_none');
 });
 
@@ -73,7 +75,59 @@ test('header is removed and a single language control lives in settings, includi
   const picker = html.slice(html.indexOf('id="workspace-page"'), html.indexOf('id="settings-page"'));
   assert.match(picker, /data-workflow-target="settings-panel"/);
   const css = fs.readFileSync(path.join(__dirname, '..', 'terminal-theme.css'), 'utf8');
-  assert.match(css, /grid-template-rows:\s*minmax\(0, 1fr\) auto;/);
+  assert.match(css, /grid-template-rows:\s*minmax\(0, 1fr\);/);
   assert.match(css, /\.settings-panel \.language-picker > span, \.settings-panel \.local-badge\s*\{\s*display:\s*inline-block/);
-  assert.match(html, /<footer class="app-footer">[\s\S]*data-i18n="footer_local"/);
+  assert.doesNotMatch(html, /<footer class="app-footer">/);
+  assert.match(settings, /data-i18n="footer_local"/);
+});
+
+test('settings separate global diagnostics from workspace language and data actions', () => {
+  const global = html.slice(html.indexOf('id="settings-global"'), html.indexOf('id="settings-workspace"'));
+  const workspace = html.slice(html.indexOf('id="settings-workspace"'), html.indexOf('id="main-menu-page"'));
+  assert.match(global, /id="settings-build-status"/);
+  assert.match(global, /id="runtime-badge"/);
+  assert.match(global, /data-i18n="footer_local"/);
+  assert.doesNotMatch(global, /id="language-select"|id="reset-button"/);
+  assert.match(workspace, /id="language-select"/);
+  assert.match(workspace, /id="settings-workspace-name"/);
+  assert.match(workspace, /id="settings-workspace-hint"/);
+  assert.match(workspace, /id="reset-button"[^>]*aria-describedby="settings-reset-help"[^>]*disabled/);
+  assert.equal([...html.matchAll(/id="reset-button"/g)].length, 1);
+  assert.doesNotMatch(html, /id="app-version"/);
+  assert.doesNotMatch(source, /elements\.appVersion/);
+  const baseCss = fs.readFileSync(path.join(__dirname, '..', 'app.css'), 'utf8');
+  assert.doesNotMatch(baseCss, /\.workspace-picker-mode #reset-button\s*\{[^}]*display:\s*none/);
+});
+
+function resetFixture(options = {}) {
+  const calls = [], state = { activeWorkspace: { id: 'synthetic', name: 'Synthetic workspace' },
+    files: [{ id: 'synthetic-source', reading: false }], storageReady: true, workspaceLoading: false, ...options.state };
+  const context = vm.createContext({ state,
+    window: { confirm: message => { calls.push(['confirm', message]); return options.confirm !== false; } },
+    translate: (key, values) => key + ':' + values.name,
+    clearWorkspaceView: value => { calls.push(['clear', value.preserveCoverageNotes]); state.files = []; },
+    persistActiveWorkspace: key => { calls.push(['save', key]); return Promise.resolve(); },
+    setWorkspaceMessage: (key, values) => calls.push(['message', key, values.name]) });
+  const start = source.indexOf('  function reset()');
+  vm.runInContext(source.slice(start, source.indexOf('  elements.workspaceCreate.addEventListener', start)), context);
+  return { state, calls, reset: () => context.reset() };
+}
+
+test('clear action rejects missing, empty and busy workspaces before asking for confirmation', () => {
+  for (const state of [{ activeWorkspace: null }, { files: [] }, { storageReady: false },
+    { workspaceLoading: true }, { files: [{ reading: true }] }]) {
+    const f = resetFixture({ state }); f.reset(); assert.deepEqual(f.calls, []);
+  }
+  assert.match(source, /elements\.resetButton\.disabled = !hasWorkspace \|\| state\.files\.length === 0/);
+});
+
+test('clear cancellation changes nothing and confirmation retains the existing clear/save contract', async () => {
+  const cancelled = resetFixture({ confirm: false }), original = cancelled.state.files;
+  cancelled.reset(); assert.equal(cancelled.state.files, original);
+  assert.deepEqual(cancelled.calls, [['confirm', 'workspace_reset_confirm:Synthetic workspace']]);
+  const confirmed = resetFixture(), workspace = confirmed.state.activeWorkspace;
+  confirmed.reset(); await Promise.resolve();
+  assert.deepEqual(confirmed.calls, [['confirm', 'workspace_reset_confirm:Synthetic workspace'],
+    ['clear', true], ['save', 'workspace_cleared'], ['message', 'workspace_cleared', 'Synthetic workspace']]);
+  assert.equal(confirmed.state.activeWorkspace, workspace);
 });

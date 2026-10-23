@@ -35,7 +35,7 @@ test('packaged builds retain the candidate identity without inferring a release'
   assert.equal(core.APP_BUILD.commit, null);
 });
 
-test('language changes render build status into settings and footer for every build type', () => {
+test('language changes render build status in settings for every build type', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8').replace(/\r\n/g, '\n');
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
   assert.doesNotMatch(html, /<header\b[^>]*class="app-header"/);
@@ -62,7 +62,6 @@ test('language changes render build status into settings and footer for every bu
         ? (language === 'de' ? 'Releasebuild' : 'Release build')
         : (language === 'de' ? 'Entwicklungsstand' : 'Development build');
       assert.equal(nodes['settings-build-status'].textContent, 'v' + core.APP_VERSION + ' · ' + expectedStatus);
-      assert.equal(nodes['app-version'].textContent, 'OpenSlotting ' + nodes['settings-build-status'].textContent);
     }
   }
 });

@@ -162,19 +162,32 @@
             <div><p class="step">OpenSlotting</p><h2 id="settings-title" data-i18n="settings_title">Settings</h2></div>
             <button class="secondary-button" type="button" data-workflow-target="workspace-panel" data-i18n="workspace_selection_back">Workspace selection</button>
           </div>
-          <div class="settings-grid">
-            <section class="settings-card" aria-labelledby="settings-language-title">
-              <h3 id="settings-language-title" data-i18n="language_label">Language</h3>
-              <p data-i18n="settings_language_help">Choose the interface language. In an open workspace it is saved with that workspace; before opening one it applies to this session.</p>
-              <label class="language-picker"><span data-i18n="language_label">Language</span><select id="language-select" aria-label="Language"><option value="en" data-i18n="language_english">English</option><option value="de" data-i18n="language_german">Deutsch</option></select></label>
-            </section>
-            <section class="settings-card" aria-labelledby="settings-application-title">
-              <h3 id="settings-application-title" data-i18n="settings_application">Application &amp; local processing</h3>
-              <span id="runtime-badge" class="local-badge" data-i18n="runtime_badge_localhost">Runtime · Localhost</span>
-              <dl class="settings-details"><div><dt data-i18n="settings_version">Version</dt><dd id="settings-build-status"></dd></div><div><dt data-i18n="settings_workspace">Active workspace</dt><dd id="settings-workspace-name" data-i18n="workspace_none">No workspace selected</dd></div></dl>
-              <p data-i18n="footer_local">OpenSlotting processes the selected files locally only.</p>
-            </section>
-          </div>
+          <section id="settings-global" class="settings-scope" aria-labelledby="settings-global-title">
+            <div class="settings-scope-heading"><h3 id="settings-global-title" data-i18n="settings_global">Global</h3></div>
+            <div class="settings-grid">
+              <section class="settings-card settings-application-card" aria-labelledby="settings-application-title">
+                <h4 id="settings-application-title" data-i18n="settings_application">Application &amp; local processing</h4>
+                <span id="runtime-badge" class="local-badge" data-i18n="runtime_badge_localhost">Runtime · Localhost</span>
+                <dl class="settings-details"><div><dt data-i18n="settings_version">Version</dt><dd id="settings-build-status"></dd></div></dl>
+                <p data-i18n="footer_local">OpenSlotting processes the selected files locally only.</p>
+              </section>
+            </div>
+          </section>
+          <section id="settings-workspace" class="settings-scope" aria-labelledby="settings-workspace-title">
+            <div class="settings-scope-heading"><h3 id="settings-workspace-title" data-i18n="settings_workspace_scope">Workspace</h3><p><span data-i18n="settings_workspace">Active workspace</span>: <strong id="settings-workspace-name" data-i18n="workspace_none">No workspace selected</strong></p><p id="settings-workspace-hint" class="table-note" data-i18n="settings_no_workspace">Open a workspace to save its settings or clear its data. Language selection remains available for this session.</p></div>
+            <div class="settings-grid">
+              <section class="settings-card" aria-labelledby="settings-language-title">
+                <h4 id="settings-language-title" data-i18n="language_label">Language</h4>
+                <p data-i18n="settings_language_help">Choose the interface language. In an open workspace it is saved with that workspace; before opening one it applies to this session.</p>
+                <label class="language-picker"><span data-i18n="language_label">Language</span><select id="language-select" aria-label="Language"><option value="en" data-i18n="language_english">English</option><option value="de" data-i18n="language_german">Deutsch</option></select></label>
+              </section>
+              <section class="settings-card settings-reset-card" aria-labelledby="settings-data-title">
+                <h4 id="settings-data-title" data-i18n="settings_workspace_data">Workspace data</h4>
+                <p id="settings-reset-help" data-i18n="settings_reset_help">Remove imported source files, import profiles and analysis/comparison results and reset comparison periods. The workspace and warehouse layout remain.</p>
+                <button id="reset-button" class="secondary-button danger-button" type="button" aria-describedby="settings-reset-help" data-i18n="reset_button" disabled>Clear workspace data</button>
+              </section>
+            </div>
+          </section>
         </section>
       </div>
 
@@ -707,13 +720,7 @@
       </div>
     </main>
 
-    <footer class="app-footer">
-      <div>
-        <span data-i18n="footer_local">OpenSlotting processes the selected files locally only.</span>
-        <span id="app-version" class="app-version"></span>
-      </div>
-      <button id="reset-button" class="text-button" type="button" data-i18n="reset_button">Reset</button>
-    </footer>
+
 
     <script src="runtime.js"></script>
     <script src="encoding.js"></script>
