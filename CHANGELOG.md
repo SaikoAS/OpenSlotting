@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Label the order-line customer column as Customer name and show missing names without substituting customer IDs. Keep the distinction in mixed imports, sorting and filtered CSV export.
+
 - Replace the import card list with a fitted import desk, searchable/filterable sortable table, 50-file pages and selected-file actions. Add custom per-source tags with bounded metadata-only saves and portable backup support in workspace schema 23.
 
 - Fix linked CSV reconnection retaining the previous filename. Refresh source names, unique display labels and row provenance from the selected file while preserving source identity and mappings.

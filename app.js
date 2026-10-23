@@ -5349,7 +5349,7 @@
       { key: 'delivery_date', label: translate('detail_order_date'), required: true },
       { key: 'article_id', label: translate('column_article_id'), required: true },
       { key: 'order_id', label: translate('detail_order_id'), required: true },
-      { key: 'customer', label: translate('terminal_customer'), required: true },
+      { key: 'customer', label: translate('detail_customer_name'), required: true },
       { key: 'quantity', label: translate('column_quantity'), number: true, required: true }
     ].concat(terminalOptionalColumns(), [
       { key: 'source_file', label: translate('detail_source_file'), required: true },
@@ -5466,7 +5466,7 @@
 
   function terminalLineValue(line, key) {
     if (key === 'delivery_date') return formatCalendarDate(line.delivery_date);
-    if (key === 'customer') return optionalText(line.customer_name || line.customer_id);
+    if (key === 'customer') return optionalText(line.customer_name);
     if (key === 'quantity' || key === 'sales_unit_count' || key === 'quantity_per_sales_unit') return formatQuantity(line[key]);
     if (key === 'source_file') return line.source_file_label || line.source_file_name || '';
     if (key === 'source_line') return Number.isInteger(line.source_line) ? String(line.source_line) : '';

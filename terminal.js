@@ -309,10 +309,10 @@
   function sortLines(lines, key, direction, valueFor) {
     const factor = direction === 'asc' ? 1 : -1;
     return (lines || []).slice().sort(function (a, b) {
-      const av = valueFor ? valueFor(a, key) : key === 'customer' ? a.customer_name || a.customer_id || '' :
+      const av = valueFor ? valueFor(a, key) : key === 'customer' ? a.customer_name || '' :
         key === 'source_file' ? a.source_file_label || a.source_file_name || '' :
         key.indexOf('custom:') === 0 ? (a.custom_fields && a.custom_fields[key.slice(7)]) || '' : a[key];
-      const bv = valueFor ? valueFor(b, key) : key === 'customer' ? b.customer_name || b.customer_id || '' :
+      const bv = valueFor ? valueFor(b, key) : key === 'customer' ? b.customer_name || '' :
         key === 'source_file' ? b.source_file_label || b.source_file_name || '' :
         key.indexOf('custom:') === 0 ? (b.custom_fields && b.custom_fields[key.slice(7)]) || '' : b[key];
       let result = 0;
