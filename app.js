@@ -90,6 +90,11 @@
       nav_group_data: 'Data',
       nav_expand: 'Expand sidebar',
       nav_collapse: 'Collapse sidebar',
+      settings_title: 'Settings',
+      settings_application: 'Application & local processing',
+      settings_version: 'Version',
+      settings_workspace: 'Active workspace',
+      settings_language_help: 'Choose the interface language. In an open workspace it is saved with that workspace; before opening one it applies to this session.',
       nav_import: 'Import',
       nav_mapping: 'Columns & notes',
       nav_coverage: 'Coverage',
@@ -818,6 +823,11 @@
       nav_group_data: 'Daten',
       nav_expand: 'Seitenleiste ausklappen',
       nav_collapse: 'Seitenleiste einklappen',
+      settings_title: 'Einstellungen',
+      settings_application: 'Anwendung & lokale Verarbeitung',
+      settings_version: 'Versionsstand',
+      settings_workspace: 'Aktiver Workspace',
+      settings_language_help: 'Wähle die Sprache der Oberfläche. In einem geöffneten Workspace wird sie mit diesem gespeichert; vor dem Öffnen gilt sie für diese Sitzung.',
       nav_import: 'Import',
       nav_mapping: 'Quellspalten',
       nav_coverage: 'Abdeckung',
@@ -1606,6 +1616,7 @@
   const PAGE_CONFIG = {
     'workspace-panel': { view: 'workspace-page', kicker: 'nav_kicker', title: 'workspace_title', status: 'page_status_workspace' },
     'main-menu-panel': { view: 'main-menu-page', kicker: 'main_menu_eyebrow', title: 'main_menu_title', status: 'page_status_ready' },
+    'settings-panel': { view: 'settings-page', kicker: 'settings_title', title: 'settings_title', status: 'page_status_ready' },
     'warehouse-panel': { view: 'warehouse-page', kicker: 'main_menu_eyebrow', title: 'warehouse_title', status: 'page_status_ready' },
     'warehouse-walk-panel': { view: 'warehouse-walk-page', kicker: 'main_menu_eyebrow', title: 'warehouse_walk_title', status: 'page_status_ready' },
     'warehouse-analysis-panel': { view: 'warehouse-analysis-page', kicker: 'main_menu_eyebrow', title: 'warehouse_analysis_title', status: 'page_status_ready' },
@@ -1617,8 +1628,9 @@
   };
 
   const elements = {
-    headerBuildStatus: document.getElementById('header-build-status'),
-    headerWorkspaceName: document.getElementById('header-workspace-name'),
+    settingsBuildStatus: document.getElementById('settings-build-status'),
+    activeWorkspaceName: document.getElementById('active-workspace-name'),
+    settingsWorkspaceName: document.getElementById('settings-workspace-name'),
     workflowSteps: Array.from(document.querySelectorAll('[data-workflow-target]')),
     navigationToggle: document.getElementById('navigation-toggle'),
     navigationToggleIcon: document.getElementById('navigation-toggle-icon'),
@@ -2066,8 +2078,16 @@
     });
   }
 
+  function renderWorkspaceIdentity() {
+    const name = state.activeWorkspace ? state.activeWorkspace.name : translate('workspace_none');
+    [elements.activeWorkspaceName, elements.settingsWorkspaceName].forEach(function (element) {
+      setText(element, name);
+      element.setAttribute('title', name);
+    });
+  }
+
   function renderWorkspaceControls() {
-    setText(elements.headerWorkspaceName, state.activeWorkspace ? state.activeWorkspace.name : translate('workspace_none'));
+    renderWorkspaceIdentity();
     setText(elements.mainMenuWorkspaceName, state.activeWorkspace ? '· ' + state.activeWorkspace.name : '');
     document.body.classList.toggle('workspace-picker-mode', !state.activeWorkspace || state.activePageTarget === 'workspace-panel');
     const selectedId = state.selectedWorkspaceId || '';
@@ -3855,7 +3875,7 @@
     document.title = translate('page_title');
     const build = window.OpenSlottingRuntimeFactory.describeBuild(core, workspaceModel, warehouseModel);
     const visibleVersion = core.APP_VERSION + ' · ' + translate(BUILD_STATUS_TRANSLATION_KEYS[build.status]);
-    setText(elements.headerBuildStatus, 'v' + visibleVersion);
+    setText(elements.settingsBuildStatus, 'v' + visibleVersion);
     setText(elements.appVersion, 'OpenSlotting v' + visibleVersion);
     document.querySelectorAll('[data-i18n]').forEach(function (element) {
       setText(element, translate(element.dataset.i18n));
@@ -3915,6 +3935,7 @@
 
   function renderWorkflow(activeTarget) {
     const availability = {
+      'settings-panel': true,
       'workspace-panel': Boolean(state.activeWorkspace),
       'main-menu-panel': Boolean(state.activeWorkspace),
       'warehouse-panel': Boolean(state.activeWorkspace),
@@ -8558,7 +8579,7 @@
   elements.terminalPanel.closest('.app-page').addEventListener('scroll', scheduleWorkspaceFrame, { passive: true });
   if (typeof window.ResizeObserver === 'function') {
     const observer = new window.ResizeObserver(scheduleWorkspaceFrame);
-    ['.app-header', '.app-footer', '.workflow-content', '.page-context', '.terminal-toolbar', '#terminal-watchlist-rows',
+    ['.app-footer', '.workflow-content', '.page-context', '.terminal-toolbar', '#terminal-watchlist-rows',
       '.terminal-titlebar', '.terminal-chart-panel', '.terminal-lines-toolbar', '.terminal-lines-filters', '#terminal-lines-scroll'].forEach(function (selector) {
       const element = document.querySelector(selector);
       if (element) observer.observe(element);

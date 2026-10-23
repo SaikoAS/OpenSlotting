@@ -308,7 +308,7 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
 html { height: 100%; overflow: hidden; }
 body {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
   height: 100vh;
   height: 100dvh;
   min-height: 0;
@@ -431,6 +431,27 @@ body > .app-footer, .workspace-picker-mode > .app-footer {
 }
 
 /* Categorized navigation: keep the toggle and workspace exit outside the scroll area. */
+.page-context-title-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px 12px; min-width: 0; }
+.page-context-title-row h2 { margin: 0; }
+.page-context-workspace { max-width: min(30vw, 280px); overflow: hidden; color: #9aa7b7; font-size: .73rem; text-overflow: ellipsis; white-space: nowrap; }
+.workspace-picker-tools { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+.settings-panel { min-width: 0; }
+.settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; padding: 20px; }
+.settings-card { min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: 7px; background: #171d24; }
+.settings-card h3 { margin: 0 0 12px; font-size: 1rem; }
+.settings-card p { color: var(--muted); font-size: .82rem; line-height: 1.5; }
+.settings-panel .language-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.settings-panel .language-picker > span, .settings-panel .local-badge { display: inline-block; }
+.settings-panel .language-picker select { min-width: 150px; max-width: 100%; }
+.settings-details { margin: 18px 0; }
+.settings-details > div { display: grid; grid-template-columns: minmax(100px, .7fr) minmax(0, 1fr); gap: 6px 14px; margin: 10px 0; }
+.settings-details dt { color: var(--muted); font-size: .78rem; }
+.settings-details dd { margin: 0; font-size: .82rem; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .settings-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 12px; }
+  .settings-card { padding: 14px; }
+  .workspace-picker-tools { justify-content: flex-start; }
+}
 body { --navigation-width: 224px; }
 body.navigation-collapsed { --navigation-width: 64px; }
 .terminal-rail { gap: 0; padding: 8px 6px; overflow: hidden; }

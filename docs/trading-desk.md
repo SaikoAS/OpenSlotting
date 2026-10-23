@@ -18,6 +18,14 @@ availability. The choice lasts for the current app session and does not change
 workspace data or backups. Charts and tables resize to the available width.
 Narrow screens retain horizontal navigation.
 
+The former top banner is removed. **Settings** in the rail footer contains
+language selection, build/runtime information and the active workspace name.
+A Settings button on workspace selection is available before opening any
+workspace. Language changes keep their existing workspace-save and rollback
+behavior; without an open workspace the choice applies to this app session.
+The active workspace remains visible beside the page title, and the bottom
+bar retains version and local-processing information.
+
 ## Data shown
 
 - The input is `result.rows`: validated, normalized **order lines** from the

@@ -10,26 +10,7 @@
     <link rel="stylesheet" href="warehouse-walk.css">
   </head>
 <body class="workspace-picker-mode">
-    <header class="app-header">
-      <div class="brand-block">
-        <span class="brand-mark" aria-hidden="true">OS</span>
-        <div>
-          <h1>OpenSlotting</h1>
-          <p id="header-build-status" class="header-build-status"></p>
-          <p id="header-workspace-name" class="header-workspace-name" data-i18n="workspace_none">No workspace selected</p>
-        </div>
-      </div>
-      <div class="header-actions">
-        <label class="language-picker">
-          <span data-i18n="language_label">Language</span>
-          <select id="language-select" aria-label="Language">
-            <option value="en" data-i18n="language_english">English</option>
-            <option value="de" data-i18n="language_german">Deutsch</option>
-          </select>
-        </label>
-        <span id="runtime-badge" class="local-badge" data-i18n="runtime_badge_localhost">Runtime · Localhost</span>
-      </div>
-    </header>
+
 
     <main class="page-shell">
       <div class="app-layout">
@@ -65,6 +46,7 @@
             </section>
           </div>
           <div class="terminal-rail-footer">
+            <button class="terminal-nav-item" type="button" data-workflow-target="settings-panel" title="Settings" data-i18n-title="settings_title" data-i18n-aria-label="settings_title"><span aria-hidden="true">⚙</span><strong data-i18n="settings_title">Settings</strong></button>
             <button class="terminal-nav-item" type="button" data-workflow-target="workspace-panel" title="Workspace selection" data-i18n-title="workspace_selection_back" data-i18n-aria-label="workspace_selection_back"><span aria-hidden="true">⌂</span><strong data-i18n="workspace_selection_back">Workspace selection</strong></button>
           </div>
         </nav>
@@ -72,7 +54,7 @@
       <div class="page-context" aria-live="polite">
         <div>
           <p id="page-context-kicker" class="step" data-i18n="workspace_eyebrow">Local workspace</p>
-          <h2 id="page-context-title" data-i18n="workspace_title">Workspaces</h2>
+          <div class="page-context-title-row"><h2 id="page-context-title" data-i18n="workspace_title">Workspaces</h2><span id="active-workspace-name" class="page-context-workspace" data-i18n="workspace_none">No workspace selected</span></div>
         </div>
         <div class="page-context-actions">
           <button id="return-main-menu" class="secondary-button" type="button" data-workflow-target="main-menu-panel" data-i18n="main_menu_title">Main menu</button>
@@ -86,7 +68,7 @@
             <p class="step" data-i18n="workspace_eyebrow">Local storage</p>
             <h2 id="workspace-title" data-i18n="workspace_title">Workspaces</h2>
           </div>
-          <span class="hint" data-i18n="workspace_hint">Each workspace remains separate in this browser profile.</span>
+          <div class="workspace-picker-tools"><span class="hint" data-i18n="workspace_hint">Each workspace remains separate in this browser profile.</span><button class="secondary-button" type="button" data-workflow-target="settings-panel" data-i18n="settings_title">Settings</button></div>
         </div>
         <div class="workspace-selector-layout">
           <section class="workspace-catalog" aria-labelledby="workspace-catalog-title">
@@ -172,6 +154,28 @@
         <button id="workspace-recovery" class="secondary-button workspace-recovery hidden" type="button" data-i18n="workspace_recover_save_failure">Discard unsaved changes and reload</button>
       </section>
 
+      </div>
+
+      <div id="settings-page" class="app-page hidden">
+        <section id="settings-panel" class="panel settings-panel" aria-labelledby="settings-title">
+          <div class="panel-heading">
+            <div><p class="step">OpenSlotting</p><h2 id="settings-title" data-i18n="settings_title">Settings</h2></div>
+            <button class="secondary-button" type="button" data-workflow-target="workspace-panel" data-i18n="workspace_selection_back">Workspace selection</button>
+          </div>
+          <div class="settings-grid">
+            <section class="settings-card" aria-labelledby="settings-language-title">
+              <h3 id="settings-language-title" data-i18n="language_label">Language</h3>
+              <p data-i18n="settings_language_help">Choose the interface language. In an open workspace it is saved with that workspace; before opening one it applies to this session.</p>
+              <label class="language-picker"><span data-i18n="language_label">Language</span><select id="language-select" aria-label="Language"><option value="en" data-i18n="language_english">English</option><option value="de" data-i18n="language_german">Deutsch</option></select></label>
+            </section>
+            <section class="settings-card" aria-labelledby="settings-application-title">
+              <h3 id="settings-application-title" data-i18n="settings_application">Application &amp; local processing</h3>
+              <span id="runtime-badge" class="local-badge" data-i18n="runtime_badge_localhost">Runtime · Localhost</span>
+              <dl class="settings-details"><div><dt data-i18n="settings_version">Version</dt><dd id="settings-build-status"></dd></div><div><dt data-i18n="settings_workspace">Active workspace</dt><dd id="settings-workspace-name" data-i18n="workspace_none">No workspace selected</dd></div></dl>
+              <p data-i18n="footer_local">OpenSlotting processes the selected files locally only.</p>
+            </section>
+          </div>
+        </section>
       </div>
 
       <div id="main-menu-page" class="app-page hidden">

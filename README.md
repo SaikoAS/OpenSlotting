@@ -47,7 +47,7 @@ The current implementation includes:
 - paginated detail rows with 100 rows per page
 - true chunked CSV decoding, parser state across chunk boundaries, and streaming normalization for large imports
 - incremental article and global aggregation during normalization with a batch-compatible analysis wrapper
-- English as the default interface language, with German available from the language selector
+- English as the default interface language, with German available under Settings → Language
 - multiple source files in one in-memory analysis batch
 - explicit persisted source types (`order-lines` and `article-master`), with order-line defaults for existing and new imports
 - source-scoped field mappings with the core movement contract `article_id + quantity + delivery_date`; order identity, customer, sales, location, selling-unit, and master-data capabilities remain optional

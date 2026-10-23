@@ -65,8 +65,9 @@ test('every existing navigation target is present exactly once in a named catego
     assert.deepEqual([...content.matchAll(/data-workflow-target="([^"]+)"/g)].map(match => match[1]), expected[id]);
   }
   const targets = [...nav.matchAll(/data-workflow-target="([^"]+)"/g)].map(match => match[1]);
-  assert.equal(targets.length, 10); assert.equal(new Set(targets).size, 10);
-  assert.match(nav, /class="terminal-rail-footer">\s*<button[^>]+data-workflow-target="workspace-panel"/);
+  assert.equal(targets.length, 11); assert.equal(new Set(targets).size, 11);
+  const footer = nav.slice(nav.indexOf('class="terminal-rail-footer"'));
+  assert.deepEqual([...footer.matchAll(/data-workflow-target="([^"]+)"/g)].map(match => match[1]), ['settings-panel', 'workspace-panel']);
 });
 
 test('collapsed icon buttons keep localized tooltips/names and a native keyboard toggle', () => {
