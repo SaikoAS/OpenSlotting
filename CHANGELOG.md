@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Center workspace selection horizontally and vertically with a bounded panel width; keep overflowing content reachable through page scrolling on smaller windows.
+
 - Remove outer layout gutters and unify the workspace background to eliminate darker strips around the app on desktop and narrow screens.
 
 - Remove the outer workspace border and rounded header corners while retaining panel boundaries and keyboard focus indicators.

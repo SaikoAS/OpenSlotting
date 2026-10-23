@@ -99,6 +99,19 @@ test('settings separate global diagnostics from workspace language and data acti
   assert.doesNotMatch(baseCss, /\.workspace-picker-mode #reset-button\s*\{[^}]*display:\s*none/);
 });
 
+test('workspace picker centers its panel with safe auto margins and keeps page scrolling', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'terminal-theme.css'), 'utf8');
+  const page = css.match(/\.workspace-picker-mode \.workflow-content > #workspace-page\s*\{([^}]+)\}/)[1];
+  const panel = css.match(/\.workspace-picker-mode #workspace-page > \.workspace-panel\s*\{([^}]+)\}/)[1];
+  assert.match(page, /display:\s*flex;/);
+  assert.match(page, /flex-direction:\s*column;/);
+  assert.match(page, /scrollbar-gutter:\s*stable both-edges;/);
+  assert.match(panel, /flex:\s*0 0 auto;/);
+  assert.match(panel, /max-width:\s*1560px;/);
+  assert.match(panel, /margin:\s*auto;/);
+  assert.match(css, /\.workflow-content > \.app-page\s*\{[^}]*overflow:\s*auto;/);
+});
+
 function resetFixture(options = {}) {
   const calls = [], state = { activeWorkspace: { id: 'synthetic', name: 'Synthetic workspace' },
     files: [{ id: 'synthetic-source', reading: false }], storageReady: true, workspaceLoading: false, ...options.state };

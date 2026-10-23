@@ -378,7 +378,18 @@ body > .app-header { position: relative; top: auto; min-width: 0; }
 }
 .workflow-content > .app-page:focus-visible { outline: 2px solid var(--focus); outline-offset: -3px; }
 .workspace-picker-mode .app-layout { grid-template-columns: minmax(0, 1fr); padding-left: 0; }
-.workspace-picker-mode .workflow-content > #workspace-page { max-width: none; }
+.workspace-picker-mode .workflow-content > #workspace-page {
+  display: flex;
+  flex-direction: column;
+  max-width: none;
+  scrollbar-gutter: stable both-edges;
+}
+.workspace-picker-mode #workspace-page > .workspace-panel {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 1560px;
+  margin: auto;
+}
 @media (min-width: 761px) {
   .terminal-watchlist { top: 0; height: var(--terminal-watchlist-height, calc(100dvh - 190px)); min-height: 180px; }
   #main-menu-page.terminal-fitted { overflow-y: hidden; }
