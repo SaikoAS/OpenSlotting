@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Remove the outer workspace border and rounded header corners while retaining panel boundaries and keyboard focus indicators.
+
 - Remove the bottom banner and divide Settings into Global application/runtime information and Workspace language/data actions. Move Clear workspace data into the Workspace section, keep workspace-scoped language persistence and session-only selection before opening a workspace, and clarify reset effects. Guard reset execution while storage/import/workspace tasks are busy; keep the existing confirmation and reset/save path.
 
 - Remove the top banner to free workspace height and add a Settings page for language selection and build/runtime details. Keep Settings available before opening a workspace, show the active workspace beside the page title, retain the local-processing footer and preserve existing workspace language persistence/rollback.

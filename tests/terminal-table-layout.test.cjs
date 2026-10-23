@@ -91,3 +91,13 @@ test('fitted desk contains scrolling and observes chart, controls and virtual vi
   assert.match(source, /resizeTerminalTable\(\);\s*resizeTerminalChart\(\);\s*resizeTerminalWatchlist\(\);/);
   assert.match(source, /'\.terminal-titlebar', '\.terminal-chart-panel', '\.terminal-lines-toolbar', '\.terminal-lines-filters', '#terminal-lines-scroll'/);
 });
+
+test('workspace surface has no outer border or rounded header corners', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'terminal-theme.css'), 'utf8');
+  const surface = css.match(/\.workflow-content, \.workspace-picker-mode \.workflow-content\s*\{([^}]+)\}/)[1];
+  const heading = css.match(/\.workflow-content > \.page-context\s*\{([^}]+)\}/)[1];
+  assert.match(surface, /border:\s*0;/);
+  assert.match(surface, /border-radius:\s*0;/);
+  assert.match(heading, /border-radius:\s*0;/);
+  assert.match(css, /\.workflow-content > \.app-page:focus-visible\s*\{\s*outline:\s*2px solid var\(--focus\)/);
+});
