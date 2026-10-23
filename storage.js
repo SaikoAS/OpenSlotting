@@ -8,7 +8,7 @@
   'use strict';
 
   const DATABASE_NAME = 'openslotting-workspaces';
-  const DATABASE_VERSION = 4;
+  const DATABASE_VERSION = 5;
   const ACTIVE_WORKSPACE_SETTING = 'active-workspace-id';
   const ROW_CHUNK_SIZE = 5000;
   const ISSUE_CHUNK_SIZE = 5000;
@@ -290,6 +290,7 @@
         preparationRules: file.preparationRules,
         sourceRules: file.sourceRules,
         appliedImportProfile: file.appliedImportProfile,
+        linkedSource: file.linkedSource,
         customFieldMapping: file.customFieldMapping,
         confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
@@ -472,6 +473,7 @@
           preparationRules: source.preparationRules,
           sourceRules: source.sourceRules,
           appliedImportProfile: source.appliedImportProfile,
+          linkedSource: source.linkedSource,
           customFieldMapping: source.customFieldMapping,
           confirmedCustomFieldMapping: source.confirmedCustomFieldMapping,
           confirmedMapping: source.confirmedMapping,
@@ -607,6 +609,7 @@
           if (!db.objectStoreNames.contains('settings')) {
             db.createObjectStore('settings', { keyPath: 'key' });
           }
+          if (!db.objectStoreNames.contains('workspaceSourceLinks')) db.createObjectStore('workspaceSourceLinks', { keyPath: 'key' });
           if (!db.objectStoreNames.contains('workspaceBackupStaging')) {
             db.createObjectStore('workspaceBackupStaging', { keyPath: 'key' });
           }
@@ -684,10 +687,36 @@
       });
     }
 
+    async function clearSourceLinks(stores, workspaceId) {
+      const records = await requestPromise(stores.workspaceSourceLinks.getAll());
+      records.forEach(function (record) { if (record.workspaceId === workspaceId) stores.workspaceSourceLinks.delete(record.key); });
+    }
+
+    function listSourceLinks(workspaceId) {
+      return transact(['workspaceSourceLinks'], 'readonly', async function (stores) {
+        const records = await requestPromise(stores.workspaceSourceLinks.getAll());
+        return records.filter(function (record) { return record.workspaceId === workspaceId; });
+      });
+    }
+
+    async function syncSourceLinks(stores, workspace, updates, reset) {
+      const linkedIds = new Set(workspace.files.filter(function (file) { return Boolean(file.linkedSource); }).map(function (file) { return file.id; }));
+      const records = await requestPromise(stores.workspaceSourceLinks.getAll());
+      records.forEach(function (record) {
+        if (record.workspaceId === workspace.id && (reset || !linkedIds.has(record.sourceId))) stores.workspaceSourceLinks.delete(record.key);
+      });
+      (updates || []).forEach(function (update) {
+        const key = sourceStorageKey(workspace.id, update.sourceId);
+        if (!update.handle) { stores.workspaceSourceLinks.delete(key); return; }
+        if (!linkedIds.has(update.sourceId) || update.handle.kind !== 'file') throw storageError('invalid_linked_source');
+        stores.workspaceSourceLinks.put({ key: key, workspaceId: workspace.id, sourceId: update.sourceId, handle: update.handle });
+      });
+    }
+
     function writeWorkspace(workspace, mode, options) {
       const settings = options || {};
       const validated = settings.validated ? workspace : workspaceModel.validateWorkspace(workspace);
-      return transact(CHUNKED_WORKSPACE_STORES, 'readwrite', async function (stores) {
+      return transact(CHUNKED_WORKSPACE_STORES.concat(['workspaceSourceLinks']), 'readwrite', async function (stores) {
         const current = await requestPromise(stores.workspaces.get(validated.id));
         if (mode === 'create' && current) {
           throw storageError('workspace_conflict', 'Workspace already exists.');
@@ -704,6 +733,7 @@
         await clearChunkedWorkspace(stores, validated.id);
         stores.workspacePayloads.delete(validated.id);
         putChunkedWorkspace(stores, validated);
+        await syncSourceLinks(stores, validated, settings.sourceLinks, mode === 'replace');
         return Object.assign({}, validated, { storageRevision: nextRevision });
       });
     }
@@ -858,7 +888,7 @@
     function deleteWorkspace(id, options) {
       const workspaceId = String(id || '');
       const settings = options || {};
-      return transact(CHUNKED_WORKSPACE_STORES.concat(['settings']), 'readwrite', async function (stores) {
+      return transact(CHUNKED_WORKSPACE_STORES.concat(['settings', 'workspaceSourceLinks']), 'readwrite', async function (stores) {
         const metadata = await requestPromise(stores.workspaces.get(workspaceId));
         if (!metadata) {
           throw storageError('workspace_not_found', 'Workspace does not exist.');
@@ -869,6 +899,7 @@
         stores.workspaces.delete(workspaceId);
         stores.workspacePayloads.delete(workspaceId);
         await clearChunkedWorkspace(stores, workspaceId);
+        await clearSourceLinks(stores, workspaceId);
         const active = await requestPromise(stores.settings.get(ACTIVE_WORKSPACE_SETTING));
         if (active && active.value === workspaceId) {
           stores.settings.delete(ACTIVE_WORKSPACE_SETTING);
@@ -1038,7 +1069,7 @@
     function commitBackupStage(session, options) {
       const settings = options || {};
       if (settings.mode !== 'new' && settings.mode !== 'replace') return Promise.reject(storageError('invalid_restore_mode'));
-      return transact(CHUNKED_WORKSPACE_STORES.concat(['settings', 'workspaceBackupStaging']), 'readwrite', async function (stores) {
+      return transact(CHUNKED_WORKSPACE_STORES.concat(['settings', 'workspaceBackupStaging', 'workspaceSourceLinks']), 'readwrite', async function (stores) {
         const head = await requestPromise(stores.settings.get(session));
         if (!head || !head.ready) throw storageError('invalid_backup');
         const targetId = settings.targetId || workspaceModel.createId('workspace');
@@ -1048,6 +1079,7 @@
           if (settings.expectedRevision !== storageRevisionOf(old)) throw storageError('workspace_conflict');
         } else if (old) throw storageError('workspace_conflict');
         await clearChunkedWorkspace(stores, targetId);
+        await clearSourceLinks(stores, targetId);
         stores.workspacePayloads.delete(targetId);
         const manifest = { workspaceId: targetId, schemaVersion: workspaceModel.WORKSPACE_SCHEMA_VERSION, sources: [], registryChunkKeys: [] };
         let source = null, buffer = null, offset = 0;
@@ -1107,6 +1139,7 @@
       open: open,
       createWorkspace: createWorkspace,
       updateWorkspace: updateWorkspace,
+      listSourceLinks: listSourceLinks,
       replaceWorkspace: replaceWorkspace,
       loadWorkspace: loadWorkspace,
       loadWorkspaceRaw: loadWorkspaceRaw,

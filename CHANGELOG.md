@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Add linked CSV import, reconnect/unlink and single/batch refresh through read-only file handles. Prepare replacements and derived analysis before an atomic save, retaining old sources on cancellation or failure. Persist capabilities separately in IndexedDB v5; workspace schema 22 stores portable link metadata only, and restores require reconnecting local files.
+
 - Cache comparison setup projections per workspace and analysis result. Reuse detected weeks and bounded recent period coverage on navigation and label changes; refresh coverage for changed ranges/weekdays and discard projections for new or cleared data.
 
 - Keep Comparison navigation available before a comparison exists and move calendar-week/custom period selection onto that page, with prerequisite guidance, expected-weekday options and controls locked during workspace operations.

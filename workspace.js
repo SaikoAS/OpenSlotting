@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function (warehouseModel) {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 21;
+  const WORKSPACE_SCHEMA_VERSION = 22;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -950,6 +950,14 @@
     return normalized;
   }
 
+  function normalizeLinkedSource(value) {
+    if (value === null || value === undefined) return null;
+    if (!isPlainObject(value) || typeof value.name !== 'string' || !value.name.trim() || value.name.length > 512 || !validIsoDate(value.updatedAt)) {
+      validationError('invalid_linked_source', 'Invalid linked source metadata.');
+    }
+    return { name: value.name, updatedAt: value.updatedAt };
+  }
+
   function captureFile(file, options) {
     if (!file || typeof file !== 'object') {
       validationError('invalid_source_file', 'Workspace source file is invalid.');
@@ -1030,6 +1038,7 @@
       sourceRules: sourceRules,
       customFieldMapping: customFieldMapping,
       appliedImportProfile: normalizeAppliedImportProfile(file.appliedImportProfile),
+      linkedSource: normalizeLinkedSource(file.linkedSource),
       confirmedCustomFieldMapping: confirmedCustomFieldMapping,
       confirmedMapping: confirmedMapping,
       columnCatalog: columnCatalog,
@@ -1358,6 +1367,7 @@
         sourceRules: sourceRules,
         customFieldMapping: file.customFieldMapping,
         appliedImportProfile: normalizeAppliedImportProfile(file.appliedImportProfile),
+        linkedSource: normalizeLinkedSource(file.linkedSource),
         confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
         columnCatalog: normalizeColumnCatalog(file.columnCatalog, file.id, settings),
@@ -1608,6 +1618,7 @@
     normalizeArticleRegistry: normalizeArticleRegistry,
     normalizeCustomFieldMapping: normalizeCustomFieldMapping,
     normalizeImportProfiles: normalizeImportProfiles,
+    normalizeLinkedSource: normalizeLinkedSource,
     createImportProfile: createImportProfile,
     normalizeAppliedImportProfile: normalizeAppliedImportProfile,
     normalizeCoverageNotes: normalizeCoverageNotes,

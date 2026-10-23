@@ -27,6 +27,9 @@
   const storageApi = window.OpenSlottingStorage;
   const terminalModel = window.OpenSlottingTerminal;
   const workspaceRepository = storageApi.createRepository();
+  const linkedSources = window.OpenSlottingLinkedSources;
+  let linkedSourceHandles = new Map();
+  let linkedImportMessage = null;
   const workspacePreparation = window.OpenSlottingWorkspacePreparation;
   const TRANSLATIONS = {
     en: {
@@ -92,6 +95,27 @@
       nav_expand: 'Expand sidebar',
       nav_collapse: 'Collapse sidebar',
       settings_title: 'Settings',
+      linked_pick: 'Link CSV files',
+      linked_all: 'Update all linked files',
+      linked_update: 'Update',
+      linked_reconnect: 'Reconnect file',
+      linked_connect: 'Link file',
+      linked_unlink: 'Unlink',
+      linked_help: 'Update replaces the imported data from that file and keeps its mappings and rules. Read permission may need to be renewed.',
+      linked_unsupported: 'File linking is unavailable in this browser. You can still import CSV snapshots above.',
+      linked_status: 'Linked: {{file}} · last imported: {{time}}',
+      linked_reconnect_hint: 'File must be reconnected on this browser profile.',
+      linked_reading: 'Reading linked source: {{file}}',
+      linked_done: 'Linked source data saved. {{count}} file(s) updated.',
+      linked_added: 'CSV files linked. Review their columns and analyze the imports.',
+      linked_unlinked: 'File unlinked. Imported data remains in the workspace.',
+      linked_missing: 'File unavailable. Reconnect the affected source. Previous data was retained.',
+      linked_permission: 'Read access is required. Update the affected file individually to allow access. Previous data was retained.',
+      linked_schema_changed: 'Required columns changed or became ambiguous. Review the source mapping; previous data was retained.',
+      linked_invalid_csv: 'The CSV could not be read correctly. Check its contents and encoding. Previous data was retained.',
+      linked_failed: 'The update failed. Previous imported data was retained.',
+      linked_cancelled: 'Update cancelled. Previous imported data was retained.',
+      linked_already: 'This file is already linked in this workspace. Use Update on its existing source.',
       settings_application: 'Application & local processing',
       settings_version: 'Version',
       settings_workspace: 'Active workspace',
@@ -836,6 +860,27 @@
       nav_expand: 'Seitenleiste ausklappen',
       nav_collapse: 'Seitenleiste einklappen',
       settings_title: 'Einstellungen',
+      linked_pick: 'CSV-Dateien verknüpfen',
+      linked_all: 'Alle verknüpften Dateien aktualisieren',
+      linked_update: 'Aktualisieren',
+      linked_reconnect: 'Datei neu verbinden',
+      linked_connect: 'Datei verknüpfen',
+      linked_unlink: 'Verknüpfung lösen',
+      linked_help: 'Aktualisieren ersetzt die importierten Daten dieser Datei und behält ihre Zuordnungen und Regeln. Der Lesezugriff muss gegebenenfalls erneut erlaubt werden.',
+      linked_unsupported: 'Dateiverknüpfungen sind in diesem Browser nicht verfügbar. Der bisherige CSV-Import bleibt nutzbar.',
+      linked_status: 'Verknüpft: {{file}} · zuletzt eingelesen: {{time}}',
+      linked_reconnect_hint: 'Die Datei muss in diesem Browserprofil neu verbunden werden.',
+      linked_reading: 'Verknüpfte Quelle wird gelesen: {{file}}',
+      linked_done: 'Verknüpfte Quelldaten gespeichert. {{count}} Datei(en) aktualisiert.',
+      linked_added: 'CSV-Dateien verknüpft. Quellspalten prüfen und die Importe analysieren.',
+      linked_unlinked: 'Dateiverknüpfung gelöst. Die importierten Daten bleiben im Workspace.',
+      linked_missing: 'Datei nicht verfügbar. Die betroffene Quelle neu verbinden. Die bisherigen Daten bleiben erhalten.',
+      linked_permission: 'Lesezugriff erforderlich. Die betroffene Datei einzeln aktualisieren, um den Zugriff zu erlauben. Die bisherigen Daten bleiben erhalten.',
+      linked_schema_changed: 'Benötigte Spalten wurden geändert oder sind mehrdeutig. Quellspalten prüfen; die bisherigen Daten bleiben erhalten.',
+      linked_invalid_csv: 'Die CSV konnte nicht korrekt gelesen werden. Inhalt und Zeichencodierung prüfen. Die bisherigen Daten bleiben erhalten.',
+      linked_failed: 'Die Aktualisierung ist fehlgeschlagen. Die bisherigen importierten Daten bleiben erhalten.',
+      linked_cancelled: 'Aktualisierung abgebrochen. Die bisherigen importierten Daten bleiben erhalten.',
+      linked_already: 'Diese Datei ist bereits in diesem Workspace verknüpft. Die vorhandene Quelle aktualisieren.',
       settings_application: 'Anwendung & lokale Verarbeitung',
       settings_version: 'Versionsstand',
       settings_workspace: 'Aktiver Workspace',
@@ -1749,6 +1794,14 @@
     workspaceRecovery: document.getElementById('workspace-recovery'),
     filePicker: document.querySelector('.file-picker'),
     fileInput: document.getElementById('file-input'),
+    linkedPick: document.getElementById('linked-pick'),
+    linkedAll: document.getElementById('linked-all'),
+    linkedHint: document.getElementById('linked-hint'),
+    linkedMessage: document.getElementById('linked-message'),
+    linkedLoadProgress: document.getElementById('linked-load-progress'),
+    linkedLoadLabel: document.getElementById('linked-load-label'),
+    linkedProgress: document.getElementById('linked-progress'),
+    linkedCancel: document.getElementById('linked-cancel'),
     importedFiles: document.getElementById('imported-files'),
     languageSelect: document.getElementById('language-select'),
     sourceStatus: document.getElementById('source-status'),
@@ -1990,7 +2043,8 @@
   function renderWorkspaceProgress() {
     const progress = state.workspaceProgress;
     [[elements.workspaceLoadProgress, elements.workspaceLoadLabel, elements.workspaceProgress],
-      [elements.settingsLoadProgress, elements.settingsLoadLabel, elements.settingsProgress]].forEach(function (targets) {
+      [elements.settingsLoadProgress, elements.settingsLoadLabel, elements.settingsProgress],
+      [elements.linkedLoadProgress, elements.linkedLoadLabel, elements.linkedProgress]].forEach(function (targets) {
       targets[0].classList.toggle('hidden', !progress);
       setText(targets[1], progress ? translate(progress.key, progress.replacements) : '');
       if (progress && Number.isFinite(progress.value) && Number.isFinite(progress.max) && progress.max > 0) {
@@ -2160,6 +2214,7 @@
       }
     });
     renderWorkspaceProgress();
+    renderLinkedSourceControls();
     renderImportProfileControls();
     renderWorkflow();
     renderWorkspaceOverview();
@@ -2275,6 +2330,7 @@
           return workspaceRepository.updateWorkspaceSummary(snapshot.id, snapshot, saveOptions);
         }
         saveOptions.validated = true;
+        saveOptions.sourceLinks = options && options.sourceLinks;
         return workspaceRepository.updateWorkspace(snapshot, saveOptions);
       })
       .then(async function (saved) {
@@ -2856,6 +2912,26 @@
         : translate(mappingStatusKey(file)));
       copy.appendChild(name);
       copy.appendChild(meta);
+      if (file.linkedSource) {
+        const status = document.createElement('span'); status.className = 'linked-file-status';
+        const time = new Intl.DateTimeFormat(state.language === 'de' ? 'de-DE' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(file.linkedSource.updatedAt));
+        setText(status, translate('linked_status', { file: file.linkedSource.name, time: time }) +
+          (linkedSourceHandles.has(file.id) ? '' : ' · ' + translate('linked_reconnect_hint')));
+        copy.appendChild(status);
+      }
+      const actions = document.createElement('div'); actions.className = 'imported-file-actions';
+      const addAction = function (action, label) {
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary-button';
+        button.dataset.linkedAction = action; button.dataset.sourceId = file.id;
+        setText(button, translate(label)); button.setAttribute('aria-label', translate(label) + ': ' + file.label);
+        button.disabled = state.workspaceLoading || !state.storageReady ||
+          (action !== 'unlink' && !linkedFilesSupported()) || (action === 'update' && !linkedSourceHandles.has(file.id));
+        actions.appendChild(button);
+      };
+      if (file.linkedSource) addAction('update', 'linked_update');
+      addAction('connect', file.linkedSource ? 'linked_reconnect' : 'linked_connect');
+      if (file.linkedSource) addAction('unlink', 'linked_unlink');
+
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'text-button';
@@ -2864,7 +2940,8 @@
       setText(remove, translate('remove_file'));
       remove.setAttribute('aria-label', translate('remove_file_label', { file: file.label }));
       item.appendChild(copy);
-      item.appendChild(remove);
+      actions.appendChild(remove);
+      item.appendChild(actions);
       list.appendChild(item);
     });
     elements.importedFiles.appendChild(list);
@@ -3069,6 +3146,7 @@
   }
 
   function removeImportedFile(fileId) {
+    if (state.workspaceLoading || state.files.some(function (file) { return Boolean(file.reading); })) return;
     clearAnalysis();
     state.files = state.files.filter(function (file) { return file.id !== fileId; });
     if (state.selectedMappingFileId === fileId) state.selectedMappingFileId = null;
@@ -6325,6 +6403,7 @@
       customFieldMapping: file.customFieldMapping, confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
       preparationRules: file.preparationRules, sourceRules: file.sourceRules, columnCatalog: file.columnCatalog,
       appliedImportProfile: file.appliedImportProfile,
+      linkedSource: file.linkedSource,
       dataRowCount: file.dataRowCount, hasParseErrors: file.hasParseErrors, result: null
     };
   }
@@ -6431,6 +6510,138 @@
 
   function importBufferStreaming(file, mapping, options) {
     return workspacePreparation.importBufferStreaming(file, mapping, options);
+  }
+
+  function linkedFilesSupported() {
+    return Boolean(window.isSecureContext && typeof window.showOpenFilePicker === 'function');
+  }
+
+  function setLinkedMessage(key, replacements, error) {
+    linkedImportMessage = key ? { key: key, replacements: replacements || {}, error: Boolean(error) } : null;
+    renderLinkedSourceControls();
+  }
+
+  function renderLinkedSourceControls() {
+    const ready = Boolean(state.activeWorkspace && state.storageReady && !state.workspaceLoading &&
+      !state.files.some(function (file) { return file.reading; }));
+    const supported = linkedFilesSupported();
+    elements.linkedPick.disabled = !ready || !supported;
+    elements.linkedAll.disabled = !ready || !supported || !state.files.some(function (file) { return Boolean(file.linkedSource); });
+    setText(elements.linkedHint, translate(supported ? 'linked_help' : 'linked_unsupported'));
+    elements.linkedCancel.classList.toggle('hidden', !state.workspaceLoading || !state.workspaceLoadCancellable);
+    elements.linkedMessage.className = 'linked-message' + (!linkedImportMessage ? ' hidden' : linkedImportMessage.error ? ' error' : '');
+    setText(elements.linkedMessage, linkedImportMessage ? translate(linkedImportMessage.key, linkedImportMessage.replacements) +
+      (linkedImportMessage.error && linkedImportMessage.replacements.file ? ' (' + linkedImportMessage.replacements.file + ')' : '') : '');
+    elements.importedFiles.querySelectorAll('button[data-linked-action]').forEach(function (button) {
+      button.disabled = !ready || (button.dataset.linkedAction !== 'unlink' && !supported) ||
+        (button.dataset.linkedAction === 'update' && !linkedSourceHandles.has(button.dataset.sourceId));
+    });
+    elements.importedFiles.querySelectorAll('button[data-remove-file-id]').forEach(function (button) { button.disabled = !ready; });
+  }
+
+  async function runLinkedImport(action, sourceId) {
+    if (!state.activeWorkspace || !state.storageReady || state.workspaceLoading ||
+        state.files.some(function (file) { return file.reading; }) || (action !== 'unlink' && !linkedFilesSupported())) return;
+    const workspaceId = state.activeWorkspace.id, revision = ++workspaceLoadRevision;
+    const originalFiles = state.files, hadAnalysis = Boolean(state.analysis);
+    let currentFile = null;
+    state.workspaceLoading = true; state.workspaceLoadCancellable = action !== 'unlink';
+    renderWorkspaceControls(); setLinkedMessage(null);
+    function current() { return revision === workspaceLoadRevision && state.activeWorkspace && state.activeWorkspace.id === workspaceId; }
+    function check() { if (!current()) throw workspaceLoadError('workspace_load_cancelled'); }
+    async function commit(prepared, links) {
+      check();
+      const proposedSettings = prepared.result ? settingsForDetectedCalendarWeeks(state.periodSettings, prepared.result) : state.periodSettings;
+      const runtimeState = Object.assign({}, state, { files: prepared.files, analysis: prepared.analysis,
+        articleRegistry: prepared.result ? prepared.result.articleRegistry : action === 'unlink' ? state.articleRegistry : [], periodSettings: proposedSettings });
+      state.workspaceLoadCancellable = false; renderWorkspaceControls();
+      let committed = false;
+      try {
+        await persistActiveWorkspace(undefined, { allowWhileLoading: true, runtimeState: runtimeState, sourceLinks: links,
+          onCommitted: function () { committed = true; } });
+      } catch (error) { if (!committed) throw error; }
+      if (!committed || !current()) throw workspaceLoadError('workspace_load_cancelled');
+      state.files = prepared.files; state.periodSettings = proposedSettings;
+      state.fileSelectionVersion += 1;
+      links.forEach(function (link) { if (link.handle) linkedSourceHandles.set(link.sourceId, link.handle); else linkedSourceHandles.delete(link.sourceId); });
+      if (prepared.result) renderResults(prepared.result, { preserveView: true, analysis: prepared.analysis });
+      else if (action !== 'unlink') clearAnalysis({ preserveMappings: true });
+      renderMapping(); updateSourceStatus();
+    }
+    try {
+      if (action === 'unlink') {
+        const target = originalFiles.find(function (file) { return file.id === sourceId; });
+        if (!target) throw workspaceLoadError('linked_missing');
+        const files = originalFiles.map(function (file) { return file === target ? Object.assign({}, file, { linkedSource: null }) : file; });
+        await commit({ files: files, result: null, analysis: state.analysis }, [{ sourceId: sourceId, handle: null }]);
+        setLinkedMessage('linked_unlinked'); return;
+      }
+      let operations;
+      if (action === 'pick' || action === 'connect') {
+        const handles = await window.showOpenFilePicker({ multiple: action === 'pick', types: [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }] });
+        check();
+        const used = new Set(originalFiles.map(function (file) { return file.label; }));
+        operations = [];
+        for (const handle of handles) {
+          for (const [id, existing] of linkedSourceHandles) {
+            if (id !== sourceId && await handle.isSameEntry(existing)) throw workspaceLoadError('linked_already');
+          }
+          let label = handle.name, index = 1;
+          while (used.has(label)) label = handle.name + ' (' + (++index) + ')';
+          used.add(label);
+          operations.push({ id: sourceId || workspaceModel.createId('source'), handle: handle, create: action === 'pick', label: label });
+        }
+      } else {
+        const targets = originalFiles.filter(function (file) { return sourceId ? file.id === sourceId : Boolean(file.linkedSource); });
+        operations = targets.map(function (file) { return { id: file.id, handle: linkedSourceHandles.get(file.id) }; });
+      }
+      if (!operations.length) return;
+      // Ask for read access before reading/processing any selected source.
+      for (const operation of operations) {
+        const source = originalFiles.find(function (file) { return file.id === operation.id; });
+        currentFile = source ? source.label : operation.handle && operation.handle.name;
+        await linkedSources.requestRead(operation.handle); check();
+      }
+      let reading = 0;
+      updateWorkspaceLoadProgress({ phase: 'file', current: 0, total: operations.length, file: currentFile }, state.activeWorkspace.name);
+      await linkedSources.refresh({ files: originalFiles, operations: operations, customFields: state.customFields,
+        analyzed: hadAnalysis && action !== 'pick', isCurrent: current,
+        onFile: function (file) {
+          check(); currentFile = file; setLinkedMessage('linked_reading', { file: file });
+          updateWorkspaceLoadProgress({ phase: 'file', current: ++reading, total: operations.length, file: file }, state.activeWorkspace.name);
+        },
+        profile: async function (candidate) {
+          try {
+            const prepared = await runWorkspaceWorker(null, state.language, revision, candidate.label, { profileFile: calculationFile(candidate) });
+            return prepared.file;
+          } catch (error) {
+            if (!error || error.code !== 'worker_unavailable') throw error;
+            decodeFileEntry(candidate, { streaming: true }); return candidate;
+          }
+        },
+        analyze: async function (files) {
+          try {
+            return await runWorkspaceWorker(null, state.language, revision, state.activeWorkspace.name,
+              { analysisFiles: files.map(calculationFile), customFields: state.customFields });
+          } catch (error) {
+            if (!error || error.code !== 'worker_unavailable') throw error;
+            return workspacePreparation.analyzeFiles(files, state.language, state.customFields);
+          }
+        }, commit: commit });
+      check(); setLinkedMessage(action === 'pick' ? 'linked_added' : 'linked_done', { count: operations.length });
+    } catch (error) {
+      if (current()) {
+        const key = error && (error.code || error.translationKey);
+        setLinkedMessage(error && (error.name === 'AbortError' || key === 'workspace_load_cancelled') ? 'linked_cancelled'
+          : error && error.name === 'NotAllowedError' ? 'linked_permission' : error && error.name === 'NotFoundError' ? 'linked_missing'
+            : key && TRANSLATIONS.en[key] ? key : 'linked_failed', { file: error && error.file || currentFile }, true);
+      }
+    } finally {
+      if (revision === workspaceLoadRevision) {
+        state.workspaceLoading = false; state.workspaceLoadCancellable = false;
+        updateWorkspaceLoadProgress(null); renderWorkspaceControls(); renderImportedFiles();
+      }
+    }
   }
 
   async function handleFileChange() {
@@ -6774,6 +6985,8 @@
   }
 
   function clearWorkspaceView(options) {
+    linkedSourceHandles = new Map();
+    linkedImportMessage = null;
     sourceRowCache.clear();
     terminalRowCache.clear();
     state.files = [];
@@ -6951,6 +7164,10 @@
       state.tablePreferences = workspaceModel.normalizeTablePreferences(prepared.workspace.tablePreferences);
       state.walkPreferences = workspaceModel.normalizeWalkPreferences(prepared.workspace.walkPreferences);
       state.files = prepared.files;
+      try {
+        const links = await workspaceRepository.listSourceLinks(workspaceId);
+        if (revision === workspaceLoadRevision) linkedSourceHandles = new Map(links.map(function (link) { return [link.sourceId, link.handle]; }));
+      } catch (error) { linkedSourceHandles = new Map(); }
       state.articleRegistry = workspaceModel.normalizeArticleRegistry(prepared.workspace.articleRegistry);
       if (state.files.length > 0) {
         renderMapping();
@@ -7648,7 +7865,12 @@
     }
   });
   elements.fileInput.addEventListener('change', handleFileChange);
+  elements.linkedPick.addEventListener('click', function () { runLinkedImport('pick'); });
+  elements.linkedAll.addEventListener('click', function () { runLinkedImport('update'); });
+  elements.linkedCancel.addEventListener('click', function () { cancelWorkspaceLoading(); setLinkedMessage('linked_cancelled'); });
   elements.importedFiles.addEventListener('click', function (event) {
+    const linked = event.target.closest('button[data-linked-action]');
+    if (linked && elements.importedFiles.contains(linked) && !linked.disabled) { runLinkedImport(linked.dataset.linkedAction, linked.dataset.sourceId); return; }
     const button = event.target.closest('button[data-remove-file-id]');
     if (button && elements.importedFiles.contains(button)) removeImportedFile(button.dataset.removeFileId);
   });

@@ -109,7 +109,7 @@ test('column ordering ignores stale keys, keeps new columns and follows stable c
 test('schema-20 migration, full/trusted capture, worker preparation and backup retain isolated column preferences', () => {
   const legacy=workspace.createWorkspace('Synthetic legacy');legacy.schemaVersion=20;delete legacy.tablePreferences;
   const migrated=workspace.migrateWorkspace(legacy);
-  assert.equal(migrated.schemaVersion,21);assert.deepEqual(migrated.tablePreferences,{columnOrder:[],visibleColumns:[]});
+  assert.equal(migrated.schemaVersion,workspace.WORKSPACE_SCHEMA_VERSION);assert.deepEqual(migrated.tablePreferences,{columnOrder:[],visibleColumns:[]});
   const original=workspace.createWorkspace('Synthetic columns',{tablePreferences:prefs()});
   const prepared=preparation.prepareWorkspaceRecord(original,'en',()=>{});
   assert.deepEqual(prepared.workspace.tablePreferences,prefs());

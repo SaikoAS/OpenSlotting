@@ -150,7 +150,7 @@ test('settings backup is available for ready open workspaces including empty one
 test('workspace progress and success/error messages are mirrored into settings and cleared together', () => {
   const state = { workspaceMessage: { key: 'success', replacements: {}, type: '' }, workspaceProgress: { key: 'backup', replacements: {}, value: 4, max: 10 } };
   const names = ['workspaceMessage', 'settingsWorkspaceMessage', 'workspaceRecovery', 'workspaceLoadProgress',
-    'workspaceLoadLabel', 'workspaceProgress', 'settingsLoadProgress', 'settingsLoadLabel', 'settingsProgress'];
+    'workspaceLoadLabel', 'workspaceProgress', 'settingsLoadProgress', 'settingsLoadLabel', 'settingsProgress', 'linkedLoadProgress', 'linkedLoadLabel', 'linkedProgress'];
   const elements = Object.fromEntries(names.map(key => [key, node(key)]));
   const context = vm.createContext({ state, elements, translate: key => key, setText: (element, text) => { element.textContent = text; } });
   vm.runInContext(appFunction('renderWorkspaceMessage', 'setWorkspaceMessage') + appFunction('renderWorkspaceProgress', 'renderWorkspaceOverview'), context);

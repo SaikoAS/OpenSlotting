@@ -59,6 +59,7 @@ $releaseFiles = @(
     'src/application/worker-session.js',
     'src/application/workspace-archive.js',
     'src/application/import-profile-batch.js',
+    'src/application/linked-sources.js',
     'src/ui/import-profile-panel.js',
     'src/ui/coverage-calendar.js',
     'src/ui/shared/windowed-dom.js',

@@ -163,7 +163,7 @@ test('older chunked schemas migrate for archive export without editing the store
   await repository.createWorkspace(old, { validated: true });
   const blob = await blobFor(repository.readBackupRecords(old.id));
   const summary = await archive.read(blob, async () => {});
-  assert.equal(summary.metadata.schemaVersion, 21);
+  assert.equal(summary.metadata.schemaVersion, model.WORKSPACE_SCHEMA_VERSION);
   assert.equal((await repository.listWorkspaces())[0].schemaVersion, 20);
 });
 test('an unverified stage cannot be committed and a staging write failure cleans up without changing targets', async () => {
