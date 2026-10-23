@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Group workspace navigation into Analysis, Warehouse and Data with an expanded text view and a compact icon view. Keep localized tooltips/accessibility names, a keyboard-accessible toggle, an active-page marker and a workspace exit outside the scrolling category list. Reflow charts/tables when rail width changes; keep the display choice transient within the app session.
+
 - Draw analysis charts in their actual pixel dimensions to prevent stretched or flattened axis text. Reserve a gutter for long localized numbers, keep axis precision readable (including small quantities), use integer line-count intervals and preserve exact tooltip values. Recompute chart geometry and pointer selection bounds after resizing.
 
 - Fit the analysis desk order-line viewport to the remaining workspace height and reduce the chart height when needed. Preserve independent table/watchlist scrolling, refill virtual rows on resize and remeasure wrapped controls. Keep a compact table and accessible page-scroll fallback when the controls cannot fit in very small or highly zoomed windows.

@@ -47,7 +47,7 @@ test('language changes render build status into the declared header and footer f
   const context = vm.createContext({ state, core: { ...core }, workspaceModel: workspace, warehouseModel: warehouse,
     window: { OpenSlottingRuntimeFactory: runtimeApi },
     document: { documentElement: {}, getElementById(id) { return nodes[id] || null; }, querySelectorAll() { return []; }, querySelector() { return null; } },
-    renderRuntimeDiagnostics() {}, renderWorkspaceControls() {}, renderStorageStatus() {},
+    renderNavigation() {}, renderRuntimeDiagnostics() {}, renderWorkspaceControls() {}, renderStorageStatus() {},
     renderWorkspaceMessage() {}, renderSourceStatus() {}, renderWorkflow() {} });
   vm.runInContext('const TRANSLATIONS = ' + source.match(/const TRANSLATIONS = ({[\s\S]*?});\s+const state/)[1] + ';\n' +
     'const elements = ' + source.match(/const elements = ({[\s\S]*?});/)[1] + ';\n' +

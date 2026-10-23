@@ -33,20 +33,40 @@
 
     <main class="page-shell">
       <div class="app-layout">
-        <nav class="terminal-rail" aria-label="Workspace navigation" data-i18n-aria-label="terminal_nav_label">
-          <div class="terminal-rail-caption" data-i18n="terminal_nav_caption">Menu</div>
-          <button class="terminal-nav-item" type="button" data-workflow-target="main-menu-panel" title="Overview" data-i18n-title="terminal_overview" data-i18n-aria-label="terminal_overview"><span aria-hidden="true">▦</span><strong data-i18n="terminal_overview">Overview</strong></button>
-          <button class="terminal-nav-item" type="button" data-workflow-target="results-panel" title="Articles" data-i18n-title="terminal_articles" data-i18n-aria-label="terminal_articles"><span aria-hidden="true">⌕</span><strong data-i18n="terminal_articles">Articles</strong></button>
-          <button class="terminal-nav-item" type="button" data-workflow-target="warehouse-panel" title="Warehouse editor" data-i18n-title="warehouse_nav" data-i18n-aria-label="warehouse_nav"><span aria-hidden="true">▧</span><strong data-i18n="warehouse_nav">Warehouse editor</strong></button>
-          <button class="terminal-nav-item" type="button" data-workflow-target="warehouse-analysis-panel" title="3D warehouse analysis" data-i18n-title="warehouse_analysis_title" data-i18n-aria-label="warehouse_analysis_title"><span aria-hidden="true">◈</span><strong data-i18n="warehouse_analysis_nav">3D analysis</strong></button>
-          <button class="terminal-nav-item" type="button" data-workflow-target="warehouse-walk-panel" title="Warehouse walk" data-i18n-title="warehouse_walk_title" data-i18n-aria-label="warehouse_walk_title"><span aria-hidden="true">⌾</span><strong data-i18n="warehouse_walk_nav">Walk</strong></button>
-          <div class="terminal-rail-divider"></div>
-          <button class="terminal-nav-item" type="button" data-workflow-target="import-panel" title="Import sources" data-i18n-title="workflow_import" data-i18n-aria-label="workflow_import"><span aria-hidden="true">⇧</span><strong data-i18n="nav_import">Import</strong></button>
-          <button class="terminal-nav-item" type="button" data-workflow-target="mapping-panel" title="Mapping &amp; quality" data-i18n-title="workflow_mapping" data-i18n-aria-label="workflow_mapping"><span aria-hidden="true">☷</span><strong data-i18n="nav_mapping">Columns &amp; notes</strong></button>
-          <button class="terminal-nav-item" type="button" data-workflow-target="coverage-panel" title="Coverage &amp; periods" data-i18n-title="workflow_coverage" data-i18n-aria-label="workflow_coverage"><span aria-hidden="true">▤</span><strong data-i18n="nav_coverage">Coverage</strong></button>
-          <button class="terminal-nav-item" type="button" data-workflow-target="comparison-panel" title="Comparison results" data-i18n-title="workflow_comparison" data-i18n-aria-label="workflow_comparison"><span aria-hidden="true">↔</span><strong data-i18n="nav_comparison">Comparison</strong></button>
-          <div class="terminal-rail-spacer"></div>
-          <button class="terminal-nav-item" type="button" data-workflow-target="workspace-panel" title="Workspace selection" data-i18n-title="workspace_selection_back" data-i18n-aria-label="workspace_selection_back"><span aria-hidden="true">⌂</span><strong data-i18n="nav_workspaces">Workspaces</strong></button>
+        <nav id="workspace-navigation" class="terminal-rail" aria-label="Workspace navigation" data-i18n-aria-label="terminal_nav_label">
+          <div class="terminal-rail-header">
+            <div class="terminal-rail-caption" data-i18n="terminal_nav_caption">Menu</div>
+            <button id="navigation-toggle" class="terminal-rail-toggle" type="button" aria-expanded="true" aria-controls="navigation-groups" title="Collapse sidebar" aria-label="Collapse sidebar"><span id="navigation-toggle-icon" aria-hidden="true">‹</span></button>
+          </div>
+          <div id="navigation-groups" class="terminal-rail-groups">
+            <section class="terminal-nav-group" aria-labelledby="navigation-analysis">
+              <h2 id="navigation-analysis" class="terminal-nav-group-title" data-i18n="nav_group_analysis">Analysis</h2>
+              <div class="terminal-nav-group-items">
+                <button class="terminal-nav-item" type="button" data-workflow-target="main-menu-panel" title="Overview" data-i18n-title="terminal_overview" data-i18n-aria-label="terminal_overview"><span aria-hidden="true">▦</span><strong data-i18n="terminal_overview">Overview</strong></button>
+                <button class="terminal-nav-item" type="button" data-workflow-target="results-panel" title="Articles" data-i18n-title="terminal_articles" data-i18n-aria-label="terminal_articles"><span aria-hidden="true">⌕</span><strong data-i18n="terminal_articles">Articles</strong></button>
+                <button class="terminal-nav-item" type="button" data-workflow-target="comparison-panel" title="Comparison results" data-i18n-title="workflow_comparison" data-i18n-aria-label="workflow_comparison"><span aria-hidden="true">↔</span><strong data-i18n="nav_comparison">Comparison</strong></button>
+              </div>
+            </section>
+            <section class="terminal-nav-group" aria-labelledby="navigation-warehouse">
+              <h2 id="navigation-warehouse" class="terminal-nav-group-title" data-i18n="nav_group_warehouse">Warehouse</h2>
+              <div class="terminal-nav-group-items">
+                <button class="terminal-nav-item" type="button" data-workflow-target="warehouse-panel" title="Warehouse editor" data-i18n-title="warehouse_nav" data-i18n-aria-label="warehouse_nav"><span aria-hidden="true">▧</span><strong data-i18n="warehouse_nav">Warehouse editor</strong></button>
+                <button class="terminal-nav-item" type="button" data-workflow-target="warehouse-analysis-panel" title="3D warehouse analysis" data-i18n-title="warehouse_analysis_title" data-i18n-aria-label="warehouse_analysis_title"><span aria-hidden="true">◈</span><strong data-i18n="warehouse_analysis_nav">3D analysis</strong></button>
+                <button class="terminal-nav-item" type="button" data-workflow-target="warehouse-walk-panel" title="Warehouse walk" data-i18n-title="warehouse_walk_title" data-i18n-aria-label="warehouse_walk_title"><span aria-hidden="true">⌾</span><strong data-i18n="warehouse_walk_nav">Walk</strong></button>
+              </div>
+            </section>
+            <section class="terminal-nav-group" aria-labelledby="navigation-data">
+              <h2 id="navigation-data" class="terminal-nav-group-title" data-i18n="nav_group_data">Data</h2>
+              <div class="terminal-nav-group-items">
+                <button class="terminal-nav-item" type="button" data-workflow-target="import-panel" title="Import sources" data-i18n-title="workflow_import" data-i18n-aria-label="workflow_import"><span aria-hidden="true">⇧</span><strong data-i18n="nav_import">Import</strong></button>
+                <button class="terminal-nav-item" type="button" data-workflow-target="mapping-panel" title="Mapping &amp; quality" data-i18n-title="workflow_mapping" data-i18n-aria-label="workflow_mapping"><span aria-hidden="true">☷</span><strong data-i18n="nav_mapping">Columns &amp; notes</strong></button>
+                <button class="terminal-nav-item" type="button" data-workflow-target="coverage-panel" title="Coverage &amp; periods" data-i18n-title="workflow_coverage" data-i18n-aria-label="workflow_coverage"><span aria-hidden="true">▤</span><strong data-i18n="nav_coverage">Coverage</strong></button>
+              </div>
+            </section>
+          </div>
+          <div class="terminal-rail-footer">
+            <button class="terminal-nav-item" type="button" data-workflow-target="workspace-panel" title="Workspace selection" data-i18n-title="workspace_selection_back" data-i18n-aria-label="workspace_selection_back"><span aria-hidden="true">⌂</span><strong data-i18n="workspace_selection_back">Workspace selection</strong></button>
+          </div>
         </nav>
         <div class="workflow-content">
       <div class="page-context" aria-live="polite">

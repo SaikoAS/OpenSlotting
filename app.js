@@ -85,6 +85,11 @@
       main_menu_title: 'Analysis desk',
       terminal_nav_label: 'Workspace',
       terminal_nav_caption: 'Menu',
+      nav_group_analysis: 'Analysis',
+      nav_group_warehouse: 'Warehouse',
+      nav_group_data: 'Data',
+      nav_expand: 'Expand sidebar',
+      nav_collapse: 'Collapse sidebar',
       nav_import: 'Import',
       nav_mapping: 'Columns & notes',
       nav_coverage: 'Coverage',
@@ -808,6 +813,11 @@
       main_menu_title: 'Analyse-Desk',
       terminal_nav_label: 'Arbeitsbereich',
       terminal_nav_caption: 'Menü',
+      nav_group_analysis: 'Analyse',
+      nav_group_warehouse: 'Lager',
+      nav_group_data: 'Daten',
+      nav_expand: 'Seitenleiste ausklappen',
+      nav_collapse: 'Seitenleiste einklappen',
       nav_import: 'Import',
       nav_mapping: 'Quellspalten',
       nav_coverage: 'Abdeckung',
@@ -1478,6 +1488,7 @@
 
   const state = {
     language: 'en',
+    navigationCollapsed: false,
     workspaces: [],
     selectedWorkspaceId: null,
     lastActiveWorkspaceId: null,
@@ -1609,6 +1620,8 @@
     headerBuildStatus: document.getElementById('header-build-status'),
     headerWorkspaceName: document.getElementById('header-workspace-name'),
     workflowSteps: Array.from(document.querySelectorAll('[data-workflow-target]')),
+    navigationToggle: document.getElementById('navigation-toggle'),
+    navigationToggleIcon: document.getElementById('navigation-toggle-icon'),
     pageViews: Array.from(document.querySelectorAll('.app-page')),
     pageContextKicker: document.getElementById('page-context-kicker'),
     pageContextTitle: document.getElementById('page-context-title'),
@@ -3826,6 +3839,17 @@
     });
   }
 
+  function renderNavigation() {
+    const collapsed = state.navigationCollapsed;
+    document.body.classList.toggle('navigation-collapsed', collapsed);
+    elements.navigationToggle.setAttribute('aria-expanded', String(!collapsed));
+    const label = translate(collapsed ? 'nav_expand' : 'nav_collapse');
+    elements.navigationToggle.setAttribute('aria-label', label);
+    elements.navigationToggle.setAttribute('title', label);
+    setText(elements.navigationToggleIcon, collapsed ? '›' : '‹');
+    scheduleWorkspaceFrame();
+  }
+
   function applyLanguage(options) {
     document.documentElement.lang = state.language;
     document.title = translate('page_title');
@@ -3845,6 +3869,7 @@
     document.querySelectorAll('[data-i18n-title]').forEach(function (element) {
       element.setAttribute('title', translate(element.dataset.i18nTitle));
     });
+    renderNavigation();
     renderRuntimeDiagnostics();
     elements.languageSelect.setAttribute('aria-label', translate('language_label'));
     renderWorkspaceControls();
@@ -3949,6 +3974,8 @@
       button.classList.toggle('available', availability[target]);
       button.classList.toggle('complete', completion[target]);
       button.classList.toggle('active', target === requestedTarget);
+      if (target === requestedTarget) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
       button.disabled = !availability[target] && target !== 'workspace-panel';
     });
     renderMappingViews();
@@ -8023,6 +8050,10 @@
   });
   elements.expectedWeekdays.forEach(function (control) {
     control.addEventListener('change', handlePeriodSettingsChange);
+  });
+  elements.navigationToggle.addEventListener('click', function () {
+    state.navigationCollapsed = !state.navigationCollapsed;
+    renderNavigation();
   });
   elements.workflowSteps.forEach(function (button) {
     button.addEventListener('click', function () {

@@ -6,6 +6,18 @@ article details, and workspace selection. The overview provides three analysis
 levels, a chart, a searchable entity list, and a configurable order-line table.
 The controls and labels are available in English and German.
 
+## Navigation
+
+The sidebar groups existing pages into **Analysis** (overview, articles,
+comparison), **Warehouse** (editor, 3D analysis, walk) and **Data** (import,
+source columns, coverage). The toggle switches between text-and-icon and
+compact icon views; icons retain localized names and tooltips. The toggle
+and workspace selection remain outside the scrolling category list on desktop.
+Keyboard activation and an accessible active-page marker follow normal page
+availability. The choice lasts for the current app session and does not change
+workspace data or backups. Charts and tables resize to the available width.
+Narrow screens retain horizontal navigation.
+
 ## Data shown
 
 - The input is `result.rows`: validated, normalized **order lines** from the
