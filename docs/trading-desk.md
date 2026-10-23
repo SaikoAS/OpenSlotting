@@ -49,6 +49,13 @@ The controls and labels are available in English and German.
   so large selections do not create a table element for every source line.
   Source file and physical source line remain visible. Clicking an article
   opens the existing full detail view.
+  On desktop, the table uses the remaining workspace height. The chart can
+  shrink to keep table rows visible; scrolling stays inside the table and
+  watchlist when the desk fits. Window, zoom and control-height changes update
+  the virtual row viewport without resetting its scroll position. Very small
+  windows or high browser zoom retain page scrolling and a compact table so
+  all filters and controls remain reachable. Narrow screens keep the stacked
+  layout.
 - Date, customer, order and source filters search the full selected entity and
   range; using them switches the table to **All order lines**. Column headings
   sort those rows. The CSV button exports the currently displayed, filtered

@@ -395,6 +395,11 @@ body > .app-footer, .workspace-picker-mode > .app-footer {
 .workspace-picker-mode .workflow-content > #workspace-page { max-width: none; }
 @media (min-width: 761px) {
   .terminal-watchlist { top: 0; height: var(--terminal-watchlist-height, calc(100dvh - 190px)); min-height: 180px; }
+  #main-menu-page.terminal-fitted { overflow-y: hidden; }
+  .terminal-chart { height: var(--terminal-chart-height, 354px); min-height: 0; }
+  .terminal-chart svg { height: 100%; }
+  .terminal-chart-empty { min-height: 0; height: 100%; }
+  .terminal-lines-scroll { height: var(--terminal-lines-height, auto); max-height: var(--terminal-lines-height, min(58vh, 560px)); }
 }
 
 /* Mapping overlays stay inside the measured workspace frame. */

@@ -3989,6 +3989,43 @@
     renderTerminalWatchlistWindow(selectedKey ? { key: selectedKey } : null);
   }
 
+  function resizeTerminalTable() {
+    const page = elements.terminalPanel.closest('.app-page');
+    const table = elements.terminalLinesScroll;
+    const chart = elements.terminalChart;
+    if (!page || !table || !chart) return;
+    const panelStyle = elements.terminalPanel.style;
+    const setSize = function (key, value) {
+      if (panelStyle.getPropertyValue(key) !== value) panelStyle.setProperty(key, value);
+    };
+    if (window.innerWidth <= 760 || !elements.terminalData.getClientRects().length) {
+      page.classList.remove('terminal-fitted');
+      panelStyle.removeProperty('--terminal-chart-height');
+      panelStyle.removeProperty('--terminal-lines-height');
+      return;
+    }
+    const pageRect = page.getBoundingClientRect();
+    const paddingBottom = parseFloat(window.getComputedStyle(page).paddingBottom) || 0;
+    const bottom = pageRect.top + page.clientTop + page.clientHeight - paddingBottom;
+    // Use unscrolled coordinates so an earlier page scroll cannot enlarge the table.
+    const fixedTop = table.getBoundingClientRect().top + page.scrollTop - chart.getBoundingClientRect().height;
+    const available = Math.floor(bottom - fixedTop - 2);
+    const minimumChart = 180;
+    const minimumTable = 108;
+    const fits = available >= minimumChart + minimumTable;
+    const chartHeight = Math.max(minimumChart, Math.min(354, available - Math.max(minimumTable, Math.min(220, page.clientHeight / 4))));
+    setSize('--terminal-chart-height', chartHeight + 'px');
+    if (fits) {
+      setSize('--terminal-lines-height', Math.floor(available - chartHeight) + 'px');
+      page.scrollTop = 0;
+    } else {
+      // Keep all controls reachable at high browser zoom or in very small windows.
+      setSize('--terminal-lines-height', minimumTable + 'px');
+    }
+    page.classList.toggle('terminal-fitted', fits);
+    renderTerminalLineRows();
+  }
+
   function scheduleWorkspaceFrame() {
     if (workspaceFrameRequest !== null) return;
     workspaceFrameRequest = window.requestAnimationFrame(function () {
@@ -4001,6 +4038,7 @@
       Object.keys(values).forEach(function (key) {
         document.documentElement.style.setProperty('--workspace-' + key, Math.round(values[key]) + 'px');
       });
+      resizeTerminalTable();
       resizeTerminalWatchlist();
     });
   }
@@ -5395,6 +5433,7 @@
     elements.terminalEmpty.classList.toggle('hidden', ready);
     elements.terminalData.classList.toggle('hidden', !ready);
     document.getElementById('main-menu-panel').classList.toggle('hidden', ready);
+    scheduleWorkspaceFrame();
     if (!ready) return;
     if (terminalView.rows !== rows) {
       terminalView.rows = rows;
@@ -8445,7 +8484,8 @@
   elements.terminalPanel.closest('.app-page').addEventListener('scroll', scheduleWorkspaceFrame, { passive: true });
   if (typeof window.ResizeObserver === 'function') {
     const observer = new window.ResizeObserver(scheduleWorkspaceFrame);
-    ['.app-header', '.app-footer', '.workflow-content', '.page-context', '.terminal-toolbar', '#terminal-watchlist-rows'].forEach(function (selector) {
+    ['.app-header', '.app-footer', '.workflow-content', '.page-context', '.terminal-toolbar', '#terminal-watchlist-rows',
+      '.terminal-titlebar', '.terminal-chart-panel', '.terminal-lines-toolbar', '.terminal-lines-filters', '#terminal-lines-scroll'].forEach(function (selector) {
       const element = document.querySelector(selector);
       if (element) observer.observe(element);
     });
