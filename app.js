@@ -1626,7 +1626,6 @@
     terminalEntityTitle: document.getElementById('terminal-entity-title'),
     terminalEntitySubtitle: document.getElementById('terminal-entity-subtitle'),
     terminalDataPeriod: document.getElementById('terminal-data-period'),
-    terminalKpis: document.getElementById('terminal-kpis'),
     terminalChart: document.getElementById('terminal-chart'),
     terminalChartTotal: document.getElementById('terminal-chart-total'),
     terminalChartNote: document.getElementById('terminal-chart-note'),
@@ -1636,6 +1635,7 @@
     terminalChartClear: document.getElementById('terminal-chart-clear'),
     terminalChartSelectionStatus: document.getElementById('terminal-chart-selection-status'),
     terminalSelectionSummary: document.getElementById('terminal-chart-selection-summary'),
+    terminalSelectionTitle: document.getElementById('terminal-selection-title'),
     terminalSelectionRange: document.getElementById('terminal-selection-range'),
     terminalSelectionMetrics: document.getElementById('terminal-selection-metrics'),
     terminalSelectionCoverage: document.getElementById('terminal-selection-coverage'),
@@ -4982,8 +4982,9 @@
     const chartData = terminalView.chartData;
     const context = terminalView.lineContext;
     const active = Boolean(terminalView.day || elements.terminalFilterFrom.value || elements.terminalFilterTo.value);
-    elements.terminalSelectionSummary.classList.toggle('hidden', !active || !chartData || !context);
-    if (!active || !chartData || !context) return;
+    elements.terminalSelectionSummary.classList.toggle('hidden', !chartData || !context);
+    if (!chartData || !context) return;
+    setText(elements.terminalSelectionTitle, translate(active ? 'terminal_selection_title' : 'terminal_total_period'));
     const from = terminalView.day || elements.terminalFilterFrom.value || chartData.start;
     const to = terminalView.day || elements.terminalFilterTo.value || chartData.end;
     setText(elements.terminalSelectionRange, formatCalendarDate(from) + ' – ' + formatCalendarDate(to));
@@ -5007,7 +5008,8 @@
       [translate('terminal_quantity'), formatQuantity(selected.quantity)],
       [translate('terminal_lines'), formatNumber(selected.lines, 0)],
       [translate('terminal_distinct_orders'), formatNumber(selected.orders, 0)],
-      [translate('terminal_distinct_customers'), formatNumber(selected.customers, 0)],
+      [translate(context.scope === 'article' ? 'terminal_distinct_customers' : 'terminal_distinct_articles'),
+        formatNumber(context.scope === 'article' ? selected.customers : selected.articles, 0)],
       [translate('terminal_selection_days'), formatNumber(selected.days, 0)]
     ];
     const fragment = document.createDocumentFragment();
@@ -5445,13 +5447,6 @@
         terminalView.coverage.result.expectedDates, terminalView.coverage.result.observedDates) };
     setText(elements.terminalDataPeriod, chartStart && chartEnd
       ? formatCalendarDate(chartStart) + ' – ' + formatCalendarDate(chartEnd) : '—');
-    renderMetricCards(elements.terminalKpis, [
-      [translate('terminal_quantity'), formatQuantity(summary.quantity), translate('terminal_total_period')],
-      [translate('terminal_lines'), formatNumber(summary.lines, 0), translate('terminal_total_period')],
-      [translate('terminal_distinct_orders'), formatNumber(summary.orders, 0), translate('terminal_total_period')],
-      [translate(scope === 'article' ? 'terminal_distinct_customers' : 'terminal_distinct_articles'),
-        formatNumber(scope === 'article' ? summary.customers : summary.articles, 0), translate('terminal_total_period')]
-    ]);
     setText(elements.terminalChartTotal, elements.terminalMetric.value === 'quantity' ? formatQuantity(summary.quantity) : formatNumber(summary.lines, 0));
     setText(elements.terminalChartNote, translate('terminal_total_period') + ' · ' +
       translate(elements.terminalMetric.value === 'quantity' ? 'terminal_quantity' : 'terminal_lines') +

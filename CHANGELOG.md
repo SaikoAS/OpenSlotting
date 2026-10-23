@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Always show the analysis desk period summary, defaulting to the entire displayed period and following date selections. Remove duplicate KPI cards, preserve scope-specific customer/article counts and compact the summary to make more room for order lines.
+
 - Fill the analysis desk's available height with its watchlist instead of capping it at 750px. Keep the list scrollable, refresh its virtual window on resize/zoom/scroll and retain the compact stacked layout on narrow screens.
 
 - Replace monolithic JSON backup exports with blockwise `.osworkspace` archives containing original binary sources, settings, normalized results and fragmented provenance. Use optional native gzip block compression and verify SHA-256 checksums, ordered inventory and source/row counts; stage restores invisibly before an atomic create/replace. Keep legacy JSON backups readable, support cancellable progress and native file streaming with a browser-download fallback. IndexedDB version 4 adds only a temporary backup staging store; workspace schema 21 and layout 6 are unchanged.

@@ -180,6 +180,7 @@
   function summarizeSelection(lines, from, to) {
     const orders = new Set();
     const customers = new Set();
+    const articles = new Set();
     const days = new Set();
     let quantity = 0n;
     let count = 0;
@@ -190,8 +191,9 @@
       days.add(line.delivery_date);
       if (line.order_id) orders.add(JSON.stringify([line.customer_id || '', line.order_id]));
       if (line.customer_id) customers.add(line.customer_id);
+      if (line.article_id) articles.add(line.article_id);
     });
-    return { quantity: quantity, lines: count, orders: orders.size, customers: customers.size, days: days.size };
+    return { quantity: quantity, lines: count, orders: orders.size, customers: customers.size, articles: articles.size, days: days.size };
   }
 
   function chartGranularity(start, end, requested) {

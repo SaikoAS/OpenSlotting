@@ -24,7 +24,7 @@ The controls and labels are available in English and German.
   Entities without rows in the window remain searchable with zero for that
   ranking. The footer shows how many normalized lines carry an ID at the
   selected level.
-- The range controls affect the selected entity's chart, KPI cards, and source
+- The range controls affect the selected entity's chart, period summary, and source
   lines. The 30 and 90 day windows end on the latest delivery date in the
   opened data, not on today's date. "All dates" includes every valid date.
 - Quantity totals use the existing scaled-integer representation. The chart
@@ -60,14 +60,16 @@ The controls and labels are available in English and German.
   the table's From/To fields and a highlighted band marks the range. Missing
   days inside it remain unknown rather than being turned into zero values.
   In week or month view a click selects that calendar bucket instead. The
-  separate selection panel shows exact quantity, line, order, customer, and
-  observed-day counts for the selected entity and dates, plus workspace date
-  coverage for that selection. Other table text filters do not alter this
-  date-selection summary. The KPI cards above remain totals for the full main
-  range and are labeled accordingly.
+  yellow period summary is always visible: without a date selection it shows
+  the entire displayed period; otherwise it follows the selected dates. It
+  shows exact quantity, line, order, and recorded-day counts, plus customers
+  in the article view or articles in the customer/order views. Workspace date
+  coverage is shown for the same interval. Other table text filters do not
+  alter these totals. This compact summary replaces the duplicate KPI row
+  above the chart, making more room for the order-line table.
   The day selector and From/To fields provide keyboard access; **Clear chart
-  selection** removes the date selection. Chart selections do not change the
-  main range or KPI totals.
+  selection** returns the summary to the full main period. Chart selections
+  do not change the main range or the chart's full-period total.
 - **Choose columns** adds mapped article description, customer ID, Colli
   (`sales_unit_count`), quantity per selling unit, location, unit of measure,
   and active workspace custom fields. Missing optional values display as

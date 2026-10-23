@@ -179,11 +179,6 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
 .terminal-titlebar p { margin: 0; color: var(--muted); font-size: .77rem; }
 .terminal-titlebar .terminal-kicker { margin-bottom: 2px; color: #74cfc2; font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .terminal-period { flex: 0 0 auto; padding: 5px 8px; border: 1px solid var(--line); border-radius: 4px; color: #a6b4c3; font-size: .71rem; }
-.terminal-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
-.terminal-kpis .metric { min-width: 0; margin: 0; padding: 11px 13px; }
-.terminal-kpis .metric-label { margin: 0 0 5px; font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-.terminal-kpis .metric-value { font-size: clamp(1.08rem, 2vw, 1.55rem); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.terminal-kpis .metric-detail { margin-top: 3px; font-size: .63rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .terminal-chart-panel, .terminal-lines-panel { border: 1px solid var(--line); border-radius: 5px; background: #171d24; }
 .terminal-chart-heading { display: flex; justify-content: space-between; align-items: start; gap: 15px; padding: 13px 16px 0; color: #a7b5c4; font-size: .76rem; }
 .terminal-chart-heading > div { display: grid; gap: 2px; }
@@ -196,14 +191,14 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
 .terminal-chart-controls small { font-size: .68rem; }
 .terminal-chart-selection-status { color: #f4bd68; font-variant-numeric: tabular-nums; }
 .terminal-chart-coverage { padding: 6px 16px 0; color: #a9bac8; font-size: .71rem; }
-.terminal-selection-summary { margin: 2px 14px 14px; padding: 11px 13px; border: 1px solid #a67d44; border-radius: 5px; background: #29251f; }
+.terminal-selection-summary { margin: 2px 14px 10px; padding: 8px 10px; border: 1px solid #a67d44; border-radius: 5px; background: #29251f; }
 .terminal-selection-heading { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; color: #f3d19b; font-size: .77rem; }
-.terminal-selection-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
-.terminal-selection-metrics > div { min-width: 0; padding: 7px; border: 1px solid #5c4a34; border-radius: 4px; }
+.terminal-selection-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+.terminal-selection-metrics > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 3px 8px; min-width: 0; padding: 5px 7px; border: 1px solid #5c4a34; border-radius: 4px; }
 .terminal-selection-metrics small, .terminal-selection-metrics strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .terminal-selection-metrics small { color: #c4ad8f; font-size: .64rem; }
-.terminal-selection-metrics strong { margin-top: 3px; color: #f5e7cf; font-size: .98rem; }
-.terminal-selection-coverage { margin: 9px 0 0; color: #cfbd9e; font-size: .69rem; }
+.terminal-selection-metrics strong { margin-left: auto; color: #f5e7cf; font-size: .98rem; }
+.terminal-selection-coverage { margin: 6px 0 0; color: #cfbd9e; font-size: .69rem; }
 .terminal-chart { min-height: 350px; padding: 0 8px 4px; }
 .terminal-chart svg { display: block; width: 100%; height: 350px; overflow: visible; }
 .terminal-chart svg[data-selectable="true"] { cursor: crosshair; }
@@ -281,7 +276,6 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
 
 @media (max-width: 1100px) {
   .terminal-grid { grid-template-columns: minmax(0, 1fr) 238px; }
-  .terminal-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) {
   .app-layout { display: block; }
@@ -307,9 +301,6 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
 @media (max-width: 480px) {
   .header-actions { gap: 6px; }
   .language-picker span, .local-badge { display: none; }
-  .terminal-kpis { gap: 6px; }
-  .terminal-kpis .metric { padding: 9px; }
-  .terminal-kpis .metric-detail { display: none; }
   .terminal-period { white-space: normal; }
 }
 
