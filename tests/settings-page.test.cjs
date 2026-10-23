@@ -112,6 +112,64 @@ test('workspace picker centers its panel with safe auto margins and keeps page s
   assert.match(css, /\.workflow-content > \.app-page\s*\{[^}]*overflow:\s*auto;/);
 });
 
+test('settings backup binds to the active workspace and shares cancellation without changing selection', () => {
+  const calls = [], handlers = {}, state = { activeWorkspace: { id: 'open' }, selectedWorkspaceId: 'other' };
+  const elements = Object.fromEntries(['workspaceBackup', 'settingsWorkspaceBackup', 'settingsBackupCancel'].map(key =>
+    [key, { addEventListener(type, handler) { handlers[key] = handler; } }]));
+  const context = vm.createContext({ state, elements, exportWorkspaceBackup: id => calls.push(id), cancelWorkspaceLoading: () => calls.push('cancel') });
+  const start = source.indexOf("  elements.workspaceBackup.addEventListener('click'");
+  vm.runInContext(source.slice(start, source.indexOf('  elements.workspaceOpen.addEventListener', start)), context);
+  handlers.settingsWorkspaceBackup(); handlers.workspaceBackup(); handlers.settingsBackupCancel();
+  assert.deepEqual(calls, ['open', undefined, 'cancel']);
+  assert.equal(state.selectedWorkspaceId, 'other');
+  state.activeWorkspace = null; handlers.settingsWorkspaceBackup();
+  assert.equal(calls.length, 3);
+  const settings = html.slice(html.indexOf('id="settings-workspace"'), html.indexOf('id="main-menu-page"'));
+  assert.match(settings, /id="settings-workspace-backup"[^>]*disabled/);
+  assert.match(settings, /id="settings-workspace-message"[^>]*role="status"/);
+  const css = fs.readFileSync(path.join(__dirname, '..', 'terminal-theme.css'), 'utf8');
+  assert.match(css, /\.settings-panel \.workspace-message\s*\{\s*color:\s*var\(--ink\)/);
+});
+
+test('settings backup is available for ready open workspaces including empty ones and disabled while busy', () => {
+  const state = { storageReady: true, workspaceLoading: false, activeWorkspace: { id: 'open', name: 'Open' }, selectedWorkspaceId: 'other', files: [] };
+  const names = ['mainMenuWorkspaceName', 'workspaceOpen', 'workspaceCancel', 'workspaceRecovery', 'workspaceCreate',
+    'workspaceRestoreNew', 'workspaceRename', 'workspaceDelete', 'workspaceBackup', 'settingsWorkspaceBackup', 'settingsBackupCancel', 'workspaceRestoreReplace'];
+  const elements = Object.fromEntries(names.map(key => [key, node(key)]));
+  const context = vm.createContext({ state, elements, renderWorkspaceIdentity() {}, translate: key => key,
+    setText() {}, document: { body: node('body') } });
+  const start = source.indexOf('  function renderWorkspaceControls()');
+  vm.runInContext(source.slice(start, source.indexOf('    renderCustomFields();', start)) + '}', context);
+  context.renderWorkspaceControls(); assert.equal(elements.settingsWorkspaceBackup.disabled, false);
+  for (const patch of [{ activeWorkspace: null }, { storageReady: false }, { workspaceLoading: true }, { files: [{ reading: true }] }]) {
+    Object.assign(state, { activeWorkspace: { id: 'open' }, storageReady: true, workspaceLoading: false, files: [] }, patch);
+    context.renderWorkspaceControls(); assert.equal(elements.settingsWorkspaceBackup.disabled, true);
+  }
+});
+
+test('workspace progress and success/error messages are mirrored into settings and cleared together', () => {
+  const state = { workspaceMessage: { key: 'success', replacements: {}, type: '' }, workspaceProgress: { key: 'backup', replacements: {}, value: 4, max: 10 } };
+  const names = ['workspaceMessage', 'settingsWorkspaceMessage', 'workspaceRecovery', 'workspaceLoadProgress',
+    'workspaceLoadLabel', 'workspaceProgress', 'settingsLoadProgress', 'settingsLoadLabel', 'settingsProgress'];
+  const elements = Object.fromEntries(names.map(key => [key, node(key)]));
+  const context = vm.createContext({ state, elements, translate: key => key, setText: (element, text) => { element.textContent = text; } });
+  vm.runInContext(appFunction('renderWorkspaceMessage', 'setWorkspaceMessage') + appFunction('renderWorkspaceProgress', 'renderWorkspaceOverview'), context);
+  context.renderWorkspaceMessage(); context.renderWorkspaceProgress();
+  assert.equal(elements.settingsWorkspaceMessage.textContent, 'success');
+  assert.equal(elements.settingsLoadLabel.textContent, 'backup');
+  assert.equal(elements.settingsProgress.value, 4); assert.equal(elements.settingsProgress.max, 10);
+  assert.equal(elements.settingsLoadProgress.classList.contains('hidden'), false);
+  state.workspaceMessage.type = 'error'; context.renderWorkspaceMessage();
+  assert.equal(elements.settingsWorkspaceMessage.className, 'workspace-message error');
+  state.workspaceMessage = null; state.workspaceProgress = null;
+  context.renderWorkspaceMessage(); context.renderWorkspaceProgress();
+  assert.equal(elements.settingsWorkspaceMessage.className, 'workspace-message hidden');
+  assert.equal(elements.settingsWorkspaceMessage.textContent, '');
+  assert.equal(elements.settingsLoadProgress.classList.contains('hidden'), true);
+  assert.equal(elements.settingsLoadLabel.textContent, '');
+  assert.equal(elements.settingsProgress.attributes.has('value'), false);
+});
+
 function resetFixture(options = {}) {
   const calls = [], state = { activeWorkspace: { id: 'synthetic', name: 'Synthetic workspace' },
     files: [{ id: 'synthetic-source', reading: false }], storageReady: true, workspaceLoading: false, ...options.state };

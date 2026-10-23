@@ -181,12 +181,23 @@
                 <p data-i18n="settings_language_help">Choose the interface language. In an open workspace it is saved with that workspace; before opening one it applies to this session.</p>
                 <label class="language-picker"><span data-i18n="language_label">Language</span><select id="language-select" aria-label="Language"><option value="en" data-i18n="language_english">English</option><option value="de" data-i18n="language_german">Deutsch</option></select></label>
               </section>
+              <section class="settings-card" aria-labelledby="settings-backup-title">
+                <h4 id="settings-backup-title" data-i18n="workspace_backup">Export backup</h4>
+                <p id="settings-backup-help" data-i18n="settings_backup_help">Save a complete backup of the open workspace, including source files, settings and the warehouse layout.</p>
+                <button id="settings-workspace-backup" class="secondary-button" type="button" aria-describedby="settings-backup-help" data-i18n="workspace_backup" disabled>Export backup</button>
+                <div id="settings-load-progress" class="workspace-load-progress hidden" aria-live="polite">
+                  <div id="settings-load-label" class="status-text"></div>
+                  <progress id="settings-progress" max="1"></progress>
+                </div>
+                <button id="settings-backup-cancel" class="secondary-button hidden" type="button" data-i18n="workspace_cancel_loading">Cancel loading</button>
+              </section>
               <section class="settings-card settings-reset-card" aria-labelledby="settings-data-title">
                 <h4 id="settings-data-title" data-i18n="settings_workspace_data">Workspace data</h4>
                 <p id="settings-reset-help" data-i18n="settings_reset_help">Remove imported source files, import profiles and analysis/comparison results and reset comparison periods. The workspace and warehouse layout remain.</p>
                 <button id="reset-button" class="secondary-button danger-button" type="button" aria-describedby="settings-reset-help" data-i18n="reset_button" disabled>Clear workspace data</button>
               </section>
             </div>
+            <div id="settings-workspace-message" class="workspace-message hidden" role="status"></div>
           </section>
         </section>
       </div>

@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Add complete backup export for the open workspace in Settings, sharing the streaming archive flow with workspace selection and showing progress, cancellation and results in place.
+
 - Center workspace selection horizontally and vertically with a bounded panel width; keep overflowing content reachable through page scrolling on smaller windows.
 
 - Remove outer layout gutters and unify the workspace background to eliminate darker strips around the app on desktop and narrow screens.

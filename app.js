@@ -97,6 +97,7 @@
       settings_global: 'Global',
       settings_workspace_scope: 'Workspace',
       settings_workspace_data: 'Workspace data',
+      settings_backup_help: 'Save a complete backup of the open workspace, including source files, settings and the warehouse layout.',
       settings_reset_help: 'Remove imported source files, import profiles and analysis/comparison results and reset comparison periods. The workspace and warehouse layout remain.',
       settings_no_workspace: 'Open a workspace to save its settings or clear its data. Language selection remains available for this session.',
       settings_language_help: 'Choose the interface language. In an open workspace it is saved with that workspace; before opening one it applies to this session.',
@@ -835,6 +836,7 @@
       settings_global: 'Global',
       settings_workspace_scope: 'Workspace',
       settings_workspace_data: 'Workspace-Daten',
+      settings_backup_help: 'Vollständiges Backup des geöffneten Workspace inklusive Quelldateien, Einstellungen und Lagerplan speichern.',
       settings_reset_help: 'Importierte Quelldateien, Importprofile sowie Analyse- und Vergleichsergebnisse entfernen und Vergleichszeiträume zurücksetzen. Der Workspace und der Lagerplan bleiben erhalten.',
       settings_no_workspace: 'Öffne einen Workspace, um dessen Einstellungen zu speichern oder Daten zu leeren. Die Sprachauswahl bleibt für diese Sitzung verfügbar.',
       settings_language_help: 'Wähle die Sprache der Oberfläche. In einem geöffneten Workspace wird sie mit diesem gespeichert; vor dem Öffnen gilt sie für diese Sitzung.',
@@ -1642,6 +1644,12 @@
     activeWorkspaceName: document.getElementById('active-workspace-name'),
     settingsWorkspaceName: document.getElementById('settings-workspace-name'),
     settingsWorkspaceHint: document.getElementById('settings-workspace-hint'),
+    settingsWorkspaceBackup: document.getElementById('settings-workspace-backup'),
+    settingsWorkspaceMessage: document.getElementById('settings-workspace-message'),
+    settingsLoadProgress: document.getElementById('settings-load-progress'),
+    settingsLoadLabel: document.getElementById('settings-load-label'),
+    settingsProgress: document.getElementById('settings-progress'),
+    settingsBackupCancel: document.getElementById('settings-backup-cancel'),
     workflowSteps: Array.from(document.querySelectorAll('[data-workflow-target]')),
     navigationToggle: document.getElementById('navigation-toggle'),
     navigationToggleIcon: document.getElementById('navigation-toggle-icon'),
@@ -1922,15 +1930,11 @@
 
   function renderWorkspaceMessage() {
     const message = state.workspaceMessage;
-    if (!message || !message.key) {
-      elements.workspaceMessage.className = 'workspace-message hidden';
-      setText(elements.workspaceMessage, '');
-      elements.workspaceRecovery.classList.add('hidden');
-      return;
-    }
-    elements.workspaceMessage.className = 'workspace-message' + (message.type ? ' ' + message.type : '');
-    setText(elements.workspaceMessage, translate(message.key, message.replacements));
-    elements.workspaceRecovery.classList.toggle('hidden', !state.workspaceRecoveryAvailable);
+    [elements.workspaceMessage, elements.settingsWorkspaceMessage].forEach(function (target) {
+      target.className = 'workspace-message' + (!message || !message.key ? ' hidden' : (message.type ? ' ' + message.type : ''));
+      setText(target, message && message.key ? translate(message.key, message.replacements) : '');
+    });
+    elements.workspaceRecovery.classList.toggle('hidden', !message || !message.key || !state.workspaceRecoveryAvailable);
   }
 
   function setWorkspaceMessage(key, replacements, type) {
@@ -1971,19 +1975,17 @@
 
   function renderWorkspaceProgress() {
     const progress = state.workspaceProgress;
-    elements.workspaceLoadProgress.classList.toggle('hidden', !progress);
-    if (!progress) {
-      setText(elements.workspaceLoadLabel, '');
-      elements.workspaceProgress.removeAttribute('value');
-      return;
-    }
-    setText(elements.workspaceLoadLabel, translate(progress.key, progress.replacements));
-    if (Number.isFinite(progress.value) && Number.isFinite(progress.max) && progress.max > 0) {
-      elements.workspaceProgress.max = progress.max;
-      elements.workspaceProgress.value = progress.value;
-    } else {
-      elements.workspaceProgress.removeAttribute('value');
-    }
+    [[elements.workspaceLoadProgress, elements.workspaceLoadLabel, elements.workspaceProgress],
+      [elements.settingsLoadProgress, elements.settingsLoadLabel, elements.settingsProgress]].forEach(function (targets) {
+      targets[0].classList.toggle('hidden', !progress);
+      setText(targets[1], progress ? translate(progress.key, progress.replacements) : '');
+      if (progress && Number.isFinite(progress.value) && Number.isFinite(progress.max) && progress.max > 0) {
+        targets[2].max = progress.max;
+        targets[2].value = progress.value;
+      } else {
+        targets[2].removeAttribute('value');
+      }
+    });
   }
 
   function renderWorkspaceOverview() {
@@ -2118,6 +2120,8 @@
     elements.workspaceRename.disabled = !hasSelection;
     elements.workspaceDelete.disabled = !hasSelection;
     elements.workspaceBackup.disabled = !hasSelection;
+    elements.settingsWorkspaceBackup.disabled = !hasWorkspace;
+    elements.settingsBackupCancel.classList.toggle('hidden', !state.workspaceLoading || !state.workspaceLoadCancellable);
     elements.workspaceRestoreReplace.disabled = !hasSelection;
     renderCustomFields();
     elements.fileInput.disabled = !hasWorkspace;
@@ -7167,14 +7171,18 @@
     }
   }
 
-  async function exportWorkspaceBackup() {
-    const selected = state.workspaces.find(function (workspace) { return workspace.id === state.selectedWorkspaceId; });
+  async function exportWorkspaceBackup(workspaceId) {
+    if (!state.storageReady || state.workspaceLoading || state.files.some(function (file) { return Boolean(file.reading); })) return;
+    const targetId = workspaceId || state.selectedWorkspaceId;
+    const selected = state.workspaces.find(function (workspace) { return workspace.id === targetId; });
     if (!selected) return;
     const revision = ++workspaceLoadRevision;
     state.workspaceLoading = true;
     state.workspaceLoadCancellable = true;
     renderWorkspaceControls();
     let sink = null, directSave = false;
+    setWorkspaceMessage(null);
+    updateWorkspaceLoadProgress({ phase: 'backup', bytes: 0 }, selected.name);
     try {
       const filename = workspaceArchive.filename(selected.name);
       // The picker must run in the original click gesture, before autosave awaits.
@@ -7537,7 +7545,11 @@
   elements.customFieldCreate.addEventListener('click', createCustomField);
   elements.workspaceRename.addEventListener('click', renameActiveWorkspace);
   elements.workspaceDelete.addEventListener('click', deleteActiveWorkspace);
-  elements.workspaceBackup.addEventListener('click', exportWorkspaceBackup);
+  elements.workspaceBackup.addEventListener('click', function () { exportWorkspaceBackup(); });
+  elements.settingsWorkspaceBackup.addEventListener('click', function () {
+    if (state.activeWorkspace) exportWorkspaceBackup(state.activeWorkspace.id);
+  });
+  elements.settingsBackupCancel.addEventListener('click', cancelWorkspaceLoading);
   elements.workspaceOpen.addEventListener('click', function () {
     if (state.selectedWorkspaceId) {
       if (state.activeWorkspace && state.selectedWorkspaceId === state.activeWorkspace.id) {

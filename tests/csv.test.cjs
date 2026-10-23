@@ -56,7 +56,7 @@ test('workspace startup is metadata-first and heavy preparation is delegated to 
   const workerSessionSource = fs.readFileSync(path.join(__dirname, '..', 'src/application/worker-session.js'), 'utf8');
   const workerBody = preparationSource.match(/function workspaceWorkerMain\(scope\) \{([\s\S]*?)\n  return Object.freeze/);
   const cancelBody = appSource.match(/function cancelWorkspaceLoading\(\) \{([\s\S]*?)\n  function clearWorkspaceView/);
-  const backupBody = appSource.match(/async function exportWorkspaceBackup\(\) \{([\s\S]*?)\n  function readBackupFile/);
+  const backupBody = appSource.match(/async function exportWorkspaceBackup\(workspaceId\) \{([\s\S]*?)\n  function readBackupFile/);
   const restoreBody = appSource.match(/async function restoreWorkspaceBackup\(file, mode\) \{([\s\S]*?)\n  async function initializeWorkspaces/);
   const createBody = appSource.match(/async function createWorkspace\(\) \{([\s\S]*?)\n  async function renameActiveWorkspace/);
   const captureBody = appSource.match(/function captureActiveWorkspace\(\) \{([\s\S]*?)\n  function persistActiveWorkspace/);

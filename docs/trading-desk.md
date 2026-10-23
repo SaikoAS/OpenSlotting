@@ -20,12 +20,15 @@ Narrow screens retain horizontal navigation.
 
 The former top and bottom banners are removed. **Settings** in the rail footer
 is divided into **Global** (build/runtime details and local-processing
-information) and **Workspace** (active identity, language and clearing data).
+information) and **Workspace** (active identity, language, backup export and clearing data).
 A Settings button on workspace selection is available before opening any
 workspace. Language changes keep their existing workspace-save and rollback
 behavior; without an open workspace the choice applies to this app session.
-The active workspace remains visible beside the page title. Clearing data
-requires confirmation and is disabled without a ready workspace containing
+The active workspace remains visible beside the page title. Backup export in
+Settings always targets the open workspace, independently of the highlighted
+catalog entry. It uses the same complete streaming archive as workspace
+selection, with progress, cancellation and result messages in Settings.
+Clearing data requires confirmation and is disabled without a ready workspace containing
 source files, or during a running operation. It removes source files, import
 profiles and analysis/comparison results and resets comparison periods;
 the workspace, warehouse layout and coverage notes remain.
