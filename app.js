@@ -19,6 +19,7 @@
 
   const core = window.OpenSlottingCsv;
   const periods = window.OpenSlottingPeriods;
+  const comparisonSetupCache = periods.createPeriodViewCache();
   const encoding = window.OpenSlottingEncoding;
   const workspaceModel = window.OpenSlottingWorkspace;
   const workspaceArchive = window.OpenSlottingWorkspaceArchive;
@@ -4168,7 +4169,7 @@
 
   function periodSettingsFromControls() {
     const mode = selectedPeriodMode();
-    const weeks = state.result ? periods.detectedCalendarWeeks(state.result.rows) : [];
+    const weeks = comparisonSetupCache.weeks(state.result, state.activeWorkspace && state.activeWorkspace.id);
     const selectedWeekA = weeks.find(function (week) { return week.id === elements.periodAWeek.value; });
     const selectedWeekB = weeks.find(function (week) { return week.id === elements.periodBWeek.value; });
     const customPeriodA = {
@@ -4232,7 +4233,7 @@
 
   function renderPeriodControls() {
     const settings = periods.normalizeSettings(state.periodSettings);
-    const weeks = state.result ? periods.detectedCalendarWeeks(state.result.rows) : [];
+    const weeks = comparisonSetupCache.weeks(state.result, state.activeWorkspace && state.activeWorkspace.id);
     const fallbackB = weeks.length > 0 ? weeks[weeks.length - 1] : null;
     const fallbackA = weeks.length > 1 ? weeks[weeks.length - 2] : fallbackB;
     elements.periodModes.forEach(function (input) {
@@ -4263,12 +4264,12 @@
     });
   }
 
-  function settingsForDetectedCalendarWeeks(settings, rows) {
+  function settingsForDetectedCalendarWeeks(settings, result) {
     const normalized = periods.normalizeSettings(settings);
     if (normalized.mode !== 'weeks') {
       return normalized;
     }
-    const weeks = periods.detectedCalendarWeeks(rows);
+    const weeks = comparisonSetupCache.weeks(result, state.activeWorkspace && state.activeWorkspace.id);
     if (weeks.length === 0) {
       return normalized;
     }
@@ -4278,7 +4279,7 @@
     if (periodMatchesWeek(normalized.periodA) && periodMatchesWeek(normalized.periodB)) {
       return normalized;
     }
-    const defaults = periods.defaultSettings(rows);
+    const defaults = comparisonSetupCache.defaultSettings(result, state.activeWorkspace && state.activeWorkspace.id);
     defaults.expectedWeekdays = normalized.expectedWeekdays;
     return defaults;
   }
@@ -4511,17 +4512,17 @@
   }
 
   function renderComparisonSetup() {
-    const rows = state.result ? state.result.rows : [];
-    const hasDates = rows.some(function (row) { return periods.validDate(row.delivery_date); });
+    const workspaceId = state.activeWorkspace && state.activeWorkspace.id;
+    const hasDates = comparisonSetupCache.hasDates(state.result, workspaceId);
     const ready = Boolean(state.activeWorkspace && state.storageReady && !state.workspaceLoading &&
       !state.files.some(function (file) { return Boolean(file.reading); }));
     renderPeriodControls();
     const coverageA = state.comparison
       ? state.comparison.coverageA
-      : periods.coverageForPeriod(rows, state.periodSettings.periodA, state.periodSettings.expectedWeekdays);
+      : comparisonSetupCache.coverage(state.result, workspaceId, state.periodSettings.periodA, state.periodSettings.expectedWeekdays);
     const coverageB = state.comparison
       ? state.comparison.coverageB
-      : periods.coverageForPeriod(rows, state.periodSettings.periodB, state.periodSettings.expectedWeekdays);
+      : comparisonSetupCache.coverage(state.result, workspaceId, state.periodSettings.periodB, state.periodSettings.expectedWeekdays);
     const hasExpectedWeekdays = state.periodSettings.expectedWeekdays.length > 0;
     elements.periodAStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageA.status : 'unavailable');
     elements.periodBStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageB.status : 'unavailable');
@@ -4917,7 +4918,7 @@
         state.files.some(function (file) { return Boolean(file.reading); })) {
       return;
     }
-    if (!state.result.rows.some(function (row) { return periods.validDate(row.delivery_date); })) {
+    if (!comparisonSetupCache.hasDates(state.result, state.activeWorkspace.id)) {
       showPeriodMessage('comparison_setup_no_dates', 'warning-message');
       return;
     }
@@ -6083,7 +6084,7 @@
     state.analysis = core.enrichAnalysisWithRegistry(state.analysis, state.articleRegistry, { locale: state.language });
     core.prepareArticleSearchProjections(state.analysis.articles, state.language);
     invalidateViewCaches();
-    state.periodSettings = settingsForDetectedCalendarWeeks(state.periodSettings, result.rows);
+    state.periodSettings = settingsForDetectedCalendarWeeks(state.periodSettings, result);
     if (state.comparison) {
       state.comparison = periods.comparePeriods(result.rows, state.periodSettings, core.analyzeRows, result.featureReadiness, state.articleRegistry, { indexRevision: result });
       core.prepareArticleSearchProjections(state.comparison.articles, state.language);
@@ -6374,6 +6375,7 @@
   }
 
   function clearAnalysis(options) {
+    comparisonSetupCache.clear();
     const preserveMappings = Boolean(options && options.preserveMappings);
     state.importProfileMessage = null;
     state.result = null;
@@ -8111,7 +8113,7 @@
         state.files.some(function (file) { return Boolean(file.reading); })) {
       return;
     }
-    state.periodSettings = periods.defaultSettings(state.result.rows);
+    state.periodSettings = comparisonSetupCache.defaultSettings(state.result, state.activeWorkspace.id);
     state.comparison = null;
     invalidateViewCaches();
     state.comparisonPage = 1;

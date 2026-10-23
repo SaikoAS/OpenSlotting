@@ -35,7 +35,7 @@ function fixture(result = null, options = {}) {
   elements.workflowSteps = ['comparison-panel', 'coverage-panel', 'workspace-panel', 'main-menu-panel'].map(target =>
     Object.assign(element(), { dataset: { workflowTarget: target } }));
   const messages = [], saves = [], body = element();
-  const context = vm.createContext({ state, elements, core, periods, document: { body, createElement: () => element() },
+  const context = vm.createContext({ state, elements, core, periods, comparisonSetupCache: periods.createPeriodViewCache(), document: { body, createElement: () => element() },
     translate: key => key, setText: (node, text) => { node.textContent = text; }, formatCalendarDate: value => value,
     coverageText: coverage => coverage.status, invalidateViewCaches() {},
     hasCoverageContent: () => Boolean(state.result), resultHasRetainedData: result => result.rows.length > 0,
@@ -47,7 +47,7 @@ function fixture(result = null, options = {}) {
     persistActiveWorkspace: (...args) => { saves.push(args); return Promise.resolve(); } });
   vm.runInContext('const PAGE_CONFIG = ' + source.match(/const PAGE_CONFIG = ({[\s\S]*?});/)[1] + ';\n' +
     ['selectedPeriodMode', 'calendarWeekPeriod', 'periodSettingsFromControls', 'periodSettingsValid', 'periodSettingsStorable',
-      'populateCalendarWeekSelect', 'renderPeriodControls', 'renderComparisonSetup', 'handlePeriodSettingsChange',
+      'populateCalendarWeekSelect', 'renderPeriodControls', 'settingsForDetectedCalendarWeeks', 'renderComparisonSetup', 'handlePeriodSettingsChange',
       'compareSelectedPeriods', 'renderWorkflow'].map(appFunction).join('\n'), context);
   const start = source.indexOf("  elements.resetPeriods.addEventListener('click'");
   vm.runInContext(source.slice(start, source.indexOf('  elements.periodModes.forEach', start)), context);
@@ -145,4 +145,28 @@ test('undated or issue-only data keeps the page accessible and points to source 
   f.context.compareSelectedPeriods();
   assert.equal(f.state.comparison, null);
   assert.ok(f.messages.includes('comparison_setup_no_dates'));
+});
+
+test('menu reopening and language changes do not scan source rows again', () => {
+  const result = datedResult(); let reads = 0;
+  result.rows = result.rows.map(row => {
+    const date = row.delivery_date;
+    return { ...row, get delivery_date() { reads++; return date; } };
+  });
+  const f = fixture(result);
+  f.state.periodSettings = f.context.settingsForDetectedCalendarWeeks(f.state.periodSettings, result);
+  f.context.renderComparisonSetup();
+  reads = 0;
+  f.context.renderWorkflow('main-menu-panel'); f.context.renderWorkflow('comparison-panel');
+  f.context.renderWorkflow('main-menu-panel'); f.context.renderWorkflow('comparison-panel');
+  assert.equal(reads, 0, 'navigation must reuse detected weeks and both coverage projections');
+  f.state.language = 'de'; f.context.translate = key => 'DE:' + key;
+  f.context.renderWorkflow('comparison-panel');
+  assert.equal(reads, 0, 'localized labels must not invalidate numerical projections');
+  assert.match(f.elements.periodAWeek.children[0].textContent, /^DE:calendar_week_option/);
+  f.elements.periodAName.value = 'Renamed'; f.context.handlePeriodSettingsChange();
+  assert.equal(reads, 0, 'renaming a period does not change coverage');
+  f.elements.expectedWeekdays[0].checked = false; f.context.handlePeriodSettingsChange();
+  assert.ok(reads > 0, 'changed expected weekdays must recompute coverage');
+  reads = 0; f.context.renderWorkflow('comparison-panel'); assert.equal(reads, 0);
 });

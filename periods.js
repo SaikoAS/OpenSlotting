@@ -154,7 +154,10 @@
   }
 
   function defaultSettings(rows) {
-    const weeks = detectedCalendarWeeks(rows);
+    return defaultSettingsForWeeks(detectedCalendarWeeks(rows));
+  }
+
+  function defaultSettingsForWeeks(weeks) {
     const settings = normalizeSettings();
     if (weeks.length === 0) {
       return settings;
@@ -164,6 +167,47 @@
     settings.periodA = periodFromCalendarWeek(periodAWeek);
     settings.periodB = periodFromCalendarWeek(periodBWeek);
     return settings;
+  }
+
+  function createPeriodViewCache() {
+    // Keep only the current workspace/result. UI labels are rendered separately.
+    let current = null;
+    function prepare(result, workspaceId) {
+      const rows = result && Array.isArray(result.rows) ? result.rows : null;
+      const length = rows ? rows.length : 0;
+      if (!current || current.result !== result || current.workspaceId !== workspaceId ||
+          current.rows !== rows || current.length !== length) {
+        current = {
+          result: result, workspaceId: workspaceId, rows: rows, length: length,
+          weeks: detectedCalendarWeeks(rows),
+          hasDates: Boolean(rows && rows.some(function (row) { return row && validDate(row.delivery_date); })),
+          coverage: new Map()
+        };
+      }
+      return current;
+    }
+    return Object.freeze({
+      weeks: function (result, workspaceId) { return prepare(result, workspaceId).weeks; },
+      hasDates: function (result, workspaceId) { return prepare(result, workspaceId).hasDates; },
+      defaultSettings: function (result, workspaceId) { return defaultSettingsForWeeks(prepare(result, workspaceId).weeks); },
+      coverage: function (result, workspaceId, period, expectedWeekdays) {
+        const entry = prepare(result, workspaceId);
+        const normalized = normalizeSettings({ periodA: period, expectedWeekdays: expectedWeekdays });
+        const key = JSON.stringify([normalized.periodA.start, normalized.periodA.end, normalized.expectedWeekdays]);
+        if (!entry.coverage.has(key)) {
+          const coverage = coverageForPeriod(entry.rows, normalized.periodA, normalized.expectedWeekdays);
+          // Bounded LRU: retain the recent ranges, including A and B, without
+          // accumulating a history of every period the user has tried.
+          if (entry.coverage.size >= 8) entry.coverage.delete(entry.coverage.keys().next().value);
+          entry.coverage.set(key, coverage);
+        }
+        const value = entry.coverage.get(key);
+        entry.coverage.delete(key);
+        entry.coverage.set(key, value);
+        return value;
+      },
+      clear: function () { current = null; }
+    });
   }
 
   function dateRange(start, end, expectedWeekdays) {
@@ -741,6 +785,7 @@
     periodFromCalendarWeek: periodFromCalendarWeek,
     normalizeSettings: normalizeSettings,
     defaultSettings: defaultSettings,
+    createPeriodViewCache: createPeriodViewCache,
     rowsForPeriod: rowsForPeriod,
     coverageForPeriod: coverageForPeriod,
     COMPARISON_INDEX_LIMITS: Object.freeze({ minRows: COMPARISON_INDEX_MIN_ROWS, maxRows: COMPARISON_INDEX_MAX_ROWS, maxDates: COMPARISON_INDEX_MAX_DATES }),

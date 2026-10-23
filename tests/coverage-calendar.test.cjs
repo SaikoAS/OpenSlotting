@@ -38,7 +38,7 @@ function coverageView(result, notes = []) {
     getExpectedWeekdays: () => state.periodSettings.expectedWeekdays, isLocked: () => false });
   let renderedData, renders = 0;
   const translations = [];
-  const context = vm.createContext({ state, elements, periods, core, coverageCalendar,
+  const context = vm.createContext({ state, elements, periods, core, coverageCalendar, comparisonSetupCache: periods.createPeriodViewCache(),
     document: { createElement: element }, setText: (node, text) => { node.textContent = text; },
     translate: (key, values) => { translations.push({ key, values }); return key; },
     renderCoverageSources: data => { renderedData = data; renders++; }, renderCoverageDates() {}, renderCoverageDrilldown() {}, renderPeriodControls() {},

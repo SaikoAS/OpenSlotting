@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Cache comparison setup projections per workspace and analysis result. Reuse detected weeks and bounded recent period coverage on navigation and label changes; refresh coverage for changed ranges/weekdays and discard projections for new or cleared data.
+
 - Keep Comparison navigation available before a comparison exists and move calendar-week/custom period selection onto that page, with prerequisite guidance, expected-weekday options and controls locked during workspace operations.
 
 - Add complete backup export for the open workspace in Settings, sharing the streaming archive flow with workspace selection and showing progress, cancellation and results in place.
