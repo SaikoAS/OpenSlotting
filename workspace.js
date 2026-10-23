@@ -8,7 +8,7 @@
 }(typeof globalThis !== 'undefined' ? globalThis : this, function (warehouseModel) {
   'use strict';
 
-  const WORKSPACE_SCHEMA_VERSION = 22;
+  const WORKSPACE_SCHEMA_VERSION = 23;
   const BACKUP_FORMAT = 'openslotting-workspace';
   const BACKUP_FORMAT_VERSION = 1;
   const MAX_WORKSPACE_NAME_LENGTH = 120;
@@ -958,6 +958,22 @@
     return { name: value.name, updatedAt: value.updatedAt };
   }
 
+  function normalizeImportTags(value) {
+    if (value === null || value === undefined) return [];
+    if (!Array.isArray(value) || value.length > 20) validationError('invalid_import_tags', 'Use at most 20 tags per import.');
+    const seen = new Set();
+    return value.map(function (tag) {
+      if (typeof tag !== 'string' || !tag.trim() || tag.trim().length > 40 || /[\r\n\t]/.test(tag)) {
+        validationError('invalid_import_tags', 'Tags must contain 1 to 40 characters.');
+      }
+      return tag.trim();
+    }).filter(function (tag) {
+      const key = tag.toLocaleLowerCase('de-DE');
+      if (seen.has(key)) return false;
+      seen.add(key); return true;
+    });
+  }
+
   function captureFile(file, options) {
     if (!file || typeof file !== 'object') {
       validationError('invalid_source_file', 'Workspace source file is invalid.');
@@ -1039,6 +1055,7 @@
       customFieldMapping: customFieldMapping,
       appliedImportProfile: normalizeAppliedImportProfile(file.appliedImportProfile),
       linkedSource: normalizeLinkedSource(file.linkedSource),
+      tags: normalizeImportTags(file.tags),
       confirmedCustomFieldMapping: confirmedCustomFieldMapping,
       confirmedMapping: confirmedMapping,
       columnCatalog: columnCatalog,
@@ -1368,6 +1385,7 @@
         customFieldMapping: file.customFieldMapping,
         appliedImportProfile: normalizeAppliedImportProfile(file.appliedImportProfile),
         linkedSource: normalizeLinkedSource(file.linkedSource),
+        tags: normalizeImportTags(file.tags),
         confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
         columnCatalog: normalizeColumnCatalog(file.columnCatalog, file.id, settings),
@@ -1619,6 +1637,7 @@
     normalizeCustomFieldMapping: normalizeCustomFieldMapping,
     normalizeImportProfiles: normalizeImportProfiles,
     normalizeLinkedSource: normalizeLinkedSource,
+    normalizeImportTags: normalizeImportTags,
     createImportProfile: createImportProfile,
     normalizeAppliedImportProfile: normalizeAppliedImportProfile,
     normalizeCoverageNotes: normalizeCoverageNotes,

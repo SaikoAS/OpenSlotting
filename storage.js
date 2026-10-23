@@ -291,6 +291,7 @@
         sourceRules: file.sourceRules,
         appliedImportProfile: file.appliedImportProfile,
         linkedSource: file.linkedSource,
+        tags: file.tags,
         customFieldMapping: file.customFieldMapping,
         confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
@@ -474,6 +475,7 @@
           sourceRules: source.sourceRules,
           appliedImportProfile: source.appliedImportProfile,
           linkedSource: source.linkedSource,
+          tags: source.tags,
           customFieldMapping: source.customFieldMapping,
           confirmedCustomFieldMapping: source.confirmedCustomFieldMapping,
           confirmedMapping: source.confirmedMapping,
@@ -830,6 +832,21 @@
       });
     }
 
+    function updateSourceTags(id, sourceId, tags, options) {
+      const normalized = workspaceModel.normalizeImportTags(tags), settings = options || {};
+      return transact(['workspaces', 'workspaceSources'], 'readwrite', async function (stores) {
+        const metadata = await requestPromise(stores.workspaces.get(id));
+        if (!metadata) throw storageError('workspace_not_found');
+        if (settings.expectedRevision !== storageRevisionOf(metadata)) throw storageError('workspace_conflict');
+        const source = await requestPromise(stores.workspaceSources.get(sourceStorageKey(id, sourceId)));
+        if (!source || source.workspaceId !== id) throw storageError('invalid_source_file');
+        stores.workspaceSources.put(Object.assign({}, source, { tags: normalized }));
+        const updated = Object.assign({}, metadata, { updatedAt: settings.now || new Date().toISOString(), storageRevision: storageRevisionOf(metadata) + 1 });
+        stores.workspaces.put(updated);
+        return updated;
+      });
+    }
+
     function updateWorkspaceSummary(id, summary, options) {
       const workspaceId = String(id || '');
       const settings = options || {};
@@ -1140,6 +1157,7 @@
       createWorkspace: createWorkspace,
       updateWorkspace: updateWorkspace,
       listSourceLinks: listSourceLinks,
+      updateSourceTags: updateSourceTags,
       replaceWorkspace: replaceWorkspace,
       loadWorkspace: loadWorkspace,
       loadWorkspaceRaw: loadWorkspaceRaw,

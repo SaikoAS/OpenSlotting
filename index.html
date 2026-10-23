@@ -318,32 +318,26 @@
 
       <div id="import-page" class="app-page hidden">
 
-      <section id="import-panel" class="panel">
-        <div class="panel-heading">
-          <div>
-            <p class="step" data-i18n="step_1">Step 1</p>
-            <h2 data-i18n="select_file_title">Select CSV files</h2>
-          </div>
-          <span class="hint" data-i18n="local_hint">No data leaves your browser.</span>
-        </div>
-        <label class="file-picker" for="file-input">
+      <section id="import-panel" class="panel import-dashboard">
+        <div class="import-toolbar">
+        <label class="file-picker" for="file-input" title="UTF-8, UTF-16, or Windows-1252 with semicolon delimiter" data-i18n-title="file_format_hint">
           <span class="file-picker-title" data-i18n="open_csv">Open CSV files</span>
-          <span class="file-picker-copy" data-i18n="file_format_hint">UTF-8, UTF-16, or Windows-1252 with semicolon delimiter</span>
           <input id="file-input" type="file" accept=".csv,text/csv" multiple disabled>
         </label>
-        <section class="linked-import" aria-labelledby="linked-import-title">
-          <h3 id="linked-import-title" data-i18n="linked_pick">Link CSV files</h3>
-          <p id="linked-hint" class="table-note" data-i18n="linked_help">Update replaces the imported data from that file and keeps its mappings and rules. Read permission may need to be renewed.</p>
           <div class="linked-import-actions">
             <button id="linked-pick" type="button" class="secondary-button" data-i18n="linked_pick" disabled>Link CSV files</button>
             <button id="linked-all" type="button" class="secondary-button" data-i18n="linked_all" disabled>Update all linked files</button>
             <button id="linked-cancel" type="button" class="secondary-button hidden" data-i18n="workspace_cancel_loading">Cancel loading</button>
           </div>
+          <span class="import-local-hint" data-i18n="local_hint">No data leaves your browser.</span>
+        </div>
+        <div class="import-dashboard-status">
+          <p id="linked-hint" class="table-note" data-i18n="linked_help">Update replaces the imported data from that file and keeps its mappings and rules. Read permission may need to be renewed.</p>
           <div id="linked-load-progress" class="workspace-load-progress hidden" aria-live="polite"><div id="linked-load-label" class="status-text"></div><progress id="linked-progress" max="1"></progress></div>
           <p id="linked-message" class="linked-message hidden" role="status"></p>
-        </section>
         <p id="source-status" class="status-text" role="status" data-i18n="no_file_selected">No file selected yet.</p>
-        <div id="imported-files" class="imported-files hidden" aria-live="polite"></div>
+        </div>
+        <div id="imported-files" class="imported-files"></div>
       </section>
 
       </div>
@@ -775,6 +769,7 @@
     <script src="src/ui/shared/windowed-dom.js"></script>
     <script src="src/application/import-profile-batch.js"></script>
     <script src="src/application/linked-sources.js"></script>
+    <script src="src/ui/import-manager.js"></script>
     <script src="src/ui/import-profile-panel.js"></script>
     <script src="src/ui/coverage-calendar.js"></script>
     <script src="src/application/workspace-archive.js"></script>

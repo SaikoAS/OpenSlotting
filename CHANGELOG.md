@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Replace the import card list with a fitted import desk, searchable/filterable sortable table, 50-file pages and selected-file actions. Add custom per-source tags with bounded metadata-only saves and portable backup support in workspace schema 23.
+
 - Fix linked CSV reconnection retaining the previous filename. Refresh source names, unique display labels and row provenance from the selected file while preserving source identity and mappings.
 
 - Add linked CSV import, reconnect/unlink and single/batch refresh through read-only file handles. Prepare replacements and derived analysis before an atomic save, retaining old sources on cancellation or failure. Persist capabilities separately in IndexedDB v5; workspace schema 22 stores portable link metadata only, and restores require reconnecting local files.

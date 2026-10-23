@@ -318,7 +318,7 @@
       workspace_conflict: 'This workspace changed in another browser tab. Reopen it before saving more changes.',
       storage_failed: 'The local browser storage operation failed.',
       step_1: 'Step 1',
-      select_file_title: 'Select CSV files',
+      select_file_title: 'Import manager',
       local_hint: 'No data leaves your browser.',
       open_csv: 'Open CSV files',
       file_format_hint: 'UTF-8, UTF-16, or Windows-1252 with semicolon delimiter',
@@ -1083,7 +1083,7 @@
       workspace_conflict: 'Dieser Arbeitsbereich wurde in einem anderen Browser-Tab geändert. Öffnen Sie ihn vor weiteren Änderungen erneut.',
       storage_failed: 'Der lokale Browser-Speichervorgang ist fehlgeschlagen.',
       step_1: 'Schritt 1',
-      select_file_title: 'CSV-Dateien auswählen',
+      select_file_title: 'Importverwaltung',
       local_hint: 'Keine Daten verlassen den Browser.',
       open_csv: 'CSV-Dateien öffnen',
       file_format_hint: 'UTF-8, UTF-16 oder Windows-1252 mit Semikolon-Trenner',
@@ -1629,6 +1629,7 @@
   let warehouseAnalysis = null;
   let warehouseWalk = null;
   let importProfilePanel = null;
+  let importManager = null;
   let coverageCalendar = null;
   let workspaceFrameRequest = null;
 
@@ -2283,7 +2284,7 @@
     const metadataOnly = Boolean(options && options.metadataOnly);
     let snapshot;
     try {
-      snapshot = metadataOnly
+      snapshot = options && options.sourceTags ? { id: state.activeWorkspace.id, name: state.activeWorkspace.name } : metadataOnly
         ? {
           id: state.activeWorkspace.id,
           name: state.activeWorkspace.name,
@@ -2326,6 +2327,9 @@
         const saveOptions = {
           expectedRevision: current ? current.storageRevision : null
         };
+        if (options && options.sourceTags) {
+          return workspaceRepository.updateSourceTags(snapshot.id, options.sourceTags.id, options.sourceTags.tags, saveOptions);
+        }
         if (metadataOnly) {
           return workspaceRepository.updateWorkspaceSummary(snapshot.id, snapshot, saveOptions);
         }
@@ -2888,63 +2892,13 @@
   }
 
   function renderImportedFiles() {
-    elements.importedFiles.replaceChildren();
-    elements.importedFiles.classList.toggle('hidden', state.files.length === 0);
-    if (state.files.length === 0) return;
-    const heading = document.createElement('div');
-    heading.className = 'imported-files-heading';
-    const title = document.createElement('strong');
-    setText(title, translate('import_file_count', { count: state.files.length }));
-    heading.appendChild(title);
-    elements.importedFiles.appendChild(heading);
-    const list = document.createElement('ul');
-    list.className = 'imported-file-list';
-    state.files.forEach(function (file) {
-      const item = document.createElement('li');
-      item.className = 'imported-file-item' + (file.errorKey || (file.result && file.result.blocking) ? ' blocked' : '');
-      const copy = document.createElement('div');
-      copy.className = 'imported-file-copy';
-      const name = document.createElement('strong');
-      setText(name, file.label);
-      const meta = document.createElement('span');
-      setText(meta, file.parsed
-        ? translate('mapping_file_rows', { count: file.dataRowCount }) + ' · ' + translate(mappingStatusKey(file))
-        : translate(mappingStatusKey(file)));
-      copy.appendChild(name);
-      copy.appendChild(meta);
-      if (file.linkedSource) {
-        const status = document.createElement('span'); status.className = 'linked-file-status';
-        const time = new Intl.DateTimeFormat(state.language === 'de' ? 'de-DE' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(file.linkedSource.updatedAt));
-        setText(status, translate('linked_status', { file: file.linkedSource.name, time: time }) +
-          (linkedSourceHandles.has(file.id) ? '' : ' · ' + translate('linked_reconnect_hint')));
-        copy.appendChild(status);
-      }
-      const actions = document.createElement('div'); actions.className = 'imported-file-actions';
-      const addAction = function (action, label) {
-        const button = document.createElement('button'); button.type = 'button'; button.className = 'secondary-button';
-        button.dataset.linkedAction = action; button.dataset.sourceId = file.id;
-        setText(button, translate(label)); button.setAttribute('aria-label', translate(label) + ': ' + file.label);
-        button.disabled = state.workspaceLoading || !state.storageReady ||
-          (action !== 'unlink' && !linkedFilesSupported()) || (action === 'update' && !linkedSourceHandles.has(file.id));
-        actions.appendChild(button);
-      };
-      if (file.linkedSource) addAction('update', 'linked_update');
-      addAction('connect', file.linkedSource ? 'linked_reconnect' : 'linked_connect');
-      if (file.linkedSource) addAction('unlink', 'linked_unlink');
+    if (importManager) importManager.render();
+  }
 
-      const remove = document.createElement('button');
-      remove.type = 'button';
-      remove.className = 'text-button';
-      remove.dataset.removeFileId = file.id;
-      remove.disabled = state.workspaceLoading || Boolean(file.reading);
-      setText(remove, translate('remove_file'));
-      remove.setAttribute('aria-label', translate('remove_file_label', { file: file.label }));
-      item.appendChild(copy);
-      actions.appendChild(remove);
-      item.appendChild(actions);
-      list.appendChild(item);
-    });
-    elements.importedFiles.appendChild(list);
+  function openManagedImport(id) {
+    elements.mappingSourceSearch.value = '';
+    state.selectedMappingFileId = id; state.mappingView = 'editor';
+    renderMapping(); renderWorkflow('mapping-panel'); openMappingDrawer(null);
   }
 
   function renderMappingSourceList() {
@@ -6404,6 +6358,7 @@
       preparationRules: file.preparationRules, sourceRules: file.sourceRules, columnCatalog: file.columnCatalog,
       appliedImportProfile: file.appliedImportProfile,
       linkedSource: file.linkedSource,
+      tags: file.tags,
       dataRowCount: file.dataRowCount, hasParseErrors: file.hasParseErrors, result: null
     };
   }
@@ -6522,6 +6477,7 @@
   }
 
   function renderLinkedSourceControls() {
+    if (importManager) importManager.render();
     const ready = Boolean(state.activeWorkspace && state.storageReady && !state.workspaceLoading &&
       !state.files.some(function (file) { return file.reading; }));
     const supported = linkedFilesSupported();
@@ -6638,6 +6594,25 @@
         updateWorkspaceLoadProgress(null); renderWorkspaceControls(); renderImportedFiles();
       }
     }
+  }
+
+  async function saveImportTags(id, tags) {
+    if (!state.activeWorkspace || !state.storageReady || state.workspaceLoading || state.files.some(function (file) { return file.reading; })) throw new Error('import-tags-locked');
+    const file = state.files.find(function (file) { return file.id === id; });
+    if (!file) throw new Error('import-missing');
+    const proposed = workspaceModel.normalizeImportTags(tags), workspaceId = state.activeWorkspace.id;
+    let committed = false;
+    state.workspaceLoading = true; state.workspaceLoadCancellable = false; renderWorkspaceControls();
+    try {
+      try {
+        await persistActiveWorkspace(undefined, { allowWhileLoading: true, sourceTags: { id: id, tags: proposed },
+          onCommitted: function () {
+            committed = true;
+            if (state.activeWorkspace && state.activeWorkspace.id === workspaceId) file.tags = proposed;
+          } });
+      } catch (error) { if (!committed) throw error; }
+      if (!committed) throw new Error('import-tags-not-saved');
+    } finally { state.workspaceLoading = false; renderWorkspaceControls(); }
   }
 
   async function handleFileChange() {
@@ -8824,6 +8799,15 @@
     formatQuantity: formatQuantity, openArticle: openArticleDetail,
     canCoverage: hasCoverageContent,
     openCoverage: function () { renderWorkflow('coverage-panel'); }
+  });
+  importManager = window.OpenSlottingImportManager.create({
+    root: elements.importedFiles, model: workspaceModel,
+    getFiles: function () { return state.files; }, getWorkspaceId: function () { return state.activeWorkspace && state.activeWorkspace.id; },
+    getLanguage: function () { return state.language; }, hasHandle: function (id) { return linkedSourceHandles.has(id); },
+    linkSupported: linkedFilesSupported,
+    isLocked: function () { return !state.activeWorkspace || !state.storageReady || state.workspaceLoading || state.files.some(function (file) { return file.reading; }); },
+    saveTags: saveImportTags,
+    openEditor: openManagedImport
   });
   importProfilePanel = window.OpenSlottingImportProfilePanel.create({
     root: document.getElementById('import-profile-batch-root'), model: workspaceModel,

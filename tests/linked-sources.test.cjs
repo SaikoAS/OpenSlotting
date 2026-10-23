@@ -29,7 +29,8 @@ function options(files, operations) {
     async commit(prepared, links) { commits.push({ prepared, links }); } };
 }
 test('a linked update replaces only its source, removes deleted rows and preserves provenance and old objects', async () => {
-  const original = file(initial), other = file(initial, 'source-other'), before = structuredClone(original);
+  const original = file(initial), other = file(initial, 'source-other'); original.tags = ['Nord','August'];
+  const before = structuredClone(original);
   const opts = options([original, other], [{ id: original.id, handle: handle(changed) }]);
   const prepared = await linked.refresh(opts);
   assert.equal(opts.commits.length, 1); assert.equal(prepared.files.length, 2);
@@ -39,6 +40,7 @@ test('a linked update replaces only its source, removes deleted rows and preserv
   assert.equal(prepared.result.rows.filter(row => row.source_file_id === other.id).length, 2);
   assert.ok(prepared.files[0].linkedSource.updatedAt);
   assert.deepEqual(prepared.files[0].mapping, before.mapping);
+  assert.deepEqual(prepared.files[0].tags, before.tags);
 });
 test('reordered columns retain mapped fields, source rules excluded from profiles, and transformation settings', async () => {
   const original = file(initial); original.sourceRules = [{ type: 'exclude-equals', sourcePosition: 0, value: 'SYN-B', includeInProfile: false, name: 'Rule', description: 'Synthetic exclusion' }];
@@ -98,7 +100,7 @@ test('read permissions are requested without write access and denial/missing han
 test('schema-21 workspaces gain no invented links and link metadata is normalized without capabilities', () => {
   const record = workspace.createWorkspace('Synthetic'); record.schemaVersion = 21; record.files = [file(initial)];
   const migrated = workspace.migrateWorkspace(record);
-  assert.equal(migrated.schemaVersion, 22); assert.equal(migrated.files[0].linkedSource, null);
+  assert.equal(migrated.schemaVersion, workspace.WORKSPACE_SCHEMA_VERSION); assert.equal(migrated.files[0].linkedSource, null);
   const metadata = workspace.normalizeLinkedSource({ name: 'linked.csv', updatedAt: '2026-10-23T10:00:00.000Z', handle: 'not portable' });
   assert.deepEqual(Object.keys(metadata), ['name', 'updatedAt']);
   assert.throws(() => workspace.normalizeLinkedSource({ name: 'linked.csv', updatedAt: 'invalid' }), { code: 'invalid_linked_source' });

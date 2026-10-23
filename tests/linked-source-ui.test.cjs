@@ -126,7 +126,7 @@ test('source removal and its buttons are locked during linked preparation', () =
   const f = fixture(), remove = { disabled: false };
   const node = () => ({ classList: { toggle() {} } });
   Object.assign(f.context, {
-    linkedImportMessage: null, setText() {}, translate: value => value,
+    importManager: null, linkedImportMessage: null, setText() {}, translate: value => value,
     elements: { linkedPick: node(), linkedAll: node(), linkedHint: node(), linkedCancel: node(), linkedMessage: node(),
       importedFiles: { querySelectorAll: selector => selector.includes('remove-file-id') ? [remove] : [] } }
   });
