@@ -30,6 +30,7 @@
   const linkedSources = window.OpenSlottingLinkedSources;
   let linkedSourceHandles = new Map();
   let linkedImportMessage = null;
+  let importConflictCancel = null;
   const workspacePreparation = window.OpenSlottingWorkspacePreparation;
   const TRANSLATIONS = {
     en: {
@@ -96,6 +97,18 @@
       nav_collapse: 'Collapse sidebar',
       settings_title: 'Settings',
       linked_pick: 'Link CSV files',
+      import_remove_confirm: 'Remove "{{file}}" and its imported rows from this workspace?',
+      import_conflict_title: 'A file with this name already exists',
+      import_conflict_copy: 'Choose how to handle this file. No changes from this selection are saved until every name conflict is resolved.',
+      import_conflict_target: 'Existing import to replace',
+      import_conflict_replace: 'Replace existing file',
+      import_conflict_keep: 'Import anyway',
+      import_conflict_cancel: 'Cancel import',
+      import_conflict_hint: 'Replace keeps the selected import’s mappings, rules and tags. Import anyway creates another source; identical file names are marked (1/2), (2/2), etc. Cancelling discards this entire file selection.',
+      import_conflict_snapshot: 'Replacing a linked source through normal CSV import also removes its previous file link.',
+      import_saved: 'Imports saved. {{count}} file(s) processed. Review the columns and analyze the imports.',
+      import_reading: 'Reading file: {{file}}',
+      import_cancelled: 'Import cancelled. Previous data was retained.',
       linked_all: 'Update all linked files',
       linked_update: 'Update',
       linked_reconnect: 'Reconnect file',
@@ -861,6 +874,18 @@
       nav_collapse: 'Seitenleiste einklappen',
       settings_title: 'Einstellungen',
       linked_pick: 'CSV-Dateien verknüpfen',
+      import_remove_confirm: '„{{file}}“ und die zugehörigen importierten Zeilen aus diesem Workspace entfernen?',
+      import_conflict_title: 'Eine Datei mit diesem Namen ist bereits vorhanden',
+      import_conflict_copy: 'Bitte auswählen, wie mit dieser Datei verfahren werden soll. Änderungen aus dieser Dateiauswahl werden erst gespeichert, wenn alle Namenskonflikte geklärt sind.',
+      import_conflict_target: 'Vorhandener Import zum Ersetzen',
+      import_conflict_replace: 'Vorhandene Datei ersetzen',
+      import_conflict_keep: 'Trotzdem importieren',
+      import_conflict_cancel: 'Import abbrechen',
+      import_conflict_hint: 'Ersetzen erhält Zuordnungen, Regeln und Tags des ausgewählten Imports. Trotzdem importieren legt eine weitere Quelle an; identische Dateinamen erhalten (1/2), (2/2) usw. Abbrechen verwirft die gesamte Dateiauswahl.',
+      import_conflict_snapshot: 'Wird eine verknüpfte Quelle durch normalen CSV-Import ersetzt, wird ihre bisherige Dateiverknüpfung gelöst.',
+      import_saved: 'Importe gespeichert. {{count}} Datei(en) verarbeitet. Quellspalten prüfen und die Importe analysieren.',
+      import_reading: 'Datei wird eingelesen: {{file}}',
+      import_cancelled: 'Import abgebrochen. Die bisherigen Daten bleiben erhalten.',
       linked_all: 'Alle verknüpften Dateien aktualisieren',
       linked_update: 'Aktualisieren',
       linked_reconnect: 'Datei neu verbinden',
@@ -3101,8 +3126,11 @@
 
   function removeImportedFile(fileId) {
     if (state.workspaceLoading || state.files.some(function (file) { return Boolean(file.reading); })) return;
+    const target = state.files.find(function (file) { return file.id === fileId; });
+    if (!target || !window.confirm(translate('import_remove_confirm', { file: target.label }))) return;
     clearAnalysis();
     state.files = state.files.filter(function (file) { return file.id !== fileId; });
+    linkedSourceHandles.delete(fileId);
     if (state.selectedMappingFileId === fileId) state.selectedMappingFileId = null;
     const relabeled = core.assignSourceFileLabels(state.files);
     relabeled.forEach(function (source, index) {
@@ -6495,9 +6523,28 @@
     elements.importedFiles.querySelectorAll('button[data-remove-file-id]').forEach(function (button) { button.disabled = !ready; });
   }
 
-  async function runLinkedImport(action, sourceId) {
+  function requestImportConflict(incoming, matches) {
+    const dialog = document.getElementById('import-conflict-dialog'), select = document.getElementById('import-conflict-target');
+    setText(document.getElementById('import-conflict-filename'), incoming.name);
+    setText(document.getElementById('import-conflict-hint'), translate('import_conflict_hint') +
+      (incoming.linked === false && matches.some(function (file) { return file.linkedSource; }) ? ' ' + translate('import_conflict_snapshot') : ''));
+    select.replaceChildren();
+    matches.forEach(function (file) { addOption(select, file.id, file.label + (file.dataRowCount ? ' · ' + translate('mapping_file_rows', { count: file.dataRowCount }) : '')); });
+    dialog.returnValue = '';
+    return new Promise(function (resolve) {
+      const cancel = function () { if (dialog.open) dialog.close('cancel'); };
+      importConflictCancel = cancel;
+      dialog.addEventListener('close', function () {
+        if (importConflictCancel === cancel) importConflictCancel = null;
+        resolve({ action: dialog.returnValue === 'replace' ? 'replace' : dialog.returnValue === 'keep' ? 'keep' : 'cancel', id: select.value });
+      }, { once: true });
+      dialog.showModal();
+    });
+  }
+
+  async function runLinkedImport(action, sourceId, selectedFiles) {
     if (!state.activeWorkspace || !state.storageReady || state.workspaceLoading ||
-        state.files.some(function (file) { return file.reading; }) || (action !== 'unlink' && !linkedFilesSupported())) return;
+        state.files.some(function (file) { return file.reading; }) || (action !== 'unlink' && action !== 'snapshot' && !linkedFilesSupported())) return;
     const workspaceId = state.activeWorkspace.id, revision = ++workspaceLoadRevision;
     const originalFiles = state.files, hadAnalysis = Boolean(state.analysis);
     let currentFile = null;
@@ -6533,15 +6580,22 @@
         setLinkedMessage('linked_unlinked'); return;
       }
       let operations;
-      if (action === 'pick' || action === 'connect') {
+      if (action === 'snapshot') {
+        const incoming = selectedFiles.map(function (file) { return { name: file.name, linked: false, handle: { name: file.name, getFile: async function () { return file; } } }; });
+        operations = await linkedSources.planImports(originalFiles, incoming, { check: check, resolve: requestImportConflict });
+      } else if (action === 'pick' || action === 'connect') {
         const handles = await window.showOpenFilePicker({ multiple: action === 'pick', types: [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }] });
         check();
-        operations = [];
-        for (const handle of handles) {
-          for (const [id, existing] of linkedSourceHandles) {
-            if (id !== sourceId && await handle.isSameEntry(existing)) throw workspaceLoadError('linked_already');
+        if (action === 'pick') {
+          operations = await linkedSources.planImports(originalFiles, handles.map(function (handle) { return { name: handle.name, handle: handle }; }), { check: check, resolve: requestImportConflict });
+        } else {
+          operations = [];
+          for (const handle of handles) {
+            for (const [id, existing] of linkedSourceHandles) {
+              if (id !== sourceId && await handle.isSameEntry(existing)) throw workspaceLoadError('linked_already');
+            }
+            operations.push({ id: sourceId, handle: handle, create: false });
           }
-          operations.push({ id: sourceId || workspaceModel.createId('source'), handle: handle, create: action === 'pick' });
         }
       } else {
         const targets = originalFiles.filter(function (file) { return sourceId ? file.id === sourceId : Boolean(file.linkedSource); });
@@ -6552,14 +6606,16 @@
       for (const operation of operations) {
         const source = originalFiles.find(function (file) { return file.id === operation.id; });
         currentFile = source ? source.label : operation.handle && operation.handle.name;
-        await linkedSources.requestRead(operation.handle); check();
+        if (operation.linked !== false) await linkedSources.requestRead(operation.handle);
+        check();
       }
       let reading = 0;
       updateWorkspaceLoadProgress({ phase: 'file', current: 0, total: operations.length, file: currentFile }, state.activeWorkspace.name);
       await linkedSources.refresh({ files: originalFiles, operations: operations, customFields: state.customFields,
-        analyzed: hadAnalysis && action !== 'pick', isCurrent: current,
+        analyzed: hadAnalysis && action !== 'pick' && action !== 'snapshot', isCurrent: current,
+        allowInvalidNew: action === 'snapshot', finalize: action === 'pick' || action === 'snapshot' ? linkedSources.finalizeImports : null,
         onFile: function (file) {
-          check(); currentFile = file; setLinkedMessage('linked_reading', { file: file });
+          check(); currentFile = file; setLinkedMessage(action === 'snapshot' ? 'import_reading' : 'linked_reading', { file: file });
           updateWorkspaceLoadProgress({ phase: 'file', current: ++reading, total: operations.length, file: file }, state.activeWorkspace.name);
         },
         profile: async function (candidate) {
@@ -6580,11 +6636,11 @@
             return workspacePreparation.analyzeFiles(files, state.language, state.customFields);
           }
         }, commit: commit });
-      check(); setLinkedMessage(action === 'pick' ? 'linked_added' : 'linked_done', { count: operations.length });
+      check(); setLinkedMessage(action === 'snapshot' ? 'import_saved' : action === 'pick' ? 'linked_added' : 'linked_done', { count: operations.length });
     } catch (error) {
       if (current()) {
         const key = error && (error.code || error.translationKey);
-        setLinkedMessage(error && (error.name === 'AbortError' || key === 'workspace_load_cancelled') ? 'linked_cancelled'
+        setLinkedMessage(error && (error.name === 'AbortError' || key === 'workspace_load_cancelled') ? (action === 'snapshot' || action === 'pick' ? 'import_cancelled' : 'linked_cancelled')
           : error && error.name === 'NotAllowedError' ? 'linked_permission' : error && error.name === 'NotFoundError' ? 'linked_missing'
             : key && TRANSLATIONS.en[key] ? key : 'linked_failed', { file: error && error.file || currentFile }, true);
       }
@@ -6624,109 +6680,8 @@
     if (selectedFiles.length === 0) {
       return;
     }
-    const selectionVersion = state.fileSelectionVersion + 1;
-    state.fileSelectionVersion = selectionVersion;
-    clearAnalysis({ preserveMappings: true });
-    elements.articleFilter.value = '';
-    elements.analyzeButton.disabled = true;
-    showMappingMessage('');
-
-    const descriptors = state.files.map(function (file) {
-      return {
-        id: file.id,
-        name: file.name,
-        size: file.size,
-        lastModified: file.lastModified
-      };
-    }).concat(selectedFiles.map(function (file) {
-      return {
-        id: workspaceModel.createId('source'),
-        name: file.name,
-        size: file.size,
-        lastModified: file.lastModified
-      };
-    }));
-    const labeled = core.assignSourceFileLabels(descriptors);
-    state.files.forEach(function (file, index) {
-      file.label = labeled[index].label;
-      refreshColumnCatalogOwnership(file);
-    });
-    const newEntries = labeled.slice(state.files.length).map(function (source, index) {
-      return {
-        id: source.id,
-        name: source.name,
-        label: source.label,
-        size: source.size,
-        lastModified: source.lastModified,
-        browserFile: selectedFiles[index],
-        buffer: null,
-        reading: true,
-        errorKey: null,
-        encodingMode: 'auto',
-        activeEncoding: null,
-        detectedEncoding: null,
-        content: null,
-        contentFingerprint: null,
-        parsed: null,
-        headers: [],
-        mapping: {},
-        preparationRules: {},
-        sourceRules: [],
-        customFieldMapping: {},
-        confirmedMapping: null,
-        columnCatalog: [],
-        dataRowCount: 0,
-        hasParseErrors: false,
-        result: null,
-        sourceType: workspaceModel.DEFAULT_SOURCE_TYPE
-      };
-    });
-    state.files = state.files.concat(newEntries);
-    setSourceStatus('reading_files', { count: newEntries.length });
-    elements.mappingPanel.classList.remove('hidden');
-    renderMapping();
-    renderWorkspaceControls();
-
-    for (const file of newEntries) {
-      try {
-        file.buffer = await readFileBuffer(file.browserFile);
-        if (selectionVersion !== state.fileSelectionVersion) {
-          return;
-        }
-        try {
-          const prepared = await runWorkspaceWorker(null, state.language, workspaceLoadRevision, file.label, {
-            profileFile: calculationFile(file)
-          });
-          if (selectionVersion !== state.fileSelectionVersion || !state.files.includes(file)) return;
-          Object.assign(file, prepared.file);
-        } catch (error) {
-          if (!error || error.code !== 'worker_unavailable') throw error;
-          decodeFileEntry(file, { streaming: true });
-        }
-      } catch (error) {
-        file.errorKey = error && error.translationKey ? error.translationKey : 'file_read_error';
-      } finally {
-        file.reading = false;
-      }
-    }
-
-    if (selectionVersion !== state.fileSelectionVersion) {
-      renderWorkspaceControls();
-      return;
-    }
-    state.files.forEach(function (file) {
-      if (file.parsed && !file.errorKey) {
-        file.content = null;
-      }
-    });
-    renderMapping();
-    updateSourceStatus();
-    const hasPreparedFile = state.files.some(function (file) { return Boolean(file.parsed); });
-    elements.analyzeButton.disabled = !hasPreparedFile;
-    showMappingMessage(hasPreparedFile ? '' : translate('no_prepared_files'));
-    elements.fileInput.value = '';
-    renderWorkspaceControls();
-    persistActiveWorkspace().catch(function () {});
+    try { await runLinkedImport('snapshot', null, selectedFiles); }
+    finally { elements.fileInput.value = ''; }
   }
 
   async function analyze() {
@@ -6877,6 +6832,7 @@
       return;
     }
     workspaceLoadRevision += 1;
+    if (typeof importConflictCancel === 'function') importConflictCancel();
     if (workspaceWorkerTask) {
       workspaceWorkerTask = null;
     }

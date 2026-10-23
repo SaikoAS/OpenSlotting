@@ -129,7 +129,7 @@
       root.querySelectorAll('[data-import-heading]').forEach(function (th) { const active = th.dataset.importHeading === sort; th.setAttribute('aria-sort', active ? direction === 'asc' ? 'ascending' : 'descending' : 'none'); th.querySelector('span').textContent = active ? direction === 'asc' ? ' ↑' : ' ↓' : ''; });
       root.querySelector('tbody').innerHTML = visible.map(function (row) {
         const file = row.file;
-        return '<tr class="' + (file.id === selected ? 'selected' : '') + '"><td><button type="button" class="import-file-select" data-import-select="' + esc(file.id) + '" aria-pressed="' + (file.id === selected) + '" title="' + esc(file.label) + '">' + esc(file.label) + '</button></td><td><div class="import-table-tags">' + row.tags.slice(0, 2).map(function (tag) { return '<button type="button" class="import-tag" data-import-tag="' + esc(tag) + '">' + esc(tag) + '</button>'; }).join('') + (row.tags.length > 2 ? '<span title="' + esc(row.tags.join(', ')) + '">+' + (row.tags.length - 2) + '</span>' : '') + '</div></td><td class="numeric">' + number(file.dataRowCount) + '</td><td>' + t(file.sourceType === 'article-master' ? 'master' : 'orders') + '</td><td><span class="import-status ' + row.status + '">' + t(row.status) + '</span></td><td>' + esc(row.profile || t('none')) + '</td><td>' + t(row.link) + '</td><td>' + esc(date(row.updated)) + '</td><td class="numeric">' + size(file.size) + '</td></tr>';
+        return '<tr data-import-row="' + esc(file.id) + '" class="' + (file.id === selected ? 'selected' : '') + '"><td><button type="button" class="import-file-select" data-import-select="' + esc(file.id) + '" aria-pressed="' + (file.id === selected) + '" title="' + esc(file.label) + '">' + esc(file.label) + '</button></td><td><div class="import-table-tags">' + row.tags.slice(0, 2).map(function (tag) { return '<button type="button" class="import-tag" data-import-tag="' + esc(tag) + '">' + esc(tag) + '</button>'; }).join('') + (row.tags.length > 2 ? '<span title="' + esc(row.tags.join(', ')) + '">+' + (row.tags.length - 2) + '</span>' : '') + '</div></td><td class="numeric">' + number(file.dataRowCount) + '</td><td>' + t(file.sourceType === 'article-master' ? 'master' : 'orders') + '</td><td><span class="import-status ' + row.status + '">' + t(row.status) + '</span></td><td>' + esc(row.profile || t('none')) + '</td><td>' + t(row.link) + '</td><td>' + esc(date(row.updated)) + '</td><td class="numeric">' + size(file.size) + '</td></tr>';
       }).join('');
       const empty = root.querySelector('.import-table-empty'); empty.hidden = visible.length > 0; empty.textContent = t(files.length ? 'noMatch' : 'empty');
       detail(visible.find(function (row) { return row.file.id === selected; }));
@@ -152,6 +152,10 @@
       page = 1; render();
     });
     root.addEventListener('click', function (event) {
+      const row = event.target.closest('[data-import-row]');
+      if (row && root.contains(row) && !event.target.closest('button, input, select, textarea, a, label')) {
+        selected = row.dataset.importRow; message = ''; render(); return;
+      }
       const button = event.target.closest('button'); if (!button || !root.contains(button) || button.disabled) return;
       if (button.dataset.importSelect) {
         selected = button.dataset.importSelect; message = ''; render();

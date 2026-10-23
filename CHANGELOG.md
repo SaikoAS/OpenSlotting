@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Make import rows selectable across their surface, confirm source removal and resolve filename conflicts explicitly with Replace, Import anyway or Cancel. Stage snapshot and linked imports before one save; preserve target mappings/tags on replacement, number additional identical names and retain previous data on cancellation or failure.
+
 - Label the order-line customer column as Customer name and show missing names without substituting customer IDs. Keep the distinction in mixed imports, sorting and filtered CSV export.
 
 - Replace the import card list with a fitted import desk, searchable/filterable sortable table, 50-file pages and selected-file actions. Add custom per-source tags with bounded metadata-only saves and portable backup support in workspace schema 23.

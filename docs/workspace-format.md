@@ -24,6 +24,18 @@ metadata record and the workspace revision in one transaction; row chunks,
 source bytes and local file handles are retained. Tags do not change data
 validation, source mappings, analysis or warehouse assignments.
 
+## Import conflicts
+
+Snapshot and linked imports resolve filename collisions before reading or saving
+the selection. Users choose a particular existing source to replace, keep an
+additional source, or cancel the entire selection. Replacement retains source
+identity, tags, mappings and rules; incompatible required columns prevent it.
+Additional identical names use the existing `(1/2)`, `(2/2)` display labels.
+The complete selection is prepared and committed together. Cancellation or
+preparation/save failure retains the previous workspace. Snapshot replacement
+removes the replaced source's old local file capability; linked replacement
+stores the newly chosen capability. Source removal requires confirmation.
+
 ## Runtime and origin boundary
 
 Workspaces are stored in IndexedDB in the current browser profile and browser origin. OpenSlotting does not use `localStorage` for workspace payloads. Active operation uses the fixed localhost origin through the Python standard-library server, with no upload, remote backend, account, telemetry, or external network connection. The database name, schema, and backup contract are unchanged by the runtime separation. Existing Portable workspaces can be transferred with backups exported from the previous application; see [portable-mode-paused.md](portable-mode-paused.md).

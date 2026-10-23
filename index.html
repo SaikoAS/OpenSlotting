@@ -749,6 +749,20 @@
 
 
 
+    <dialog id="import-conflict-dialog" class="import-conflict-dialog" aria-labelledby="import-conflict-title" aria-describedby="import-conflict-copy import-conflict-hint">
+      <form method="dialog">
+        <h2 id="import-conflict-title" data-i18n="import_conflict_title">A file with this name already exists</h2>
+        <strong id="import-conflict-filename"></strong>
+        <p id="import-conflict-copy" data-i18n="import_conflict_copy">Choose how to handle this file. No changes from this selection are saved until every name conflict is resolved.</p>
+        <label class="compact-field"><span data-i18n="import_conflict_target">Existing import to replace</span><select id="import-conflict-target"></select></label>
+        <p id="import-conflict-hint" data-i18n="import_conflict_hint">Replace keeps mappings, rules and tags. Import anyway creates a numbered source. Cancelling discards this entire file selection.</p>
+        <div class="import-conflict-actions">
+          <button class="primary-button" type="submit" value="replace" data-i18n="import_conflict_replace">Replace existing file</button>
+          <button class="secondary-button" type="submit" value="keep" data-i18n="import_conflict_keep">Import anyway</button>
+          <button class="secondary-button" type="submit" value="cancel" autofocus data-i18n="import_conflict_cancel">Cancel import</button>
+        </div>
+      </form>
+    </dialog>
     <script src="runtime.js"></script>
     <script src="encoding.js"></script>
     <script src="csv.js"></script>

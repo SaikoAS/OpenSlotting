@@ -27,6 +27,7 @@ function fixture(options = {}) {
   const context = vm.createContext({ state, linkedSources, workspaceModel, workspacePreparation, Map, Set,
     linkedSourceHandles: new Map([[file.id, handle]]), workspaceLoadRevision: 0,
     window: { showOpenFilePicker: options.picker || (async () => [handle]) }, linkedFilesSupported: () => options.supported !== false,
+    requestImportConflict: options.resolve || (async () => ({ action: 'cancel' })),
     TRANSLATIONS: { en: { linked_schema_changed: 'schema', linked_missing: 'missing' } },
     workspaceLoadError: code => Object.assign(new Error(code), { code }),
     renderWorkspaceControls() {}, renderImportedFiles() {}, renderMapping() {}, updateSourceStatus() {}, updateWorkspaceLoadProgress() {},
@@ -133,4 +134,31 @@ test('source removal and its buttons are locked during linked preparation', () =
   vm.runInContext(body('renderLinkedSourceControls'), f.context);
   f.state.workspaceLoading = true; f.context.renderLinkedSourceControls(); assert.equal(remove.disabled, true);
   f.state.workspaceLoading = false; f.context.renderLinkedSourceControls(); assert.equal(remove.disabled, false);
+});
+
+test('snapshot conflicts use explicit replacement and work without the file-link API', async () => {
+  const f = fixture({ supported: false, resolve: async () => ({ action: 'replace', id: 'source-one' }) });
+  await f.run('snapshot', null, [{ name: 'one.csv', lastModified: 2, arrayBuffer: async () => new TextEncoder().encode(changed).buffer }]);
+  assert.equal(f.state.files.length, 1); assert.equal(f.state.files[0].id, f.file.id);
+  assert.equal(f.state.files[0].linkedSource, null); assert.equal(f.context.linkedSourceHandles.has(f.file.id), false);
+  assert.equal(new TextDecoder().decode(f.state.files[0].buffer), changed); assert.equal(f.messages.at(-1).key, 'import_saved');
+  assert.equal(f.calls.includes('clear'), true);
+});
+
+test('cancelled conflicts and failed snapshot saves retain original sources, labels and results', async () => {
+  for (const settings of [{}, { failSave: true, resolve: async () => ({ action: 'keep' }) }]) {
+    const f = fixture(settings), files = f.state.files, result = f.state.result;
+    await f.run('snapshot', null, [{ name: 'one.csv', arrayBuffer: async () => new TextEncoder().encode(changed).buffer }]);
+    assert.equal(f.state.files, files); assert.equal(f.file.label, 'one.csv'); assert.equal(f.state.result, result);
+    assert.equal(f.context.linkedSourceHandles.get(f.file.id), f.handle); assert.equal(f.calls.includes('clear'), false);
+  }
+});
+
+test('declining removal leaves source data, analysis and its local link untouched', () => {
+  const f = fixture(), files = f.state.files, result = f.state.result; let message;
+  f.context.translate = (key, values) => { message = values.file; return key; };
+  f.context.window.confirm = () => false;
+  vm.runInContext(body('removeImportedFile'), f.context); f.context.removeImportedFile(f.file.id);
+  assert.equal(message, f.file.label); assert.equal(f.state.files, files); assert.equal(f.state.result, result);
+  assert.equal(f.context.linkedSourceHandles.has(f.file.id), true); assert.equal(f.calls.length, 0);
 });
