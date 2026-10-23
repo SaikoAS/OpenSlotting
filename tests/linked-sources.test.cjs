@@ -48,6 +48,19 @@ test('reordered columns retain mapped fields, source rules excluded from profile
   assert.equal(prepared.files[0].mapping.article_id, 1); assert.equal(prepared.files[0].sourceRules[0].sourcePosition, 1);
   assert.equal(prepared.files[0].sourceRules[0].includeInProfile, false); assert.deepEqual(original, before);
 });
+
+test('new filenames receive unique labels and later updates keep the same duplicate label', async () => {
+  const original = file(initial), other = file(initial, 'source-other');
+  other.name = other.label = 'linked.csv';
+  const opts = options([original, other], [{ id: original.id, handle: handle(changed) }]);
+  const prepared = await linked.refresh(opts), replacement = prepared.files[0];
+  assert.equal(replacement.name, 'linked.csv'); assert.equal(replacement.label, 'linked.csv (2)');
+  assert.equal(prepared.result.rows[0].source_file_label, 'linked.csv (2)');
+  assert.equal(prepared.files[1].name, 'linked.csv'); assert.equal(prepared.files[1].label, 'linked.csv');
+  const repeated = await linked.refresh(options(prepared.files, [{ id: original.id, handle: handle(changed) }]));
+  assert.equal(repeated.files[0].label, 'linked.csv (2)');
+  assert.equal(original.name, 'source-one.csv'); assert.equal(original.label, 'source-one.csv');
+});
 test('a missing required column, malformed CSV, read failure or save failure retains original data', async () => {
   for (const [text, error] of [['wrong;quantity;delivery_date\nX;3;2026-08-05\n', null], ['article_id;quantity;delivery_date\n"broken', null], [changed, new Error('read failed')]]) {
     const original = file(initial), before = structuredClone(original), opts = options([original], [{ id: original.id, handle: handle(text, { error }) }]);

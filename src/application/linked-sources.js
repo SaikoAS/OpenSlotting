@@ -52,11 +52,16 @@
       } catch (error) {
         throw Object.assign(new Error(error.message), { name: error.name, code: error.code, file: previous ? previous.label : operation.handle.name });
       }
+      const usedLabels = new Set(files.filter(function (source) { return source.id !== operation.id; }).map(function (source) { return source.label; }));
+      let label = previous && previous.name === file.name ? previous.label : file.name;
+      let suffix = 1;
+      while (usedLabels.has(label)) label = file.name + ' (' + (++suffix) + ')';
       const candidate = Object.assign({}, previous || {
-        id: operation.id, name: file.name, label: operation.label || file.name,
+        id: operation.id,
         encodingMode: 'auto', sourceType: workspace.DEFAULT_SOURCE_TYPE,
         preparationRules: {}, sourceRules: [], customFieldMapping: {}
       }, {
+        name: file.name, label: label,
         buffer: buffer, size: buffer.byteLength, lastModified: file.lastModified, browserFile: null,
         reading: false, result: null, linkedSource: { name: file.name, updatedAt: new Date().toISOString() }
       });

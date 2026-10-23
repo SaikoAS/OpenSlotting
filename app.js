@@ -6580,16 +6580,12 @@
       if (action === 'pick' || action === 'connect') {
         const handles = await window.showOpenFilePicker({ multiple: action === 'pick', types: [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }] });
         check();
-        const used = new Set(originalFiles.map(function (file) { return file.label; }));
         operations = [];
         for (const handle of handles) {
           for (const [id, existing] of linkedSourceHandles) {
             if (id !== sourceId && await handle.isSameEntry(existing)) throw workspaceLoadError('linked_already');
           }
-          let label = handle.name, index = 1;
-          while (used.has(label)) label = handle.name + ' (' + (++index) + ')';
-          used.add(label);
-          operations.push({ id: sourceId || workspaceModel.createId('source'), handle: handle, create: action === 'pick', label: label });
+          operations.push({ id: sourceId || workspaceModel.createId('source'), handle: handle, create: action === 'pick' });
         }
       } else {
         const targets = originalFiles.filter(function (file) { return sourceId ? file.id === sourceId : Boolean(file.linkedSource); });

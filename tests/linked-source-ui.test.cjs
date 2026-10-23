@@ -21,9 +21,9 @@ function fixture(options = {}) {
     files: [file], analysis: analyzed.analysis, result: analyzed.result, comparison: { old: true }, customFields: [], language: 'en',
     periodSettings: {}, articleRegistry: analyzed.result.articleRegistry, fileSelectionVersion: 0 };
   const calls = [], messages = [];
-  const handle = { kind: 'file', name: 'one.csv', async isSameEntry(other) { return this === other; },
+  const handle = { kind: 'file', name: options.fileName || 'one.csv', async isSameEntry(other) { return this === other; },
     async queryPermission() { return 'granted'; }, async requestPermission() { return 'granted'; },
-    async getFile() { return { name: 'one.csv', lastModified: 2, arrayBuffer: options.read || (async () => new TextEncoder().encode(options.text || changed).buffer) }; } };
+    async getFile() { return { name: options.fileName || 'one.csv', lastModified: 2, arrayBuffer: options.read || (async () => new TextEncoder().encode(options.text || changed).buffer) }; } };
   const context = vm.createContext({ state, linkedSources, workspaceModel, workspacePreparation, Map, Set,
     linkedSourceHandles: new Map([[file.id, handle]]), workspaceLoadRevision: 0,
     window: { showOpenFilePicker: options.picker || (async () => [handle]) }, linkedFilesSupported: () => options.supported !== false,
@@ -55,6 +55,29 @@ test('UI refresh commits proposed sources before replacing the live state and re
   assert.notEqual(f.state.files[0], f.file); assert.notEqual(f.state.result, oldResult);
   assert.equal(f.state.result.rows[0].article_id, 'SYN-B'); assert.equal(f.state.workspaceLoading, false);
   assert.equal(f.messages.at(-1).key, 'linked_done');
+});
+
+test('reconnecting a different file publishes and saves its actual name with the same source identity', async () => {
+  const f = fixture({ fileName: 'replacement.csv' });
+  await f.run('connect', f.file.id);
+  const saved = f.calls.find(call => call.save).save.files[0];
+  for (const file of [saved, f.state.files[0]]) {
+    assert.equal(file.id, f.file.id); assert.equal(file.name, 'replacement.csv');
+    assert.equal(file.label, 'replacement.csv'); assert.equal(file.linkedSource.name, 'replacement.csv');
+    assert.equal(file.result.rows[0].source_file_name, 'replacement.csv');
+    assert.equal(file.result.rows[0].source_file_label, 'replacement.csv');
+  }
+  assert.equal(f.file.name, 'one.csv'); assert.equal(f.file.label, 'one.csv');
+});
+
+test('a failed reconnect keeps the previous filename and linkage with the previous data', async () => {
+  for (const settings of [{ failSave: true }, { text: 'wrong;quantity;delivery_date\nX;5;2026-08-04\n' }]) {
+    const f = fixture({ ...settings, fileName: 'replacement.csv' }), files = f.state.files;
+    await f.run('connect', f.file.id);
+    assert.equal(f.state.files, files); assert.equal(f.state.files[0].name, 'one.csv');
+    assert.equal(f.state.files[0].label, 'one.csv'); assert.equal(f.state.files[0].linkedSource.name, 'one.csv');
+    assert.equal(f.calls.includes('render'), false);
+  }
 });
 test('save and schema failures retain the previous files, results and comparison', async () => {
   for (const settings of [{ failSave: true }, { text: 'wrong;quantity;delivery_date\nX;5;2026-08-04\n' }]) {
