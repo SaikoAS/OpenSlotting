@@ -25,7 +25,7 @@
               <div class="terminal-nav-group-items">
                 <button class="terminal-nav-item" type="button" data-workflow-target="main-menu-panel" title="Overview" data-i18n-title="terminal_overview" data-i18n-aria-label="terminal_overview"><span aria-hidden="true">▦</span><strong data-i18n="terminal_overview">Overview</strong></button>
                 <button class="terminal-nav-item" type="button" data-workflow-target="results-panel" title="Articles" data-i18n-title="terminal_articles" data-i18n-aria-label="terminal_articles"><span aria-hidden="true">⌕</span><strong data-i18n="terminal_articles">Articles</strong></button>
-                <button class="terminal-nav-item" type="button" data-workflow-target="comparison-panel" title="Comparison results" data-i18n-title="workflow_comparison" data-i18n-aria-label="workflow_comparison"><span aria-hidden="true">↔</span><strong data-i18n="nav_comparison">Comparison</strong></button>
+                <button class="terminal-nav-item" type="button" data-workflow-target="comparison-panel" title="Periods &amp; comparison" data-i18n-title="workflow_comparison" data-i18n-aria-label="workflow_comparison"><span aria-hidden="true">↔</span><strong data-i18n="nav_comparison">Comparison</strong></button>
               </div>
             </section>
             <section class="terminal-nav-group" aria-labelledby="navigation-warehouse">
@@ -528,21 +528,19 @@
           <p id="coverage-drilldown-summary" class="table-note"></p>
           <div class="table-scroll"><table><thead><tr><th data-i18n="coverage_evidence_type">Type</th><th data-i18n="detail_source_file">Source file</th><th class="number" data-i18n="detail_source_line">Source line</th><th data-i18n="detail_order_date">Delivery date</th><th data-i18n="column_article_id">Article ID / SKU</th><th data-i18n="issue_message">Message</th></tr></thead><tbody id="coverage-drilldown-table-body"></tbody></table></div>
         </section>
-        <fieldset class="weekday-fieldset">
-          <legend data-i18n="expected_weekdays">Expected weekdays</legend>
-          <p class="table-note" data-i18n="expected_weekdays_hint">Only selected weekdays count toward unknown dates.</p>
-          <div class="weekday-options">
-            <label><input type="checkbox" name="expected-weekday" value="1" checked><span data-i18n="weekday_mon">Mon</span></label>
-            <label><input type="checkbox" name="expected-weekday" value="2" checked><span data-i18n="weekday_tue">Tue</span></label>
-            <label><input type="checkbox" name="expected-weekday" value="3" checked><span data-i18n="weekday_wed">Wed</span></label>
-            <label><input type="checkbox" name="expected-weekday" value="4" checked><span data-i18n="weekday_thu">Thu</span></label>
-            <label><input type="checkbox" name="expected-weekday" value="5" checked><span data-i18n="weekday_fri">Fri</span></label>
-            <label><input type="checkbox" name="expected-weekday" value="6" checked><span data-i18n="weekday_sat">Sat</span></label>
-            <label><input type="checkbox" name="expected-weekday" value="0" checked><span data-i18n="weekday_sun">Sun</span></label>
+        <div class="coverage-actions"><button class="secondary-button" type="button" data-workflow-target="comparison-panel" data-i18n="workflow_comparison">Periods &amp; comparison</button></div>
+      </section>
+
+      </div>
+
+      <div id="comparison-page" class="app-page hidden">
+        <section id="comparison-setup" class="panel comparison-setup" aria-labelledby="comparison-setup-title">
+          <div class="panel-heading">
+            <div><p class="step" data-i18n="workflow_comparison">Periods &amp; comparison</p><h2 id="comparison-setup-title" data-i18n="period_mode">Period selection</h2><p id="comparison-setup-hint" class="table-note" role="status"></p></div>
+            <button id="comparison-setup-action" class="secondary-button" type="button" data-workflow-target="workspace-panel" data-i18n="workspace_selection_back">Workspace selection</button>
           </div>
-        </fieldset>
         <fieldset class="period-mode-fieldset">
-          <legend data-i18n="period_mode">Period selection</legend>
+          <legend class="visually-hidden" data-i18n="period_mode">Period selection</legend>
           <p class="table-note" data-i18n="period_mode_hint">Compare automatically detected calendar weeks or define custom date ranges.</p>
           <div class="period-mode-options">
             <label><input type="radio" name="period-mode" value="weeks" checked><span data-i18n="period_mode_weeks">Detected calendar weeks</span></label>
@@ -577,12 +575,25 @@
           </fieldset>
         </div>
         <div id="period-message" class="message hidden" role="alert"></div>
+        <details class="comparison-calendar-options">
+          <summary data-i18n="expected_weekdays">Expected weekdays</summary>
+        <fieldset class="weekday-fieldset">
+          <legend class="visually-hidden" data-i18n="expected_weekdays">Expected weekdays</legend>
+          <p class="table-note" data-i18n="expected_weekdays_hint">Only selected weekdays count toward unknown dates.</p>
+          <div class="weekday-options">
+            <label><input type="checkbox" name="expected-weekday" value="1" checked><span data-i18n="weekday_mon">Mon</span></label>
+            <label><input type="checkbox" name="expected-weekday" value="2" checked><span data-i18n="weekday_tue">Tue</span></label>
+            <label><input type="checkbox" name="expected-weekday" value="3" checked><span data-i18n="weekday_wed">Wed</span></label>
+            <label><input type="checkbox" name="expected-weekday" value="4" checked><span data-i18n="weekday_thu">Thu</span></label>
+            <label><input type="checkbox" name="expected-weekday" value="5" checked><span data-i18n="weekday_fri">Fri</span></label>
+            <label><input type="checkbox" name="expected-weekday" value="6" checked><span data-i18n="weekday_sat">Sat</span></label>
+            <label><input type="checkbox" name="expected-weekday" value="0" checked><span data-i18n="weekday_sun">Sun</span></label>
+          </div>
+        </fieldset>
+        </details>
         <div class="coverage-actions"><button id="reset-periods" class="secondary-button" type="button" data-i18n="reset_periods">Reset periods</button><button id="compare-periods" class="primary-button" type="button" data-i18n="compare_periods">Compare periods</button></div>
-      </section>
+        </section>
 
-      </div>
-
-      <div id="comparison-page" class="app-page hidden">
 
       <section id="comparison-panel" class="hidden" aria-labelledby="comparison-title">
         <div class="comparison-heading">

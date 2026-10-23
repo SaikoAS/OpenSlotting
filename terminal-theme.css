@@ -443,6 +443,12 @@ body > .app-header { position: relative; top: auto; min-width: 0; }
 .settings-panel .workspace-message { color: var(--ink); }
 .settings-panel .workspace-message.error { color: var(--danger); }
 .settings-panel .workspace-message.warning { color: var(--warning); }
+.comparison-setup .period-mode-fieldset { margin-top: 0; }
+.comparison-calendar-options { margin: 16px 0; color: var(--muted); }
+.comparison-calendar-options > summary { color: var(--ink); cursor: pointer; font-weight: 700; }
+.comparison-calendar-options .weekday-fieldset { margin-bottom: 0; }
+.comparison-setup .period-status.complete { color: #9be0bb; }
+.comparison-setup .period-status.partial, .comparison-setup .period-status.empty { color: #f0c783; }
 .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .settings-card { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 7px; background: #171d24; }
 .settings-card h4 { margin: 0 0 12px; font-size: 1rem; }

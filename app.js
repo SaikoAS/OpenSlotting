@@ -98,6 +98,11 @@
       settings_workspace_scope: 'Workspace',
       settings_workspace_data: 'Workspace data',
       settings_backup_help: 'Save a complete backup of the open workspace, including source files, settings and the warehouse layout.',
+      comparison_setup_no_workspace: 'Open a workspace to select periods and compare its data.',
+      comparison_setup_no_data: 'Import and analyze order lines with delivery dates to compare periods.',
+      comparison_setup_no_dates: 'No valid dated order lines are available. Check the source-column mapping and analyze the imports.',
+      comparison_setup_busy: 'A workspace operation is running. Period settings will be available when it finishes.',
+      comparison_setup_ready: 'Select periods A and B, then run the comparison. Changes invalidate the previous comparison.',
       settings_reset_help: 'Remove imported source files, import profiles and analysis/comparison results and reset comparison periods. The workspace and warehouse layout remain.',
       settings_no_workspace: 'Open a workspace to save its settings or clear its data. Language selection remains available for this session.',
       settings_language_help: 'Choose the interface language. In an open workspace it is saved with that workspace; before opening one it applies to this session.',
@@ -639,8 +644,8 @@
       import_file_count: '{{count}} imported files',
       mapping_select_source: 'Select a source to review its columns and mappings.',
       mapping_show_columns: 'Show complete source-column overview',
-      workflow_coverage: 'Coverage & periods',
-      workflow_comparison: 'Comparison results',
+      workflow_coverage: 'Coverage',
+      workflow_comparison: 'Periods & comparison',
       workflow_analysis: 'Analysis',
       page_status_ready: 'Ready',
       page_status_workspace: 'Manage workspace',
@@ -653,8 +658,8 @@
       step_5: 'Step 5',
       required_label: 'Required',
       optional_label: 'Optional',
-      coverage_title: 'Data coverage & periods',
-      coverage_intro: 'Review observed dates and define two inclusive comparison periods.',
+      coverage_title: 'Data coverage',
+      coverage_intro: 'Review observed dates, missing days and source evidence.',
       coverage_unknown_note: 'Dates without imported rows remain unknown coverage, not zero demand.',
       coverage_timeline_label: 'Observed date coverage',
       coverage_sources_title: 'Coverage by source',
@@ -837,6 +842,11 @@
       settings_workspace_scope: 'Workspace',
       settings_workspace_data: 'Workspace-Daten',
       settings_backup_help: 'Vollständiges Backup des geöffneten Workspace inklusive Quelldateien, Einstellungen und Lagerplan speichern.',
+      comparison_setup_no_workspace: 'Öffne einen Workspace, um Perioden auszuwählen und dessen Daten zu vergleichen.',
+      comparison_setup_no_data: 'Importiere und analysiere Auftragszeilen mit Lieferdatum, um Perioden zu vergleichen.',
+      comparison_setup_no_dates: 'Es gibt keine gültigen Auftragszeilen mit Lieferdatum. Prüfe die Quellspaltenzuordnung und analysiere die Importe.',
+      comparison_setup_busy: 'Ein Workspace-Vorgang läuft. Die Periodenauswahl ist nach dessen Abschluss wieder verfügbar.',
+      comparison_setup_ready: 'Wähle Periode A und B und starte den Vergleich. Änderungen verwerfen den bisherigen Vergleich.',
       settings_reset_help: 'Importierte Quelldateien, Importprofile sowie Analyse- und Vergleichsergebnisse entfernen und Vergleichszeiträume zurücksetzen. Der Workspace und der Lagerplan bleiben erhalten.',
       settings_no_workspace: 'Öffne einen Workspace, um dessen Einstellungen zu speichern oder Daten zu leeren. Die Sprachauswahl bleibt für diese Sitzung verfügbar.',
       settings_language_help: 'Wähle die Sprache der Oberfläche. In einem geöffneten Workspace wird sie mit diesem gespeichert; vor dem Öffnen gilt sie für diese Sitzung.',
@@ -1392,8 +1402,8 @@
       step_5: 'Schritt 5',
       required_label: 'Pflichtfeld',
       optional_label: 'Optional',
-      coverage_title: 'Datenabdeckung & Perioden',
-      coverage_intro: 'Beobachtete Datumswerte prüfen und zwei inklusive Vergleichsperioden festlegen.',
+      coverage_title: 'Datenabdeckung',
+      coverage_intro: 'Beobachtete Datumswerte, fehlende Tage und Quelldaten prüfen.',
       coverage_unknown_note: 'Tage ohne importierte Zeilen bleiben unbekannte Abdeckung und gelten nicht als Nullabsatz.',
       coverage_timeline_label: 'Beobachtete Datumsabdeckung',
       coverage_sources_title: 'Abdeckung nach Quelle',
@@ -1635,7 +1645,7 @@
     'import-panel': { view: 'import-page', kicker: 'workflow_import', title: 'select_file_title', status: 'page_status_import' },
     'mapping-panel': { view: 'mapping-page', kicker: 'workflow_mapping', title: 'mapping_title', status: 'page_status_mapping' },
     'coverage-panel': { view: 'coverage-page', kicker: 'workflow_coverage', title: 'coverage_title', status: 'page_status_coverage' },
-    'comparison-panel': { view: 'comparison-page', kicker: 'workflow_comparison', title: 'comparison_title', status: 'page_status_comparison' },
+    'comparison-panel': { view: 'comparison-page', kicker: 'workflow_comparison', title: 'workflow_comparison', status: 'page_status_comparison' },
     'results-panel': { view: 'analysis-page', kicker: 'workflow_analysis', title: 'analysis_title', status: 'page_status_analysis' }
   };
 
@@ -1805,6 +1815,9 @@
     periodMessage: document.getElementById('period-message'),
     comparePeriods: document.getElementById('compare-periods'),
     resetPeriods: document.getElementById('reset-periods'),
+    comparisonSetup: document.getElementById('comparison-setup'),
+    comparisonSetupHint: document.getElementById('comparison-setup-hint'),
+    comparisonSetupAction: document.getElementById('comparison-setup-action'),
     comparisonPanel: document.getElementById('comparison-panel'),
     comparisonPeriodSummary: document.getElementById('comparison-period-summary'),
     comparisonMetrics: document.getElementById('comparison-metrics'),
@@ -3958,7 +3971,7 @@
       'import-panel': Boolean(state.activeWorkspace),
       'mapping-panel': state.files.length > 0,
       'coverage-panel': hasCoverageContent(),
-      'comparison-panel': Boolean(state.comparison),
+      'comparison-panel': true,
       'results-panel': Boolean(state.result && resultHasRetainedData(state.result))
     };
     const completion = {
@@ -3992,6 +4005,7 @@
       if (elements.coveragePanel.classList.contains('hidden') || !state.result) renderCoverage();
       else if (coverageCalendar) coverageCalendar.refresh();
     }
+    if (requestedTarget === 'comparison-panel') renderComparisonSetup();
     document.body.classList.toggle('workspace-picker-mode', !state.activeWorkspace || requestedTarget === 'workspace-panel');
     elements.pageViews.forEach(function (view) {
       view.classList.toggle('hidden', view.id !== config.view);
@@ -4496,7 +4510,47 @@
     elements.coverageDrilldown.classList.remove('hidden');
   }
 
+  function renderComparisonSetup() {
+    const rows = state.result ? state.result.rows : [];
+    const hasDates = rows.some(function (row) { return periods.validDate(row.delivery_date); });
+    const ready = Boolean(state.activeWorkspace && state.storageReady && !state.workspaceLoading &&
+      !state.files.some(function (file) { return Boolean(file.reading); }));
+    renderPeriodControls();
+    const coverageA = state.comparison
+      ? state.comparison.coverageA
+      : periods.coverageForPeriod(rows, state.periodSettings.periodA, state.periodSettings.expectedWeekdays);
+    const coverageB = state.comparison
+      ? state.comparison.coverageB
+      : periods.coverageForPeriod(rows, state.periodSettings.periodB, state.periodSettings.expectedWeekdays);
+    const hasExpectedWeekdays = state.periodSettings.expectedWeekdays.length > 0;
+    elements.periodAStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageA.status : 'unavailable');
+    elements.periodBStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageB.status : 'unavailable');
+    setText(elements.periodAStatus, hasExpectedWeekdays
+      ? coverageText(coverageA) + ' · ' + translate('coverage_sources', { count: coverageA.sourceFiles.length })
+      : translate('weekdays_required'));
+    setText(elements.periodBStatus, hasExpectedWeekdays
+      ? coverageText(coverageB) + ' · ' + translate('coverage_sources', { count: coverageB.sourceFiles.length })
+      : translate('weekdays_required'));
+    const reason = !state.activeWorkspace ? 'comparison_setup_no_workspace'
+      : !ready ? 'comparison_setup_busy'
+        : !state.result ? 'comparison_setup_no_data'
+          : !hasDates ? 'comparison_setup_no_dates' : 'comparison_setup_ready';
+    setText(elements.comparisonSetupHint, translate(reason));
+    const actionTarget = !state.activeWorkspace ? 'workspace-panel' : state.files.length ? 'mapping-panel' : 'import-panel';
+    elements.comparisonSetupAction.dataset.workflowTarget = actionTarget;
+    elements.comparisonSetupAction.classList.toggle('hidden', Boolean(state.activeWorkspace && (!ready || hasDates)));
+    setText(elements.comparisonSetupAction, translate(actionTarget === 'workspace-panel' ? 'workspace_selection_back'
+      : actionTarget === 'mapping-panel' ? 'workflow_mapping' : 'workflow_import'));
+    elements.comparePeriods.disabled = !ready || !hasDates || !periodSettingsValid(state.periodSettings);
+    elements.resetPeriods.disabled = !ready || !state.result;
+    elements.periodModes.concat(elements.expectedWeekdays, [elements.periodAName, elements.periodAStart, elements.periodAEnd,
+      elements.periodBName, elements.periodBStart, elements.periodBEnd]).forEach(function (control) { control.disabled = !ready; });
+    elements.periodAWeek.disabled = !ready || !elements.periodAWeek.value;
+    elements.periodBWeek.disabled = !ready || !elements.periodBWeek.value;
+  }
+
   function renderCoverage() {
+    renderComparisonSetup();
     if (!hasCoverageContent()) {
       elements.coveragePanel.classList.add('hidden');
       return;
@@ -4530,23 +4584,6 @@
     renderCoverageSources(coverageData);
     renderCoverageDates(coverageData);
     renderCoverageDrilldown();
-    renderPeriodControls();
-    const coverageA = state.comparison
-      ? state.comparison.coverageA
-      : periods.coverageForPeriod(rows, state.periodSettings.periodA, state.periodSettings.expectedWeekdays);
-    const coverageB = state.comparison
-      ? state.comparison.coverageB
-      : periods.coverageForPeriod(rows, state.periodSettings.periodB, state.periodSettings.expectedWeekdays);
-    const hasExpectedWeekdays = state.periodSettings.expectedWeekdays.length > 0;
-    elements.periodAStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageA.status : 'unavailable');
-    elements.periodBStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageB.status : 'unavailable');
-    setText(elements.periodAStatus, hasExpectedWeekdays
-      ? coverageText(coverageA) + ' · ' + translate('coverage_sources', { count: coverageA.sourceFiles.length })
-      : translate('weekdays_required'));
-    setText(elements.periodBStatus, hasExpectedWeekdays
-      ? coverageText(coverageB) + ' · ' + translate('coverage_sources', { count: coverageB.sourceFiles.length })
-      : translate('weekdays_required'));
-    elements.comparePeriods.disabled = datedRows === 0;
     elements.coveragePanel.classList.remove('hidden');
   }
 
@@ -4876,7 +4913,12 @@
   }
 
   function compareSelectedPeriods() {
-    if (!state.result) {
+    if (!state.result || !state.activeWorkspace || !state.storageReady || state.workspaceLoading ||
+        state.files.some(function (file) { return Boolean(file.reading); })) {
+      return;
+    }
+    if (!state.result.rows.some(function (row) { return periods.validDate(row.delivery_date); })) {
+      showPeriodMessage('comparison_setup_no_dates', 'warning-message');
       return;
     }
     const settings = periodSettingsFromControls();
@@ -7505,6 +7547,8 @@
   }
 
   function handlePeriodSettingsChange() {
+    if (!state.activeWorkspace || !state.storageReady || state.workspaceLoading ||
+        state.files.some(function (file) { return Boolean(file.reading); })) return;
     state.periodSettings = periodSettingsFromControls();
     state.comparison = null;
     invalidateViewCaches();
@@ -7520,7 +7564,7 @@
     }
     renderCoverage();
     renderComparison();
-    renderWorkflow('coverage-panel');
+    renderWorkflow('comparison-panel');
     if (periodSettingsStorable(state.periodSettings)) {
       persistActiveWorkspace(undefined, { metadataOnly: true }).catch(function () {});
     }
@@ -8063,7 +8107,8 @@
   elements.comparePeriods.addEventListener('click', compareSelectedPeriods);
   elements.exportComparison.addEventListener('click', exportPeriodComparison);
   elements.resetPeriods.addEventListener('click', function () {
-    if (!state.result) {
+    if (!state.result || !state.activeWorkspace || !state.storageReady || state.workspaceLoading ||
+        state.files.some(function (file) { return Boolean(file.reading); })) {
       return;
     }
     state.periodSettings = periods.defaultSettings(state.result.rows);
@@ -8075,12 +8120,12 @@
     showPeriodMessage('');
     renderCoverage();
     renderComparison();
-    renderWorkflow('coverage-panel');
+    renderWorkflow('comparison-panel');
     persistActiveWorkspace(undefined, { metadataOnly: true }).catch(function () {});
   });
   elements.editPeriods.addEventListener('click', function () {
-    renderWorkflow('coverage-panel');
-    elements.coveragePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    renderWorkflow('comparison-panel');
+    elements.comparisonSetup.scrollIntoView({ behavior: 'smooth', block: 'start' });
     (state.periodSettings.mode === 'weeks' ? elements.periodAWeek : elements.periodAStart).focus();
   });
   elements.periodModes.forEach(function (control) {

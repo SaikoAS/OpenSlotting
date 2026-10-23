@@ -33,6 +33,15 @@ source files, or during a running operation. It removes source files, import
 profiles and analysis/comparison results and resets comparison periods;
 the workspace, warehouse layout and coverage notes remain.
 
+**Comparison** remains available before any comparison has been calculated.
+Its page contains the calendar-week/custom period selectors and an expandable
+expected-weekday section, followed by results once calculated. Changing or
+resetting periods stays on this page and invalidates the previous result.
+Without usable dated order lines, the page explains the prerequisite and
+links to workspace selection, import or source mapping. Period controls are
+locked while workspace tasks are running. Coverage keeps its calendar and
+evidence views, with a link to Comparison.
+
 ## Data shown
 
 - The input is `result.rows`: validated, normalized **order lines** from the

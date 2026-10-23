@@ -20,14 +20,18 @@ function appFunction(name) {
 }
 
 function coverageView(result, notes = []) {
-  const state = { activeWorkspace: { id: 'synthetic-coverage' }, files: result ? result.files : [], result,
+  const state = { storageReady: true, workspaceLoading: false, activeWorkspace: { id: 'synthetic-coverage' }, files: result ? result.files : [], result,
     coverageNotes: notes, warehouseLayout: { objects: [] }, periodSettings: periods.normalizeSettings(), comparison: null };
   function element() {
     const classes = new Set(['hidden']);
-    return { classList: { add: name => classes.add(name), remove: name => classes.delete(name), contains: name => classes.has(name) },
+    return { dataset: {}, classList: { add: name => classes.add(name), remove: name => classes.delete(name), contains: name => classes.has(name),
+      toggle: (name, on) => on ? classes.add(name) : classes.delete(name) },
       children: [], appendChild(child) { this.children.push(child); }, replaceChildren() { this.children = []; } };
   }
-  const elements = Object.fromEntries(['coveragePanel', 'coverageOverview', 'periodAStatus', 'periodBStatus', 'comparePeriods'].map(key => [key, element()]));
+  const elements = Object.fromEntries(['coveragePanel', 'coverageOverview', 'periodAStatus', 'periodBStatus', 'comparePeriods',
+    'comparisonSetupHint', 'comparisonSetupAction', 'resetPeriods', 'periodAWeek', 'periodBWeek', 'periodAName', 'periodAStart', 'periodAEnd',
+    'periodBName', 'periodBStart', 'periodBEnd'].map(key => [key, element()]));
+  elements.periodModes = []; elements.expectedWeekdays = [];
   const root = { innerHTML: '', addEventListener() {} };
   const coverageCalendar = calendar.create({ root, getWorkspaceId: () => state.activeWorkspace.id,
     getLanguage: () => 'en', getNotes: () => state.coverageNotes,
@@ -38,8 +42,8 @@ function coverageView(result, notes = []) {
     document: { createElement: element }, setText: (node, text) => { node.textContent = text; },
     translate: (key, values) => { translations.push({ key, values }); return key; },
     renderCoverageSources: data => { renderedData = data; renders++; }, renderCoverageDates() {}, renderCoverageDrilldown() {}, renderPeriodControls() {},
-    coverageText: () => '', closeMappingDrawer() {}, PAGE_CONFIG: { 'coverage-panel': {}, 'mapping-panel': {}, 'main-menu-panel': {}, 'workspace-panel': {} } });
-  for (const name of ['analysisRowCount', 'resultHasRetainedData', 'isDatedCoverageIssue', 'buildCoverageData', 'hasCoverageContent', 'renderCoverage']) {
+    periodSettingsValid: () => true, coverageText: () => '', closeMappingDrawer() {}, PAGE_CONFIG: { 'coverage-panel': {}, 'mapping-panel': {}, 'main-menu-panel': {}, 'workspace-panel': {} } });
+  for (const name of ['analysisRowCount', 'resultHasRetainedData', 'isDatedCoverageIssue', 'buildCoverageData', 'hasCoverageContent', 'renderComparisonSetup', 'renderCoverage']) {
     vm.runInContext(appFunction(name), context);
   }
   const start = appSource.indexOf('  function renderWorkflow('), end = appSource.indexOf('    document.body.classList.toggle', start);
