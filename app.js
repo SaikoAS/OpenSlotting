@@ -212,19 +212,22 @@
       terminal_granularity_day: 'Day',
       terminal_granularity_week: 'Week',
       terminal_granularity_month: 'Month',
-      terminal_chart_coverage: 'Data coverage: {{observed}}/{{expected}} expected days recorded · {{unknown}} unknown · whole workspace · {{unit}} view',
+      terminal_chart_coverage: 'Data coverage: {{observed}}/{{expected}} expected days recorded · {{explained}} explained missing · {{unknown}} unexplained · whole workspace · {{unit}} view',
       terminal_chart_coverage_unavailable: 'Data coverage unavailable: select expected weekdays in Coverage & periods.',
       terminal_chart_bucket_title: '{{from}} – {{to}} · {{quantity}} quantity · {{lines}} lines · {{observed}}/{{expected}} expected days recorded',
       terminal_chart_no_expected: 'No expected weekdays in this interval',
       terminal_chart_bucket_empty: '{{from}} – {{to}} · no lines for this selection · {{observed}}/{{expected}} expected days recorded in the workspace',
-      terminal_chart_coverage_legend: 'Green: rows on every expected day · amber: some days · gray: none · dark: no expected weekday',
+      terminal_chart_coverage_legend: 'Green: rows on every expected day · amber: some days · gray: none · blue: missing with reason · dark: no expected weekday',
+      terminal_coverage_reasons: '{{count}} missing days with a reason',
+      terminal_coverage_reason_single: '1 missing day with a reason',
+      terminal_coverage_reason: '{{date}} · No data: {{reason}}',
       terminal_selection_title: 'Selected date range',
       terminal_selection_days: 'Recorded days',
       terminal_selection_invalid: 'The start date must not be after the end date.',
       terminal_selection_scope_note: 'Values refer to the chosen entity within the main range and date selection; other table filters are not included.',
       terminal_selection_no_rows: 'No order lines in this selection; zero demand is not established.',
       terminal_total_period: 'Entire displayed period',
-      terminal_selection_coverage: 'Workspace coverage in selection: {{observed}}/{{expected}} expected days recorded · {{unknown}} unknown. Missing days are not zero demand.',
+      terminal_selection_coverage: 'Workspace coverage in selection: {{observed}}/{{expected}} expected days recorded · {{explained}} explained missing · {{unknown}} unexplained. Missing days are not zero demand.',
       terminal_selection_coverage_unavailable: 'Coverage cannot be assessed until expected weekdays are selected.',
       terminal_from: 'From',
       terminal_to: 'To',
@@ -993,19 +996,22 @@
       terminal_granularity_day: 'Tag',
       terminal_granularity_week: 'Woche',
       terminal_granularity_month: 'Monat',
-      terminal_chart_coverage: 'Datenabdeckung: {{observed}}/{{expected}} erwartete Tage erfasst · {{unknown}} unbekannt · gesamter Arbeitsbereich · Ansicht: {{unit}}',
+      terminal_chart_coverage: 'Datenabdeckung: {{observed}}/{{expected}} erwartete Tage erfasst · {{explained}} begründet fehlend · {{unknown}} ungeklärt · gesamter Arbeitsbereich · Ansicht: {{unit}}',
       terminal_chart_coverage_unavailable: 'Datenabdeckung nicht bewertbar: Erwartete Wochentage unter Datenabdeckung festlegen.',
       terminal_chart_bucket_title: '{{from}} – {{to}} · {{quantity}} Menge · {{lines}} Zeilen · {{observed}}/{{expected}} erwartete Tage erfasst',
       terminal_chart_no_expected: 'Keine erwarteten Wochentage in diesem Intervall',
       terminal_chart_bucket_empty: '{{from}} – {{to}} · keine Zeilen für diese Auswahl · {{observed}}/{{expected}} erwartete Tage im Arbeitsbereich erfasst',
-      terminal_chart_coverage_legend: 'Grün: Zeilen an allen erwarteten Tagen · Gelb: an einigen · Grau: an keinem · Dunkel: kein erwarteter Wochentag',
+      terminal_chart_coverage_legend: 'Grün: Zeilen an allen erwarteten Tagen · Gelb: an einigen · Grau: an keinem · Blau: begründet fehlend · Dunkel: kein erwarteter Wochentag',
+      terminal_coverage_reasons: '{{count}} begründete Fehltage',
+      terminal_coverage_reason_single: '1 begründeter Fehltag',
+      terminal_coverage_reason: '{{date}} · Keine Daten: {{reason}}',
       terminal_selection_title: 'Ausgewählter Zeitraum',
       terminal_selection_days: 'Erfasste Tage',
       terminal_selection_invalid: 'Das Startdatum darf nicht nach dem Enddatum liegen.',
       terminal_selection_scope_note: 'Werte für die gewählte Ansicht innerhalb des Hauptzeitraums und der Datumsauswahl; weitere Tabellenfilter sind nicht enthalten.',
       terminal_selection_no_rows: 'Keine Auftragszeilen in dieser Auswahl; Nullbedarf ist damit nicht belegt.',
       terminal_total_period: 'Gesamter angezeigter Zeitraum',
-      terminal_selection_coverage: 'Abdeckung des Arbeitsbereichs in der Auswahl: {{observed}}/{{expected}} erwartete Tage erfasst · {{unknown}} unbekannt. Fehlende Tage sind kein Nullbedarf.',
+      terminal_selection_coverage: 'Abdeckung des Arbeitsbereichs in der Auswahl: {{observed}}/{{expected}} erwartete Tage erfasst · {{explained}} begründet fehlend · {{unknown}} ungeklärt. Fehlende Tage sind kein Nullbedarf.',
       terminal_selection_coverage_unavailable: 'Abdeckung erst mit festgelegten erwarteten Wochentagen bewertbar.',
       terminal_from: 'Von',
       terminal_to: 'Bis',
@@ -1776,6 +1782,7 @@
     terminalSelectionRange: document.getElementById('terminal-selection-range'),
     terminalSelectionMetrics: document.getElementById('terminal-selection-metrics'),
     terminalSelectionCoverage: document.getElementById('terminal-selection-coverage'),
+    terminalCoverageReasons: document.getElementById('terminal-coverage-reasons'),
     terminalLinesTitle: document.getElementById('terminal-lines-title'),
     terminalLinesCount: document.getElementById('terminal-lines-count'),
     terminalLinesMode: document.getElementById('terminal-lines-mode'),
@@ -5129,11 +5136,13 @@
         to: filterTo ? formatCalendarDate(filterTo) : '…'
       }) : '');
     const coverage = chartData && chartData.coverage;
+    const reasons = terminalModel.coverageReasons(coverage && coverage.expectedDates,
+      coverage && coverage.observedDates, chartData && chartData.coverageNotes, chartData && chartData.start, chartData && chartData.end);
     setText(elements.terminalChartCoverage, chartData && coverage && coverage.expectedDayCount > 0
       ? translate('terminal_chart_coverage', {
         observed: formatNumber(coverage.observedDayCount, 0),
         expected: formatNumber(coverage.expectedDayCount, 0),
-        unknown: formatNumber(coverage.missingDayCount, 0),
+        unknown: formatNumber(reasons.unknown, 0), explained: formatNumber(reasons.notes.length, 0),
         unit: translate({ day: 'terminal_granularity_day', week: 'terminal_granularity_week',
           month: 'terminal_granularity_month' }[chartData.granularity])
       }) + ' · ' + translate('terminal_chart_coverage_legend')
@@ -5251,6 +5260,14 @@
         }) : translate('terminal_chart_no_expected')));
       svg.appendChild(rect);
     });
+    reasons.notes.forEach(function (note) {
+      const label = translate('terminal_coverage_reason', { date: formatCalendarDate(note.date), reason: note.reason });
+      const marker = terminalSvg('rect', { x: dateX(note.date, false), y: coverageY - 2,
+        width: Math.max(1, dateX(note.date, true) - dateX(note.date, false)), height: 9,
+        class: 'terminal-coverage-explained', role: 'img', 'aria-label': label, 'data-coverage-note-date': note.date });
+      marker.appendChild(terminalSvg('title', {}, label));
+      svg.appendChild(marker);
+    });
     (plotRight - plotLeft >= 280 ? [0, Math.floor((buckets.length - 1) / 2), buckets.length - 1] : [0, buckets.length - 1]).filter(function (index, position, array) { return array.indexOf(index) === position; }).forEach(function (index) {
       const bucket = buckets[index];
       svg.appendChild(terminalSvg('text', { x: x(bucket), y: size.height - 6,
@@ -5268,6 +5285,7 @@
     const chartData = terminalView.chartData;
     const context = terminalView.lineContext;
     const active = Boolean(terminalView.day || elements.terminalFilterFrom.value || elements.terminalFilterTo.value);
+    elements.terminalCoverageReasons.replaceChildren();
     elements.terminalSelectionSummary.classList.toggle('hidden', !chartData || !context);
     if (!chartData || !context) return;
     setText(elements.terminalSelectionTitle, translate(active ? 'terminal_selection_title' : 'terminal_total_period'));
@@ -5311,14 +5329,30 @@
     });
     elements.terminalSelectionMetrics.replaceChildren(fragment);
     const coverage = terminalView.selectionCache.coverage;
+    const reasons = terminalModel.coverageReasons(chartData.coverage.expectedDates,
+      chartData.coverage.observedDates, chartData.coverageNotes, from > chartData.start ? from : chartData.start,
+      to < chartData.end ? to : chartData.end);
     setText(elements.terminalSelectionCoverage, (chartData.expectedWeekdaysConfigured && coverage.expected > 0
       ? translate('terminal_selection_coverage', {
         observed: formatNumber(coverage.observed, 0), expected: formatNumber(coverage.expected, 0),
-        unknown: formatNumber(coverage.unknown, 0)
+        unknown: formatNumber(reasons.unknown, 0), explained: formatNumber(reasons.notes.length, 0)
       }) : chartData.expectedWeekdaysConfigured ? translate('terminal_chart_no_expected')
         : translate('terminal_selection_coverage_unavailable')) + ' ' +
       (selected.lines === 0 ? translate('terminal_selection_no_rows') + ' ' : '') +
       translate('terminal_selection_scope_note'));
+    if (reasons.notes.length) {
+      const details = document.createElement('details'), heading = document.createElement('summary');
+      const list = document.createElement('ul');
+      const labelFor = function (note) { return translate('terminal_coverage_reason', {
+        date: formatCalendarDate(note.date), reason: note.reason }); };
+      heading.title = reasons.notes.length === 1 ? labelFor(reasons.notes[0]) : '';
+      setText(heading, reasons.notes.length === 1 ? translate('terminal_coverage_reason_single')
+        : translate('terminal_coverage_reasons', { count: formatNumber(reasons.notes.length, 0) }));
+      reasons.notes.forEach(function (note) {
+        const item = document.createElement('li'); setText(item, labelFor(note)); list.appendChild(item);
+      });
+      details.appendChild(heading); details.appendChild(list); elements.terminalCoverageReasons.appendChild(details);
+    }
   }
 
   function renderTerminalWatchlistWindow(selected) {
@@ -5729,6 +5763,7 @@
     }
     const granularity = terminalModel.chartGranularity(chartStart, chartEnd, elements.terminalChartGranularity.value);
     terminalView.chartData = { start: chartStart, end: chartEnd, granularity: granularity,
+      coverageNotes: state.coverageNotes,
       expectedWeekdaysConfigured: expectedWeekdays.length > 0, coverage: terminalView.coverage.result,
       buckets: terminalModel.aggregateChart(summary.points, chartStart, chartEnd, granularity,
         terminalView.coverage.result.expectedDates, terminalView.coverage.result.observedDates) };

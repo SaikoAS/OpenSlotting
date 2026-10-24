@@ -197,6 +197,11 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
 .terminal-selection-metrics small { color: #c4ad8f; font-size: .64rem; }
 .terminal-selection-metrics strong { margin-left: auto; color: #f5e7cf; font-size: .98rem; }
 .terminal-selection-coverage { margin: 6px 0 0; color: #cfbd9e; font-size: .69rem; }
+.terminal-coverage-reasons { color: #a8d7f4; font-size: .71rem; overflow-wrap: anywhere; margin-right: auto; }
+.terminal-coverage-reasons:empty { display: none; }
+.terminal-coverage-reasons details { position: relative; }
+.terminal-coverage-reasons summary { cursor: pointer; }
+.terminal-coverage-reasons ul { position: absolute; bottom: 100%; left: 0; z-index: 5; width: min(480px, 65vw); max-height: 120px; overflow: auto; margin: 0 0 5px; padding: 10px 12px 10px 28px; background: #1d2e3b; border: 1px solid #71bdf1; border-radius: 4px; box-shadow: 0 4px 14px #0008; }
 .terminal-chart { min-height: 350px; padding: 0 8px 4px; }
 .terminal-chart svg { display: block; width: 100%; height: 350px; overflow: hidden; }
 .terminal-chart svg[data-selectable="true"] { cursor: crosshair; }
@@ -213,6 +218,7 @@ button.issue-preview-item.blocking { border-color: #724750; color: #f0afb5; back
 .terminal-coverage-complete { fill: #4ec9a8; }
 .terminal-coverage-partial { fill: #e8b15e; }
 .terminal-coverage-unknown { fill: #778493; }
+.terminal-coverage-explained { fill: #71bdf1; stroke: #b2e0ff; stroke-width: 1; }
 .terminal-coverage-unavailable { fill: #46525e; }
 .terminal-chart-empty { display: grid; place-items: center; min-height: 340px; margin: 0; color: var(--muted); }
 .terminal-lines-panel { margin-top: 12px; }

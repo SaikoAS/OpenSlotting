@@ -126,3 +126,24 @@ test('line axes use exact integer intervals and grouped clicks retain bucket dat
   assert.equal(week.elements.terminalFilterFrom.value, '2026-08-01');
   assert.equal(week.elements.terminalFilterTo.value, '2026-08-02');
 });
+
+test('explained missing days have exact-date markers and reasons in daily, weekly and monthly charts', () => {
+  for (const granularity of ['day', 'week', 'month']) {
+    const f = fixture({ granularity });
+    const data = f.terminalView.chartData;
+    const dates = ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04', '2026-08-05'];
+    data.coverage = { expectedDates: dates, observedDates: dates.filter(date => date !== '2026-08-03'),
+      expectedDayCount: 5, observedDayCount: 4, missingDayCount: 1 };
+    data.coverageNotes = [{ date: '2026-08-03', reason: 'Feiertag' }, { date: '2026-08-02', reason: 'Data exists' }];
+    // The selected article has no rows; coverage still uses the entire workspace.
+    data.buckets = terminal.aggregateChart([], data.start, data.end, granularity, dates, data.coverage.observedDates);
+    f.chart.replaceChildren(); f.context.renderTerminalChart({ points: [] });
+    const markers = f.svg().children.filter(child => child.attributes.class === 'terminal-coverage-explained');
+    assert.equal(markers.length, 1);
+    assert.equal(markers[0].attributes['data-coverage-note-date'], '2026-08-03');
+    assert.match(markers[0].children[0].textContent, /Feiertag/);
+    assert.match(markers[0].attributes['aria-label'], /2026-08-03/);
+    assert.match(f.elements.terminalChartCoverage.textContent, /"unknown":"0","explained":"1"/);
+    assert.equal(f.svg().children.some(child => child.attributes.class === 'terminal-chart-point'), false);
+  }
+});

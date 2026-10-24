@@ -81,7 +81,7 @@ The current implementation includes:
 - complete single-workspace JSON backup and validated restore as new or explicit replacement
 - versioned workspace and backup schemas without a workspace merge path
 - optional selling-unit / cases and quantity-per-selling-unit import fields with zero-unit and partial-sale support
-- visible date coverage with configurable expected weekdays and missing-day warnings
+- visible date coverage with configurable expected weekdays and missing-day warnings; saved reasons appear as blue markers and range-specific details on the analysis desk, with explained and unexplained missing days counted separately
 - automatic ISO-calendar-week selection plus optional custom, workspace-persisted comparison periods
 - article-level comparison filters, data-quality indicators, detail links, and CSV export
 - a TradingView-inspired analysis desk with article, customer, and order views, an observed-date trend, searchable entity list, and source-line evidence

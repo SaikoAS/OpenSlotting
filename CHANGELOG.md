@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Show saved reasons for expected missing days on the analysis desk: blue date markers with reason tooltips, separate explained/unexplained counts and range-specific reason details. Preserve actual coverage, quantities and comparison semantics.
+
 - Move expected weekdays from comparison to a fitted coverage desk with calendar/source/date/evidence views, a persistent day inspector and paginated source evidence. Keep period ranges when editing weekdays and refresh control locks on navigation.
 
 - Make Cancel import in filename-conflict dialogs skip only the displayed file and continue the remaining selection, with imported/skipped counts and no save when every file is skipped.

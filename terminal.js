@@ -277,6 +277,19 @@
     return { expected: expectedCount, observed: observedCount, unknown: expectedCount - observedCount };
   }
 
+  function coverageReasons(expectedDates, observedDates, notes, from, to) {
+    const observed = new Set(observedDates || []);
+    const missing = new Set((expectedDates || []).filter(function (date) {
+      return (!from || date >= from) && (!to || date <= to) && !observed.has(date);
+    }));
+    const explained = new Map();
+    (notes || []).forEach(function (note) {
+      if (missing.has(note.date) && note.reason && note.reason.trim()) explained.set(note.date, note);
+    });
+    return { notes: Array.from(explained.values()).sort(function (a, b) { return a.date.localeCompare(b.date); }),
+      unknown: missing.size - explained.size };
+  }
+
   function customLineValue(line, fieldId, masterIndex) {
     const own = line.custom_fields && line.custom_fields[fieldId];
     if (own !== undefined && own !== null && own !== '') return { value: own, source: 'order-lines' };
@@ -400,5 +413,5 @@
     entityMatchesNormalizedQuery: entityMatchesNormalizedQuery, filterEntities: filterEntities,
     chartDateAtX: chartDateAtX, chartDateRange: chartDateRange,
     summarizeSelection: summarizeSelection, chartGranularity: chartGranularity,
-    aggregateChart: aggregateChart, coverageCounts: coverageCounts };
+    aggregateChart: aggregateChart, coverageCounts: coverageCounts, coverageReasons: coverageReasons };
 });

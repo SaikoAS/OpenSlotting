@@ -27,6 +27,7 @@ function fixture(scope = 'article') {
   const elements = Object.fromEntries(['Summary', 'Title', 'Range', 'Metrics', 'Coverage']
     .map(name => ['terminalSelection' + name, node()]));
   elements.terminalSelectionSummary.classList.owner = elements.terminalSelectionSummary;
+  elements.terminalCoverageReasons = node();
   elements.terminalFilterFrom = { value: '' };
   elements.terminalFilterTo = { value: '' };
   const key = scope === 'article' ? 'A-1' : 'C-1';
@@ -126,4 +127,28 @@ test('summary is the only KPI group on the analysis desk', () => {
   assert.doesNotMatch(source, /terminalKpis/);
   assert.doesNotMatch(css, /\.terminal-kpis/);
   assert.match(css, /\.terminal-selection-metrics > div\s*\{[^}]*flex-wrap:\s*wrap/);
+});
+
+test('saved reasons appear in the current range without changing demand or cached metrics', () => {
+  const f = fixture();
+  f.terminalView.chartData.end = '2026-09-03';
+  f.terminalView.chartData.coverageNotes = [{ date: '2026-09-03', reason: 'Feiertag keine Auslieferung' }];
+  f.render();
+  assert.match(f.elements.terminalSelectionCoverage.textContent, /"unknown":"0","explained":"1"/);
+  const details = f.elements.terminalCoverageReasons.children[0];
+  assert.match(details.children[0].title, /Feiertag keine Auslieferung/);
+  assert.match(details.children[1].children[0].textContent, /Feiertag keine Auslieferung/);
+  const metrics = f.metrics(), scans = f.summaries();
+  f.terminalView.chartData.coverageNotes = [{ date: '2026-09-03', reason: '<img src=x onerror=alert(1)>' }];
+  f.render();
+  assert.match(f.elements.terminalCoverageReasons.children[0].children[1].children[0].textContent, /<img/);
+  assert.deepEqual(f.metrics(), metrics); assert.equal(f.summaries(), scans);
+  f.terminalView.day = '2026-09-02'; f.render();
+  assert.equal(f.elements.terminalCoverageReasons.children.length, 0);
+  f.terminalView.day = '2026-09-03'; f.render();
+  assert.equal(f.metrics()[1][1], '0');
+  assert.match(f.elements.terminalSelectionCoverage.textContent, /"observed":"0","expected":"1","unknown":"0","explained":"1"/);
+  f.terminalView.chartData.coverageNotes = []; f.render();
+  assert.equal(f.elements.terminalCoverageReasons.children.length, 0);
+  assert.match(f.elements.terminalSelectionCoverage.textContent, /"unknown":"1","explained":"0"/);
 });
