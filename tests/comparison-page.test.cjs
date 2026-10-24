@@ -71,7 +71,7 @@ test('comparison navigation opens the setup without an existing result or worksp
   }
 });
 
-test('period selectors and weekday settings belong to comparison with one copy of every control', () => {
+test('period selectors belong to comparison and weekdays belong to coverage with one copy of every control', () => {
   const coverage = html.slice(html.indexOf('id="coverage-page"'), html.indexOf('id="comparison-page"'));
   const comparison = html.slice(html.indexOf('id="comparison-page"'), html.indexOf('id="analysis-page"'));
   for (const id of ['comparison-setup', 'period-a-week', 'period-b-week', 'period-a-start', 'period-b-end', 'compare-periods', 'reset-periods']) {
@@ -79,7 +79,8 @@ test('period selectors and weekday settings belong to comparison with one copy o
     assert.doesNotMatch(coverage, new RegExp('id="' + id + '"'));
     assert.equal(html.split('id="' + id + '"').length - 1, 1);
   }
-  assert.match(comparison, /<details class="comparison-calendar-options">[\s\S]*name="expected-weekday"/);
+  assert.doesNotMatch(comparison, /name="expected-weekday"/);
+  assert.match(coverage, /name="expected-weekday"/);
   assert.match(coverage, /data-workflow-target="comparison-panel"/);
 });
 
@@ -100,7 +101,7 @@ test('detected weeks can be compared and changed in place, invalidating previous
   assert.ok(f.messages.includes('period_overlap'));
 });
 
-test('custom periods and weekdays remain editable on comparison and invalid ranges cannot be submitted', () => {
+test('custom periods remain editable on comparison and invalid ranges or weekdays block comparison', () => {
   const f = fixture(datedResult()); f.context.renderWorkflow('comparison-panel');
   f.elements.periodModes.forEach(control => { control.checked = control.value === 'custom'; });
   f.elements.periodAStart.value = '2026-08-03'; f.elements.periodAEnd.value = '2026-08-03';
@@ -122,6 +123,26 @@ test('reset and edit periods remain on comparison; editing focuses the selector'
   f.elements.resetPeriods.handlers.click();
   assert.equal(f.state.comparison, null); assert.equal(f.state.activePageTarget, 'comparison-panel');
   assert.equal(f.elements.periodAWeek.value, '2026-W32');
+});
+
+test('weekday changes remain on coverage and preserve periods instead of reading comparison form drafts', () => {
+  const f = fixture(datedResult()); f.context.renderWorkflow('comparison-panel');
+  const before = JSON.parse(JSON.stringify(f.state.periodSettings));
+  f.elements.periodAStart.value = '2030-01-01';
+  f.elements.expectedWeekdays[0].checked = false;
+  f.context.handlePeriodSettingsChange('coverage-panel');
+  assert.equal(f.state.activePageTarget, 'coverage-panel');
+  assert.deepEqual(JSON.parse(JSON.stringify(f.state.periodSettings.periodA)), before.periodA);
+  assert.deepEqual(JSON.parse(JSON.stringify(f.state.periodSettings.periodB)), before.periodB);
+  assert.equal(f.state.periodSettings.expectedWeekdays.includes(0), false);
+  assert.equal(f.saves.at(-1)[1].metadataOnly, true);
+});
+
+test('entering coverage re-enables weekday controls after background preparation finishes', () => {
+  const f = fixture(datedResult(), { workspaceLoading: true }); f.context.renderComparisonSetup();
+  assert.equal(f.elements.expectedWeekdays[0].disabled, true);
+  f.state.workspaceLoading = false; f.context.renderWorkflow('coverage-panel');
+  assert.equal(f.elements.expectedWeekdays[0].disabled, false);
 });
 
 test('busy workspaces lock period controls and reject edits, comparison and reset', () => {

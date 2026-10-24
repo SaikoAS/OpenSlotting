@@ -48,14 +48,11 @@ test('column move buttons still swap with the next or previous column and stop a
   assert.deepEqual(movedColumns('C', 1), []);
 });
 
-test('day evidence scrolls only the page, without touching document, frame or rail', () => {
-  const rail={scrollTop:33},frame={scrollTop:0},doc={scrollTop:0};
-  let requested;
-  const page={scrollTop:120,getBoundingClientRect:()=>({top:90}),scrollTo:value=>{requested=value;}};
-  const context=vm.createContext({elements:{coverageDrilldown:{closest:selector=>selector==='.app-page'?page:null,
-    getBoundingClientRect:()=>({top:430}),scrollIntoView:()=>assert.fail('outer scrolling is forbidden')}}});
-  vm.runInContext(appFunction('revealCoverageEvidence'),context);
-  context.revealCoverageEvidence();assert.deepEqual(plain(requested),{top:448,behavior:'smooth'});
+test('day evidence opens its fitted view without scrolling the page, frame or rail', () => {
+  const state={coverageView:'dates'},rail={scrollTop:33},frame={scrollTop:0},doc={scrollTop:0};let focused=false,renders=0;
+  const context=vm.createContext({state,renderCoverageViews(){renders++;},elements:{coverageDrilldownTitle:{focus(options){assert.equal(options.preventScroll,true);focused=true;}}}});
+  vm.runInContext(appFunction('revealCoverageEvidence'),context);context.revealCoverageEvidence();
+  assert.equal(state.coverageView,'evidence');assert.equal(state.coverageReturnView,'dates');assert.equal(renders,1);assert.equal(focused,true);
   assert.equal(rail.scrollTop,33);assert.equal(frame.scrollTop,0);assert.equal(doc.scrollTop,0);
   assert.equal((source.match(/revealCoverageEvidence\(\);/g)||[]).length,2,'calendar and table evidence share the same navigation');
 });

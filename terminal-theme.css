@@ -500,6 +500,90 @@ body > .app-header { position: relative; top: auto; min-width: 0; }
 .import-conflict-dialog p { color: var(--muted); font-size: .82rem; line-height: 1.5; }
 .import-conflict-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .import-conflict-actions button { padding: 8px 11px; border-radius: 4px; font-size: .78rem; }
+/* Coverage desk: one fitted view, with scrolling confined to evidence or day details. */
+#coverage-page { display: flex; flex-direction: column; overflow: hidden; scrollbar-gutter: auto; }
+#coverage-panel.coverage-desk { display: flex; flex: 1 1 0; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; margin: 0; padding: 0; border: 0; background: transparent; }
+.coverage-toolbar { display: flex; flex: none; align-items: center; gap: 12px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--card); }
+.coverage-toolbar .weekday-fieldset { flex: 1; min-width: 0; margin: 0; padding: 0; border: 0; }
+.coverage-toolbar .weekday-fieldset legend { padding: 0; margin-bottom: 4px; color: #9dded4; font-size: .75rem; }
+.coverage-toolbar .weekday-fieldset .table-note { margin: 0 0 5px; font-size: .68rem; }
+.coverage-toolbar .weekday-options { gap: 5px; }
+.coverage-toolbar .weekday-options label { padding: 4px 7px; font-size: .7rem; }
+.coverage-toolbar > button { padding: 7px 10px; border-radius: 4px; font-size: .75rem; }
+#coverage-weekday-message { flex: none; margin: 0; color: #edc16c; font-size: .73rem; }
+.coverage-desk .coverage-overview { flex: none; gap: 8px; margin: 0; padding: 8px 10px; border-radius: 4px; }
+.coverage-desk .coverage-stat { min-width: 0; }
+.coverage-desk .coverage-stat strong { color: #a3ded4; font-size: .76rem; }
+.coverage-desk .coverage-stat span { font-size: .68rem; }
+.coverage-view-tabs { display: flex; flex: none; align-items: center; gap: 5px; padding: 5px; border: 1px solid var(--line); border-radius: 4px; background: var(--card); }
+.coverage-view-tabs button { padding: 6px 10px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #a5b4c4; font-size: .76rem; font-weight: 700; }
+.coverage-view-tabs button[aria-selected="true"] { border-color: #34766b; background: #20413d; color: #a7f0e3; }
+.coverage-desk .coverage-calendar { display: flex; flex: 1 1 0; flex-direction: column; gap: 7px; min-width: 0; min-height: 0; margin: 0; padding: 10px; border-radius: 5px; overflow: hidden; background: #171d24; }
+.coverage-calendar > .panel-heading { flex: none; gap: 8px; margin: 0; align-items: center; }
+.coverage-calendar > .panel-heading h3 { margin: 0; font-size: .88rem; }
+.coverage-desk .coverage-calendar-nav { gap: 6px; font-size: .73rem; }
+.coverage-desk .coverage-calendar-nav button { padding: 5px 10px; border-radius: 4px; }
+.coverage-desk .coverage-calendar-nav input { width: 155px; padding: 4px 6px; font-size: .76rem; }
+.coverage-desk .coverage-calendar > .table-note { flex: none; margin: 0; font-size: .67rem; line-height: 1.4; }
+.coverage-desk .coverage-calendar-legend { flex: none; gap: 5px 12px; font-size: .66rem; }
+.coverage-desk .coverage-calendar-layout { flex: 1 1 0; grid-template-columns: minmax(0, 1fr) 290px; gap: 10px; min-height: 0; margin: 0; }
+.coverage-calendar-month { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.coverage-desk .coverage-calendar-weekdays { flex: none; grid-template-columns: 48px repeat(7, minmax(0, 1fr)); gap: 4px; font-size: .7rem; }
+.coverage-desk .coverage-calendar-days { flex: 1 1 0; min-height: 0; grid-template-columns: 48px repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.coverage-desk .coverage-calendar-day { min-height: 0; padding: 5px; gap: 2px; border-radius: 4px; overflow: hidden; }
+.coverage-desk .coverage-calendar-day > strong { font-size: .84rem; line-height: 1.1; }
+.coverage-desk .coverage-calendar-day > span { max-width: 100%; font-size: .63rem; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.coverage-desk .coverage-calendar-day > small { font-size: .61rem; }
+.coverage-desk .coverage-calendar-week { gap: 2px; padding: 2px; }
+.coverage-desk .coverage-calendar-week { overflow: hidden; }
+.coverage-calendar .calendar-label-short { display: none; }
+.coverage-desk .coverage-calendar-week strong, .coverage-desk .coverage-calendar-week small { font-size: .63rem; line-height: 1.1; }
+.coverage-desk .coverage-calendar-detail { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 10px; overflow: hidden; background: #1a222c; }
+.coverage-calendar-detail > h4 { flex: none; margin: 0 0 8px; color: #a3ded4; font-size: .9rem; }
+.coverage-calendar-detail-body { flex: 1 1 0; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.coverage-desk .coverage-calendar-detail p, .coverage-desk .coverage-calendar-detail label { margin: 0 0 8px; font-size: .73rem; line-height: 1.4; }
+.coverage-desk .coverage-calendar-detail textarea { padding: 7px; min-height: 65px; max-height: 140px; resize: none; font-size: .76rem; }
+.coverage-calendar-detail-footer { flex: none; padding-top: 6px; }
+.coverage-desk .coverage-calendar-actions { margin: 0 0 5px; gap: 5px; }
+.coverage-desk .coverage-calendar-actions button { padding: 5px 7px; border-radius: 4px; font-size: .69rem; }
+.coverage-calendar-detail-footer > button { font-size: .7rem; text-align: left; }
+.coverage-calendar-detail-footer > p { margin: 4px 0 0 !important; }
+.coverage-desk > .coverage-detail-card, .coverage-desk > .coverage-drilldown { display: flex; flex: 1 1 0; flex-direction: column; min-width: 0; min-height: 0; margin: 0; padding: 10px; background: #171d24; }
+.coverage-desk .coverage-detail-card h3, .coverage-desk .coverage-drilldown h3 { flex: none; margin: 0 0 6px; font-size: .87rem; }
+.coverage-desk .coverage-detail-card > p, .coverage-desk .coverage-drilldown > p { flex: none; margin: 0 0 7px; font-size: .72rem; }
+.coverage-desk .table-scroll { flex: 1 1 0; min-width: 0; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.coverage-desk table { margin: 0; min-width: 750px; font-size: .73rem; }
+.coverage-desk th { position: sticky; top: 0; z-index: 1; background: #202c36; font-size: .68rem; }
+.coverage-desk td, .coverage-desk th { padding: 8px 10px; }
+.coverage-desk .table-pagination { flex: none; margin: 0; padding-top: 7px; font-size: .7rem; }
+.coverage-desk .table-pagination button, .coverage-desk .table-scroll button { padding: 5px 8px; border-radius: 4px; font-size: .71rem; }
+.coverage-desk .coverage-drilldown-heading { flex: none; }
+.coverage-desk .coverage-drilldown-heading .step { margin: 0 0 3px; font-size: .64rem; }
+@media (max-height: 700px) and (min-width: 761px) {
+  .coverage-toolbar { padding: 5px 8px; }
+  .coverage-toolbar .weekday-fieldset .table-note { display: none; }
+  .coverage-toolbar .weekday-options label { padding: 3px 6px; }
+  .coverage-desk .coverage-overview { padding: 5px 8px; }
+  .coverage-desk .coverage-stat strong, .coverage-desk .coverage-stat span { font-size: .67rem; line-height: 1.25; }
+  .coverage-desk .coverage-calendar { gap: 5px; padding: 8px; }
+  .coverage-calendar .calendar-label-full { display: none; }
+  .coverage-calendar .calendar-label-short { display: inline; }
+  .coverage-desk .coverage-calendar-day > span, .coverage-desk .coverage-calendar-day > small { display: none; }
+  .coverage-desk .coverage-calendar > .table-note:first-of-type { display: none; }
+}
+@media (max-width: 1100px) and (min-width: 761px) { .coverage-desk .coverage-calendar-layout { grid-template-columns: minmax(0, 1fr) 250px; } }
+@media (max-width: 760px) {
+  .coverage-toolbar { flex-wrap: wrap; padding: 6px; gap: 5px; }
+  .coverage-toolbar > button { margin-left: auto; padding: 4px 7px; font-size: .68rem; }
+  .coverage-toolbar .weekday-options { gap: 3px; }
+  .coverage-toolbar .weekday-options label { padding: 3px 5px; }
+  .coverage-view-tabs { gap: 2px; }
+  .coverage-view-tabs button { flex: 1; padding: 5px 3px; font-size: .63rem; }
+  .coverage-desk .coverage-calendar > .table-note, .coverage-desk .coverage-calendar-legend { display: none; }
+  .coverage-desk .coverage-calendar-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(230px, 1fr) 300px; overflow: auto; }
+  .coverage-desk .coverage-calendar-day > span, .coverage-desk .coverage-calendar-day > small { display: none; }
+  .coverage-desk .coverage-calendar-weekdays, .coverage-desk .coverage-calendar-days { grid-template-columns: 35px repeat(7, minmax(0, 1fr)); }
+}
 .import-file-select { display: block; width: 100%; padding: 2px 0; border: 0; text-align: left; color: #b5ede4; background: transparent; font-weight: 700; overflow-wrap: anywhere; }
 .import-table-tags, .import-tag-list { display: flex; flex-wrap: wrap; gap: 4px; }
 .import-table-tags { max-width: 170px; align-items: center; }

@@ -698,6 +698,9 @@
       required_label: 'Required',
       optional_label: 'Optional',
       coverage_title: 'Data coverage',
+      coverage_views: 'Coverage views',
+      coverage_calendar_tab: 'Calendar',
+      coverage_evidence_page: 'Page {{page}} of {{pages}} - {{count}} rows on this page',
       coverage_intro: 'Review observed dates, missing days and source evidence.',
       coverage_unknown_note: 'Dates without imported rows remain unknown coverage, not zero demand.',
       coverage_timeline_label: 'Observed date coverage',
@@ -1476,6 +1479,9 @@
       required_label: 'Pflichtfeld',
       optional_label: 'Optional',
       coverage_title: 'Datenabdeckung',
+      coverage_views: 'Ansichten der Datenabdeckung',
+      coverage_calendar_tab: 'Kalender',
+      coverage_evidence_page: 'Seite {{page}} von {{pages}} - {{count}} Zeilen auf dieser Seite',
       coverage_intro: 'Beobachtete Datumswerte, fehlende Tage und Quelldaten prüfen.',
       coverage_unknown_note: 'Tage ohne importierte Zeilen bleiben unbekannte Abdeckung und gelten nicht als Nullabsatz.',
       coverage_timeline_label: 'Beobachtete Datumsabdeckung',
@@ -1636,6 +1642,9 @@
     comparisonPage: 1,
     coverageDatePage: 1,
     coverageDrilldown: null,
+    coverageView: 'calendar',
+    coverageReturnView: 'calendar',
+    coverageEvidencePage: 1,
     selectedComparisonArticleId: null,
     comparisonDetailPage: 1,
     sourceStatus: { key: 'no_file_selected', replacements: {}, error: false, text: '' },
@@ -1877,6 +1886,13 @@
     coverageDrilldownSummary: document.getElementById('coverage-drilldown-summary'),
     coverageDrilldownTableBody: document.getElementById('coverage-drilldown-table-body'),
     coverageDrilldownClose: document.getElementById('coverage-drilldown-close'),
+    coverageViews: Array.from(document.querySelectorAll('[data-coverage-view]')),
+    coverageViewPanels: Array.from(document.querySelectorAll('[data-coverage-panel]')),
+    coverageWeekdayMessage: document.getElementById('coverage-weekday-message'),
+    coverageEvidencePagination: document.getElementById('coverage-evidence-pagination'),
+    coverageEvidencePrevious: document.getElementById('coverage-evidence-previous'),
+    coverageEvidenceNext: document.getElementById('coverage-evidence-next'),
+    coverageEvidencePageStatus: document.getElementById('coverage-evidence-page-status'),
     expectedWeekdays: Array.from(document.querySelectorAll('input[name="expected-weekday"]')),
     periodModes: Array.from(document.querySelectorAll('input[name="period-mode"]')),
     calendarWeekSummary: document.getElementById('calendar-week-summary'),
@@ -4066,7 +4082,10 @@
     if (typeof warehouseWalk !== 'undefined' && warehouseWalk) warehouseWalk.setActive(requestedTarget === 'warehouse-walk-panel');
     if (requestedTarget === 'coverage-panel') {
       if (elements.coveragePanel.classList.contains('hidden') || !state.result) renderCoverage();
-      else if (coverageCalendar) coverageCalendar.refresh();
+      else {
+        renderComparisonSetup();
+        if (coverageCalendar) coverageCalendar.refresh();
+      }
     }
     if (requestedTarget === 'comparison-panel') renderComparisonSetup();
     document.body.classList.toggle('workspace-picker-mode', !state.activeWorkspace || requestedTarget === 'workspace-panel');
@@ -4519,12 +4538,13 @@
       return;
     }
     const isDate = selection.type === 'date';
-    const sourceSummary = state.result.files.find(function (source) { return source.id === selection.value; });
+    const sourceIndex = new Map(state.result.files.map(function (file) { return [file.id, file]; }));
+    const sourceSummary = sourceIndex.get(selection.value);
     const validRows = state.result.rows.filter(function (row) {
       return isDate ? row.delivery_date === selection.value : row.source_file_id === selection.value;
     });
     const issues = state.result.issues.filter(function (issue) {
-      const source = state.result.files.find(function (file) { return file.id === issue.sourceFileId; });
+      const source = sourceIndex.get(issue.sourceFileId);
       return source && source.sourceType !== 'article-master' && (isDate ? issue.deliveryDate === selection.value : issue.sourceFileId === selection.value);
     });
     const invalidLines = new Set(issues.filter(function (issue) {
@@ -4549,7 +4569,10 @@
       sources: sources.size
     }));
     elements.coverageDrilldownTableBody.replaceChildren();
-    validRows.forEach(function (rowData) {
+    const total = validRows.length + issues.length, pages = Math.max(1, Math.ceil(total / TABLE_PAGE_SIZE));
+    state.coverageEvidencePage = Math.min(Math.max(state.coverageEvidencePage || 1, 1), pages);
+    const start = (state.coverageEvidencePage - 1) * TABLE_PAGE_SIZE, end = start + TABLE_PAGE_SIZE;
+    validRows.slice(start, end).forEach(function (rowData) {
       const row = document.createElement('tr');
       appendCell(row, translate('coverage_valid_row'));
       appendCell(row, optionalText(rowData.source_file_label || rowData.source_file_name));
@@ -4559,7 +4582,7 @@
       appendCell(row, optionalText(rowData.order_id) + ' · ' + formatQuantity(rowData.quantity));
       elements.coverageDrilldownTableBody.appendChild(row);
     });
-    issues.forEach(function (issue) {
+    issues.slice(Math.max(0, start - validRows.length), Math.max(0, end - validRows.length)).forEach(function (issue) {
       const row = document.createElement('tr');
       appendCell(row, translate(issue.code === 'source_rule_excluded' ? 'coverage_filtered_row' :
         core.issueIsBlocking(issue) ? 'coverage_invalid_row' : 'coverage_advisory_row'));
@@ -4571,6 +4594,21 @@
       elements.coverageDrilldownTableBody.appendChild(row);
     });
     elements.coverageDrilldown.classList.remove('hidden');
+    elements.coverageEvidencePagination.classList.toggle('hidden', total <= TABLE_PAGE_SIZE);
+    elements.coverageEvidencePrevious.disabled = state.coverageEvidencePage <= 1;
+    elements.coverageEvidenceNext.disabled = state.coverageEvidencePage >= pages;
+    setText(elements.coverageEvidencePageStatus, translate('coverage_evidence_page', { page: state.coverageEvidencePage, pages: pages, count: Math.min(TABLE_PAGE_SIZE, total - start) }));
+  }
+
+  function renderCoverageViews() {
+    const evidence = Boolean(state.coverageDrilldown && state.result);
+    if (!state.coverageView || (state.coverageView === 'evidence' && !evidence)) state.coverageView = state.coverageReturnView || 'calendar';
+    elements.coverageViews.forEach(function (button) {
+      const selected = button.dataset.coverageView === state.coverageView;
+      button.disabled = button.dataset.coverageView === 'evidence' && !evidence;
+      button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1;
+    });
+    elements.coverageViewPanels.forEach(function (panel) { panel.classList.toggle('hidden', panel.dataset.coveragePanel !== state.coverageView); });
   }
 
   function renderComparisonSetup() {
@@ -4647,6 +4685,9 @@
     renderCoverageSources(coverageData);
     renderCoverageDates(coverageData);
     renderCoverageDrilldown();
+    renderCoverageViews();
+    setText(elements.coverageWeekdayMessage, state.periodSettings.expectedWeekdays.length ? '' : translate('weekdays_required'));
+    elements.coverageWeekdayMessage.classList.toggle('hidden', state.periodSettings.expectedWeekdays.length > 0);
     elements.coveragePanel.classList.remove('hidden');
   }
 
@@ -5353,10 +5394,10 @@
   const TERMINAL_LINE_ROW_HEIGHT = 36;
 
   function revealCoverageEvidence() {
-    const page = elements.coverageDrilldown.closest('.app-page');
-    if (!page) return;
-    const offset = elements.coverageDrilldown.getBoundingClientRect().top - page.getBoundingClientRect().top;
-    page.scrollTo({ top: page.scrollTop + offset - 12, behavior: 'smooth' });
+    if (state.coverageView !== 'evidence') state.coverageReturnView = state.coverageView || 'calendar';
+    state.coverageView = 'evidence';
+    renderCoverageViews();
+    elements.coverageDrilldownTitle.focus({ preventScroll: true });
   }
 
   function terminalOptionalColumns() {
@@ -6451,6 +6492,9 @@
     state.comparisonPage = 1;
     state.coverageDatePage = 1;
     state.coverageDrilldown = null;
+    state.coverageView = 'calendar';
+    state.coverageReturnView = 'calendar';
+    state.coverageEvidencePage = 1;
     state.selectedComparisonArticleId = null;
     state.comparisonDetailPage = 1;
     state.articleDetailTab = 'overview';
@@ -7694,10 +7738,12 @@
     );
   }
 
-  function handlePeriodSettingsChange() {
+  function handlePeriodSettingsChange(target) {
     if (!state.activeWorkspace || !state.storageReady || state.workspaceLoading ||
         state.files.some(function (file) { return Boolean(file.reading); })) return;
-    state.periodSettings = periodSettingsFromControls();
+    state.periodSettings = target === 'coverage-panel'
+      ? periods.normalizeSettings(Object.assign({}, state.periodSettings, { expectedWeekdays: elements.expectedWeekdays.filter(function (input) { return input.checked; }).map(function (input) { return Number(input.value); }) }))
+      : periodSettingsFromControls();
     state.comparison = null;
     invalidateViewCaches();
     state.comparisonPage = 1;
@@ -7712,7 +7758,7 @@
     }
     renderCoverage();
     renderComparison();
-    renderWorkflow('comparison-panel');
+    renderWorkflow(target === 'coverage-panel' ? 'coverage-panel' : 'comparison-panel');
     if (periodSettingsStorable(state.periodSettings)) {
       persistActiveWorkspace(undefined, { metadataOnly: true }).catch(function () {});
     }
@@ -8291,7 +8337,7 @@
     control.addEventListener('change', handlePeriodSettingsChange);
   });
   elements.expectedWeekdays.forEach(function (control) {
-    control.addEventListener('change', handlePeriodSettingsChange);
+    control.addEventListener('change', function () { handlePeriodSettingsChange('coverage-panel'); });
   });
   elements.navigationToggle.addEventListener('click', function () {
     state.navigationCollapsed = !state.navigationCollapsed;
@@ -8582,6 +8628,7 @@
       state.coverageDrilldown = button.dataset.coverageDate
         ? { type: 'date', value: button.dataset.coverageDate }
         : { type: 'source', value: button.dataset.coverageSourceId };
+      state.coverageEvidencePage = 1;
       renderCoverageDrilldown();
       revealCoverageEvidence();
     });
@@ -8589,6 +8636,25 @@
   elements.coverageDrilldownClose.addEventListener('click', function () {
     state.coverageDrilldown = null;
     renderCoverageDrilldown();
+    state.coverageView = state.coverageReturnView || 'calendar';
+    renderCoverageViews();
+    const button = elements.coverageViews.find(function (button) { return button.dataset.coverageView === state.coverageView; });
+    if (button) button.focus({ preventScroll: true });
+  });
+  elements.coverageViews.forEach(function (button) {
+    button.addEventListener('click', function () { state.coverageView = button.dataset.coverageView; renderCoverageViews(); });
+    button.addEventListener('keydown', function (event) {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      const available = elements.coverageViews.filter(function (button) { return !button.disabled; });
+      const index = available.indexOf(button), next = event.key === 'Home' ? 0 : event.key === 'End' ? available.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + available.length) % available.length;
+      event.preventDefault(); available[next].click(); available[next].focus({ preventScroll: true });
+    });
+  });
+  [elements.coverageEvidencePrevious, elements.coverageEvidenceNext].forEach(function (button, index) {
+    button.addEventListener('click', function () {
+      state.coverageEvidencePage += index === 0 ? -1 : 1; renderCoverageDrilldown(); renderCoverageViews();
+      elements.coverageDrilldown.querySelector('.table-scroll').scrollTop = 0;
+    });
   });
   elements.articleFilter.addEventListener('input', function () {
     state.selectedArticleId = null;
@@ -8801,6 +8867,7 @@
     save: saveCoverageNote,
     showEvidence: function (date) {
       state.coverageDrilldown = { type: 'date', value: date };
+      state.coverageEvidencePage = 1;
       renderCoverageDrilldown();
       revealCoverageEvidence();
     }

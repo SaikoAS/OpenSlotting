@@ -51,6 +51,7 @@ The current implementation includes:
 - multiple source files in one in-memory analysis batch
 - optional linked CSV sources with read-only file references, per-file/batch refresh, schema checks and atomic replacement; snapshot import remains available
 - compact import management with search, sortable file metadata, status/link/tag filters, selected-file actions and workspace-backed custom tags
+- fitted coverage desk with expected-weekday settings, calendar/week numbers, day reasons and internally scrolling source/date/evidence views
 - explicit persisted source types (`order-lines` and `article-master`), with order-line defaults for existing and new imports
 - source-scoped field mappings with the core movement contract `article_id + quantity + delivery_date`; order identity, customer, sales, location, selling-unit, and master-data capabilities remain optional
 - independent net/gross sales-value and unit-price fields, with legacy unclassified sales values preserved without guessing their tax semantics

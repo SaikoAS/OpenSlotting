@@ -28,7 +28,7 @@ function coverageView(result, notes = []) {
       toggle: (name, on) => on ? classes.add(name) : classes.delete(name) },
       children: [], appendChild(child) { this.children.push(child); }, replaceChildren() { this.children = []; } };
   }
-  const elements = Object.fromEntries(['coveragePanel', 'coverageOverview', 'periodAStatus', 'periodBStatus', 'comparePeriods',
+  const elements = Object.fromEntries(['coveragePanel', 'coverageOverview', 'coverageWeekdayMessage', 'periodAStatus', 'periodBStatus', 'comparePeriods',
     'comparisonSetupHint', 'comparisonSetupAction', 'resetPeriods', 'periodAWeek', 'periodBWeek', 'periodAName', 'periodAStart', 'periodAEnd',
     'periodBName', 'periodBStart', 'periodBEnd'].map(key => [key, element()]));
   elements.periodModes = []; elements.expectedWeekdays = [];
@@ -41,7 +41,7 @@ function coverageView(result, notes = []) {
   const context = vm.createContext({ state, elements, periods, core, coverageCalendar, comparisonSetupCache: periods.createPeriodViewCache(),
     document: { createElement: element }, setText: (node, text) => { node.textContent = text; },
     translate: (key, values) => { translations.push({ key, values }); return key; },
-    renderCoverageSources: data => { renderedData = data; renders++; }, renderCoverageDates() {}, renderCoverageDrilldown() {}, renderPeriodControls() {},
+    renderCoverageSources: data => { renderedData = data; renders++; }, renderCoverageDates() {}, renderCoverageDrilldown() {}, renderCoverageViews() {}, renderPeriodControls() {},
     periodSettingsValid: () => true, coverageText: () => '', closeMappingDrawer() {}, PAGE_CONFIG: { 'coverage-panel': {}, 'mapping-panel': {}, 'main-menu-panel': {}, 'workspace-panel': {} } });
   for (const name of ['analysisRowCount', 'resultHasRetainedData', 'isDatedCoverageIssue', 'buildCoverageData', 'hasCoverageContent', 'renderComparisonSetup', 'renderCoverage']) {
     vm.runInContext(appFunction(name), context);
@@ -335,6 +335,7 @@ test('entering coverage refreshes calendar controls after background activation 
     analysisRowCount: result => result.rows.length, resultHasRetainedData: () => true, hasCoverageContent: () => true,
     elements: { coveragePanel: { classList: { contains: () => false } } },
     coverageCalendar: { refresh: () => locks.push(state.workspaceLoading) },
+    renderComparisonSetup() {},
     renderCoverage: () => assert.fail('Visible coverage should not rebuild tables just to unlock calendar controls'), closeMappingDrawer() {} });
   vm.runInContext(source.slice(start, end) + '  }', context);
   context.renderWorkflow('coverage-panel'); state.workspaceLoading = false; context.renderWorkflow('coverage-panel');

@@ -151,6 +151,11 @@ metadata-only transaction and retains the source/row/issue/registry chunks.
 Activation, capture and backup/restore preserve these records. Workspaces from
 schema 17 or earlier migrate with an empty list; neither holidays nor reasons are
 inferred. Calendar month, selected date and unsaved drafts remain session-only.
+Expected weekdays are edited in Data coverage and retain their existing
+`periodSettings.expectedWeekdays` storage field. Editing them preserves the
+comparison period boundaries and invalidates derived comparison results. The
+calendar/source/date/evidence view and evidence page are transient; evidence
+pagination bounds rendered rows without changing the full counts or source data.
 Readers supporting schema 17 or earlier cannot read schema-18 backups. Keep a
 pre-update backup when returning to an older application is required.
 

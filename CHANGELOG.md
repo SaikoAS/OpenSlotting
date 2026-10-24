@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Move expected weekdays from comparison to a fitted coverage desk with calendar/source/date/evidence views, a persistent day inspector and paginated source evidence. Keep period ranges when editing weekdays and refresh control locks on navigation.
+
 - Make Cancel import in filename-conflict dialogs skip only the displayed file and continue the remaining selection, with imported/skipped counts and no save when every file is skipped.
 
 - Make import rows selectable across their surface, confirm source removal and resolve filename conflicts explicitly with Replace, Import anyway or Cancel. Stage snapshot and linked imports before one save; preserve target mappings/tags on replacement, number additional identical names and retain previous data on cancellation or failure.

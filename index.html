@@ -504,36 +504,51 @@
       </div>
       <div id="coverage-page" class="app-page hidden">
 
-      <section id="coverage-panel" class="panel hidden" aria-labelledby="coverage-title">
-        <div class="panel-heading coverage-heading">
-          <div>
-            <p class="step" data-i18n="step_4">Step 4</p>
-            <h2 id="coverage-title" data-i18n="coverage_title">Data coverage &amp; periods</h2>
-            <p class="table-note" data-i18n="coverage_intro">Review observed dates and define two inclusive comparison periods.</p>
+      <section id="coverage-panel" class="panel coverage-desk hidden" aria-labelledby="coverage-title">
+        <h2 id="coverage-title" class="visually-hidden" data-i18n="coverage_title">Data coverage</h2>
+        <div class="coverage-toolbar">
+        <fieldset class="weekday-fieldset">
+          <legend data-i18n="expected_weekdays">Expected weekdays</legend>
+          <p class="table-note" data-i18n="expected_weekdays_hint">Only selected weekdays count toward unknown dates.</p>
+          <div class="weekday-options">
+            <label><input type="checkbox" name="expected-weekday" value="1" checked><span data-i18n="weekday_mon">Mon</span></label>
+            <label><input type="checkbox" name="expected-weekday" value="2" checked><span data-i18n="weekday_tue">Tue</span></label>
+            <label><input type="checkbox" name="expected-weekday" value="3" checked><span data-i18n="weekday_wed">Wed</span></label>
+            <label><input type="checkbox" name="expected-weekday" value="4" checked><span data-i18n="weekday_thu">Thu</span></label>
+            <label><input type="checkbox" name="expected-weekday" value="5" checked><span data-i18n="weekday_fri">Fri</span></label>
+            <label><input type="checkbox" name="expected-weekday" value="6" checked><span data-i18n="weekday_sat">Sat</span></label>
+            <label><input type="checkbox" name="expected-weekday" value="0" checked><span data-i18n="weekday_sun">Sun</span></label>
           </div>
-          <div class="coverage-caution" role="note" data-i18n="coverage_unknown_note">Dates without imported rows remain unknown coverage, not zero demand.</div>
+        </fieldset>
+          <button class="secondary-button" type="button" data-workflow-target="comparison-panel" data-i18n="workflow_comparison">Periods &amp; comparison</button>
         </div>
+        <p id="coverage-weekday-message" class="table-note hidden" role="status"></p>
         <div id="coverage-overview" class="coverage-overview" role="status"></div>
-        <section id="coverage-timeline" class="coverage-calendar"></section>
-        <div class="coverage-detail-grid">
-          <section class="coverage-detail-card" aria-labelledby="coverage-sources-title">
+        <div class="coverage-view-tabs" role="tablist" data-i18n-aria-label="coverage_views" aria-label="Coverage views">
+          <button type="button" role="tab" id="coverage-tab-calendar" data-coverage-view="calendar" aria-controls="coverage-timeline" aria-selected="true" tabindex="0" data-i18n="coverage_calendar_tab">Calendar</button>
+          <button type="button" role="tab" id="coverage-tab-sources" data-coverage-view="sources" aria-controls="coverage-sources" aria-selected="false" tabindex="-1" data-i18n="coverage_sources_title">Coverage by source</button>
+          <button type="button" role="tab" id="coverage-tab-dates" data-coverage-view="dates" aria-controls="coverage-dates" aria-selected="false" tabindex="-1" data-i18n="coverage_dates_title">Coverage by date</button>
+          <button type="button" role="tab" id="coverage-tab-evidence" data-coverage-view="evidence" aria-controls="coverage-drilldown" aria-selected="false" tabindex="-1" data-i18n="coverage_drilldown_label">Coverage evidence</button>
+        </div>
+        <section id="coverage-timeline" class="coverage-calendar" role="tabpanel" data-coverage-panel="calendar" aria-labelledby="coverage-tab-calendar"></section>
+          <section id="coverage-sources" class="coverage-detail-card hidden" role="tabpanel" data-coverage-panel="sources" aria-labelledby="coverage-tab-sources">
             <h3 id="coverage-sources-title" data-i18n="coverage_sources_title">Coverage by source</h3>
             <p class="table-note" data-i18n="coverage_sources_intro">Review ranges, valid rows, invalid rows, rule-excluded rows, and selling-unit coverage per source.</p>
             <div class="table-scroll"><table><thead><tr><th data-i18n="source_file_column">Source file</th><th data-i18n="coverage_range">Observed range</th><th class="number" data-i18n="column_days">Days</th><th class="number" data-i18n="valid_rows_column">Valid</th><th class="number" data-i18n="invalid_rows_column">Invalid</th><th class="number" data-i18n="coverage_filtered_rows">Rule-excluded</th><th class="number" data-i18n="selling_unit_rows">Selling-unit rows</th><th><span class="visually-hidden" data-i18n="comparison_action">Action</span></th></tr></thead><tbody id="coverage-source-table-body"></tbody></table></div>
           </section>
-          <section class="coverage-detail-card" aria-labelledby="coverage-dates-title">
+          <section id="coverage-dates" class="coverage-detail-card hidden" role="tabpanel" data-coverage-panel="dates" aria-labelledby="coverage-tab-dates">
             <h3 id="coverage-dates-title" data-i18n="coverage_dates_title">Coverage by date</h3>
             <p class="table-note" data-i18n="coverage_dates_intro">Invalid and rule-excluded rows appear on a date only when that row contains a valid mapped delivery date.</p>
             <div class="table-scroll"><table><thead><tr><th data-i18n="detail_order_date">Delivery date</th><th class="number" data-i18n="valid_rows_column">Valid</th><th class="number" data-i18n="invalid_rows_column">Invalid</th><th class="number" data-i18n="coverage_filtered_rows">Rule-excluded</th><th data-i18n="source_files_title">Source files</th><th><span class="visually-hidden" data-i18n="comparison_action">Action</span></th></tr></thead><tbody id="coverage-date-table-body"></tbody></table></div>
             <div id="coverage-date-pagination" class="table-pagination hidden" aria-live="polite"><button id="coverage-date-previous" class="secondary-button" type="button" data-i18n="previous_page">Previous</button><span id="coverage-date-page-status" class="table-note"></span><button id="coverage-date-next" class="secondary-button" type="button" data-i18n="next_page">Next</button></div>
           </section>
-        </div>
-        <section id="coverage-drilldown" class="coverage-drilldown hidden" aria-labelledby="coverage-drilldown-title">
+        <section id="coverage-drilldown" class="coverage-drilldown hidden" role="tabpanel" data-coverage-panel="evidence" aria-labelledby="coverage-tab-evidence">
           <div class="coverage-drilldown-heading"><div><p class="step" data-i18n="coverage_drilldown_label">Coverage evidence</p><h3 id="coverage-drilldown-title" tabindex="-1"></h3></div><button id="coverage-drilldown-close" class="text-button" type="button" data-i18n="coverage_drilldown_close">Close evidence</button></div>
           <p id="coverage-drilldown-summary" class="table-note"></p>
           <div class="table-scroll"><table><thead><tr><th data-i18n="coverage_evidence_type">Type</th><th data-i18n="detail_source_file">Source file</th><th class="number" data-i18n="detail_source_line">Source line</th><th data-i18n="detail_order_date">Delivery date</th><th data-i18n="column_article_id">Article ID / SKU</th><th data-i18n="issue_message">Message</th></tr></thead><tbody id="coverage-drilldown-table-body"></tbody></table></div>
+          <div id="coverage-evidence-pagination" class="table-pagination hidden" aria-live="polite"><button id="coverage-evidence-previous" class="secondary-button" type="button" data-i18n="previous_page">Previous</button><span id="coverage-evidence-page-status" class="table-note"></span><button id="coverage-evidence-next" class="secondary-button" type="button" data-i18n="next_page">Next</button></div>
         </section>
-        <div class="coverage-actions"><button class="secondary-button" type="button" data-workflow-target="comparison-panel" data-i18n="workflow_comparison">Periods &amp; comparison</button></div>
+
       </section>
 
       </div>
@@ -580,22 +595,6 @@
           </fieldset>
         </div>
         <div id="period-message" class="message hidden" role="alert"></div>
-        <details class="comparison-calendar-options">
-          <summary data-i18n="expected_weekdays">Expected weekdays</summary>
-        <fieldset class="weekday-fieldset">
-          <legend class="visually-hidden" data-i18n="expected_weekdays">Expected weekdays</legend>
-          <p class="table-note" data-i18n="expected_weekdays_hint">Only selected weekdays count toward unknown dates.</p>
-          <div class="weekday-options">
-            <label><input type="checkbox" name="expected-weekday" value="1" checked><span data-i18n="weekday_mon">Mon</span></label>
-            <label><input type="checkbox" name="expected-weekday" value="2" checked><span data-i18n="weekday_tue">Tue</span></label>
-            <label><input type="checkbox" name="expected-weekday" value="3" checked><span data-i18n="weekday_wed">Wed</span></label>
-            <label><input type="checkbox" name="expected-weekday" value="4" checked><span data-i18n="weekday_thu">Thu</span></label>
-            <label><input type="checkbox" name="expected-weekday" value="5" checked><span data-i18n="weekday_fri">Fri</span></label>
-            <label><input type="checkbox" name="expected-weekday" value="6" checked><span data-i18n="weekday_sat">Sat</span></label>
-            <label><input type="checkbox" name="expected-weekday" value="0" checked><span data-i18n="weekday_sun">Sun</span></label>
-          </div>
-        </fieldset>
-        </details>
         <div class="coverage-actions"><button id="reset-periods" class="secondary-button" type="button" data-i18n="reset_periods">Reset periods</button><button id="compare-periods" class="primary-button" type="button" data-i18n="compare_periods">Compare periods</button></div>
         </section>
 
