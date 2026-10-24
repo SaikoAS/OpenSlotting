@@ -104,9 +104,10 @@
       import_conflict_replace: 'Replace existing file',
       import_conflict_keep: 'Import anyway',
       import_conflict_cancel: 'Cancel import',
-      import_conflict_hint: 'Replace keeps the selected import’s mappings, rules and tags. Import anyway creates another source; identical file names are marked (1/2), (2/2), etc. Cancelling discards this entire file selection.',
+      import_conflict_hint: 'Replace keeps the selected import’s mappings, rules and tags. Import anyway creates another source; identical file names are marked (1/2), (2/2), etc. Cancel import skips only the file shown here. The remaining files continue.',
       import_conflict_snapshot: 'Replacing a linked source through normal CSV import also removes its previous file link.',
-      import_saved: 'Imports saved. {{count}} file(s) processed. Review the columns and analyze the imports.',
+      import_saved: 'Imports saved. {{count}} file(s) imported, {{skipped}} skipped. Review the columns and analyze the imports.',
+      import_skipped: '{{count}} file(s) skipped. No data was changed.',
       import_reading: 'Reading file: {{file}}',
       import_cancelled: 'Import cancelled. Previous data was retained.',
       linked_all: 'Update all linked files',
@@ -881,9 +882,10 @@
       import_conflict_replace: 'Vorhandene Datei ersetzen',
       import_conflict_keep: 'Trotzdem importieren',
       import_conflict_cancel: 'Import abbrechen',
-      import_conflict_hint: 'Ersetzen erhält Zuordnungen, Regeln und Tags des ausgewählten Imports. Trotzdem importieren legt eine weitere Quelle an; identische Dateinamen erhalten (1/2), (2/2) usw. Abbrechen verwirft die gesamte Dateiauswahl.',
+      import_conflict_hint: 'Ersetzen erhält Zuordnungen, Regeln und Tags des ausgewählten Imports. Trotzdem importieren legt eine weitere Quelle an; identische Dateinamen erhalten (1/2), (2/2) usw. Import abbrechen überspringt nur die hier angezeigte Datei. Die übrigen Dateien werden weiter importiert.',
       import_conflict_snapshot: 'Wird eine verknüpfte Quelle durch normalen CSV-Import ersetzt, wird ihre bisherige Dateiverknüpfung gelöst.',
-      import_saved: 'Importe gespeichert. {{count}} Datei(en) verarbeitet. Quellspalten prüfen und die Importe analysieren.',
+      import_saved: 'Importe gespeichert. {{count}} Datei(en) importiert, {{skipped}} übersprungen. Quellspalten prüfen und die Importe analysieren.',
+      import_skipped: '{{count}} Datei(en) übersprungen. Es wurden keine Daten geändert.',
       import_reading: 'Datei wird eingelesen: {{file}}',
       import_cancelled: 'Import abgebrochen. Die bisherigen Daten bleiben erhalten.',
       linked_all: 'Alle verknüpften Dateien aktualisieren',
@@ -6547,7 +6549,7 @@
         state.files.some(function (file) { return file.reading; }) || (action !== 'unlink' && action !== 'snapshot' && !linkedFilesSupported())) return;
     const workspaceId = state.activeWorkspace.id, revision = ++workspaceLoadRevision;
     const originalFiles = state.files, hadAnalysis = Boolean(state.analysis);
-    let currentFile = null;
+    let currentFile = null, skipped = 0;
     state.workspaceLoading = true; state.workspaceLoadCancellable = action !== 'unlink';
     renderWorkspaceControls(); setLinkedMessage(null);
     function current() { return revision === workspaceLoadRevision && state.activeWorkspace && state.activeWorkspace.id === workspaceId; }
@@ -6582,12 +6584,12 @@
       let operations;
       if (action === 'snapshot') {
         const incoming = selectedFiles.map(function (file) { return { name: file.name, linked: false, handle: { name: file.name, getFile: async function () { return file; } } }; });
-        operations = await linkedSources.planImports(originalFiles, incoming, { check: check, resolve: requestImportConflict });
+        operations = await linkedSources.planImports(originalFiles, incoming, { check: check, resolve: requestImportConflict, onSkip: function () { skipped += 1; } });
       } else if (action === 'pick' || action === 'connect') {
         const handles = await window.showOpenFilePicker({ multiple: action === 'pick', types: [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }] });
         check();
         if (action === 'pick') {
-          operations = await linkedSources.planImports(originalFiles, handles.map(function (handle) { return { name: handle.name, handle: handle }; }), { check: check, resolve: requestImportConflict });
+          operations = await linkedSources.planImports(originalFiles, handles.map(function (handle) { return { name: handle.name, handle: handle }; }), { check: check, resolve: requestImportConflict, onSkip: function () { skipped += 1; } });
         } else {
           operations = [];
           for (const handle of handles) {
@@ -6601,7 +6603,7 @@
         const targets = originalFiles.filter(function (file) { return sourceId ? file.id === sourceId : Boolean(file.linkedSource); });
         operations = targets.map(function (file) { return { id: file.id, handle: linkedSourceHandles.get(file.id) }; });
       }
-      if (!operations.length) return;
+      if (!operations.length) { if (skipped) setLinkedMessage('import_skipped', { count: skipped }); return; }
       // Ask for read access before reading/processing any selected source.
       for (const operation of operations) {
         const source = originalFiles.find(function (file) { return file.id === operation.id; });
@@ -6636,7 +6638,7 @@
             return workspacePreparation.analyzeFiles(files, state.language, state.customFields);
           }
         }, commit: commit });
-      check(); setLinkedMessage(action === 'snapshot' ? 'import_saved' : action === 'pick' ? 'linked_added' : 'linked_done', { count: operations.length });
+      check(); setLinkedMessage(action === 'snapshot' || skipped ? 'import_saved' : action === 'pick' ? 'linked_added' : 'linked_done', { count: operations.length, skipped: skipped });
     } catch (error) {
       if (current()) {
         const key = error && (error.code || error.translationKey);

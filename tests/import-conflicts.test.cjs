@@ -42,11 +42,23 @@ test('import anyway uses numbered display labels and updates copied column owner
   assert.deepEqual(result.rows.map(row => row.source_file_label), ['same.csv (1/2)','same.csv (2/2)']);
   assert.equal(result.rows[0].source_file_id, file.id); assert.notEqual(result.rows[1].source_file_id, file.id);
 });
-test('cancelling a later conflict discards the entire selection before any source is read', async () => {
-  const file = source(), before = structuredClone(file); let reads = 0;
-  const unique = incoming('new.csv'); unique.handle.getFile = async () => { reads++; throw Error('must not read'); };
-  await assert.rejects(linked.planImports([file], [unique, incoming()], options(async () => ({ action: 'cancel' }))), { code: 'workspace_load_cancelled' });
-  assert.equal(reads, 0); assert.deepEqual(file, before);
+test('cancelling a conflict skips only that file and retains imports before and after it', async () => {
+  const file = source(), before = structuredClone(file), duplicate = incoming(); let skipped = 0;
+  duplicate.handle.getFile = async () => assert.fail('a skipped file must never be read');
+  const settings = options(async () => ({ action: 'cancel' })); settings.onSkip = () => { skipped++; };
+  const plan = await linked.planImports([file], [incoming('before.csv'), duplicate, incoming('after.csv')], settings);
+  assert.equal(skipped, 1); assert.deepEqual(plan.map(operation => operation.handle.name), ['before.csv','after.csv']);
+  const saved = await refresh([file], plan);
+  assert.deepEqual(saved.files.map(file => file.name), ['same.csv','before.csv','after.csv']);
+  assert.deepEqual(file, before);
+});
+
+test('skipping a later duplicate keeps an earlier accepted replacement of the same source', async () => {
+  const file = source(); let choices = 0;
+  const plan = await linked.planImports([file], [incoming(), incoming('same.csv', initial)], options(async () => ++choices === 1 ? { action: 'replace', id: file.id } : { action: 'cancel' }));
+  assert.equal(plan.length, 1); assert.equal(plan[0].id, file.id);
+  const saved = await refresh([file], plan);
+  assert.equal(new TextDecoder().decode(saved.files[0].buffer), changed);
 });
 test('conflicts within one selection are resolved too; replacing a staged file reads only its final version', async () => {
   const plan = await linked.planImports([], [incoming(), incoming()], options(async () => ({ action: 'replace', id: 'source-new-1' })));

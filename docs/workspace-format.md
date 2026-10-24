@@ -28,11 +28,12 @@ validation, source mappings, analysis or warehouse assignments.
 
 Snapshot and linked imports resolve filename collisions before reading or saving
 the selection. Users choose a particular existing source to replace, keep an
-additional source, or cancel the entire selection. Replacement retains source
+additional source, or skip the displayed file and continue the selection. Replacement retains source
 identity, tags, mappings and rules; incompatible required columns prevent it.
 Additional identical names use the existing `(1/2)`, `(2/2)` display labels.
-The complete selection is prepared and committed together. Cancellation or
-preparation/save failure retains the previous workspace. Snapshot replacement
+The accepted files are prepared and committed together. The separate loading
+cancel action or a preparation/save failure retains the previous workspace. Skipping
+every file performs no save and retains the current analysis. Snapshot replacement
 removes the replaced source's old local file capability; linked replacement
 stores the newly chosen capability. Source removal requires confirmation.
 

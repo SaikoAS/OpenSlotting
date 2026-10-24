@@ -154,6 +154,21 @@ test('cancelled conflicts and failed snapshot saves retain original sources, lab
   }
 });
 
+test('skipping a single conflict continues a snapshot multi-import with the other files', async () => {
+  const f = fixture(), files = ['before.csv','one.csv','after.csv'].map(name => ({ name, lastModified: 2, arrayBuffer: async () => new TextEncoder().encode(changed).buffer }));
+  await f.run('snapshot', null, files);
+  assert.deepEqual(Array.from(f.state.files, file => file.name), ['one.csv','before.csv','after.csv']);
+  assert.equal(f.messages.at(-1).key, 'import_saved');
+  assert.equal(f.messages.at(-1).values.count, 2); assert.equal(f.messages.at(-1).values.skipped, 1);
+});
+
+test('skipping every conflict keeps the old analysis and performs no save', async () => {
+  const f = fixture(), files = f.state.files, result = f.state.result;
+  await f.run('snapshot', null, [{ name: 'one.csv', arrayBuffer: async () => assert.fail('skipped file read') }]);
+  assert.equal(f.state.files, files); assert.equal(f.state.result, result); assert.equal(f.calls.length, 0);
+  assert.equal(f.messages.at(-1).key, 'import_skipped'); assert.equal(f.messages.at(-1).values.count, 1);
+});
+
 test('declining removal leaves source data, analysis and its local link untouched', () => {
   const f = fixture(), files = f.state.files, result = f.state.result; let message;
   f.context.translate = (key, values) => { message = values.file; return key; };

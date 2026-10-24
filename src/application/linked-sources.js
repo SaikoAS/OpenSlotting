@@ -18,7 +18,10 @@
       const matches = virtual.filter(function (file) { return file.name.normalize('NFC').toLocaleLowerCase('de-DE') === item.name.normalize('NFC').toLocaleLowerCase('de-DE'); });
       const choice = matches.length ? await options.resolve(item, matches) : { action: 'keep' };
       options.check();
-      if (!choice || choice.action === 'cancel') throw failure('workspace_load_cancelled');
+      if (!choice || choice.action === 'cancel') {
+        if (options.onSkip) options.onSkip(item);
+        continue;
+      }
       if (choice.action !== 'replace' && choice.action !== 'keep') throw failure('linked_failed');
       let id, create;
       if (choice.action === 'replace') {
