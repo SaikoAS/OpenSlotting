@@ -7,6 +7,8 @@
   const MAGIC = 'OpenSlotting Workspace Archive 2\n';
   const MAX_BLOCK_BYTES = 8 * 1024 * 1024;
   const MAX_HEADER_BYTES = 4096;
+  const FRAGMENT_BYTES = MAX_BLOCK_BYTES / 2;
+  const RECORD_KINDS = ['workspace', 'source', 'bytes', 'rows', 'issues', 'registry'];
   const encoder = new TextEncoder();
   const decoder = new TextDecoder('utf-8', { fatal: true });
   const MIME = 'application/octet-stream';
@@ -72,7 +74,7 @@
         const middle = Math.floor(record.data.length / 2);
         yield* split(Object.assign({}, record, { data: record.data.slice(0, middle) }));
         yield* split(Object.assign({}, record, { data: record.data.slice(middle) }));
-      } else fail('backup_block_too_large', 'One archive item exceeds the block limit.');
+      } else yield { record: record, bytes: bytes };
     }
     for await (const record of records) {
       check(options);
@@ -161,7 +163,7 @@
   async function write(records, sink, options) {
     const settings = options || {}, validator = createValidator();
     let index = 0, chain = '', written = 0;
-    async function emit(kind, bytes) {
+    async function emit(kind, bytes, fragment) {
       check(settings);
       const rawLength = bytes.byteLength;
       let codec = 'identity';
@@ -171,6 +173,7 @@
         if (compressed.length < rawLength) { bytes = compressed; codec = 'gzip'; }
       }
       const header = { index: index++, kind: kind, length: bytes.byteLength, rawLength: rawLength, codec: codec, sha256: await hash(bytes) };
+      if (fragment) header.fragment = fragment;
       const line = encoder.encode(JSON.stringify(header) + '\n');
       check(settings);
       await sink.write(line); await sink.write(bytes);
@@ -183,7 +186,14 @@
       check(settings); await sink.write(encoder.encode(MAGIC)); written += encoder.encode(MAGIC).length;
       for await (const item of bounded(records, settings)) {
         validator.accept(item.record);
-        await emit(item.record.kind, item.bytes);
+        if (item.bytes.byteLength <= MAX_BLOCK_BYTES) await emit(item.record.kind, item.bytes);
+        else {
+          for (let offset = 0; offset < item.bytes.byteLength; offset += FRAGMENT_BYTES) {
+            await emit('fragment', item.bytes.subarray(offset, offset + FRAGMENT_BYTES), {
+              kind: item.record.kind, offset: offset, length: item.bytes.byteLength
+            });
+          }
+        }
       }
       const summary = validator.finish(validator.totals);
       await emit('end', jsonBytes({ totals: summary.totals, records: index, chain: chain }));
@@ -200,7 +210,7 @@
   async function read(file, receive, options) {
     const settings = options || {}, validator = createValidator();
     if (!await isArchive(file)) fail('invalid_backup_format');
-    let offset = encoder.encode(MAGIC).length, index = 0, chain = '';
+    let offset = encoder.encode(MAGIC).length, index = 0, chain = '', pending = null;
     while (offset < file.size) {
       check(settings);
       const prefix = new Uint8Array(await file.slice(offset, offset + MAX_HEADER_BYTES).arrayBuffer());
@@ -212,6 +222,7 @@
           header.length < 0 || header.length > MAX_BLOCK_BYTES || !/^[0-9a-f]{64}$/.test(header.sha256) ||
           !Number.isInteger(header.rawLength) || header.rawLength < 0 || header.rawLength > MAX_BLOCK_BYTES ||
           !['identity', 'gzip'].includes(header.codec)) fail('invalid_backup');
+      if ((pending && header.kind !== 'fragment') || (header.kind !== 'fragment' && header.fragment !== undefined)) fail('invalid_backup');
       offset += newline + 1;
       if (offset + header.length > file.size) fail('invalid_backup', 'Archive block is truncated.');
       const bytes = new Uint8Array(await file.slice(offset, offset + header.length).arrayBuffer());
@@ -225,15 +236,39 @@
       }
       if (decoded.byteLength !== header.rawLength) fail('invalid_backup');
       check(settings);
-      const data = header.kind === 'bytes' ? decoded : readJson(decoded);
+      let record = null;
+      if (header.kind === 'fragment') {
+        const fragment = header.fragment;
+        if (!fragment || !RECORD_KINDS.includes(fragment.kind) ||
+            !Number.isSafeInteger(fragment.length) || fragment.length <= MAX_BLOCK_BYTES ||
+            !Number.isSafeInteger(fragment.offset) || fragment.offset < 0 || decoded.byteLength === 0) fail('invalid_backup');
+        if (!pending) {
+          if (fragment.offset !== 0) fail('invalid_backup');
+          pending = { kind: fragment.kind, length: fragment.length, offset: 0, parts: [] };
+        }
+        if (fragment.kind !== pending.kind || fragment.length !== pending.length || fragment.offset !== pending.offset ||
+            decoded.byteLength > pending.length - pending.offset) fail('invalid_backup');
+        pending.parts.push(decoded); pending.offset += decoded.byteLength;
+        if (pending.offset === pending.length) {
+          // Allocate only after all bytes actually arrived, never from an untrusted declared length.
+          const joined = new Uint8Array(pending.length); let position = 0;
+          pending.parts.forEach(function (part) { joined.set(part, position); position += part.byteLength; });
+          const kind = pending.kind;
+          pending = null;
+          record = { kind: kind, data: kind === 'bytes' ? joined : readJson(joined) };
+        }
+      } else record = { kind: header.kind, data: header.kind === 'bytes' ? decoded : readJson(decoded) };
       if (header.kind === 'end') {
+        const data = record.data;
         if (!data || data.records !== index || data.chain !== chain || offset !== file.size) fail('invalid_backup');
         const summary = validator.finish(data.totals);
         if (settings.onProgress) settings.onProgress({ phase: 'restore', bytes: offset, total: file.size });
         return summary;
       }
-      validator.accept({ kind: header.kind, data: data });
-      check(settings); await receive({ kind: header.kind, data: data });
+      if (record) {
+        validator.accept(record);
+        check(settings); await receive(record);
+      }
       chain = await hash(encoder.encode(chain + JSON.stringify(header))); index++;
       check(settings);
       if (settings.onProgress) settings.onProgress({ phase: 'restore', bytes: offset, total: file.size });

@@ -98,6 +98,7 @@ in [acceptance-localhost.md](acceptance-localhost.md).
 46. [ ] A backup with duplicate source IDs or cross-workspace provenance is rejected without changing stored data.
 
 - [ ] Export/restore at least 700,000 synthetic rows. Compare every source byte, normalized row, exact quantity, issue, profile, coverage reason and warehouse ID/code.
+- [ ] Export/restore a synthetic single article name or custom text value exceeding 8 MiB, including Unicode, with identity and gzip frames. Verify exact source bytes/values; missing, reordered, inconsistent or cancelled fragments leave existing workspaces intact.
 - [ ] Cancel export/staging; reject damaged payloads, removed/reordered blocks, missing completion markers and trailing bytes without changing the target.
 - [ ] Fail staging/commit quota and change the target in another tab; the old workspace remains complete. Temporary stages never appear in selection.
 - [ ] Restore an existing format-1 JSON backup; verify migration and original bytes. Older apps cannot read format 2 or the upgraded IndexedDB database.

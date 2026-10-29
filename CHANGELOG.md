@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Fragment oversized individual backup records instead of rejecting valid imported values above 8 MiB. Preserve the physical block limit, per-block checksums, ordered validation and atomic restore, including Unicode values split across blocks.
+
 - Show saved reasons for expected missing days on the analysis desk: blue date markers with reason tooltips, separate explained/unexplained counts and range-specific reason details. Preserve actual coverage, quantities and comparison semantics.
 
 - Move expected weekdays from comparison to a fitted coverage desk with calendar/source/date/evidence views, a persistent day inspector and paginated source evidence. Keep period ranges when editing weekdays and refresh control locks on navigation.

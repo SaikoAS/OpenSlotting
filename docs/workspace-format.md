@@ -225,7 +225,25 @@ Each frame consists of a newline-terminated JSON header (at most 4,096 bytes)
 followed by exactly `length` payload bytes. Headers carry consecutive zero-based
 `index`, `kind`, `length` (at most 8 MiB), `rawLength`, `codec` and the stored payload's hexadecimal SHA-256.
 JSON frames use the existing tagged BigInt representation; original source
-frames are binary and do not use Base64. Native gzip streams compress individual blocks when both encoder and decoder are available and compression saves space; otherwise identity frames are used. `rawLength` is capped at 8 MiB and decoded output is bounded before JSON parsing. No complete archive is decompressed in memory. The contributor benchmark supports `--identity` for comparison; compressed archives require a browser with a native gzip decoder.
+frames are binary and do not use Base64. Native gzip streams compress individual blocks when both encoder and decoder are available and compression saves space; otherwise identity frames are used. `rawLength` is capped at 8 MiB and decoded output is bounded per frame. No complete archive is decompressed in memory. The contributor benchmark supports `--identity` for comparison; compressed archives require a browser with a native gzip decoder.
+
+An individual logical record may exceed 8 MiB, for example when a valid imported
+row contains a large article name or custom text field. Such a record uses
+consecutive `fragment` frames instead of being rejected. Each header additionally
+contains `fragment: { kind, offset, length }`: the original logical kind, the
+zero-based decoded byte offset and the total encoded byte length of that record.
+Each physical frame still obeys the 8 MiB payload/decoded limit and has its own
+checksum; every fragment header participates in the final ordered hash chain.
+Offsets must be contiguous, kind/total length must agree, and no ordinary frame
+may interrupt a fragmented record. Zero-length, unknown-kind and incomplete
+fragments are rejected. Ordinary version-2 frames remain readable.
+
+Restore reassembles one oversized logical record before UTF-8/JSON decoding,
+validation and staging; this preserves Unicode characters split across frames.
+Reassembly allocates its output only after all declared bytes actually arrive.
+It may require memory proportional to that single record, rather than the whole
+workspace. Source/row counts describe logical records and values, while the end
+marker's record count and hash chain describe physical frames.
 
 Ordered frame kinds:
 
@@ -248,7 +266,7 @@ through the existing migration; only that compatibility path loads the full
 old payload. Ordinary current workspaces stream directly from the chunk stores.
 
 Restore checks frame lengths, hashes, order, terminal chain, inventories and
-workspace/source/row validation while writing bounded records into
+workspace/source/row validation while writing logical records into
 `workspaceBackupStaging`. No visible workspace changes during this phase.
 After the final checks and, for replacement, confirmation, one IndexedDB
 transaction copies the staged records into the target stores and publishes the
