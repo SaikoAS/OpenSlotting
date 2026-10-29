@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Make the warehouse walk start from a stationary preparation screen with movement/FOV settings and an explicit fullscreen launch. Unify mouse-look pause/resume with a focus-contained menu, preserve the pose through menus, request pointer lock before fullscreen, and keep denied/late browser grants safe with an explicit window fallback.
+
 - Fragment oversized individual backup records instead of rejecting valid imported values above 8 MiB. Preserve the physical block limit, per-block checksums, ordered validation and atomic restore, including Unicode values split across blocks.
 
 - Show saved reasons for expected missing days on the analysis desk: blue date markers with reason tooltips, separate explained/unexplained counts and range-specific reason details. Preserve actual coverage, quantities and comparison semantics.

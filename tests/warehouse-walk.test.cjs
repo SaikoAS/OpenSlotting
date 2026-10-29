@@ -205,7 +205,7 @@ function harness(value,available=true,native=false){
     getBoundingClientRect(){return {left:0,top:0,width:900,height:600};},getContext(){return null;},
     addEventListener(type,callback){this.events[type]=callback;},setPointerCapture(){}};return n;}
   const root=node();root.querySelector=selector=>{if(!nodes.has(selector))nodes.set(selector,node());return nodes.get(selector);};root.addEventListener=(type,cb)=>listeners[type]=cb;
-  const h={visible:true,gpu:available,value:value,root,nodes,frames,rendered:0,worlds:0,preferences:{fov:60},fovSaves:[]};
+  const h={visible:true,gpu:available,value:value,root,nodes,frames,rendered:0,worlds:0,preferences:{fov:60},fovSaves:[],calls:[],documentListeners};
   const context=vm.createContext({document:{hidden:false,createElement(type){const n=node();if(type==='canvas')canvases.push(n);return n;},addEventListener(t,cb){documentListeners[t]=cb;}},
     window:{OpenSlottingWarehouseScene:scene,OpenSlottingWarehouseWalkModel:{...walk,raycast(...args){return !args[3]&&h.aimHit!==undefined?h.aimHit:walk.raycast(...args);}},
       OpenSlottingWarehouseWalkRenderer:{create(_canvas,_walk,callbacks){h.gpuCallbacks=callbacks;return available?{available:()=>h.gpu,setWorld(world){h.worlds++;h.world=world;},selection(){},render(camera){h.rendered++;h.camera={...camera};}}:null;}},
@@ -214,6 +214,7 @@ function harness(value,available=true,native=false){
   h.document=context.document;
   if(native){
     root.requestFullscreen=async()=>{
+      h.calls.push('fullscreen');
       if(h.denyFullscreen)throw new Error('Synthetic fullscreen denial');
       if(h.delayFullscreen)await new Promise(resolve=>{h.grantFullscreen=resolve;});
       context.document.fullscreenElement=root;documentListeners.fullscreenchange();
@@ -229,10 +230,15 @@ function harness(value,available=true,native=false){
       if(h.fovGate)await h.fovGate;h.fovSaves.push({...proposed});if(h.workspace===workspace)h.preferences={...proposed};
     },formatQuantity:value=>String(value),openArticle:id=>{h.openedArticle=id;h.active(false);},isVisible:()=>h.visible});
   h.render=editor.render;h.active=editor.setActive;h.canvas=canvases[0];
-  if(native)h.canvas.requestPointerLock=async()=>{
-    if(h.denyLock)throw new Error('Synthetic pointer-lock denial');
-    if(h.delayLock)await new Promise(resolve=>{h.grantLock=resolve;});
-    context.document.pointerLockElement=h.canvas;documentListeners.pointerlockchange();
+  if(native)h.canvas.requestPointerLock=()=>{
+    h.calls.push('pointerlock');
+    const grant=()=>{context.document.pointerLockElement=h.canvas;documentListeners.pointerlockchange();};
+    if(h.legacyLock){h.grantLock=grant;return;}
+    return (async()=>{
+      if(h.denyLock)throw new Error('Synthetic pointer-lock denial');
+      if(h.delayLock)await new Promise(resolve=>{h.grantLock=resolve;});
+      grant();
+    })();
   };
   h.action=(action)=>listeners.click({target:{closest(selector){return selector==='[data-walk-action]'?{dataset:{walkAction:action}}:selector==='.wh-walk-interaction'&&action.startsWith('interaction-')?nodes.get('.wh-walk-interaction'):null;}}});
   h.tab=tab=>listeners.click({target:{closest(selector){return selector==='[data-walk-inspect-tab]'?{dataset:{walkInspectTab:tab}}:selector==='.wh-walk-interaction'?nodes.get('.wh-walk-interaction'):null;}}});
@@ -258,6 +264,84 @@ test('native fullscreen requests mouse look, pauses on Esc, resumes and exits wi
   await h.action('resume');assert.equal(h.document.pointerLockElement,h.canvas);
   await h.action('exit-fullscreen');assert.equal(h.document.fullscreenElement,null);assert.equal(h.document.pointerLockElement,null);
   assert.deepEqual(value,before);
+});
+
+test('setup stays stationary while settings and starting points are prepared, then starts fullscreen with those settings',async()=>{
+  const value=layout(),before=structuredClone(value),h=harness(value,true,true);h.tick(100);const pose={...h.camera};
+  assert.match(h.root.innerHTML,/Start walk/);assert.match(h.root.innerHTML,/Prepare walk/);
+  assert.equal(h.nodes.get('.wh-walk-menu').hidden,false);assert.equal(h.calls.length,0);
+  for(const key of ['KeyW','Space','KeyC'])h.key(key);h.tick(116);assert.deepEqual(h.camera,pose);
+  await h.action('jump');h.tick(132);assert.deepEqual(h.camera,pose);
+  await h.change('speed',3.7);await h.fov(85,'change');
+  await h.action('fullscreen');h.tick(148);
+  assert.deepEqual(h.calls.slice(0,2),['pointerlock','fullscreen']);
+  assert.equal(h.camera.fov,85);assert.equal(h.nodes.get('[data-walk-speed]').value,'3.7');
+  assert.equal(h.nodes.get('.wh-walk-menu').hidden,true);
+  h.key('KeyW');h.tick(164);assert.notEqual(h.camera.z,pose.z);
+  await h.action('exit-fullscreen');h.tick(180);
+  assert.equal(h.nodes.get('.wh-walk-menu').hidden,false);assert.equal(h.root.classList.contains('is-walk-windowed'),false);
+  const stopped={...h.camera};h.key('KeyW');h.tick(196);assert.deepEqual(h.camera,stopped);assert.deepEqual(value,before);
+});
+
+test('Tab opens a mouse-operated menu; resume and M restore mouse look without drifting or rebuilding geometry',async()=>{
+  const h=harness(layout(),true,true);await h.action('fullscreen');h.tick(100);h.key('KeyW');h.tick(116);
+  const pose={...h.camera},worlds=h.worlds;let prevented=0;
+  h.event({key:'Tab',preventDefault(){prevented++;}});h.tick(132);
+  assert.equal(prevented,1);assert.equal(h.document.pointerLockElement,null);
+  const menu=h.nodes.get('.wh-walk-menu'),resume=h.nodes.get('[data-walk-action="resume"]');
+  assert.equal(menu.hidden,false);assert.equal(menu.getAttribute('role'),'dialog');assert.equal(menu.getAttribute('aria-modal'),'true');
+  assert.equal(h.document.activeElement,resume);assert.equal(h.nodes.get('.wh-walk-body').inert,true);
+  h.canvas.events.pointerdown({button:0});h.canvas.events.pointermove({movementX:100,movementY:100});
+  h.key('KeyW');h.tick(148);assert.deepEqual(h.camera,pose);
+  await h.action('resume');h.tick(164);assert.deepEqual(h.camera,pose);assert.equal(menu.hidden,true);
+  assert.equal(h.document.pointerLockElement,h.canvas);assert.equal(h.nodes.get('.wh-walk-body').inert,false);
+  h.event({code:'KeyM',key:'m'});h.tick(180);assert.equal(menu.hidden,false);
+  h.event({code:'KeyM',key:'m',target:{hasAttribute:key=>key==='data-walk-search'}});assert.equal(menu.hidden,false,'typing M never resumes');
+  h.event({code:'KeyM',key:'m'});await new Promise(resolve=>setImmediate(resolve));h.tick(196);
+  assert.equal(menu.hidden,true);assert.deepEqual(h.camera,pose);assert.equal(h.worlds,worlds);
+});
+
+test('paused menu contains keyboard focus without changing regular input Tab behavior',async()=>{
+  const h=harness(layout(),true,true);await h.action('fullscreen');h.key('Escape');
+  const menu=h.nodes.get('.wh-walk-menu'),first=h.nodes.get('[data-walk-mode]'),last=h.nodes.get('[data-walk-action="resume"]');
+  menu.querySelectorAll=()=>[first,last];let prevented=0;first.focus();
+  h.event({key:'Tab',shiftKey:true,preventDefault(){prevented++;}});assert.equal(h.document.activeElement,last);
+  h.event({key:'Tab',preventDefault(){prevented++;}});assert.equal(h.document.activeElement,first);assert.equal(prevented,2);
+  h.event({key:'Tab',target:first,preventDefault(){prevented++;}});assert.equal(prevented,2);
+});
+
+test('legacy void pointer-lock requests wait for actual grants and late grants after leaving are released',async()=>{
+  const h=harness(layout(),true,true);h.legacyLock=true;await h.action('fullscreen');h.tick(100);
+  assert.equal(h.root.classList.contains('is-walk-paused'),true);assert.equal(h.nodes.get('.wh-walk-menu').hidden,false);
+  const pose={...h.camera};h.key('KeyW');h.tick(116);assert.deepEqual(h.camera,pose);
+  h.grantLock();assert.equal(h.root.classList.contains('is-walk-paused'),false);
+  h.key('Escape');await h.action('resume');h.active(false);h.grantLock();
+  assert.equal(h.document.pointerLockElement,null);assert.equal(h.document.fullscreenElement,null);
+});
+
+test('a superseded mouse-look completion cannot release a newer resumed session',async()=>{
+  const h=harness(layout(),true,true);await h.action('fullscreen');h.key('Escape');h.delayLock=true;
+  const older=h.action('resume');const grantOlder=h.grantLock;h.key('Escape');h.delayLock=false;
+  await h.action('resume');assert.equal(h.document.pointerLockElement,h.canvas);
+  grantOlder();await older;
+  h.documentListeners.pointerlockerror();
+  assert.equal(h.document.pointerLockElement,h.canvas);assert.equal(h.root.classList.contains('is-walk-paused'),false);
+});
+
+test('fullscreen denial offers an explicit window fallback; missing geometry and pending FOV saves cannot start',async()=>{
+  const h=harness(layout(),true,true);h.denyFullscreen=true;await h.action('fullscreen');
+  assert.equal(h.document.pointerLockElement,null);assert.equal(h.root.classList.contains('is-walk-paused'),true);
+  assert.equal(h.nodes.get('[data-walk-action="windowed"]').hidden,false);
+  h.denyLock=true;
+  await h.action('windowed');assert.equal(h.root.classList.contains('is-walk-windowed'),true);
+  assert.equal(h.root.classList.contains('is-walk-paused'),false);assert.equal(h.document.pointerLockElement,null);
+  await h.action('setup');assert.equal(h.root.classList.contains('is-walk-windowed'),false);
+  const empty=harness(model.createLayout(),true,true);assert.equal(empty.nodes.get('[data-walk-action="fullscreen"]').disabled,true);
+  await empty.action('fullscreen');assert.deepEqual(empty.calls,[]);
+  const saving=harness(layout(),true,true);let release;saving.fovGate=new Promise(resolve=>{release=resolve;});
+  const pending=saving.fov(80,'change');assert.equal(saving.nodes.get('[data-walk-action="fullscreen"]').disabled,true);
+  await saving.action('fullscreen');assert.deepEqual(saving.calls,[]);release();await pending;
+  assert.equal(saving.nodes.get('[data-walk-action="fullscreen"]').disabled,false);
 });
 
 test('fullscreen and pointer-lock denials preserve usable navigation with an explicit drag fallback',async()=>{
@@ -376,7 +460,7 @@ test('return from details handles denied mouse lock and cancels late grants afte
 });
 
 test('controller jump lands after key release, ignores held-space repeats and crouches with key or button',async()=>{
-  const value=layout(),before=structuredClone(value),h=harness(value);h.tick(100);const worlds=h.worlds;
+  const value=layout(),before=structuredClone(value),h=harness(value);await h.action('windowed');h.tick(100);const worlds=h.worlds;
   h.key('Space');h.tick(116);assert.ok(h.camera.eye>1.7);
   for(let i=2;i<80;i++){h.key('Space');h.tick(100+i*16);}assert.equal(h.camera.eye,1.7,'holding jump never jumps again');
   h.release('Space');h.tick(1400);assert.equal(h.frames.size,0);
@@ -389,7 +473,7 @@ test('controller jump lands after key release, ignores held-space repeats and cr
 });
 
 test('controller retains separate detailed speeds per mode and safely returns flight to a free floor position',async()=>{
-  const value=layout(),before=structuredClone(value),h=harness(value);h.tick(100);
+  const value=layout(),before=structuredClone(value),h=harness(value);await h.action('windowed');h.tick(100);
   await h.change('speed',3.7);assert.equal(h.nodes.get('[data-walk-speed-range]').value,'3.7');
   assert.match(h.nodes.get('[data-walk-speed-value]').textContent,/13.3 km\/h/);
   await h.change('mode','fly');assert.equal(h.nodes.get('[data-walk-speed]').value,'5');
@@ -475,13 +559,13 @@ test('read-only controller searches exact codes, exposes assignment metrics and 
   assert.deepEqual(value,before);
 });
 
-test('movement is focus-scoped, stops on blur/page leave, and camera frames do not rebuild geometry',()=>{
-  const value=layout(),before=structuredClone(value),h=harness(value);h.tick(100);
+test('movement is focus-scoped, stops on blur/page leave, and camera frames do not rebuild geometry',async()=>{
+  const value=layout(),before=structuredClone(value),h=harness(value);await h.action('windowed');h.tick(100);
   const worlds=h.worlds;h.key('KeyW',{hasAttribute:()=>false});assert.equal(h.frames.size,0);
   h.key('KeyW');h.tick(116);assert.equal(h.frames.size,1);assert.equal(h.worlds,worlds);
   h.blur();assert.equal(h.frames.size,0);h.key('KeyD');h.active(false);assert.equal(h.frames.size,0);
   h.visible=false;h.tick(140);assert.equal(h.frames.size,0);assert.deepEqual(value,before);
   h.gpu=false;h.gpuCallbacks.lost();assert.match(h.nodes.get('[data-walk-message]').textContent,/WebGL2/);
-  assert.equal(h.nodes.get('[data-walk-action="look"]').disabled,true);
+  assert.equal(h.nodes.get('[data-walk-action="fullscreen"]').disabled,true);
   h.gpu=true;h.gpuCallbacks.restored();assert.equal(h.nodes.get('[data-walk-message]').textContent,'');
 });
