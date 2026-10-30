@@ -729,7 +729,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .workspace-picker-mode #workspace-page { width: 100%; max-width: 1560px; margin: 0 auto; }
 .workspace-picker-mode #workspace-page > .workspace-panel { margin-top: 0; }
 .workspace-picker-mode #custom-fields-panel { display: none; }
-.workspace-picker-mode #reset-button { display: none; }
 .workspace-picker-mode .app-footer { width: 100%; max-width: 1560px; margin: 0 auto; padding-right: clamp(20px, 3vw, 80px); padding-left: clamp(20px, 3vw, 80px); }
 
 @media (max-width: 760px) {

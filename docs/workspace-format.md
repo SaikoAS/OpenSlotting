@@ -2,6 +2,41 @@
 
 This document defines the persistent local-workspace contract used by the current development implementation after the published OpenSlotting 0.2.1 release. It is a current contract document; historical release acceptance remains in the versioned acceptance files.
 
+## Linked CSV sources (schema 22)
+
+An optional `linkedSource` record contains only the selected file name and the
+last successful import timestamp (`name`, `updatedAt`); legacy sources default
+to `null`. Original CSV bytes, rules, mappings and provenance remain part of
+the workspace and its backups. File handles are stored separately in the
+`workspaceSourceLinks` IndexedDB store (database version 5), scoped by
+workspace/source ID. They are never serialized in a backup. Unlinking,
+removing a source, deleting a workspace and replacing it from backup remove
+the corresponding capabilities. A restored linked source can therefore be
+read and analyzed from its saved bytes before its local file is reconnected.
+
+## Import tags (schema 23)
+
+Each source has a `tags` array (up to 20 custom tags, 1–40 characters each).
+Tags are trimmed and deduplicated without regard to case; legacy sources
+default to an empty array. They travel with source metadata through workers,
+refreshes, trusted saves and backups. Editing tags changes only the source's
+metadata record and the workspace revision in one transaction; row chunks,
+source bytes and local file handles are retained. Tags do not change data
+validation, source mappings, analysis or warehouse assignments.
+
+## Import conflicts
+
+Snapshot and linked imports resolve filename collisions before reading or saving
+the selection. Users choose a particular existing source to replace, keep an
+additional source, or skip the displayed file and continue the selection. Replacement retains source
+identity, tags, mappings and rules; incompatible required columns prevent it.
+Additional identical names use the existing `(1/2)`, `(2/2)` display labels.
+The accepted files are prepared and committed together. The separate loading
+cancel action or a preparation/save failure retains the previous workspace. Skipping
+every file performs no save and retains the current analysis. Snapshot replacement
+removes the replaced source's old local file capability; linked replacement
+stores the newly chosen capability. Source removal requires confirmation.
+
 ## Runtime and origin boundary
 
 Workspaces are stored in IndexedDB in the current browser profile and browser origin. OpenSlotting does not use `localStorage` for workspace payloads. Active operation uses the fixed localhost origin through the Python standard-library server, with no upload, remote backend, account, telemetry, or external network connection. The database name, schema, and backup contract are unchanged by the runtime separation. Existing Portable workspaces can be transferred with backups exported from the previous application; see [portable-mode-paused.md](portable-mode-paused.md).
@@ -10,7 +45,7 @@ Browser-local data is not an application file beside `index.html`. Moving the ap
 
 ## Database contract
 
-The IndexedDB database is named `openslotting-workspaces` and currently uses database version `3`.
+The IndexedDB database is named `openslotting-workspaces` and currently uses database version `5`.
 
 It contains the metadata/settings stores plus independently persisted workspace stores:
 
@@ -21,10 +56,12 @@ It contains the metadata/settings stores plus independently persisted workspace 
 | `workspaceManifests` | `workspaceId` | Ordered source/chunk keys plus keys for the normalized article-registry chunks for one workspace. |
 | `workspaceSources` | `key` | One source's metadata, mappings, and result summary without row or issue arrays. |
 | `workspaceSourceBytes` | `key` | Original bytes for one source. |
+| `workspaceSourceLinks` | `key` | Local file handles scoped to workspace/source ID; excluded from portable backups. |
 | `workspaceRowChunks` | `key` | Up to 5,000 normalized rows for one source per record. |
 | `workspaceIssueChunks` | `key` | Up to 5,000 validation issues for one source per record. |
-| `workspaceRegistryChunks` | `key` | Up to 5,000 normalized article-registry entries per record. |
-| `settings` | `key` | Browser-local application settings, including the last active workspace ID. |
+| `workspaceRegistryChunks` | `key` | Bounded registry fragments (roughly 1,000 provenance-array values per record). |
+| `settings` | `key` | Browser-local application settings, last active workspace ID and small temporary archive-stage heads. |
+| `workspaceBackupStaging` | `key` | Invisible bounded archive records pending validation/atomic restore; added in database version 4. |
 
 Saving a workspace writes its metadata, manifest, source records, source bytes, row chunks, issue chunks, and article-registry chunks in one IndexedDB read/write transaction. A failed or quota-exceeded transaction must not leave one half updated. Metadata-only changes such as renaming, language, or period settings use the metadata store alone and do not rewrite source bytes, row chunks, or article-registry chunks.
 
@@ -39,7 +76,7 @@ Every workspace has:
 | Field | Type | Contract |
 | --- | --- | --- |
 | `id` | string | Stable browser-local identity. |
-| `schemaVersion` | integer | Stored-workspace schema version; currently `21`. |
+| `schemaVersion` | integer | Stored-workspace schema version; currently `23`. |
 | `name` | string | Trimmed, non-empty, at most 120 characters. Names do not have to be unique. |
 | `createdAt` | ISO timestamp | Creation time. |
 | `updatedAt` | ISO timestamp | Time of the latest successful snapshot. |
@@ -77,6 +114,7 @@ Each source retains:
 - source-file and physical source-line provenance
 - compact normalized rows with source-file and physical source-line provenance
 - last applied import-profile name, identity, timestamps and configuration evidence (`appliedImportProfile`, or `null` when unrecorded)
+- user-defined import tags (`tags`), independently editable without rewriting normalized rows
 - original raw field values are reconstructed on demand from the retained bytes and decoded headers, including duplicate headers
 - normalized rows mark target fields changed by preparation rules; original values remain reconstructable from retained bytes
 
@@ -101,7 +139,7 @@ The UI compares current settings with the snapshot to flag subsequent edits;
 equivalent mapping key order, unassigned targets and empty rule lists are ignored.
 This records the latest application, not a complete change history. Legacy
 sources migrate without inferring a profile from their name or current settings.
-IndexedDB version 3, backup format 1 and warehouse layout 4 remain unchanged.
+At the introduction of schema 17, IndexedDB version 3, JSON backup format 1 and warehouse layout 4 remained unchanged; the current archive/database versions are described above.
 A schema-16 or earlier reader cannot restore a schema-17 backup; keep a backup
 from the previous application if returning to it is required.
 
@@ -113,6 +151,11 @@ metadata-only transaction and retains the source/row/issue/registry chunks.
 Activation, capture and backup/restore preserve these records. Workspaces from
 schema 17 or earlier migrate with an empty list; neither holidays nor reasons are
 inferred. Calendar month, selected date and unsaved drafts remain session-only.
+Expected weekdays are edited in Data coverage and retain their existing
+`periodSettings.expectedWeekdays` storage field. Editing them preserves the
+comparison period boundaries and invalidates derived comparison results. The
+calendar/source/date/evidence view and evidence page are transient; evidence
+pagination bounds rendered rows without changing the full counts or source data.
 Readers supporting schema 17 or earlier cannot read schema-18 backups. Keep a
 pre-update backup when returning to an older application is required.
 
@@ -164,12 +207,125 @@ The loaded copy of the previous normalized import result is released before the
 original source bytes are transferred to the worker, because that result is
 rebuilt from those bytes; its durable IndexedDB record is not changed by this
 runtime optimization.
-Backup input continues to use the strict copying and validation path.
+Legacy JSON backup input continues to use its strict copying and validation path; current archives validate bounded blocks.
 Base64 validation uses bounded character checks instead of an unbounded grouped
 regular expression; padding and tagged-value validation remain strict and the
 JSON format is unchanged. This fixes stack exhaustion on large source buffers.
 
-## Exact number representation
+## Current archive format (version 2)
+
+The UI exports one complete selected workspace as
+`OpenSlotting-<name>.osworkspace`. It does not export other workspaces or the
+browser profile. Python continues to serve interface files only; archive
+processing, hashing and staging stay in the browser, with no network data route
+or additional runtime package.
+
+The binary file starts with UTF-8 `OpenSlotting Workspace Archive 2\n`.
+Each frame consists of a newline-terminated JSON header (at most 4,096 bytes)
+followed by exactly `length` payload bytes. Headers carry consecutive zero-based
+`index`, `kind`, `length` (at most 8 MiB), `rawLength`, `codec` and the stored payload's hexadecimal SHA-256.
+JSON frames use the existing tagged BigInt representation; original source
+frames are binary and do not use Base64. Native gzip streams compress individual blocks when both encoder and decoder are available and compression saves space; otherwise identity frames are used. `rawLength` is capped at 8 MiB and decoded output is bounded per frame. No complete archive is decompressed in memory. The contributor benchmark supports `--identity` for comparison; compressed archives require a browser with a native gzip decoder.
+
+An individual logical record may exceed 8 MiB, for example when a valid imported
+row contains a large article name or custom text field. Such a record uses
+consecutive `fragment` frames instead of being rejected. Each header additionally
+contains `fragment: { kind, offset, length }`: the original logical kind, the
+zero-based decoded byte offset and the total encoded byte length of that record.
+Each physical frame still obeys the 8 MiB payload/decoded limit and has its own
+checksum; every fragment header participates in the final ordered hash chain.
+Offsets must be contiguous, kind/total length must agree, and no ordinary frame
+may interrupt a fragmented record. Zero-length, unknown-kind and incomplete
+fragments are rejected. Ordinary version-2 frames remain readable.
+
+Restore reassembles one oversized logical record before UTF-8/JSON decoding,
+validation and staging; this preserves Unicode characters split across frames.
+Reassembly allocates its output only after all declared bytes actually arrive.
+It may require memory proportional to that single record, rather than the whole
+workspace. Source/row counts describe logical records and values, while the end
+marker's record count and hash chain describe physical frames.
+
+Ordered frame kinds:
+
+1. `workspace`: format version, export timestamp, application version (or
+   `null` for callers without build metadata), normalized workspace settings
+   and expected source count, source-byte count and normalized-row count.
+2. For each ordered source, `source` metadata and result summary, then
+   `bytes`, `rows` and `issues` frames. Source bytes use portions up to 4 MiB;
+   rows/issues normally contain up to 1,000 values, split further if needed.
+3. `registry`: bounded article-register provenance fragments.
+4. `end`: actual source/byte/row/issue/registry-fragment totals, preceding frame
+   count and an ordered SHA-256 chain of the preceding headers. No trailing
+   bytes are allowed.
+
+Export checks every referenced storage block, per-source byte size and valid-row
+count, global totals and source provenance. Each storage read checks the same
+`storageRevision`; an edit in another tab aborts export instead of mixing
+snapshots. Legacy monolithic storage or older workspace schemas first pass
+through the existing migration; only that compatibility path loads the full
+old payload. Ordinary current workspaces stream directly from the chunk stores.
+
+Restore checks frame lengths, hashes, order, terminal chain, inventories and
+workspace/source/row validation while writing logical records into
+`workspaceBackupStaging`. No visible workspace changes during this phase.
+After the final checks and, for replacement, confirmation, one IndexedDB
+transaction copies the staged records into the target stores and publishes the
+metadata/manifest. Stale revisions, cancellation before commit, corruption or
+quota failure cannot partially overwrite the target. Source byte blocks are
+assembled one source at a time because the existing source store keeps one
+ArrayBuffer per source; result arrays are never assembled as a whole. Failed or
+cancelled operations discard their stage. Stages left by a crashed/closed page
+are removed on the next archive restore after 24 hours, using their last-write
+timestamp, without touching active workspaces.
+
+The native save picker writes directly to a local file and reports success only
+after closing the writable file. If the picker is absent or blocked by policy,
+the browser-download fallback uses Blob parts and reports only that the download
+has started. This fallback avoids one large JavaScript string but still needs
+browser-managed space for the complete Blob. Cancellation ends before the final
+file close or restore commit. Restore needs temporary quota for its staged copy;
+a full quota leaves the target intact. SHA-256 detects accidental damage; the
+archive is not an authenticated or encrypted container.
+
+All persisted settings, original bytes (including invalid/excluded source rows),
+normalized results, diagnostics, profile application evidence, coverage reasons,
+warehouse objects/zones/locations/groups/connections and provenance are included.
+Unreadable source records retain their error metadata and may have no original
+bytes if those bytes were never available. UI filters, page selections, walk
+position/movement speed and camera direction remain transient. The stored
+snapshot is retained on restore; opening an analyzed workspace still rebuilds
+the displayed analysis using the current engine, just as ordinary reopening
+does. This is not a promise of identical historical analysis across engine
+versions. Legacy `.workspace.json` format-1 backups remain readable through
+their existing migration/worker path, including its whole-text memory
+requirements. Older application versions cannot read the new archive or open
+the upgraded version-4 IndexedDB database.
+
+### Synthetic validation (2026-10-22)
+
+- `node --max-old-space-size=4096 tools/benchmark-workspace-backup.cjs 700000`:
+  700,000 rows, 20,811,933 original bytes, approximately 10.9 MB compressed archive,
+  exact row/source hash equality after blockwise decoding. Observed process
+  peak RSS 762 MiB; export 5.33 seconds and decoding/validation 8.94 seconds. The uncompressed comparison produced about 597 MB at 755 MiB peak RSS.
+  Includes the in-memory imported fixture; excludes IndexedDB and browser UI.
+- `node tools/benchmark-workspace-backup-browser.cjs 700000`: native headless
+  Edge 155 on Windows, temporary isolated profile/database. Saved and exported
+  700,000 rows; staged/committed a separate workspace and compared all persisted
+  result blocks and all original bytes. The compressed archive was 10,913,941 bytes. Observed export about 5.71 seconds,
+  stage/commit about 13.10 seconds; full fixture/save/export/restore/comparison
+  about 31.31 seconds. These are one-run observations, not performance targets.
+- The previous JSON worker export failed on the same four-column/700,000-row
+  synthetic fixture with `Invalid string length`, around 2,350 MiB peak Node RSS.
+  Removing JSON indentation also failed.
+- Unit/integration tests cover full metadata/profile/layout retention, fragmented
+  registry provenance, unreadable-source records, damaged/truncated archives,
+  missing blocks, concurrent edits, cancellation, quota rollback and old JSON.
+- Visible native save/download dialogs, cancellation gestures, enterprise policy,
+  reload/analysis presentation and packaged-release acceptance remain manual
+  checks. Headless integration is not visual/device acceptance.
+
+
+## Legacy JSON exact number representation
 
 Normalized quantities remain scaled `BigInt` values with the existing scale of `10^7` while stored in IndexedDB. Explicit net/gross sales values and unit prices retain their matching `*_exact` decimal strings. The legacy unclassified `sales_value` and `sales_value_exact` fields remain preserved rather than being guessed as net or gross.
 
@@ -191,9 +347,9 @@ JSON cannot directly represent `BigInt` or `ArrayBuffer`. The portable backup th
 
 The decimal integer string is validated before conversion back to `BigInt`. Base64 content is validated before conversion back to an `ArrayBuffer`.
 
-## Backup envelope
+## Legacy JSON backup envelope (format 1)
 
-One backup file contains exactly one complete workspace:
+A legacy JSON backup contains exactly one complete workspace:
 
 ```json
 {
@@ -204,13 +360,13 @@ One backup file contains exactly one complete workspace:
 }
 ```
 
-The downloaded filename uses the form `OpenSlotting-<workspace-name>.workspace.json` with unsafe filename characters replaced.
+Legacy filenames use `OpenSlotting-<workspace-name>.workspace.json`. New UI exports use the archive format described above.
 
 The backup contains no second workspace, browser database, account, or cloud reference. Original operational bytes remain inside the user-controlled local backup file and must never be committed to the public repository or attached to an issue or pull request.
 
 ## Restore validation
 
-The complete backup is parsed, decoded, migrated, and validated before IndexedDB is changed. Validation includes:
+Legacy JSON backups are parsed, decoded, migrated and validated before the target workspace is changed. Archive backups validate blockwise in an invisible stage as described above. Common validation includes:
 
 - backup format and backup-format version
 - workspace schema version
@@ -275,7 +431,7 @@ The restore worker returns the already validated persisted payload and prepared 
 
 ## Schema migration
 
-Workspace records carry `schemaVersion`. The current reader uses version `21`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, accepts version `5` catalogs without column profiles by supplying an empty profile, adds the workspace custom-field registry and source mappings in version `7`, and adds an empty article registry when migrating version `7` records to version `8`. Version `8` mappings, normalized rows, issue fields, issue date evidence, and registry provenance are migrated from `order_date` to `delivery_date` for version `9`. Version `9` sources gain empty preparation-rule lists for version `10`; version `10` workspaces gain an empty `importProfiles` list for version `11`. Version `11` workspaces gain an empty `warehouseLayout` for version `12`; version `12` sources gain empty `sourceRules` lists for version `13`. Version `13` workspaces migrate warehouse layout schema `1` to `2`: physical levels lose nested positions, per-level functional zones are Unassigned, and explicit locations retain the old position IDs and codes (marked `legacy` for code editing before classification). No use is inferred, and article-master matching is preserved. Version `14` workspaces migrate layout `2` to `3`, retaining physical IDs, zones, locations and codes, and supplying empty groups/connections, no rack passages, closed modeled doors and unknown route requirements. Version `15` workspaces migrate layout `3` to `4`, preserving all existing geometry, paths, groups, connections, IDs and codes without inferring junction recipes. Version `16` sources gain a null last-profile application record for version `17`; existing applications are not inferred. Version `17` workspaces gain an empty `coverageNotes` list for version `18`, without inferred holidays or reasons. Version `18` workspaces migrate layout `4` equal subdivisions to explicit rectangular placements for version `19` / layout `5`, preserving IDs, codes and all source/calendar metadata. Version `19` workspaces migrate layout `5` to `6`, adding enabled ground scopes except in designated passages, without changing elevated locations or their identity. Version `20` workspaces gain empty `tablePreferences.columnOrder` and `tablePreferences.visibleColumns` arrays and `walkPreferences.fov` set to 60 for version `21`, retaining the existing default columns and all source evidence. Existing imports therefore keep their prior behavior. Legacy `sales_value` mappings and values remain unchanged and unclassified. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `3` creates the chunk stores, including article-registry chunks. Existing `workspacePayloads` records are read without mutation; activation and backup workers perform migration and validation, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace and keeps the full traversal off the UI thread. Activation requests source/byte metadata without stored row and issue chunks because analysis and the registry are rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
+Workspace records carry `schemaVersion`. The current reader uses version `23`. It migrates version `0` through the version `1` baseline, adds calendar-week selection mode and period settings, upgrades version `2` rows by removing redundant `raw_values` and `raw_fields` properties, adds the explicit source type to version `3` source records, adds an empty source-column catalog to version `4` records when no catalog was persisted, accepts version `5` catalogs without column profiles by supplying an empty profile, adds the workspace custom-field registry and source mappings in version `7`, and adds an empty article registry when migrating version `7` records to version `8`. Version `8` mappings, normalized rows, issue fields, issue date evidence, and registry provenance are migrated from `order_date` to `delivery_date` for version `9`. Version `9` sources gain empty preparation-rule lists for version `10`; version `10` workspaces gain an empty `importProfiles` list for version `11`. Version `11` workspaces gain an empty `warehouseLayout` for version `12`; version `12` sources gain empty `sourceRules` lists for version `13`. Version `13` workspaces migrate warehouse layout schema `1` to `2`: physical levels lose nested positions, per-level functional zones are Unassigned, and explicit locations retain the old position IDs and codes (marked `legacy` for code editing before classification). No use is inferred, and article-master matching is preserved. Version `14` workspaces migrate layout `2` to `3`, retaining physical IDs, zones, locations and codes, and supplying empty groups/connections, no rack passages, closed modeled doors and unknown route requirements. Version `15` workspaces migrate layout `3` to `4`, preserving all existing geometry, paths, groups, connections, IDs and codes without inferring junction recipes. Version `16` sources gain a null last-profile application record for version `17`; existing applications are not inferred. Version `17` workspaces gain an empty `coverageNotes` list for version `18`, without inferred holidays or reasons. Version `18` workspaces migrate layout `4` equal subdivisions to explicit rectangular placements for version `19` / layout `5`, preserving IDs, codes and all source/calendar metadata. Version `19` workspaces migrate layout `5` to `6`, adding enabled ground scopes except in designated passages, without changing elevated locations or their identity. Version `20` workspaces gain empty `tablePreferences.columnOrder` and `tablePreferences.visibleColumns` arrays and `walkPreferences.fov` set to 60 for version `21`, retaining the existing default columns and all source evidence. Version `21` sources gain null `linkedSource` metadata for version `22`; local capabilities are stored separately in IndexedDB version `5`. Version `22` sources gain an empty `tags` array for version `23`. Existing imports therefore keep their prior behavior. Legacy `sales_value` mappings and values remain unchanged and unclassified. Readable legacy sources rebuild their catalog from the retained header bytes during activation. IndexedDB database version `3` creates the chunk stores, including article-registry chunks. Existing `workspacePayloads` records are read without mutation; activation and legacy JSON workers perform migration and validation; current archives migrate older storage through the compatibility adapter, and activation persists the migrated chunks atomically. This keeps the logical catalog revision unchanged for an unopened legacy workspace. Current archive block processing yields between storage/hash operations; older monolithic storage still needs a full migration traversal. Activation requests source/byte metadata without stored row and issue chunks because analysis and the registry are rebuilt from the durable source bytes. Version-2 period settings created before the mode field existed retain dated boundaries in custom mode; empty settings default to calendar-week selection. Versions newer than the current reader are rejected rather than guessed.
 
 Future migrations must produce a fully valid current workspace before saving it and require automated migration and backup-round-trip tests.
 
@@ -300,7 +456,7 @@ physical ground ID remains stable; re-enabling creates a new empty zone.
 Designated passages require ground to be disabled. New bays receive new enabled
 ground IDs; structure duplication regenerates floor IDs without copying locations.
 The floor has no structural beam/deck. Ground settings are metadata included in
-workspace capture, activation and backups. Database 3 and backup format 1 remain.
+workspace capture, activation and backups. Workspace schema remains 21; current storage uses database 4 and archive format 2, retaining the legacy JSON reader.
 Readers limited to workspace 19 cannot open workspace-20 backups.
 
 `usage` supports `unassigned`, `picking`, and `reserve`. Future usage identifiers may use lowercase letters, digits, and hyphens (starting with a letter, at most 40 characters). Physical floor-area types remain separate. Zone, location, group and connection IDs share the layout-wide uniqueness contract with physical part IDs. Orphaned references are validation errors. The 150-object and 5,000-location limits are independent; uncoded physical geometry does not consume location capacity.
@@ -328,7 +484,7 @@ old equal full-depth subdivision: left edge `floor(index * bay.width / count)`,
 right edge `floor((index + 1) * bay.width / count)`. IDs, codes and all other
 layout metadata remain intact. Missing placements are normalized using this
 same rule. Coverage reasons and profile-application evidence remain intact.
-Database version 3 and backup format 1 are unchanged. Readers supporting
+These preferences use workspace schema 21; current database/archive versions are 4/2. Readers supporting
 workspace 18 or earlier cannot restore workspace-19 backups; retain a backup
 from the previous application if returning to it is required.
 

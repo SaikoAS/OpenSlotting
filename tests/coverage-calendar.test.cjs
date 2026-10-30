@@ -20,26 +20,30 @@ function appFunction(name) {
 }
 
 function coverageView(result, notes = []) {
-  const state = { activeWorkspace: { id: 'synthetic-coverage' }, files: result ? result.files : [], result,
+  const state = { storageReady: true, workspaceLoading: false, activeWorkspace: { id: 'synthetic-coverage' }, files: result ? result.files : [], result,
     coverageNotes: notes, warehouseLayout: { objects: [] }, periodSettings: periods.normalizeSettings(), comparison: null };
   function element() {
     const classes = new Set(['hidden']);
-    return { classList: { add: name => classes.add(name), remove: name => classes.delete(name), contains: name => classes.has(name) },
+    return { dataset: {}, classList: { add: name => classes.add(name), remove: name => classes.delete(name), contains: name => classes.has(name),
+      toggle: (name, on) => on ? classes.add(name) : classes.delete(name) },
       children: [], appendChild(child) { this.children.push(child); }, replaceChildren() { this.children = []; } };
   }
-  const elements = Object.fromEntries(['coveragePanel', 'coverageOverview', 'periodAStatus', 'periodBStatus', 'comparePeriods'].map(key => [key, element()]));
+  const elements = Object.fromEntries(['coveragePanel', 'coverageOverview', 'coverageWeekdayMessage', 'periodAStatus', 'periodBStatus', 'comparePeriods',
+    'comparisonSetupHint', 'comparisonSetupAction', 'resetPeriods', 'periodAWeek', 'periodBWeek', 'periodAName', 'periodAStart', 'periodAEnd',
+    'periodBName', 'periodBStart', 'periodBEnd'].map(key => [key, element()]));
+  elements.periodModes = []; elements.expectedWeekdays = [];
   const root = { innerHTML: '', addEventListener() {} };
   const coverageCalendar = calendar.create({ root, getWorkspaceId: () => state.activeWorkspace.id,
     getLanguage: () => 'en', getNotes: () => state.coverageNotes,
     getExpectedWeekdays: () => state.periodSettings.expectedWeekdays, isLocked: () => false });
   let renderedData, renders = 0;
   const translations = [];
-  const context = vm.createContext({ state, elements, periods, core, coverageCalendar,
+  const context = vm.createContext({ state, elements, periods, core, coverageCalendar, comparisonSetupCache: periods.createPeriodViewCache(),
     document: { createElement: element }, setText: (node, text) => { node.textContent = text; },
     translate: (key, values) => { translations.push({ key, values }); return key; },
-    renderCoverageSources: data => { renderedData = data; renders++; }, renderCoverageDates() {}, renderCoverageDrilldown() {}, renderPeriodControls() {},
-    coverageText: () => '', closeMappingDrawer() {}, PAGE_CONFIG: { 'coverage-panel': {}, 'mapping-panel': {}, 'main-menu-panel': {}, 'workspace-panel': {} } });
-  for (const name of ['analysisRowCount', 'resultHasRetainedData', 'isDatedCoverageIssue', 'buildCoverageData', 'hasCoverageContent', 'renderCoverage']) {
+    renderCoverageSources: data => { renderedData = data; renders++; }, renderCoverageDates() {}, renderCoverageDrilldown() {}, renderCoverageViews() {}, renderPeriodControls() {},
+    periodSettingsValid: () => true, coverageText: () => '', closeMappingDrawer() {}, PAGE_CONFIG: { 'coverage-panel': {}, 'mapping-panel': {}, 'main-menu-panel': {}, 'workspace-panel': {} } });
+  for (const name of ['analysisRowCount', 'resultHasRetainedData', 'isDatedCoverageIssue', 'buildCoverageData', 'hasCoverageContent', 'renderComparisonSetup', 'renderCoverage']) {
     vm.runInContext(appFunction(name), context);
   }
   const start = appSource.indexOf('  function renderWorkflow('), end = appSource.indexOf('    document.body.classList.toggle', start);
@@ -201,12 +205,13 @@ async function sourceClearingView(t) {
   const record = sourceWorkspace(); record.coverageNotes = [note()];
   const created = await repository.createWorkspace(record);
   const state = { activeWorkspace: { id: record.id, name: record.name }, files: record.files,
-    coverageNotes: record.coverageNotes, fileSelectionVersion: 0 };
+    coverageNotes: record.coverageNotes, fileSelectionVersion: 0, storageReady: true, workspaceLoading: false };
   const pending = [];
   const element = () => ({ value: '', replaceChildren() {}, classList: { add() {} } });
   const elements = Object.fromEntries(['fileInput', 'articleFilter', 'importedFiles', 'mappingSourceSearch',
     'importProfileName', 'mappingSourceList', 'mappingGrid', 'mappingPanel', 'resultsPanel', 'analyzeButton'].map(key => [key, element()]));
   const context = vm.createContext({ state, elements, core, periods, workspaceModel: workspace, window: { confirm: () => true },
+    linkedSourceHandles: new Map(),
     sourceRowCache: { clear() {} }, terminalRowCache: { clear() {} }, closeMappingDrawer() {},
     clearAnalysis: () => { state.result = null; }, setSourceStatus() {}, showMappingMessage() {}, translate: key => key,
     setWorkspaceMessage() {}, refreshColumnCatalogOwnership() {}, renderMapping() {}, updateSourceStatus() {},
@@ -330,6 +335,7 @@ test('entering coverage refreshes calendar controls after background activation 
     analysisRowCount: result => result.rows.length, resultHasRetainedData: () => true, hasCoverageContent: () => true,
     elements: { coveragePanel: { classList: { contains: () => false } } },
     coverageCalendar: { refresh: () => locks.push(state.workspaceLoading) },
+    renderComparisonSetup() {},
     renderCoverage: () => assert.fail('Visible coverage should not rebuild tables just to unlock calendar controls'), closeMappingDrawer() {} });
   vm.runInContext(source.slice(start, end) + '  }', context);
   context.renderWorkflow('coverage-panel'); state.workspaceLoading = false; context.renderWorkflow('coverage-panel');

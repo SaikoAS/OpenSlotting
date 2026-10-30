@@ -83,6 +83,16 @@ The article comparison can be searched by article ID / SKU or description, filte
 
 The comparison CSV uses semicolons, CRLF line endings, stable English headers, exact quantity formatting, period boundaries, source-file collections, and spreadsheet-formula protection for untrusted text. Exporting does not change the workspace.
 
+## Comparison page preparation
+
+The comparison page reuses detected calendar weeks and recent period coverage
+for the current workspace and analysis result. Labels are rendered in the
+current interface language without rescanning source rows. Changing a period
+name does not invalidate numerical coverage; changing dates or expected
+weekdays calculates the affected range. The cache keeps at most eight recent
+coverage entries and is replaced on a workspace/result change or explicit
+analysis reset. Source rows are not copied into the cache or changed.
+
 ## Deliberate limits
 
 - Missing expected dates are not imputed.

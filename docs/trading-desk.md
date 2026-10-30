@@ -6,6 +6,42 @@ article details, and workspace selection. The overview provides three analysis
 levels, a chart, a searchable entity list, and a configurable order-line table.
 The controls and labels are available in English and German.
 
+## Navigation
+
+The sidebar groups existing pages into **Analysis** (overview, articles,
+comparison), **Warehouse** (editor, 3D analysis, walk) and **Data** (import,
+source columns, coverage). The toggle switches between text-and-icon and
+compact icon views; icons retain localized names and tooltips. The toggle
+and workspace selection remain outside the scrolling category list on desktop.
+Keyboard activation and an accessible active-page marker follow normal page
+availability. The choice lasts for the current app session and does not change
+workspace data or backups. Charts and tables resize to the available width.
+Narrow screens retain horizontal navigation.
+
+The former top and bottom banners are removed. **Settings** in the rail footer
+is divided into **Global** (build/runtime details and local-processing
+information) and **Workspace** (active identity, language, backup export and clearing data).
+A Settings button on workspace selection is available before opening any
+workspace. Language changes keep their existing workspace-save and rollback
+behavior; without an open workspace the choice applies to this app session.
+The active workspace remains visible beside the page title. Backup export in
+Settings always targets the open workspace, independently of the highlighted
+catalog entry. It uses the same complete streaming archive as workspace
+selection, with progress, cancellation and result messages in Settings.
+Clearing data requires confirmation and is disabled without a ready workspace containing
+source files, or during a running operation. It removes source files, import
+profiles and analysis/comparison results and resets comparison periods;
+the workspace, warehouse layout and coverage notes remain.
+
+**Comparison** remains available before any comparison has been calculated.
+Its page contains the calendar-week/custom period selectors and an expandable
+expected-weekday section, followed by results once calculated. Changing or
+resetting periods stays on this page and invalidates the previous result.
+Without usable dated order lines, the page explains the prerequisite and
+links to workspace selection, import or source mapping. Period controls are
+locked while workspace tasks are running. Coverage keeps its calendar and
+evidence views, with a link to Comparison.
+
 ## Data shown
 
 - The input is `result.rows`: validated, normalized **order lines** from the
@@ -24,7 +60,7 @@ The controls and labels are available in English and German.
   Entities without rows in the window remain searchable with zero for that
   ranking. The footer shows how many normalized lines carry an ID at the
   selected level.
-- The range controls affect the selected entity's chart, KPI cards, and source
+- The range controls affect the selected entity's chart, period summary, and source
   lines. The 30 and 90 day windows end on the latest delivery date in the
   opened data, not on today's date. "All dates" includes every valid date.
 - Quantity totals use the existing scaled-integer representation. The chart
@@ -32,6 +68,11 @@ The controls and labels are available in English and German.
   totals remain exact. In day view the line connects consecutive observed
   days; in grouped views it connects adjacent buckets that have rows. Empty
   buckets break the line. Missing days are unknown coverage, not zero demand.
+  Axis labels retain their proportions when the chart changes size. The left
+  gutter adapts to localized number lengths. Quantity-axis ticks normally use
+  up to three decimal places, with extra precision for small quantities;
+  line-count ticks use integer intervals. These display choices do not round
+  stored quantities, displayed totals, or the exact values in tooltips.
 - The chart groups values by calendar day, ISO week (Monday to Sunday), or
   calendar month. Auto uses days for up to 45 calendar days, weeks through 180,
   and months for longer ranges. Each bucket adds only the selected entity's
@@ -49,6 +90,13 @@ The controls and labels are available in English and German.
   so large selections do not create a table element for every source line.
   Source file and physical source line remain visible. Clicking an article
   opens the existing full detail view.
+  On desktop, the table uses the remaining workspace height. The chart can
+  shrink to keep table rows visible; scrolling stays inside the table and
+  watchlist when the desk fits. Window, zoom and control-height changes update
+  the virtual row viewport without resetting its scroll position. Very small
+  windows or high browser zoom retain page scrolling and a compact table so
+  all filters and controls remain reachable. Narrow screens keep the stacked
+  layout.
 - Date, customer, order and source filters search the full selected entity and
   range; using them switches the table to **All order lines**. Column headings
   sort those rows. The CSV button exports the currently displayed, filtered
@@ -60,14 +108,16 @@ The controls and labels are available in English and German.
   the table's From/To fields and a highlighted band marks the range. Missing
   days inside it remain unknown rather than being turned into zero values.
   In week or month view a click selects that calendar bucket instead. The
-  separate selection panel shows exact quantity, line, order, customer, and
-  observed-day counts for the selected entity and dates, plus workspace date
-  coverage for that selection. Other table text filters do not alter this
-  date-selection summary. The KPI cards above remain totals for the full main
-  range and are labeled accordingly.
+  yellow period summary is always visible: without a date selection it shows
+  the entire displayed period; otherwise it follows the selected dates. It
+  shows exact quantity, line, order, and recorded-day counts, plus customers
+  in the article view or articles in the customer/order views. Workspace date
+  coverage is shown for the same interval. Other table text filters do not
+  alter these totals. This compact summary replaces the duplicate KPI row
+  above the chart, making more room for the order-line table.
   The day selector and From/To fields provide keyboard access; **Clear chart
-  selection** removes the date selection. Chart selections do not change the
-  main range or KPI totals.
+  selection** returns the summary to the full main period. Chart selections
+  do not change the main range or the chart's full-period total.
 - **Choose columns** adds mapped article description, customer ID, Colli
   (`sales_unit_count`), quantity per selling unit, location, unit of measure,
   and active workspace custom fields. Missing optional values display as

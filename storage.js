@@ -8,7 +8,7 @@
   'use strict';
 
   const DATABASE_NAME = 'openslotting-workspaces';
-  const DATABASE_VERSION = 3;
+  const DATABASE_VERSION = 5;
   const ACTIVE_WORKSPACE_SETTING = 'active-workspace-id';
   const ROW_CHUNK_SIZE = 5000;
   const ISSUE_CHUNK_SIZE = 5000;
@@ -290,6 +290,8 @@
         preparationRules: file.preparationRules,
         sourceRules: file.sourceRules,
         appliedImportProfile: file.appliedImportProfile,
+        linkedSource: file.linkedSource,
+        tags: file.tags,
         customFieldMapping: file.customFieldMapping,
         confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
         confirmedMapping: file.confirmedMapping,
@@ -353,6 +355,28 @@
       registryChunkRecords: registryChunkRecords
     };
   }
+
+  async function* backupRecordsFromWorkspace(workspace) {
+    const metadata = metadataFor(workspace, 0);
+    yield { kind: 'workspace', data: { workspace: metadata, sourceCount: metadata.sourceCount,
+      sourceBytes: metadata.sourceBytes, normalizedRowCount: metadata.normalizedRowCount } };
+    for (const file of workspace.files) {
+      const result = file.result;
+      const fileMeta = Object.assign({}, file); delete fileMeta.buffer; delete fileMeta.result;
+      const resultMeta = result ? Object.assign({}, result) : null;
+      if (resultMeta) { delete resultMeta.rows; delete resultMeta.issues; }
+      yield { kind: 'source', data: { file: fileMeta, resultMeta: resultMeta, byteLength: file.buffer ? file.buffer.byteLength : null } };
+      if (file.buffer) for (let offset = 0; offset < file.buffer.byteLength; offset += 4 * 1024 * 1024) {
+        yield { kind: 'bytes', data: new Uint8Array(file.buffer, offset, Math.min(4 * 1024 * 1024, file.buffer.byteLength - offset)) };
+      }
+      for (const kind of ['rows', 'issues']) {
+        const values = result && result[kind] || [];
+        for (let offset = 0; offset < values.length; offset += 1000) yield { kind: kind, data: values.slice(offset, offset + 1000) };
+      }
+    }
+    for (const entry of workspace.articleRegistry || []) for (const fragment of registryEntryFragments(entry)) yield { kind: 'registry', data: [fragment] };
+  }
+
 
   function metadataWithSummary(metadata, summary) {
     const values = summary || {};
@@ -450,6 +474,8 @@
           preparationRules: source.preparationRules,
           sourceRules: source.sourceRules,
           appliedImportProfile: source.appliedImportProfile,
+          linkedSource: source.linkedSource,
+          tags: source.tags,
           customFieldMapping: source.customFieldMapping,
           confirmedCustomFieldMapping: source.confirmedCustomFieldMapping,
           confirmedMapping: source.confirmedMapping,
@@ -585,6 +611,10 @@
           if (!db.objectStoreNames.contains('settings')) {
             db.createObjectStore('settings', { keyPath: 'key' });
           }
+          if (!db.objectStoreNames.contains('workspaceSourceLinks')) db.createObjectStore('workspaceSourceLinks', { keyPath: 'key' });
+          if (!db.objectStoreNames.contains('workspaceBackupStaging')) {
+            db.createObjectStore('workspaceBackupStaging', { keyPath: 'key' });
+          }
         };
         request.onblocked = function () {
           blocked = true;
@@ -659,10 +689,36 @@
       });
     }
 
+    async function clearSourceLinks(stores, workspaceId) {
+      const records = await requestPromise(stores.workspaceSourceLinks.getAll());
+      records.forEach(function (record) { if (record.workspaceId === workspaceId) stores.workspaceSourceLinks.delete(record.key); });
+    }
+
+    function listSourceLinks(workspaceId) {
+      return transact(['workspaceSourceLinks'], 'readonly', async function (stores) {
+        const records = await requestPromise(stores.workspaceSourceLinks.getAll());
+        return records.filter(function (record) { return record.workspaceId === workspaceId; });
+      });
+    }
+
+    async function syncSourceLinks(stores, workspace, updates, reset) {
+      const linkedIds = new Set(workspace.files.filter(function (file) { return Boolean(file.linkedSource); }).map(function (file) { return file.id; }));
+      const records = await requestPromise(stores.workspaceSourceLinks.getAll());
+      records.forEach(function (record) {
+        if (record.workspaceId === workspace.id && (reset || !linkedIds.has(record.sourceId))) stores.workspaceSourceLinks.delete(record.key);
+      });
+      (updates || []).forEach(function (update) {
+        const key = sourceStorageKey(workspace.id, update.sourceId);
+        if (!update.handle) { stores.workspaceSourceLinks.delete(key); return; }
+        if (!linkedIds.has(update.sourceId) || update.handle.kind !== 'file') throw storageError('invalid_linked_source');
+        stores.workspaceSourceLinks.put({ key: key, workspaceId: workspace.id, sourceId: update.sourceId, handle: update.handle });
+      });
+    }
+
     function writeWorkspace(workspace, mode, options) {
       const settings = options || {};
       const validated = settings.validated ? workspace : workspaceModel.validateWorkspace(workspace);
-      return transact(CHUNKED_WORKSPACE_STORES, 'readwrite', async function (stores) {
+      return transact(CHUNKED_WORKSPACE_STORES.concat(['workspaceSourceLinks']), 'readwrite', async function (stores) {
         const current = await requestPromise(stores.workspaces.get(validated.id));
         if (mode === 'create' && current) {
           throw storageError('workspace_conflict', 'Workspace already exists.');
@@ -679,6 +735,7 @@
         await clearChunkedWorkspace(stores, validated.id);
         stores.workspacePayloads.delete(validated.id);
         putChunkedWorkspace(stores, validated);
+        await syncSourceLinks(stores, validated, settings.sourceLinks, mode === 'replace');
         return Object.assign({}, validated, { storageRevision: nextRevision });
       });
     }
@@ -775,6 +832,21 @@
       });
     }
 
+    function updateSourceTags(id, sourceId, tags, options) {
+      const normalized = workspaceModel.normalizeImportTags(tags), settings = options || {};
+      return transact(['workspaces', 'workspaceSources'], 'readwrite', async function (stores) {
+        const metadata = await requestPromise(stores.workspaces.get(id));
+        if (!metadata) throw storageError('workspace_not_found');
+        if (settings.expectedRevision !== storageRevisionOf(metadata)) throw storageError('workspace_conflict');
+        const source = await requestPromise(stores.workspaceSources.get(sourceStorageKey(id, sourceId)));
+        if (!source || source.workspaceId !== id) throw storageError('invalid_source_file');
+        stores.workspaceSources.put(Object.assign({}, source, { tags: normalized }));
+        const updated = Object.assign({}, metadata, { updatedAt: settings.now || new Date().toISOString(), storageRevision: storageRevisionOf(metadata) + 1 });
+        stores.workspaces.put(updated);
+        return updated;
+      });
+    }
+
     function updateWorkspaceSummary(id, summary, options) {
       const workspaceId = String(id || '');
       const settings = options || {};
@@ -833,7 +905,7 @@
     function deleteWorkspace(id, options) {
       const workspaceId = String(id || '');
       const settings = options || {};
-      return transact(CHUNKED_WORKSPACE_STORES.concat(['settings']), 'readwrite', async function (stores) {
+      return transact(CHUNKED_WORKSPACE_STORES.concat(['settings', 'workspaceSourceLinks']), 'readwrite', async function (stores) {
         const metadata = await requestPromise(stores.workspaces.get(workspaceId));
         if (!metadata) {
           throw storageError('workspace_not_found', 'Workspace does not exist.');
@@ -844,6 +916,7 @@
         stores.workspaces.delete(workspaceId);
         stores.workspacePayloads.delete(workspaceId);
         await clearChunkedWorkspace(stores, workspaceId);
+        await clearSourceLinks(stores, workspaceId);
         const active = await requestPromise(stores.settings.get(ACTIVE_WORKSPACE_SETTING));
         if (active && active.value === workspaceId) {
           stores.settings.delete(ACTIVE_WORKSPACE_SETTING);
@@ -899,6 +972,178 @@
         });
     }
 
+    // A revision is checked in every read transaction: another tab can never
+    // silently mix two workspace generations into one archive.
+    async function* readBackupRecords(id, options) {
+      const check = function () {
+        if (options && options.isCurrent && !options.isCurrent()) throw storageError('workspace_load_cancelled');
+      };
+      let revision;
+      async function read(names, operation) {
+        check();
+        return transact(['workspaces'].concat(names), 'readonly', async function (stores) {
+          const meta = await requestPromise(stores.workspaces.get(id));
+          if (!meta) throw storageError('workspace_not_found');
+          if (revision === undefined) revision = storageRevisionOf(meta);
+          if (storageRevisionOf(meta) !== revision) throw storageError('workspace_conflict');
+          return operation(stores, meta);
+        });
+      }
+      const initial = await read(['workspaceManifests'], async function (stores, meta) {
+        return { meta: meta, manifest: await requestPromise(stores.workspaceManifests.get(id)) };
+      });
+      if (!initial.manifest || Number(initial.meta.schemaVersion) < workspaceModel.WORKSPACE_SCHEMA_VERSION ||
+          !Number.isInteger(initial.meta.normalizedRowCount) || !Number.isInteger(initial.meta.sourceBytes)) {
+        // Legacy monolithic databases are still readable; only this compatibility
+        // path needs the old full payload once, before it can be chunked.
+        const legacy = await loadWorkspaceRaw(id);
+        if (!legacy || storageRevisionOf(legacy) !== revision) throw storageError('workspace_conflict');
+        yield* backupRecordsFromWorkspace(workspaceModel.migrateWorkspace(legacy, { clonePayload: false }));
+        await read([], function () {});
+        return;
+      }
+      const manifest = initial.manifest, meta = initial.meta;
+      yield { kind: 'workspace', data: { workspace: meta, sourceCount: meta.sourceCount,
+        sourceBytes: meta.sourceBytes, normalizedRowCount: meta.normalizedRowCount } };
+      for (const entry of manifest.sources) {
+        const source = await read(['workspaceSources'], async function (stores) {
+          return requestPromise(stores.workspaceSources.get(entry.sourceKey));
+        });
+        if (!source || source.sourceId !== entry.sourceId || source.workspaceId !== id) throw storageError('invalid_backup', 'Source metadata is missing.');
+        let bytes = await read(['workspaceSourceBytes'], function (stores) { return requestPromise(stores.workspaceSourceBytes.get(entry.byteKey)); });
+        const buffer = bytes && bytes.buffer instanceof ArrayBuffer ? bytes.buffer : null;
+        if ((!buffer && !source.errorKey) || (buffer && buffer.byteLength !== source.size)) throw storageError('invalid_backup', 'Original source bytes are incomplete.');
+        const file = Object.assign({}, source, { id: source.sourceId });
+        delete file.key; delete file.workspaceId; delete file.sourceId; delete file.resultMeta;
+        yield { kind: 'source', data: { file: file, resultMeta: source.resultMeta, byteLength: buffer ? buffer.byteLength : null } };
+        if (buffer) for (let offset = 0; offset < buffer.byteLength; offset += 4 * 1024 * 1024) {
+          check(); yield { kind: 'bytes', data: new Uint8Array(buffer, offset, Math.min(4 * 1024 * 1024, buffer.byteLength - offset)) };
+        }
+        bytes = null;
+        for (const kind of ['rows', 'issues']) {
+          const keys = kind === 'rows' ? entry.rowChunkKeys : entry.issueChunkKeys;
+          const storeName = kind === 'rows' ? 'workspaceRowChunks' : 'workspaceIssueChunks';
+          for (let index = 0; index < (keys || []).length; index++) {
+            const chunk = await read([storeName], function (stores) { return requestPromise(stores[storeName].get(keys[index])); });
+            if (!chunk || chunk.sourceId !== source.sourceId || chunk.workspaceId !== id ||
+                chunk.index !== index || !Array.isArray(chunk[kind]) || !chunk[kind].length) throw storageError('invalid_backup', 'A result block is missing.');
+            for (let start = 0; start < chunk[kind].length; start += 1000) yield { kind: kind, data: chunk[kind].slice(start, start + 1000) };
+          }
+        }
+      }
+      for (let index = 0; index < (manifest.registryChunkKeys || []).length; index++) {
+        const chunk = await read(['workspaceRegistryChunks'], function (stores) { return requestPromise(stores.workspaceRegistryChunks.get(manifest.registryChunkKeys[index])); });
+        if (!chunk || chunk.workspaceId !== id || chunk.index !== index || !Array.isArray(chunk.entries) || !chunk.entries.length) throw storageError('invalid_backup', 'A registry block is missing.');
+        yield { kind: 'registry', data: chunk.entries };
+      }
+      if (!manifest.registryChunkKeys && Array.isArray(manifest.articleRegistry)) {
+        for (const entry of manifest.articleRegistry) for (const fragment of registryEntryFragments(entry)) yield { kind: 'registry', data: [fragment] };
+      }
+      await read([], function () {});
+    }
+
+    async function beginBackupStage() {
+      const session = workspaceModel.createId('backup-stage');
+      await transact(['settings'], 'readwrite', function (stores) {
+        stores.settings.put({ key: session, count: 0, updatedAt: Date.now(), ready: false });
+      });
+      return session;
+    }
+
+    function stageBackupRecord(session, record) {
+      return transact(['settings', 'workspaceBackupStaging'], 'readwrite', async function (stores) {
+        const head = await requestPromise(stores.settings.get(session));
+        if (!head || head.ready) throw storageError('invalid_backup');
+        stores.workspaceBackupStaging.put({ key: session + ':' + head.count, record: record });
+        stores.settings.put(Object.assign({}, head, { count: head.count + 1, updatedAt: Date.now() }));
+      });
+    }
+
+    function finishBackupStage(session, summary) {
+      return transact(['settings'], 'readwrite', async function (stores) {
+        const head = await requestPromise(stores.settings.get(session));
+        if (!head || head.ready) throw storageError('invalid_backup');
+        stores.settings.put(Object.assign({}, head, { ready: true, summary: summary }));
+      });
+    }
+
+    function discardBackupStage(session) {
+      return transact(['settings', 'workspaceBackupStaging'], 'readwrite', async function (stores) {
+        const head = await requestPromise(stores.settings.get(session));
+        if (!head) return;
+        for (let index = 0; index < head.count; index++) stores.workspaceBackupStaging.delete(session + ':' + index);
+        stores.settings.delete(session);
+      });
+    }
+
+    async function cleanupBackupStages() {
+      const heads = await transact(['settings'], 'readonly', function (stores) { return requestPromise(stores.settings.getAll()); });
+      for (const head of heads) {
+        if (String(head.key).startsWith('backup-stage-') && head.updatedAt < Date.now() - 24 * 60 * 60 * 1000) await discardBackupStage(head.key);
+      }
+    }
+
+    function commitBackupStage(session, options) {
+      const settings = options || {};
+      if (settings.mode !== 'new' && settings.mode !== 'replace') return Promise.reject(storageError('invalid_restore_mode'));
+      return transact(CHUNKED_WORKSPACE_STORES.concat(['settings', 'workspaceBackupStaging', 'workspaceSourceLinks']), 'readwrite', async function (stores) {
+        const head = await requestPromise(stores.settings.get(session));
+        if (!head || !head.ready) throw storageError('invalid_backup');
+        const targetId = settings.targetId || workspaceModel.createId('workspace');
+        const old = await requestPromise(stores.workspaces.get(targetId));
+        if (settings.mode === 'replace') {
+          if (!old) throw storageError('workspace_not_found');
+          if (settings.expectedRevision !== storageRevisionOf(old)) throw storageError('workspace_conflict');
+        } else if (old) throw storageError('workspace_conflict');
+        await clearChunkedWorkspace(stores, targetId);
+        await clearSourceLinks(stores, targetId);
+        stores.workspacePayloads.delete(targetId);
+        const manifest = { workspaceId: targetId, schemaVersion: workspaceModel.WORKSPACE_SCHEMA_VERSION, sources: [], registryChunkKeys: [] };
+        let source = null, buffer = null, offset = 0;
+        function finishSource() {
+          if (!source) return;
+          if (buffer) stores.workspaceSourceBytes.put({ key: source.byteKey, workspaceId: targetId, sourceId: source.sourceId, buffer: buffer.buffer });
+          buffer = null; offset = 0;
+        }
+        for (let index = 0; index < head.count; index++) {
+          const staged = await requestPromise(stores.workspaceBackupStaging.get(session + ':' + index));
+          if (!staged) throw storageError('invalid_backup');
+          const record = staged.record, data = record.data;
+          if (record.kind === 'source') {
+            finishSource();
+            const key = sourceStorageKey(targetId, data.file.id);
+            source = { sourceId: data.file.id, sourceKey: key, byteKey: key, rowChunkKeys: [], issueChunkKeys: [] };
+            manifest.sources.push(source);
+            buffer = data.byteLength === null ? null : new Uint8Array(data.byteLength);
+            stores.workspaceSources.put(Object.assign({}, data.file, { key: key, workspaceId: targetId,
+              sourceId: data.file.id, resultMeta: data.resultMeta }));
+          } else if (record.kind === 'bytes') {
+            buffer.set(data, offset); offset += data.byteLength;
+          } else if (record.kind === 'rows' || record.kind === 'issues') {
+            const rows = record.kind === 'rows', keys = rows ? source.rowChunkKeys : source.issueChunkKeys;
+            const key = chunkStorageKey(targetId, source.sourceId, record.kind, keys.length);
+            stores[rows ? 'workspaceRowChunks' : 'workspaceIssueChunks'].put({ key: key, workspaceId: targetId,
+              sourceId: source.sourceId, index: keys.length, [record.kind]: data });
+            keys.push(key);
+          } else if (record.kind === 'registry') {
+            const key = registryChunkStorageKey(targetId, manifest.registryChunkKeys.length);
+            stores.workspaceRegistryChunks.put({ key: key, workspaceId: targetId, index: manifest.registryChunkKeys.length, entries: data });
+            manifest.registryChunkKeys.push(key);
+          }
+          stores.workspaceBackupStaging.delete(session + ':' + index);
+        }
+        finishSource();
+        const metadata = Object.assign({}, head.summary.metadata, { id: targetId, updatedAt: new Date().toISOString(),
+          storageRevision: old ? storageRevisionOf(old) + 1 : 1, sourceCount: head.summary.totals.sources,
+          sourceBytes: head.summary.totals.sourceBytes, normalizedRowCount: head.summary.totals.rows });
+        delete metadata.files; delete metadata.articleRegistry;
+        stores.workspaceManifests.put(manifest); stores.workspaces.put(metadata);
+        stores.settings.delete(session);
+        return metadata;
+      });
+    }
+
+
     function close() {
       if (database) {
         database.close();
@@ -911,6 +1156,8 @@
       open: open,
       createWorkspace: createWorkspace,
       updateWorkspace: updateWorkspace,
+      listSourceLinks: listSourceLinks,
+      updateSourceTags: updateSourceTags,
       replaceWorkspace: replaceWorkspace,
       loadWorkspace: loadWorkspace,
       loadWorkspaceRaw: loadWorkspaceRaw,
@@ -922,6 +1169,13 @@
       setActiveWorkspace: setActiveWorkspace,
       getActiveWorkspaceId: getActiveWorkspaceId,
       estimateStorage: estimateStorage,
+      readBackupRecords: readBackupRecords,
+      beginBackupStage: beginBackupStage,
+      stageBackupRecord: stageBackupRecord,
+      finishBackupStage: finishBackupStage,
+      commitBackupStage: commitBackupStage,
+      discardBackupStage: discardBackupStage,
+      cleanupBackupStages: cleanupBackupStages,
       close: close
     };
   }
@@ -934,6 +1188,7 @@
     ACTIVE_WORKSPACE_SETTING: ACTIVE_WORKSPACE_SETTING,
     WorkspaceStorageError: WorkspaceStorageError,
     normalizeStorageError: normalizeStorageError,
-    createRepository: createRepository
+    createRepository: createRepository,
+    backupRecordsFromWorkspace: backupRecordsFromWorkspace
   };
 }));

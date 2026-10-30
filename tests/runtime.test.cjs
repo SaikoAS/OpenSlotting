@@ -35,11 +35,11 @@ test('packaged builds retain the candidate identity without inferring a release'
   assert.equal(core.APP_BUILD.commit, null);
 });
 
-test('language changes render build status into the declared header and footer for every build type', () => {
+test('language changes render build status in settings for every build type', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8').replace(/\r\n/g, '\n');
   const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
-  const header = html.match(/<header\b[\s\S]*?<\/header>/)[0];
-  assert.match(header, /id="header-build-status"/);
+  assert.doesNotMatch(html, /<header\b[^>]*class="app-header"/);
+  assert.match(html, /id="settings-build-status"/);
   const nodes = Object.fromEntries([...html.matchAll(/\bid="([^"]+)"/g)]
     .map((match) => [match[1], { textContent: '', setAttribute() {} }]));
   const functionSource = (name) => source.match(new RegExp('  function ' + name + '\\([^]*?(?=\\n  (?:async )?function )'))[0];
@@ -47,7 +47,7 @@ test('language changes render build status into the declared header and footer f
   const context = vm.createContext({ state, core: { ...core }, workspaceModel: workspace, warehouseModel: warehouse,
     window: { OpenSlottingRuntimeFactory: runtimeApi },
     document: { documentElement: {}, getElementById(id) { return nodes[id] || null; }, querySelectorAll() { return []; }, querySelector() { return null; } },
-    renderRuntimeDiagnostics() {}, renderWorkspaceControls() {}, renderStorageStatus() {},
+    renderNavigation() {}, renderRuntimeDiagnostics() {}, renderWorkspaceControls() {}, renderStorageStatus() {},
     renderWorkspaceMessage() {}, renderSourceStatus() {}, renderWorkflow() {} });
   vm.runInContext('const TRANSLATIONS = ' + source.match(/const TRANSLATIONS = ({[\s\S]*?});\s+const state/)[1] + ';\n' +
     'const elements = ' + source.match(/const elements = ({[\s\S]*?});/)[1] + ';\n' +
@@ -61,8 +61,7 @@ test('language changes render build status into the declared header and footer f
       const expectedStatus = build?.status === 'release'
         ? (language === 'de' ? 'Releasebuild' : 'Release build')
         : (language === 'de' ? 'Entwicklungsstand' : 'Development build');
-      assert.equal(nodes['header-build-status'].textContent, 'v' + core.APP_VERSION + ' · ' + expectedStatus);
-      assert.equal(nodes['app-version'].textContent, 'OpenSlotting ' + nodes['header-build-status'].textContent);
+      assert.equal(nodes['settings-build-status'].textContent, 'v' + core.APP_VERSION + ' · ' + expectedStatus);
     }
   }
 });

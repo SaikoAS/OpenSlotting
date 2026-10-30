@@ -137,10 +137,10 @@ test('selected chart range summarizes exact values without applying unrelated ta
   const source = rows();
   const lines = terminal.selectedLines(source, 'article', 'A-1', '2026-09-02', 'all');
   assert.deepEqual(terminal.summarizeSelection(lines, '2026-09-01', '2026-09-02'), {
-    quantity: 7n * csv.QUANTITY_SCALE, lines: 2, orders: 2, customers: 2, days: 2
+    quantity: 7n * csv.QUANTITY_SCALE, lines: 2, orders: 2, customers: 2, articles: 1, days: 2
   });
   assert.deepEqual(terminal.summarizeSelection(lines, '2026-08-02', '2026-08-31'), {
-    quantity: 0n, lines: 0, orders: 0, customers: 0, days: 0
+    quantity: 0n, lines: 0, orders: 0, customers: 0, articles: 0, days: 0
   });
   assert.equal(terminal.summarizeSelection(lines, '2026-09-02', '2026-09-02').quantity,
     4n * csv.QUANTITY_SCALE);

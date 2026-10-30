@@ -10,6 +10,52 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Fragment oversized individual backup records instead of rejecting valid imported values above 8 MiB. Preserve the physical block limit, per-block checksums, ordered validation and atomic restore, including Unicode values split across blocks.
+
+- Show saved reasons for expected missing days on the analysis desk: blue date markers with reason tooltips, separate explained/unexplained counts and range-specific reason details. Preserve actual coverage, quantities and comparison semantics.
+
+- Move expected weekdays from comparison to a fitted coverage desk with calendar/source/date/evidence views, a persistent day inspector and paginated source evidence. Keep period ranges when editing weekdays and refresh control locks on navigation.
+
+- Make Cancel import in filename-conflict dialogs skip only the displayed file and continue the remaining selection, with imported/skipped counts and no save when every file is skipped.
+
+- Make import rows selectable across their surface, confirm source removal and resolve filename conflicts explicitly with Replace, Import anyway or Cancel. Stage snapshot and linked imports before one save; preserve target mappings/tags on replacement, number additional identical names and retain previous data on cancellation or failure.
+
+- Label the order-line customer column as Customer name and show missing names without substituting customer IDs. Keep the distinction in mixed imports, sorting and filtered CSV export.
+
+- Replace the import card list with a fitted import desk, searchable/filterable sortable table, 50-file pages and selected-file actions. Add custom per-source tags with bounded metadata-only saves and portable backup support in workspace schema 23.
+
+- Fix linked CSV reconnection retaining the previous filename. Refresh source names, unique display labels and row provenance from the selected file while preserving source identity and mappings.
+
+- Add linked CSV import, reconnect/unlink and single/batch refresh through read-only file handles. Prepare replacements and derived analysis before an atomic save, retaining old sources on cancellation or failure. Persist capabilities separately in IndexedDB v5; workspace schema 22 stores portable link metadata only, and restores require reconnecting local files.
+
+- Cache comparison setup projections per workspace and analysis result. Reuse detected weeks and bounded recent period coverage on navigation and label changes; refresh coverage for changed ranges/weekdays and discard projections for new or cleared data.
+
+- Keep Comparison navigation available before a comparison exists and move calendar-week/custom period selection onto that page, with prerequisite guidance, expected-weekday options and controls locked during workspace operations.
+
+- Add complete backup export for the open workspace in Settings, sharing the streaming archive flow with workspace selection and showing progress, cancellation and results in place.
+
+- Center workspace selection horizontally and vertically with a bounded panel width; keep overflowing content reachable through page scrolling on smaller windows.
+
+- Remove outer layout gutters and unify the workspace background to eliminate darker strips around the app on desktop and narrow screens.
+
+- Remove the outer workspace border and rounded header corners while retaining panel boundaries and keyboard focus indicators.
+
+- Remove the bottom banner and divide Settings into Global application/runtime information and Workspace language/data actions. Move Clear workspace data into the Workspace section, keep workspace-scoped language persistence and session-only selection before opening a workspace, and clarify reset effects. Guard reset execution while storage/import/workspace tasks are busy; keep the existing confirmation and reset/save path.
+
+- Remove the top banner to free workspace height and add a Settings page for language selection and build/runtime details. Keep Settings available before opening a workspace, show the active workspace beside the page title, retain the local-processing footer and preserve existing workspace language persistence/rollback.
+
+- Group workspace navigation into Analysis, Warehouse and Data with an expanded text view and a compact icon view. Keep localized tooltips/accessibility names, a keyboard-accessible toggle, an active-page marker and a workspace exit outside the scrolling category list. Reflow charts/tables when rail width changes; keep the display choice transient within the app session.
+
+- Draw analysis charts in their actual pixel dimensions to prevent stretched or flattened axis text. Reserve a gutter for long localized numbers, keep axis precision readable (including small quantities), use integer line-count intervals and preserve exact tooltip values. Recompute chart geometry and pointer selection bounds after resizing.
+
+- Fit the analysis desk order-line viewport to the remaining workspace height and reduce the chart height when needed. Preserve independent table/watchlist scrolling, refill virtual rows on resize and remeasure wrapped controls. Keep a compact table and accessible page-scroll fallback when the controls cannot fit in very small or highly zoomed windows.
+
+- Always show the analysis desk period summary, defaulting to the entire displayed period and following date selections. Remove duplicate KPI cards, preserve scope-specific customer/article counts and compact the summary to make more room for order lines.
+
+- Fill the analysis desk's available height with its watchlist instead of capping it at 750px. Keep the list scrollable, refresh its virtual window on resize/zoom/scroll and retain the compact stacked layout on narrow screens.
+
+- Replace monolithic JSON backup exports with blockwise `.osworkspace` archives containing original binary sources, settings, normalized results and fragmented provenance. Use optional native gzip block compression and verify SHA-256 checksums, ordered inventory and source/row counts; stage restores invisibly before an atomic create/replace. Keep legacy JSON backups readable, support cancellable progress and native file streaming with a browser-download fallback. IndexedDB version 4 adds only a temporary backup staging store; workspace schema 21 and layout 6 are unchanged.
+
 - Place downward-dragged columns before the requested target without changing keyboard move behavior; ignore unchanged drops and retain hidden-column preferences.
 
 - Keep coverage evidence navigation inside the active page so the header and navigation rail stay fixed.

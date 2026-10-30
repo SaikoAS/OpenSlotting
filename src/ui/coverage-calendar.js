@@ -7,6 +7,9 @@
   const DAY = 86400000;
   const LABELS = {
     de: { title: 'Datenabdeckung im Kalender', previous: 'Vorheriger Monat', next: 'Nächster Monat', month: 'Monat', weekShort: 'KW', week: 'Kalenderwoche', weekYear: 'ISO-Wochenjahr',
+      summaryCompact: 'Dieser Monat: {{observed}} Tage erfasst · {{open}} offen · {{explained}} begründet',
+      observedShort: 'Erfasst', missingShort: 'Fehlend', explainedShort: 'Begründet', issuesShort: 'Fehler', outsideShort: 'Außerhalb',
+      saveShort: 'Speichern', removeShort: 'Entfernen', discardShort: 'Verwerfen',
       intro: 'Tag auswählen, Daten prüfen und eine Begründung hinterlegen. Eine Begründung ergänzt die Datenlage; sie erzeugt keine Absatzwerte und ändert keine Vergleichsergebnisse.',
       observed: 'Gültige Daten vorhanden', missing: 'Keine gültigen Daten', explained: 'Ohne gültige Daten · begründet', outside: 'Außerhalb beobachteter Zeitspanne',
       issues: 'Nur fehlerhafte / ausgeschlossene Zeilen', unexpected: 'Kein erwarteter Liefertag',
@@ -18,6 +21,9 @@
       updated: 'Zuletzt gespeichert: {{date}}', limit: 'Maximal 500 Zeichen.',
       summary: 'Dieser Monat · Tage mit gültigen Daten: {{observed}} · Offene erwartete Tage innerhalb der beobachteten Zeitspanne: {{open}} · Begründete Tage ohne gültige Daten: {{explained}}' },
     en: { title: 'Data coverage calendar', previous: 'Previous month', next: 'Next month', month: 'Month', weekShort: 'Wk', week: 'Calendar week', weekYear: 'ISO week-year',
+      summaryCompact: 'This month: {{observed}} days observed - {{open}} open - {{explained}} explained',
+      observedShort: 'Observed', missingShort: 'Missing', explainedShort: 'Explained', issuesShort: 'Issues', outsideShort: 'Outside',
+      saveShort: 'Save', removeShort: 'Remove', discardShort: 'Discard',
       intro: 'Select a day to review its data and add a reason. Reasons supplement the evidence; they do not create demand values or change comparison results.',
       observed: 'Valid data available', missing: 'No valid data', explained: 'No valid data · reason recorded', outside: 'Outside the observed date span',
       issues: 'Only invalid / rule-excluded rows', unexpected: 'Not an expected delivery day',
@@ -94,9 +100,9 @@
         '<label>' + esc(t('month')) + '<input type="month" data-calendar-month min="0001-01" max="9999-12" value="' + month + '"' + (locked() ? ' disabled' : '') + '></label>' +
         '<button type="button" class="secondary-button" data-calendar-action="next" aria-label="' + esc(t('next')) + '"' + (locked() || !shiftMonth(month, 1) ? ' disabled' : '') + '>›</button></div></div>' +
         '<p class="table-note">' + esc(t('intro')) + '</p><div class="coverage-calendar-legend">' + ['observed', 'missing', 'explained', 'issues', 'outside'].map(function (key) {
-          return '<span class="calendar-key ' + key + '">' + esc(t(key)) + '</span>';
-        }).join('') + '</div><p class="table-note">' + esc(t('summary', counts)) + '</p>' +
-        '<div class="coverage-calendar-layout"><div><div class="coverage-calendar-weekdays" aria-hidden="true"><span>' + esc(t('weekShort')) + '</span>' + Array.from({ length: 7 }, function (_, index) {
+          return '<span class="calendar-key ' + key + '" title="' + esc(t(key)) + '"><span class="calendar-label-full">' + esc(t(key)) + '</span><span class="calendar-label-short">' + esc(t(key + 'Short')) + '</span></span>';
+        }).join('') + '</div><p class="table-note" title="' + esc(t('summary', counts)) + '">' + esc(t('summaryCompact', counts)) + '</p>' +
+        '<div class="coverage-calendar-layout"><div class="coverage-calendar-month"><div class="coverage-calendar-weekdays" aria-hidden="true"><span>' + esc(t('weekShort')) + '</span>' + Array.from({ length: 7 }, function (_, index) {
           return '<span>' + esc(new Date(Date.parse('2024-01-01T00:00:00Z') + index * DAY).toLocaleDateString(locale(), { weekday: 'short', timeZone: 'UTC' })) + '</span>';
         }).join('') + '</div><div class="coverage-calendar-days" role="group" aria-label="' + esc(new Date(month + '-01T00:00:00Z').toLocaleDateString(locale(), { month: 'long', year: 'numeric', timeZone: 'UTC' })) + '">' +
         cells.map(function (date, index) {
@@ -108,16 +114,16 @@
           return prefix + '<button type="button" class="coverage-calendar-day ' + state.kind + (date.slice(0, 7) !== month ? ' adjacent' : '') + (!state.expected ? ' unexpected' : '') + '" data-calendar-date="' + date +
             '" tabindex="' + (selected === date ? '0' : '-1') + '" aria-pressed="' + (selected === date) + '" aria-label="' + esc(date + ' · ' + text + (reason ? ' · ' + reason.reason : '')) + '"' + (locked() ? ' disabled' : '') + '>' +
             '<strong>' + Number(date.slice(8)) + '</strong><span>' + esc(text) + '</span>' + (reason ? '<small>' + esc(reason.reason) + '</small>' : '') + '</button>';
-        }).join('') + '</div></div><section class="coverage-calendar-detail" aria-labelledby="coverage-calendar-day-title"><h4 id="coverage-calendar-day-title">' + esc(selected) + '</h4>' +
+        }).join('') + '</div></div><section class="coverage-calendar-detail" aria-labelledby="coverage-calendar-day-title"><h4 id="coverage-calendar-day-title">' + esc(selected) + '</h4><div class="coverage-calendar-detail-body">' +
         (selectedWeek ? '<p class="table-note">' + esc(weekDescription(selectedWeek)) + '</p>' : '') +
         '<p>' + esc(t(selectedState.kind)) + (!selectedState.expected ? ' · ' + esc(t('unexpected')) : '') + '</p><p class="table-note">' + esc(t('counts', selectedState)) + '</p>' +
         '<label for="coverage-calendar-reason">' + esc(t('reason')) + '</label><textarea id="coverage-calendar-reason" maxlength="500" rows="4" placeholder="' + esc(t('placeholder')) + '"' + (locked() ? ' disabled' : '') + '>' + esc(reason) + '</textarea>' +
         '<p class="table-note">' + esc(t('limit')) + '</p><p class="table-note" data-calendar-unsaved role="status">' + esc(changed ? t('draft') : note ? t('updated', { date: new Date(note.updatedAt).toLocaleString(locale()) }) : t('empty')) + '</p>' +
-        '<div class="coverage-calendar-actions"><button type="button" class="secondary-button" data-calendar-action="save"' + (locked() || !changed || !reason.trim() ? ' disabled' : '') + '>' + esc(t('save')) + '</button>' +
-        '<button type="button" class="secondary-button" data-calendar-action="remove"' + (locked() || !note ? ' disabled' : '') + '>' + esc(t('remove')) + '</button>' +
-        '<button type="button" class="secondary-button" data-calendar-action="discard"' + (locked() || !changed ? ' disabled' : '') + '>' + esc(t('discard')) + '</button></div>' +
+        '</div><div class="coverage-calendar-detail-footer"><div class="coverage-calendar-actions"><button type="button" class="secondary-button" data-calendar-action="save"' + (locked() || !changed || !reason.trim() ? ' disabled' : '') + ' aria-label="' + esc(t('save')) + '"><span class="calendar-label-full">' + esc(t('save')) + '</span><span class="calendar-label-short">' + esc(t('saveShort')) + '</span></button>' +
+        '<button type="button" class="secondary-button" data-calendar-action="remove"' + (locked() || !note ? ' disabled' : '') + ' aria-label="' + esc(t('remove')) + '"><span class="calendar-label-full">' + esc(t('remove')) + '</span><span class="calendar-label-short">' + esc(t('removeShort')) + '</span></button>' +
+        '<button type="button" class="secondary-button" data-calendar-action="discard"' + (locked() || !changed ? ' disabled' : '') + ' aria-label="' + esc(t('discard')) + '"><span class="calendar-label-full">' + esc(t('discard')) + '</span><span class="calendar-label-short">' + esc(t('discardShort')) + '</span></button></div>' +
         '<button type="button" class="text-button" data-calendar-action="evidence"' + (locked() || !entries.has(selected) ? ' disabled' : '') + '>' + esc(t('evidence')) + '</button>' +
-        '<p role="status" aria-live="polite">' + esc(message ? t(message) : '') + '</p></section></div>';
+        '<p role="status" aria-live="polite">' + esc(message ? t(message) : '') + '</p></div></section></div>';
     }
     function refresh(dates) {
       const id = options.getWorkspaceId();

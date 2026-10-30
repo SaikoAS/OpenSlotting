@@ -19,12 +19,18 @@
 
   const core = window.OpenSlottingCsv;
   const periods = window.OpenSlottingPeriods;
+  const comparisonSetupCache = periods.createPeriodViewCache();
   const encoding = window.OpenSlottingEncoding;
   const workspaceModel = window.OpenSlottingWorkspace;
+  const workspaceArchive = window.OpenSlottingWorkspaceArchive;
   const warehouseModel = window.OpenSlottingWarehouse;
   const storageApi = window.OpenSlottingStorage;
   const terminalModel = window.OpenSlottingTerminal;
   const workspaceRepository = storageApi.createRepository();
+  const linkedSources = window.OpenSlottingLinkedSources;
+  let linkedSourceHandles = new Map();
+  let linkedImportMessage = null;
+  let importConflictCancel = null;
   const workspacePreparation = window.OpenSlottingWorkspacePreparation;
   const TRANSLATIONS = {
     en: {
@@ -84,6 +90,61 @@
       main_menu_title: 'Analysis desk',
       terminal_nav_label: 'Workspace',
       terminal_nav_caption: 'Menu',
+      nav_group_analysis: 'Analysis',
+      nav_group_warehouse: 'Warehouse',
+      nav_group_data: 'Data',
+      nav_expand: 'Expand sidebar',
+      nav_collapse: 'Collapse sidebar',
+      settings_title: 'Settings',
+      linked_pick: 'Link CSV files',
+      import_remove_confirm: 'Remove "{{file}}" and its imported rows from this workspace?',
+      import_conflict_title: 'A file with this name already exists',
+      import_conflict_copy: 'Choose how to handle this file. No changes from this selection are saved until every name conflict is resolved.',
+      import_conflict_target: 'Existing import to replace',
+      import_conflict_replace: 'Replace existing file',
+      import_conflict_keep: 'Import anyway',
+      import_conflict_cancel: 'Cancel import',
+      import_conflict_hint: 'Replace keeps the selected import’s mappings, rules and tags. Import anyway creates another source; identical file names are marked (1/2), (2/2), etc. Cancel import skips only the file shown here. The remaining files continue.',
+      import_conflict_snapshot: 'Replacing a linked source through normal CSV import also removes its previous file link.',
+      import_saved: 'Imports saved. {{count}} file(s) imported, {{skipped}} skipped. Review the columns and analyze the imports.',
+      import_skipped: '{{count}} file(s) skipped. No data was changed.',
+      import_reading: 'Reading file: {{file}}',
+      import_cancelled: 'Import cancelled. Previous data was retained.',
+      linked_all: 'Update all linked files',
+      linked_update: 'Update',
+      linked_reconnect: 'Reconnect file',
+      linked_connect: 'Link file',
+      linked_unlink: 'Unlink',
+      linked_help: 'Update replaces the imported data from that file and keeps its mappings and rules. Read permission may need to be renewed.',
+      linked_unsupported: 'File linking is unavailable in this browser. You can still import CSV snapshots above.',
+      linked_status: 'Linked: {{file}} · last imported: {{time}}',
+      linked_reconnect_hint: 'File must be reconnected on this browser profile.',
+      linked_reading: 'Reading linked source: {{file}}',
+      linked_done: 'Linked source data saved. {{count}} file(s) updated.',
+      linked_added: 'CSV files linked. Review their columns and analyze the imports.',
+      linked_unlinked: 'File unlinked. Imported data remains in the workspace.',
+      linked_missing: 'File unavailable. Reconnect the affected source. Previous data was retained.',
+      linked_permission: 'Read access is required. Update the affected file individually to allow access. Previous data was retained.',
+      linked_schema_changed: 'Required columns changed or became ambiguous. Review the source mapping; previous data was retained.',
+      linked_invalid_csv: 'The CSV could not be read correctly. Check its contents and encoding. Previous data was retained.',
+      linked_failed: 'The update failed. Previous imported data was retained.',
+      linked_cancelled: 'Update cancelled. Previous imported data was retained.',
+      linked_already: 'This file is already linked in this workspace. Use Update on its existing source.',
+      settings_application: 'Application & local processing',
+      settings_version: 'Version',
+      settings_workspace: 'Active workspace',
+      settings_global: 'Global',
+      settings_workspace_scope: 'Workspace',
+      settings_workspace_data: 'Workspace data',
+      settings_backup_help: 'Save a complete backup of the open workspace, including source files, settings and the warehouse layout.',
+      comparison_setup_no_workspace: 'Open a workspace to select periods and compare its data.',
+      comparison_setup_no_data: 'Import and analyze order lines with delivery dates to compare periods.',
+      comparison_setup_no_dates: 'No valid dated order lines are available. Check the source-column mapping and analyze the imports.',
+      comparison_setup_busy: 'A workspace operation is running. Period settings will be available when it finishes.',
+      comparison_setup_ready: 'Select periods A and B, then run the comparison. Changes invalidate the previous comparison.',
+      settings_reset_help: 'Remove imported source files, import profiles and analysis/comparison results and reset comparison periods. The workspace and warehouse layout remain.',
+      settings_no_workspace: 'Open a workspace to save its settings or clear its data. Language selection remains available for this session.',
+      settings_language_help: 'Choose the interface language. In an open workspace it is saved with that workspace; before opening one it applies to this session.',
       nav_import: 'Import',
       nav_mapping: 'Columns & notes',
       nav_coverage: 'Coverage',
@@ -151,19 +212,22 @@
       terminal_granularity_day: 'Day',
       terminal_granularity_week: 'Week',
       terminal_granularity_month: 'Month',
-      terminal_chart_coverage: 'Data coverage: {{observed}}/{{expected}} expected days recorded · {{unknown}} unknown · whole workspace · {{unit}} view',
+      terminal_chart_coverage: 'Data coverage: {{observed}}/{{expected}} expected days recorded · {{explained}} explained missing · {{unknown}} unexplained · whole workspace · {{unit}} view',
       terminal_chart_coverage_unavailable: 'Data coverage unavailable: select expected weekdays in Coverage & periods.',
       terminal_chart_bucket_title: '{{from}} – {{to}} · {{quantity}} quantity · {{lines}} lines · {{observed}}/{{expected}} expected days recorded',
       terminal_chart_no_expected: 'No expected weekdays in this interval',
       terminal_chart_bucket_empty: '{{from}} – {{to}} · no lines for this selection · {{observed}}/{{expected}} expected days recorded in the workspace',
-      terminal_chart_coverage_legend: 'Green: rows on every expected day · amber: some days · gray: none · dark: no expected weekday',
+      terminal_chart_coverage_legend: 'Green: rows on every expected day · amber: some days · gray: none · blue: missing with reason · dark: no expected weekday',
+      terminal_coverage_reasons: '{{count}} missing days with a reason',
+      terminal_coverage_reason_single: '1 missing day with a reason',
+      terminal_coverage_reason: '{{date}} · No data: {{reason}}',
       terminal_selection_title: 'Selected date range',
       terminal_selection_days: 'Recorded days',
       terminal_selection_invalid: 'The start date must not be after the end date.',
       terminal_selection_scope_note: 'Values refer to the chosen entity within the main range and date selection; other table filters are not included.',
       terminal_selection_no_rows: 'No order lines in this selection; zero demand is not established.',
       terminal_total_period: 'Entire displayed period',
-      terminal_selection_coverage: 'Workspace coverage in selection: {{observed}}/{{expected}} expected days recorded · {{unknown}} unknown. Missing days are not zero demand.',
+      terminal_selection_coverage: 'Workspace coverage in selection: {{observed}}/{{expected}} expected days recorded · {{explained}} explained missing · {{unknown}} unexplained. Missing days are not zero demand.',
       terminal_selection_coverage_unavailable: 'Coverage cannot be assessed until expected weekdays are selected.',
       terminal_from: 'From',
       terminal_to: 'To',
@@ -194,7 +258,7 @@
       workspace_rename_prompt: 'Enter the new workspace name:',
       workspace_delete_confirm: 'Delete workspace “{{name}}” and all of its locally stored data? This cannot be undone.',
       workspace_replace_confirm: 'Replace workspace “{{name}}” with this backup? All current data in that workspace will be removed.',
-      workspace_reset_confirm: 'Remove every source file and analysis result from workspace “{{name}}”? The workspace itself will remain.',
+      workspace_reset_confirm: 'Remove all source files, import profiles and analysis/comparison results from workspace “{{name}}” and reset its comparison periods? The workspace and warehouse layout will remain.',
       workspace_default_name: 'Workspace {{number}}',
       workspace_loading: 'Opening local workspace storage…',
       workspace_none_status: 'Select and open a workspace, create one, or restore a backup before selecting CSV files.',
@@ -222,6 +286,12 @@
       workspace_renamed: 'Workspace was renamed to “{{name}}”.',
       workspace_deleted: 'Workspace “{{name}}” was deleted.',
       workspace_backup_exported: 'A complete backup of “{{name}}” was exported.',
+      workspace_backup_download_started: 'The complete backup of “{{name}}” is ready. Download started; check your browser downloads.',
+      workspace_archive_progress: 'Workspace backup: {{name}} · {{bytes}} processed',
+      invalid_backup_checksum: 'The backup is damaged: a block checksum does not match. The target workspace was not changed.',
+      backup_crypto_unavailable: 'Backup integrity checks are unavailable in this browser. Open the application at its local address.',
+      backup_block_too_large: 'An individual backup item is too large. No complete backup was written.',
+      backup_compression_unavailable: 'This browser cannot decode the compressed archive. Use a browser with built-in gzip streams.',
       workspace_restored_new: 'Backup was restored as the new workspace “{{name}}”.',
       workspace_restored_replace: 'Workspace “{{name}}” was replaced from the validated backup.',
       workspace_cleared: 'All sources were removed from workspace “{{name}}”.',
@@ -265,7 +335,7 @@
       workspace_conflict: 'This workspace changed in another browser tab. Reopen it before saving more changes.',
       storage_failed: 'The local browser storage operation failed.',
       step_1: 'Step 1',
-      select_file_title: 'Select CSV files',
+      select_file_title: 'Import manager',
       local_hint: 'No data leaves your browser.',
       open_csv: 'Open CSV files',
       file_format_hint: 'UTF-8, UTF-16, or Windows-1252 with semicolon delimiter',
@@ -616,8 +686,8 @@
       import_file_count: '{{count}} imported files',
       mapping_select_source: 'Select a source to review its columns and mappings.',
       mapping_show_columns: 'Show complete source-column overview',
-      workflow_coverage: 'Coverage & periods',
-      workflow_comparison: 'Comparison results',
+      workflow_coverage: 'Coverage',
+      workflow_comparison: 'Periods & comparison',
       workflow_analysis: 'Analysis',
       page_status_ready: 'Ready',
       page_status_workspace: 'Manage workspace',
@@ -630,8 +700,11 @@
       step_5: 'Step 5',
       required_label: 'Required',
       optional_label: 'Optional',
-      coverage_title: 'Data coverage & periods',
-      coverage_intro: 'Review observed dates and define two inclusive comparison periods.',
+      coverage_title: 'Data coverage',
+      coverage_views: 'Coverage views',
+      coverage_calendar_tab: 'Calendar',
+      coverage_evidence_page: 'Page {{page}} of {{pages}} - {{count}} rows on this page',
+      coverage_intro: 'Review observed dates, missing days and source evidence.',
       coverage_unknown_note: 'Dates without imported rows remain unknown coverage, not zero demand.',
       coverage_timeline_label: 'Observed date coverage',
       coverage_sources_title: 'Coverage by source',
@@ -801,6 +874,61 @@
       main_menu_title: 'Analyse-Desk',
       terminal_nav_label: 'Arbeitsbereich',
       terminal_nav_caption: 'Menü',
+      nav_group_analysis: 'Analyse',
+      nav_group_warehouse: 'Lager',
+      nav_group_data: 'Daten',
+      nav_expand: 'Seitenleiste ausklappen',
+      nav_collapse: 'Seitenleiste einklappen',
+      settings_title: 'Einstellungen',
+      linked_pick: 'CSV-Dateien verknüpfen',
+      import_remove_confirm: '„{{file}}“ und die zugehörigen importierten Zeilen aus diesem Workspace entfernen?',
+      import_conflict_title: 'Eine Datei mit diesem Namen ist bereits vorhanden',
+      import_conflict_copy: 'Bitte auswählen, wie mit dieser Datei verfahren werden soll. Änderungen aus dieser Dateiauswahl werden erst gespeichert, wenn alle Namenskonflikte geklärt sind.',
+      import_conflict_target: 'Vorhandener Import zum Ersetzen',
+      import_conflict_replace: 'Vorhandene Datei ersetzen',
+      import_conflict_keep: 'Trotzdem importieren',
+      import_conflict_cancel: 'Import abbrechen',
+      import_conflict_hint: 'Ersetzen erhält Zuordnungen, Regeln und Tags des ausgewählten Imports. Trotzdem importieren legt eine weitere Quelle an; identische Dateinamen erhalten (1/2), (2/2) usw. Import abbrechen überspringt nur die hier angezeigte Datei. Die übrigen Dateien werden weiter importiert.',
+      import_conflict_snapshot: 'Wird eine verknüpfte Quelle durch normalen CSV-Import ersetzt, wird ihre bisherige Dateiverknüpfung gelöst.',
+      import_saved: 'Importe gespeichert. {{count}} Datei(en) importiert, {{skipped}} übersprungen. Quellspalten prüfen und die Importe analysieren.',
+      import_skipped: '{{count}} Datei(en) übersprungen. Es wurden keine Daten geändert.',
+      import_reading: 'Datei wird eingelesen: {{file}}',
+      import_cancelled: 'Import abgebrochen. Die bisherigen Daten bleiben erhalten.',
+      linked_all: 'Alle verknüpften Dateien aktualisieren',
+      linked_update: 'Aktualisieren',
+      linked_reconnect: 'Datei neu verbinden',
+      linked_connect: 'Datei verknüpfen',
+      linked_unlink: 'Verknüpfung lösen',
+      linked_help: 'Aktualisieren ersetzt die importierten Daten dieser Datei und behält ihre Zuordnungen und Regeln. Der Lesezugriff muss gegebenenfalls erneut erlaubt werden.',
+      linked_unsupported: 'Dateiverknüpfungen sind in diesem Browser nicht verfügbar. Der bisherige CSV-Import bleibt nutzbar.',
+      linked_status: 'Verknüpft: {{file}} · zuletzt eingelesen: {{time}}',
+      linked_reconnect_hint: 'Die Datei muss in diesem Browserprofil neu verbunden werden.',
+      linked_reading: 'Verknüpfte Quelle wird gelesen: {{file}}',
+      linked_done: 'Verknüpfte Quelldaten gespeichert. {{count}} Datei(en) aktualisiert.',
+      linked_added: 'CSV-Dateien verknüpft. Quellspalten prüfen und die Importe analysieren.',
+      linked_unlinked: 'Dateiverknüpfung gelöst. Die importierten Daten bleiben im Workspace.',
+      linked_missing: 'Datei nicht verfügbar. Die betroffene Quelle neu verbinden. Die bisherigen Daten bleiben erhalten.',
+      linked_permission: 'Lesezugriff erforderlich. Die betroffene Datei einzeln aktualisieren, um den Zugriff zu erlauben. Die bisherigen Daten bleiben erhalten.',
+      linked_schema_changed: 'Benötigte Spalten wurden geändert oder sind mehrdeutig. Quellspalten prüfen; die bisherigen Daten bleiben erhalten.',
+      linked_invalid_csv: 'Die CSV konnte nicht korrekt gelesen werden. Inhalt und Zeichencodierung prüfen. Die bisherigen Daten bleiben erhalten.',
+      linked_failed: 'Die Aktualisierung ist fehlgeschlagen. Die bisherigen importierten Daten bleiben erhalten.',
+      linked_cancelled: 'Aktualisierung abgebrochen. Die bisherigen importierten Daten bleiben erhalten.',
+      linked_already: 'Diese Datei ist bereits in diesem Workspace verknüpft. Die vorhandene Quelle aktualisieren.',
+      settings_application: 'Anwendung & lokale Verarbeitung',
+      settings_version: 'Versionsstand',
+      settings_workspace: 'Aktiver Workspace',
+      settings_global: 'Global',
+      settings_workspace_scope: 'Workspace',
+      settings_workspace_data: 'Workspace-Daten',
+      settings_backup_help: 'Vollständiges Backup des geöffneten Workspace inklusive Quelldateien, Einstellungen und Lagerplan speichern.',
+      comparison_setup_no_workspace: 'Öffne einen Workspace, um Perioden auszuwählen und dessen Daten zu vergleichen.',
+      comparison_setup_no_data: 'Importiere und analysiere Auftragszeilen mit Lieferdatum, um Perioden zu vergleichen.',
+      comparison_setup_no_dates: 'Es gibt keine gültigen Auftragszeilen mit Lieferdatum. Prüfe die Quellspaltenzuordnung und analysiere die Importe.',
+      comparison_setup_busy: 'Ein Workspace-Vorgang läuft. Die Periodenauswahl ist nach dessen Abschluss wieder verfügbar.',
+      comparison_setup_ready: 'Wähle Periode A und B und starte den Vergleich. Änderungen verwerfen den bisherigen Vergleich.',
+      settings_reset_help: 'Importierte Quelldateien, Importprofile sowie Analyse- und Vergleichsergebnisse entfernen und Vergleichszeiträume zurücksetzen. Der Workspace und der Lagerplan bleiben erhalten.',
+      settings_no_workspace: 'Öffne einen Workspace, um dessen Einstellungen zu speichern oder Daten zu leeren. Die Sprachauswahl bleibt für diese Sitzung verfügbar.',
+      settings_language_help: 'Wähle die Sprache der Oberfläche. In einem geöffneten Workspace wird sie mit diesem gespeichert; vor dem Öffnen gilt sie für diese Sitzung.',
       nav_import: 'Import',
       nav_mapping: 'Quellspalten',
       nav_coverage: 'Abdeckung',
@@ -868,19 +996,22 @@
       terminal_granularity_day: 'Tag',
       terminal_granularity_week: 'Woche',
       terminal_granularity_month: 'Monat',
-      terminal_chart_coverage: 'Datenabdeckung: {{observed}}/{{expected}} erwartete Tage erfasst · {{unknown}} unbekannt · gesamter Arbeitsbereich · Ansicht: {{unit}}',
+      terminal_chart_coverage: 'Datenabdeckung: {{observed}}/{{expected}} erwartete Tage erfasst · {{explained}} begründet fehlend · {{unknown}} ungeklärt · gesamter Arbeitsbereich · Ansicht: {{unit}}',
       terminal_chart_coverage_unavailable: 'Datenabdeckung nicht bewertbar: Erwartete Wochentage unter Datenabdeckung festlegen.',
       terminal_chart_bucket_title: '{{from}} – {{to}} · {{quantity}} Menge · {{lines}} Zeilen · {{observed}}/{{expected}} erwartete Tage erfasst',
       terminal_chart_no_expected: 'Keine erwarteten Wochentage in diesem Intervall',
       terminal_chart_bucket_empty: '{{from}} – {{to}} · keine Zeilen für diese Auswahl · {{observed}}/{{expected}} erwartete Tage im Arbeitsbereich erfasst',
-      terminal_chart_coverage_legend: 'Grün: Zeilen an allen erwarteten Tagen · Gelb: an einigen · Grau: an keinem · Dunkel: kein erwarteter Wochentag',
+      terminal_chart_coverage_legend: 'Grün: Zeilen an allen erwarteten Tagen · Gelb: an einigen · Grau: an keinem · Blau: begründet fehlend · Dunkel: kein erwarteter Wochentag',
+      terminal_coverage_reasons: '{{count}} begründete Fehltage',
+      terminal_coverage_reason_single: '1 begründeter Fehltag',
+      terminal_coverage_reason: '{{date}} · Keine Daten: {{reason}}',
       terminal_selection_title: 'Ausgewählter Zeitraum',
       terminal_selection_days: 'Erfasste Tage',
       terminal_selection_invalid: 'Das Startdatum darf nicht nach dem Enddatum liegen.',
       terminal_selection_scope_note: 'Werte für die gewählte Ansicht innerhalb des Hauptzeitraums und der Datumsauswahl; weitere Tabellenfilter sind nicht enthalten.',
       terminal_selection_no_rows: 'Keine Auftragszeilen in dieser Auswahl; Nullbedarf ist damit nicht belegt.',
       terminal_total_period: 'Gesamter angezeigter Zeitraum',
-      terminal_selection_coverage: 'Abdeckung des Arbeitsbereichs in der Auswahl: {{observed}}/{{expected}} erwartete Tage erfasst · {{unknown}} unbekannt. Fehlende Tage sind kein Nullbedarf.',
+      terminal_selection_coverage: 'Abdeckung des Arbeitsbereichs in der Auswahl: {{observed}}/{{expected}} erwartete Tage erfasst · {{explained}} begründet fehlend · {{unknown}} ungeklärt. Fehlende Tage sind kein Nullbedarf.',
       terminal_selection_coverage_unavailable: 'Abdeckung erst mit festgelegten erwarteten Wochentagen bewertbar.',
       terminal_from: 'Von',
       terminal_to: 'Bis',
@@ -911,7 +1042,7 @@
       workspace_rename_prompt: 'Neuen Namen des Arbeitsbereichs eingeben:',
       workspace_delete_confirm: 'Arbeitsbereich „{{name}}“ und alle lokal gespeicherten Daten löschen? Dies kann nicht rückgängig gemacht werden.',
       workspace_replace_confirm: 'Arbeitsbereich „{{name}}“ durch dieses Backup ersetzen? Alle aktuellen Daten dieses Arbeitsbereichs werden entfernt.',
-      workspace_reset_confirm: 'Alle Quelldateien und Analyseergebnisse aus „{{name}}“ entfernen? Der Arbeitsbereich selbst bleibt erhalten.',
+      workspace_reset_confirm: 'Alle Quelldateien, Importprofile sowie Analyse- und Vergleichsergebnisse aus „{{name}}“ entfernen und die Vergleichszeiträume zurücksetzen? Der Workspace und der Lagerplan bleiben erhalten.',
       workspace_default_name: 'Arbeitsbereich {{number}}',
       workspace_loading: 'Lokaler Arbeitsbereichsspeicher wird geöffnet …',
       workspace_none_status: 'Bitte einen Arbeitsbereich auswählen und öffnen, neu erstellen oder aus einem Backup wiederherstellen.',
@@ -939,6 +1070,12 @@
       workspace_renamed: 'Arbeitsbereich wurde in „{{name}}“ umbenannt.',
       workspace_deleted: 'Arbeitsbereich „{{name}}“ wurde gelöscht.',
       workspace_backup_exported: 'Ein vollständiges Backup von „{{name}}“ wurde exportiert.',
+      workspace_backup_download_started: 'Das vollständige Backup von „{{name}}“ ist bereit. Download gestartet; bitte die Browserdownloads prüfen.',
+      workspace_archive_progress: 'Arbeitsbereichsbackup: {{name}} · {{bytes}} verarbeitet',
+      invalid_backup_checksum: 'Das Backup ist beschädigt: Die Prüfsumme eines Blocks stimmt nicht. Der Zielarbeitsbereich wurde nicht verändert.',
+      backup_crypto_unavailable: 'Die Backup-Prüfung ist in diesem Browser nicht verfügbar. Öffne die Anwendung unter ihrer lokalen Adresse.',
+      backup_block_too_large: 'Ein einzelner Backup-Eintrag ist zu groß. Es wurde kein vollständiges Backup geschrieben.',
+      backup_compression_unavailable: 'Dieser Browser kann das komprimierte Archiv nicht lesen. Verwende einen Browser mit integrierten gzip-Streams.',
       workspace_restored_new: 'Backup wurde als neuer Arbeitsbereich „{{name}}“ wiederhergestellt.',
       workspace_restored_replace: 'Arbeitsbereich „{{name}}“ wurde durch das geprüfte Backup ersetzt.',
       workspace_cleared: 'Alle Quellen wurden aus „{{name}}“ entfernt.',
@@ -982,7 +1119,7 @@
       workspace_conflict: 'Dieser Arbeitsbereich wurde in einem anderen Browser-Tab geändert. Öffnen Sie ihn vor weiteren Änderungen erneut.',
       storage_failed: 'Der lokale Browser-Speichervorgang ist fehlgeschlagen.',
       step_1: 'Schritt 1',
-      select_file_title: 'CSV-Dateien auswählen',
+      select_file_title: 'Importverwaltung',
       local_hint: 'Keine Daten verlassen den Browser.',
       open_csv: 'CSV-Dateien öffnen',
       file_format_hint: 'UTF-8, UTF-16 oder Windows-1252 mit Semikolon-Trenner',
@@ -1347,8 +1484,11 @@
       step_5: 'Schritt 5',
       required_label: 'Pflichtfeld',
       optional_label: 'Optional',
-      coverage_title: 'Datenabdeckung & Perioden',
-      coverage_intro: 'Beobachtete Datumswerte prüfen und zwei inklusive Vergleichsperioden festlegen.',
+      coverage_title: 'Datenabdeckung',
+      coverage_views: 'Ansichten der Datenabdeckung',
+      coverage_calendar_tab: 'Kalender',
+      coverage_evidence_page: 'Seite {{page}} von {{pages}} - {{count}} Zeilen auf dieser Seite',
+      coverage_intro: 'Beobachtete Datumswerte, fehlende Tage und Quelldaten prüfen.',
       coverage_unknown_note: 'Tage ohne importierte Zeilen bleiben unbekannte Abdeckung und gelten nicht als Nullabsatz.',
       coverage_timeline_label: 'Beobachtete Datumsabdeckung',
       coverage_sources_title: 'Abdeckung nach Quelle',
@@ -1465,6 +1605,7 @@
 
   const state = {
     language: 'en',
+    navigationCollapsed: false,
     workspaces: [],
     selectedWorkspaceId: null,
     lastActiveWorkspaceId: null,
@@ -1507,6 +1648,9 @@
     comparisonPage: 1,
     coverageDatePage: 1,
     coverageDrilldown: null,
+    coverageView: 'calendar',
+    coverageReturnView: 'calendar',
+    coverageEvidencePage: 1,
     selectedComparisonArticleId: null,
     comparisonDetailPage: 1,
     sourceStatus: { key: 'no_file_selected', replacements: {}, error: false, text: '' },
@@ -1527,6 +1671,7 @@
   let warehouseAnalysis = null;
   let warehouseWalk = null;
   let importProfilePanel = null;
+  let importManager = null;
   let coverageCalendar = null;
   let workspaceFrameRequest = null;
 
@@ -1582,20 +1727,31 @@
   const PAGE_CONFIG = {
     'workspace-panel': { view: 'workspace-page', kicker: 'nav_kicker', title: 'workspace_title', status: 'page_status_workspace' },
     'main-menu-panel': { view: 'main-menu-page', kicker: 'main_menu_eyebrow', title: 'main_menu_title', status: 'page_status_ready' },
+    'settings-panel': { view: 'settings-page', kicker: 'settings_title', title: 'settings_title', status: 'page_status_ready' },
     'warehouse-panel': { view: 'warehouse-page', kicker: 'main_menu_eyebrow', title: 'warehouse_title', status: 'page_status_ready' },
     'warehouse-walk-panel': { view: 'warehouse-walk-page', kicker: 'main_menu_eyebrow', title: 'warehouse_walk_title', status: 'page_status_ready' },
     'warehouse-analysis-panel': { view: 'warehouse-analysis-page', kicker: 'main_menu_eyebrow', title: 'warehouse_analysis_title', status: 'page_status_ready' },
     'import-panel': { view: 'import-page', kicker: 'workflow_import', title: 'select_file_title', status: 'page_status_import' },
     'mapping-panel': { view: 'mapping-page', kicker: 'workflow_mapping', title: 'mapping_title', status: 'page_status_mapping' },
     'coverage-panel': { view: 'coverage-page', kicker: 'workflow_coverage', title: 'coverage_title', status: 'page_status_coverage' },
-    'comparison-panel': { view: 'comparison-page', kicker: 'workflow_comparison', title: 'comparison_title', status: 'page_status_comparison' },
+    'comparison-panel': { view: 'comparison-page', kicker: 'workflow_comparison', title: 'workflow_comparison', status: 'page_status_comparison' },
     'results-panel': { view: 'analysis-page', kicker: 'workflow_analysis', title: 'analysis_title', status: 'page_status_analysis' }
   };
 
   const elements = {
-    headerBuildStatus: document.getElementById('header-build-status'),
-    headerWorkspaceName: document.getElementById('header-workspace-name'),
+    settingsBuildStatus: document.getElementById('settings-build-status'),
+    activeWorkspaceName: document.getElementById('active-workspace-name'),
+    settingsWorkspaceName: document.getElementById('settings-workspace-name'),
+    settingsWorkspaceHint: document.getElementById('settings-workspace-hint'),
+    settingsWorkspaceBackup: document.getElementById('settings-workspace-backup'),
+    settingsWorkspaceMessage: document.getElementById('settings-workspace-message'),
+    settingsLoadProgress: document.getElementById('settings-load-progress'),
+    settingsLoadLabel: document.getElementById('settings-load-label'),
+    settingsProgress: document.getElementById('settings-progress'),
+    settingsBackupCancel: document.getElementById('settings-backup-cancel'),
     workflowSteps: Array.from(document.querySelectorAll('[data-workflow-target]')),
+    navigationToggle: document.getElementById('navigation-toggle'),
+    navigationToggleIcon: document.getElementById('navigation-toggle-icon'),
     pageViews: Array.from(document.querySelectorAll('.app-page')),
     pageContextKicker: document.getElementById('page-context-kicker'),
     pageContextTitle: document.getElementById('page-context-title'),
@@ -1613,7 +1769,6 @@
     terminalEntityTitle: document.getElementById('terminal-entity-title'),
     terminalEntitySubtitle: document.getElementById('terminal-entity-subtitle'),
     terminalDataPeriod: document.getElementById('terminal-data-period'),
-    terminalKpis: document.getElementById('terminal-kpis'),
     terminalChart: document.getElementById('terminal-chart'),
     terminalChartTotal: document.getElementById('terminal-chart-total'),
     terminalChartNote: document.getElementById('terminal-chart-note'),
@@ -1623,9 +1778,11 @@
     terminalChartClear: document.getElementById('terminal-chart-clear'),
     terminalChartSelectionStatus: document.getElementById('terminal-chart-selection-status'),
     terminalSelectionSummary: document.getElementById('terminal-chart-selection-summary'),
+    terminalSelectionTitle: document.getElementById('terminal-selection-title'),
     terminalSelectionRange: document.getElementById('terminal-selection-range'),
     terminalSelectionMetrics: document.getElementById('terminal-selection-metrics'),
     terminalSelectionCoverage: document.getElementById('terminal-selection-coverage'),
+    terminalCoverageReasons: document.getElementById('terminal-coverage-reasons'),
     terminalLinesTitle: document.getElementById('terminal-lines-title'),
     terminalLinesCount: document.getElementById('terminal-lines-count'),
     terminalLinesMode: document.getElementById('terminal-lines-mode'),
@@ -1681,6 +1838,14 @@
     workspaceRecovery: document.getElementById('workspace-recovery'),
     filePicker: document.querySelector('.file-picker'),
     fileInput: document.getElementById('file-input'),
+    linkedPick: document.getElementById('linked-pick'),
+    linkedAll: document.getElementById('linked-all'),
+    linkedHint: document.getElementById('linked-hint'),
+    linkedMessage: document.getElementById('linked-message'),
+    linkedLoadProgress: document.getElementById('linked-load-progress'),
+    linkedLoadLabel: document.getElementById('linked-load-label'),
+    linkedProgress: document.getElementById('linked-progress'),
+    linkedCancel: document.getElementById('linked-cancel'),
     importedFiles: document.getElementById('imported-files'),
     languageSelect: document.getElementById('language-select'),
     sourceStatus: document.getElementById('source-status'),
@@ -1728,6 +1893,13 @@
     coverageDrilldownSummary: document.getElementById('coverage-drilldown-summary'),
     coverageDrilldownTableBody: document.getElementById('coverage-drilldown-table-body'),
     coverageDrilldownClose: document.getElementById('coverage-drilldown-close'),
+    coverageViews: Array.from(document.querySelectorAll('[data-coverage-view]')),
+    coverageViewPanels: Array.from(document.querySelectorAll('[data-coverage-panel]')),
+    coverageWeekdayMessage: document.getElementById('coverage-weekday-message'),
+    coverageEvidencePagination: document.getElementById('coverage-evidence-pagination'),
+    coverageEvidencePrevious: document.getElementById('coverage-evidence-previous'),
+    coverageEvidenceNext: document.getElementById('coverage-evidence-next'),
+    coverageEvidencePageStatus: document.getElementById('coverage-evidence-page-status'),
     expectedWeekdays: Array.from(document.querySelectorAll('input[name="expected-weekday"]')),
     periodModes: Array.from(document.querySelectorAll('input[name="period-mode"]')),
     calendarWeekSummary: document.getElementById('calendar-week-summary'),
@@ -1748,6 +1920,9 @@
     periodMessage: document.getElementById('period-message'),
     comparePeriods: document.getElementById('compare-periods'),
     resetPeriods: document.getElementById('reset-periods'),
+    comparisonSetup: document.getElementById('comparison-setup'),
+    comparisonSetupHint: document.getElementById('comparison-setup-hint'),
+    comparisonSetupAction: document.getElementById('comparison-setup-action'),
     comparisonPanel: document.getElementById('comparison-panel'),
     comparisonPeriodSummary: document.getElementById('comparison-period-summary'),
     comparisonMetrics: document.getElementById('comparison-metrics'),
@@ -1814,7 +1989,6 @@
     qualityOverviewPrevious: document.getElementById('quality-overview-previous'),
     qualityOverviewNext: document.getElementById('quality-overview-next'),
     qualityOverviewPageStatus: document.getElementById('quality-overview-page-status'),
-    appVersion: document.getElementById('app-version'),
     resetButton: document.getElementById('reset-button')
   };
 
@@ -1874,15 +2048,11 @@
 
   function renderWorkspaceMessage() {
     const message = state.workspaceMessage;
-    if (!message || !message.key) {
-      elements.workspaceMessage.className = 'workspace-message hidden';
-      setText(elements.workspaceMessage, '');
-      elements.workspaceRecovery.classList.add('hidden');
-      return;
-    }
-    elements.workspaceMessage.className = 'workspace-message' + (message.type ? ' ' + message.type : '');
-    setText(elements.workspaceMessage, translate(message.key, message.replacements));
-    elements.workspaceRecovery.classList.toggle('hidden', !state.workspaceRecoveryAvailable);
+    [elements.workspaceMessage, elements.settingsWorkspaceMessage].forEach(function (target) {
+      target.className = 'workspace-message' + (!message || !message.key ? ' hidden' : (message.type ? ' ' + message.type : ''));
+      setText(target, message && message.key ? translate(message.key, message.replacements) : '');
+    });
+    elements.workspaceRecovery.classList.toggle('hidden', !message || !message.key || !state.workspaceRecoveryAvailable);
   }
 
   function setWorkspaceMessage(key, replacements, type) {
@@ -1900,7 +2070,7 @@
   function showWorkspaceError(error) {
     const code = error && (error.code || error.translationKey);
     let knownKey = Object.prototype.hasOwnProperty.call(TRANSLATIONS[state.language], code) ? code : 'storage_failed';
-    if (code && (
+    if (code && code !== 'invalid_backup_checksum' && (
       code.indexOf('invalid_backup') === 0 ||
       code.indexOf('invalid_workspace') === 0 ||
       code.indexOf('invalid_source') === 0 ||
@@ -1923,19 +2093,18 @@
 
   function renderWorkspaceProgress() {
     const progress = state.workspaceProgress;
-    elements.workspaceLoadProgress.classList.toggle('hidden', !progress);
-    if (!progress) {
-      setText(elements.workspaceLoadLabel, '');
-      elements.workspaceProgress.removeAttribute('value');
-      return;
-    }
-    setText(elements.workspaceLoadLabel, translate(progress.key, progress.replacements));
-    if (Number.isFinite(progress.value) && Number.isFinite(progress.max) && progress.max > 0) {
-      elements.workspaceProgress.max = progress.max;
-      elements.workspaceProgress.value = progress.value;
-    } else {
-      elements.workspaceProgress.removeAttribute('value');
-    }
+    [[elements.workspaceLoadProgress, elements.workspaceLoadLabel, elements.workspaceProgress],
+      [elements.settingsLoadProgress, elements.settingsLoadLabel, elements.settingsProgress],
+      [elements.linkedLoadProgress, elements.linkedLoadLabel, elements.linkedProgress]].forEach(function (targets) {
+      targets[0].classList.toggle('hidden', !progress);
+      setText(targets[1], progress ? translate(progress.key, progress.replacements) : '');
+      if (progress && Number.isFinite(progress.value) && Number.isFinite(progress.max) && progress.max > 0) {
+        targets[2].max = progress.max;
+        targets[2].value = progress.value;
+      } else {
+        targets[2].removeAttribute('value');
+      }
+    });
   }
 
   function renderWorkspaceOverview() {
@@ -2040,8 +2209,17 @@
     });
   }
 
+  function renderWorkspaceIdentity() {
+    const name = state.activeWorkspace ? state.activeWorkspace.name : translate('workspace_none');
+    elements.settingsWorkspaceHint.classList.toggle('hidden', Boolean(state.activeWorkspace));
+    [elements.activeWorkspaceName, elements.settingsWorkspaceName].forEach(function (element) {
+      setText(element, name);
+      element.setAttribute('title', name);
+    });
+  }
+
   function renderWorkspaceControls() {
-    setText(elements.headerWorkspaceName, state.activeWorkspace ? state.activeWorkspace.name : translate('workspace_none'));
+    renderWorkspaceIdentity();
     setText(elements.mainMenuWorkspaceName, state.activeWorkspace ? '· ' + state.activeWorkspace.name : '');
     document.body.classList.toggle('workspace-picker-mode', !state.activeWorkspace || state.activePageTarget === 'workspace-panel');
     const selectedId = state.selectedWorkspaceId || '';
@@ -2061,6 +2239,8 @@
     elements.workspaceRename.disabled = !hasSelection;
     elements.workspaceDelete.disabled = !hasSelection;
     elements.workspaceBackup.disabled = !hasSelection;
+    elements.settingsWorkspaceBackup.disabled = !hasWorkspace;
+    elements.settingsBackupCancel.classList.toggle('hidden', !state.workspaceLoading || !state.workspaceLoadCancellable);
     elements.workspaceRestoreReplace.disabled = !hasSelection;
     renderCustomFields();
     elements.fileInput.disabled = !hasWorkspace;
@@ -2085,6 +2265,7 @@
       }
     });
     renderWorkspaceProgress();
+    renderLinkedSourceControls();
     renderImportProfileControls();
     renderWorkflow();
     renderWorkspaceOverview();
@@ -2153,7 +2334,7 @@
     const metadataOnly = Boolean(options && options.metadataOnly);
     let snapshot;
     try {
-      snapshot = metadataOnly
+      snapshot = options && options.sourceTags ? { id: state.activeWorkspace.id, name: state.activeWorkspace.name } : metadataOnly
         ? {
           id: state.activeWorkspace.id,
           name: state.activeWorkspace.name,
@@ -2196,10 +2377,14 @@
         const saveOptions = {
           expectedRevision: current ? current.storageRevision : null
         };
+        if (options && options.sourceTags) {
+          return workspaceRepository.updateSourceTags(snapshot.id, options.sourceTags.id, options.sourceTags.tags, saveOptions);
+        }
         if (metadataOnly) {
           return workspaceRepository.updateWorkspaceSummary(snapshot.id, snapshot, saveOptions);
         }
         saveOptions.validated = true;
+        saveOptions.sourceLinks = options && options.sourceLinks;
         return workspaceRepository.updateWorkspace(snapshot, saveOptions);
       })
       .then(async function (saved) {
@@ -2757,42 +2942,13 @@
   }
 
   function renderImportedFiles() {
-    elements.importedFiles.replaceChildren();
-    elements.importedFiles.classList.toggle('hidden', state.files.length === 0);
-    if (state.files.length === 0) return;
-    const heading = document.createElement('div');
-    heading.className = 'imported-files-heading';
-    const title = document.createElement('strong');
-    setText(title, translate('import_file_count', { count: state.files.length }));
-    heading.appendChild(title);
-    elements.importedFiles.appendChild(heading);
-    const list = document.createElement('ul');
-    list.className = 'imported-file-list';
-    state.files.forEach(function (file) {
-      const item = document.createElement('li');
-      item.className = 'imported-file-item' + (file.errorKey || (file.result && file.result.blocking) ? ' blocked' : '');
-      const copy = document.createElement('div');
-      copy.className = 'imported-file-copy';
-      const name = document.createElement('strong');
-      setText(name, file.label);
-      const meta = document.createElement('span');
-      setText(meta, file.parsed
-        ? translate('mapping_file_rows', { count: file.dataRowCount }) + ' · ' + translate(mappingStatusKey(file))
-        : translate(mappingStatusKey(file)));
-      copy.appendChild(name);
-      copy.appendChild(meta);
-      const remove = document.createElement('button');
-      remove.type = 'button';
-      remove.className = 'text-button';
-      remove.dataset.removeFileId = file.id;
-      remove.disabled = state.workspaceLoading || Boolean(file.reading);
-      setText(remove, translate('remove_file'));
-      remove.setAttribute('aria-label', translate('remove_file_label', { file: file.label }));
-      item.appendChild(copy);
-      item.appendChild(remove);
-      list.appendChild(item);
-    });
-    elements.importedFiles.appendChild(list);
+    if (importManager) importManager.render();
+  }
+
+  function openManagedImport(id) {
+    elements.mappingSourceSearch.value = '';
+    state.selectedMappingFileId = id; state.mappingView = 'editor';
+    renderMapping(); renderWorkflow('mapping-panel'); openMappingDrawer(null);
   }
 
   function renderMappingSourceList() {
@@ -2994,8 +3150,12 @@
   }
 
   function removeImportedFile(fileId) {
+    if (state.workspaceLoading || state.files.some(function (file) { return Boolean(file.reading); })) return;
+    const target = state.files.find(function (file) { return file.id === fileId; });
+    if (!target || !window.confirm(translate('import_remove_confirm', { file: target.label }))) return;
     clearAnalysis();
     state.files = state.files.filter(function (file) { return file.id !== fileId; });
+    linkedSourceHandles.delete(fileId);
     if (state.selectedMappingFileId === fileId) state.selectedMappingFileId = null;
     const relabeled = core.assignSourceFileLabels(state.files);
     relabeled.forEach(function (source, index) {
@@ -3813,13 +3973,23 @@
     });
   }
 
+  function renderNavigation() {
+    const collapsed = state.navigationCollapsed;
+    document.body.classList.toggle('navigation-collapsed', collapsed);
+    elements.navigationToggle.setAttribute('aria-expanded', String(!collapsed));
+    const label = translate(collapsed ? 'nav_expand' : 'nav_collapse');
+    elements.navigationToggle.setAttribute('aria-label', label);
+    elements.navigationToggle.setAttribute('title', label);
+    setText(elements.navigationToggleIcon, collapsed ? '›' : '‹');
+    scheduleWorkspaceFrame();
+  }
+
   function applyLanguage(options) {
     document.documentElement.lang = state.language;
     document.title = translate('page_title');
     const build = window.OpenSlottingRuntimeFactory.describeBuild(core, workspaceModel, warehouseModel);
     const visibleVersion = core.APP_VERSION + ' · ' + translate(BUILD_STATUS_TRANSLATION_KEYS[build.status]);
-    setText(elements.headerBuildStatus, 'v' + visibleVersion);
-    setText(elements.appVersion, 'OpenSlotting v' + visibleVersion);
+    setText(elements.settingsBuildStatus, 'v' + visibleVersion);
     document.querySelectorAll('[data-i18n]').forEach(function (element) {
       setText(element, translate(element.dataset.i18n));
     });
@@ -3832,6 +4002,7 @@
     document.querySelectorAll('[data-i18n-title]').forEach(function (element) {
       element.setAttribute('title', translate(element.dataset.i18nTitle));
     });
+    renderNavigation();
     renderRuntimeDiagnostics();
     elements.languageSelect.setAttribute('aria-label', translate('language_label'));
     renderWorkspaceControls();
@@ -3877,6 +4048,7 @@
 
   function renderWorkflow(activeTarget) {
     const availability = {
+      'settings-panel': true,
       'workspace-panel': Boolean(state.activeWorkspace),
       'main-menu-panel': Boolean(state.activeWorkspace),
       'warehouse-panel': Boolean(state.activeWorkspace),
@@ -3885,7 +4057,7 @@
       'import-panel': Boolean(state.activeWorkspace),
       'mapping-panel': state.files.length > 0,
       'coverage-panel': hasCoverageContent(),
-      'comparison-panel': Boolean(state.comparison),
+      'comparison-panel': true,
       'results-panel': Boolean(state.result && resultHasRetainedData(state.result))
     };
     const completion = {
@@ -3917,8 +4089,12 @@
     if (typeof warehouseWalk !== 'undefined' && warehouseWalk) warehouseWalk.setActive(requestedTarget === 'warehouse-walk-panel');
     if (requestedTarget === 'coverage-panel') {
       if (elements.coveragePanel.classList.contains('hidden') || !state.result) renderCoverage();
-      else if (coverageCalendar) coverageCalendar.refresh();
+      else {
+        renderComparisonSetup();
+        if (coverageCalendar) coverageCalendar.refresh();
+      }
     }
+    if (requestedTarget === 'comparison-panel') renderComparisonSetup();
     document.body.classList.toggle('workspace-picker-mode', !state.activeWorkspace || requestedTarget === 'workspace-panel');
     elements.pageViews.forEach(function (view) {
       view.classList.toggle('hidden', view.id !== config.view);
@@ -3936,6 +4112,8 @@
       button.classList.toggle('available', availability[target]);
       button.classList.toggle('complete', completion[target]);
       button.classList.toggle('active', target === requestedTarget);
+      if (target === requestedTarget) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
       button.disabled = !availability[target] && target !== 'workspace-panel';
     });
     renderMappingViews();
@@ -3951,6 +4129,68 @@
     if (page) { page.scrollTop = 0; page.scrollLeft = 0; }
   }
 
+  function resizeTerminalWatchlist() {
+    const watchlist = elements.terminalWatchlistRows.closest('.terminal-watchlist');
+    const page = elements.terminalPanel.closest('.app-page');
+    const grid = elements.terminalData.querySelector('.terminal-grid');
+    if (!watchlist || !page || !grid || !elements.terminalData.getClientRects().length) return;
+    if (window.innerWidth <= 760) {
+      watchlist.style.removeProperty('--terminal-watchlist-height');
+    } else {
+      const pageRect = page.getBoundingClientRect();
+      const pageTop = pageRect.top + page.clientTop;
+      const pageStyle = window.getComputedStyle(page);
+      const paddingBottom = parseFloat(pageStyle.paddingBottom) || 0;
+      const paddingTop = parseFloat(pageStyle.paddingTop) || 0;
+      const top = Math.max(pageTop + paddingTop, grid.getBoundingClientRect().top);
+      const height = Math.max(180, Math.floor(pageTop + page.clientHeight - paddingBottom - top));
+      const value = height + 'px';
+      if (watchlist.style.getPropertyValue('--terminal-watchlist-height') !== value) {
+        watchlist.style.setProperty('--terminal-watchlist-height', value);
+      }
+    }
+    // Refill the virtual window when more entries fit, retaining search/scroll/selection.
+    const selectedKey = terminalView.selected[terminalView.scope];
+    renderTerminalWatchlistWindow(selectedKey ? { key: selectedKey } : null);
+  }
+
+  function resizeTerminalTable() {
+    const page = elements.terminalPanel.closest('.app-page');
+    const table = elements.terminalLinesScroll;
+    const chart = elements.terminalChart;
+    if (!page || !table || !chart) return;
+    const panelStyle = elements.terminalPanel.style;
+    const setSize = function (key, value) {
+      if (panelStyle.getPropertyValue(key) !== value) panelStyle.setProperty(key, value);
+    };
+    if (window.innerWidth <= 760 || !elements.terminalData.getClientRects().length) {
+      page.classList.remove('terminal-fitted');
+      panelStyle.removeProperty('--terminal-chart-height');
+      panelStyle.removeProperty('--terminal-lines-height');
+      return;
+    }
+    const pageRect = page.getBoundingClientRect();
+    const paddingBottom = parseFloat(window.getComputedStyle(page).paddingBottom) || 0;
+    const bottom = pageRect.top + page.clientTop + page.clientHeight - paddingBottom;
+    // Use unscrolled coordinates so an earlier page scroll cannot enlarge the table.
+    const fixedTop = table.getBoundingClientRect().top + page.scrollTop - chart.getBoundingClientRect().height;
+    const available = Math.floor(bottom - fixedTop - 2);
+    const minimumChart = 180;
+    const minimumTable = 108;
+    const fits = available >= minimumChart + minimumTable;
+    const chartHeight = Math.max(minimumChart, Math.min(354, available - Math.max(minimumTable, Math.min(220, page.clientHeight / 4))));
+    setSize('--terminal-chart-height', chartHeight + 'px');
+    if (fits) {
+      setSize('--terminal-lines-height', Math.floor(available - chartHeight) + 'px');
+      page.scrollTop = 0;
+    } else {
+      // Keep all controls reachable at high browser zoom or in very small windows.
+      setSize('--terminal-lines-height', minimumTable + 'px');
+    }
+    page.classList.toggle('terminal-fitted', fits);
+    renderTerminalLineRows();
+  }
+
   function scheduleWorkspaceFrame() {
     if (workspaceFrameRequest !== null) return;
     workspaceFrameRequest = window.requestAnimationFrame(function () {
@@ -3963,6 +4203,9 @@
       Object.keys(values).forEach(function (key) {
         document.documentElement.style.setProperty('--workspace-' + key, Math.round(values[key]) + 'px');
       });
+      resizeTerminalTable();
+      resizeTerminalChart();
+      resizeTerminalWatchlist();
     });
   }
 
@@ -4014,7 +4257,7 @@
 
   function periodSettingsFromControls() {
     const mode = selectedPeriodMode();
-    const weeks = state.result ? periods.detectedCalendarWeeks(state.result.rows) : [];
+    const weeks = comparisonSetupCache.weeks(state.result, state.activeWorkspace && state.activeWorkspace.id);
     const selectedWeekA = weeks.find(function (week) { return week.id === elements.periodAWeek.value; });
     const selectedWeekB = weeks.find(function (week) { return week.id === elements.periodBWeek.value; });
     const customPeriodA = {
@@ -4078,7 +4321,7 @@
 
   function renderPeriodControls() {
     const settings = periods.normalizeSettings(state.periodSettings);
-    const weeks = state.result ? periods.detectedCalendarWeeks(state.result.rows) : [];
+    const weeks = comparisonSetupCache.weeks(state.result, state.activeWorkspace && state.activeWorkspace.id);
     const fallbackB = weeks.length > 0 ? weeks[weeks.length - 1] : null;
     const fallbackA = weeks.length > 1 ? weeks[weeks.length - 2] : fallbackB;
     elements.periodModes.forEach(function (input) {
@@ -4109,12 +4352,12 @@
     });
   }
 
-  function settingsForDetectedCalendarWeeks(settings, rows) {
+  function settingsForDetectedCalendarWeeks(settings, result) {
     const normalized = periods.normalizeSettings(settings);
     if (normalized.mode !== 'weeks') {
       return normalized;
     }
-    const weeks = periods.detectedCalendarWeeks(rows);
+    const weeks = comparisonSetupCache.weeks(result, state.activeWorkspace && state.activeWorkspace.id);
     if (weeks.length === 0) {
       return normalized;
     }
@@ -4124,7 +4367,7 @@
     if (periodMatchesWeek(normalized.periodA) && periodMatchesWeek(normalized.periodB)) {
       return normalized;
     }
-    const defaults = periods.defaultSettings(rows);
+    const defaults = comparisonSetupCache.defaultSettings(result, state.activeWorkspace && state.activeWorkspace.id);
     defaults.expectedWeekdays = normalized.expectedWeekdays;
     return defaults;
   }
@@ -4302,12 +4545,13 @@
       return;
     }
     const isDate = selection.type === 'date';
-    const sourceSummary = state.result.files.find(function (source) { return source.id === selection.value; });
+    const sourceIndex = new Map(state.result.files.map(function (file) { return [file.id, file]; }));
+    const sourceSummary = sourceIndex.get(selection.value);
     const validRows = state.result.rows.filter(function (row) {
       return isDate ? row.delivery_date === selection.value : row.source_file_id === selection.value;
     });
     const issues = state.result.issues.filter(function (issue) {
-      const source = state.result.files.find(function (file) { return file.id === issue.sourceFileId; });
+      const source = sourceIndex.get(issue.sourceFileId);
       return source && source.sourceType !== 'article-master' && (isDate ? issue.deliveryDate === selection.value : issue.sourceFileId === selection.value);
     });
     const invalidLines = new Set(issues.filter(function (issue) {
@@ -4332,7 +4576,10 @@
       sources: sources.size
     }));
     elements.coverageDrilldownTableBody.replaceChildren();
-    validRows.forEach(function (rowData) {
+    const total = validRows.length + issues.length, pages = Math.max(1, Math.ceil(total / TABLE_PAGE_SIZE));
+    state.coverageEvidencePage = Math.min(Math.max(state.coverageEvidencePage || 1, 1), pages);
+    const start = (state.coverageEvidencePage - 1) * TABLE_PAGE_SIZE, end = start + TABLE_PAGE_SIZE;
+    validRows.slice(start, end).forEach(function (rowData) {
       const row = document.createElement('tr');
       appendCell(row, translate('coverage_valid_row'));
       appendCell(row, optionalText(rowData.source_file_label || rowData.source_file_name));
@@ -4342,7 +4589,7 @@
       appendCell(row, optionalText(rowData.order_id) + ' · ' + formatQuantity(rowData.quantity));
       elements.coverageDrilldownTableBody.appendChild(row);
     });
-    issues.forEach(function (issue) {
+    issues.slice(Math.max(0, start - validRows.length), Math.max(0, end - validRows.length)).forEach(function (issue) {
       const row = document.createElement('tr');
       appendCell(row, translate(issue.code === 'source_rule_excluded' ? 'coverage_filtered_row' :
         core.issueIsBlocking(issue) ? 'coverage_invalid_row' : 'coverage_advisory_row'));
@@ -4354,9 +4601,64 @@
       elements.coverageDrilldownTableBody.appendChild(row);
     });
     elements.coverageDrilldown.classList.remove('hidden');
+    elements.coverageEvidencePagination.classList.toggle('hidden', total <= TABLE_PAGE_SIZE);
+    elements.coverageEvidencePrevious.disabled = state.coverageEvidencePage <= 1;
+    elements.coverageEvidenceNext.disabled = state.coverageEvidencePage >= pages;
+    setText(elements.coverageEvidencePageStatus, translate('coverage_evidence_page', { page: state.coverageEvidencePage, pages: pages, count: Math.min(TABLE_PAGE_SIZE, total - start) }));
+  }
+
+  function renderCoverageViews() {
+    const evidence = Boolean(state.coverageDrilldown && state.result);
+    if (!state.coverageView || (state.coverageView === 'evidence' && !evidence)) state.coverageView = state.coverageReturnView || 'calendar';
+    elements.coverageViews.forEach(function (button) {
+      const selected = button.dataset.coverageView === state.coverageView;
+      button.disabled = button.dataset.coverageView === 'evidence' && !evidence;
+      button.setAttribute('aria-selected', String(selected)); button.tabIndex = selected ? 0 : -1;
+    });
+    elements.coverageViewPanels.forEach(function (panel) { panel.classList.toggle('hidden', panel.dataset.coveragePanel !== state.coverageView); });
+  }
+
+  function renderComparisonSetup() {
+    const workspaceId = state.activeWorkspace && state.activeWorkspace.id;
+    const hasDates = comparisonSetupCache.hasDates(state.result, workspaceId);
+    const ready = Boolean(state.activeWorkspace && state.storageReady && !state.workspaceLoading &&
+      !state.files.some(function (file) { return Boolean(file.reading); }));
+    renderPeriodControls();
+    const coverageA = state.comparison
+      ? state.comparison.coverageA
+      : comparisonSetupCache.coverage(state.result, workspaceId, state.periodSettings.periodA, state.periodSettings.expectedWeekdays);
+    const coverageB = state.comparison
+      ? state.comparison.coverageB
+      : comparisonSetupCache.coverage(state.result, workspaceId, state.periodSettings.periodB, state.periodSettings.expectedWeekdays);
+    const hasExpectedWeekdays = state.periodSettings.expectedWeekdays.length > 0;
+    elements.periodAStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageA.status : 'unavailable');
+    elements.periodBStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageB.status : 'unavailable');
+    setText(elements.periodAStatus, hasExpectedWeekdays
+      ? coverageText(coverageA) + ' · ' + translate('coverage_sources', { count: coverageA.sourceFiles.length })
+      : translate('weekdays_required'));
+    setText(elements.periodBStatus, hasExpectedWeekdays
+      ? coverageText(coverageB) + ' · ' + translate('coverage_sources', { count: coverageB.sourceFiles.length })
+      : translate('weekdays_required'));
+    const reason = !state.activeWorkspace ? 'comparison_setup_no_workspace'
+      : !ready ? 'comparison_setup_busy'
+        : !state.result ? 'comparison_setup_no_data'
+          : !hasDates ? 'comparison_setup_no_dates' : 'comparison_setup_ready';
+    setText(elements.comparisonSetupHint, translate(reason));
+    const actionTarget = !state.activeWorkspace ? 'workspace-panel' : state.files.length ? 'mapping-panel' : 'import-panel';
+    elements.comparisonSetupAction.dataset.workflowTarget = actionTarget;
+    elements.comparisonSetupAction.classList.toggle('hidden', Boolean(state.activeWorkspace && (!ready || hasDates)));
+    setText(elements.comparisonSetupAction, translate(actionTarget === 'workspace-panel' ? 'workspace_selection_back'
+      : actionTarget === 'mapping-panel' ? 'workflow_mapping' : 'workflow_import'));
+    elements.comparePeriods.disabled = !ready || !hasDates || !periodSettingsValid(state.periodSettings);
+    elements.resetPeriods.disabled = !ready || !state.result;
+    elements.periodModes.concat(elements.expectedWeekdays, [elements.periodAName, elements.periodAStart, elements.periodAEnd,
+      elements.periodBName, elements.periodBStart, elements.periodBEnd]).forEach(function (control) { control.disabled = !ready; });
+    elements.periodAWeek.disabled = !ready || !elements.periodAWeek.value;
+    elements.periodBWeek.disabled = !ready || !elements.periodBWeek.value;
   }
 
   function renderCoverage() {
+    renderComparisonSetup();
     if (!hasCoverageContent()) {
       elements.coveragePanel.classList.add('hidden');
       return;
@@ -4390,23 +4692,9 @@
     renderCoverageSources(coverageData);
     renderCoverageDates(coverageData);
     renderCoverageDrilldown();
-    renderPeriodControls();
-    const coverageA = state.comparison
-      ? state.comparison.coverageA
-      : periods.coverageForPeriod(rows, state.periodSettings.periodA, state.periodSettings.expectedWeekdays);
-    const coverageB = state.comparison
-      ? state.comparison.coverageB
-      : periods.coverageForPeriod(rows, state.periodSettings.periodB, state.periodSettings.expectedWeekdays);
-    const hasExpectedWeekdays = state.periodSettings.expectedWeekdays.length > 0;
-    elements.periodAStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageA.status : 'unavailable');
-    elements.periodBStatus.className = 'period-status ' + (hasExpectedWeekdays ? coverageB.status : 'unavailable');
-    setText(elements.periodAStatus, hasExpectedWeekdays
-      ? coverageText(coverageA) + ' · ' + translate('coverage_sources', { count: coverageA.sourceFiles.length })
-      : translate('weekdays_required'));
-    setText(elements.periodBStatus, hasExpectedWeekdays
-      ? coverageText(coverageB) + ' · ' + translate('coverage_sources', { count: coverageB.sourceFiles.length })
-      : translate('weekdays_required'));
-    elements.comparePeriods.disabled = datedRows === 0;
+    renderCoverageViews();
+    setText(elements.coverageWeekdayMessage, state.periodSettings.expectedWeekdays.length ? '' : translate('weekdays_required'));
+    elements.coverageWeekdayMessage.classList.toggle('hidden', state.periodSettings.expectedWeekdays.length > 0);
     elements.coveragePanel.classList.remove('hidden');
   }
 
@@ -4736,7 +5024,12 @@
   }
 
   function compareSelectedPeriods() {
-    if (!state.result) {
+    if (!state.result || !state.activeWorkspace || !state.storageReady || state.workspaceLoading ||
+        state.files.some(function (file) { return Boolean(file.reading); })) {
+      return;
+    }
+    if (!comparisonSetupCache.hasDates(state.result, state.activeWorkspace.id)) {
+      showPeriodMessage('comparison_setup_no_dates', 'warning-message');
       return;
     }
     const settings = periodSettingsFromControls();
@@ -4789,6 +5082,31 @@
     return node;
   }
 
+  function terminalChartSize() {
+    if (window.innerWidth <= 760) return { width: 900, height: 300 };
+    const chart = elements.terminalChart;
+    const style = window.getComputedStyle(chart);
+    return {
+      width: Math.max(240, chart.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0)),
+      height: Math.max(160, chart.clientHeight - (parseFloat(style.paddingTop) || 0) - (parseFloat(style.paddingBottom) || 0))
+    };
+  }
+
+  function resizeTerminalChart() {
+    if (!elements.terminalData.getClientRects().length || !terminalView.lineContext) return;
+    const svg = elements.terminalChart.querySelector('svg[data-selectable]');
+    if (!svg) return;
+    const size = terminalChartSize();
+    if (svg.getAttribute('viewBox') === '0 0 ' + size.width + ' ' + size.height) return;
+    if (terminalChartDrag) {
+      if (terminalChartDrag.svg.hasPointerCapture(terminalChartDrag.pointerId)) {
+        terminalChartDrag.svg.releasePointerCapture(terminalChartDrag.pointerId);
+      }
+      terminalChartDrag = null;
+    }
+    renderTerminalChart(terminalView.lineContext.summary);
+  }
+
   function renderTerminalChart(summary) {
     elements.terminalChart.replaceChildren();
     terminalView.chartPoints = summary.points;
@@ -4818,11 +5136,13 @@
         to: filterTo ? formatCalendarDate(filterTo) : '…'
       }) : '');
     const coverage = chartData && chartData.coverage;
+    const reasons = terminalModel.coverageReasons(coverage && coverage.expectedDates,
+      coverage && coverage.observedDates, chartData && chartData.coverageNotes, chartData && chartData.start, chartData && chartData.end);
     setText(elements.terminalChartCoverage, chartData && coverage && coverage.expectedDayCount > 0
       ? translate('terminal_chart_coverage', {
         observed: formatNumber(coverage.observedDayCount, 0),
         expected: formatNumber(coverage.expectedDayCount, 0),
-        unknown: formatNumber(coverage.missingDayCount, 0),
+        unknown: formatNumber(reasons.unknown, 0), explained: formatNumber(reasons.notes.length, 0),
         unit: translate({ day: 'terminal_granularity_day', week: 'terminal_granularity_week',
           month: 'terminal_granularity_month' }[chartData.granularity])
       }) + ' · ' + translate('terminal_chart_coverage_legend')
@@ -4836,15 +5156,30 @@
       elements.terminalChart.appendChild(empty);
       return;
     }
-    const svg = terminalSvg('svg', { viewBox: '0 0 900 360', role: 'img', 'aria-label': translate('terminal_trend'), preserveAspectRatio: 'none', 'data-selectable': 'true' });
-    const plotLeft = 64;
-    const plotRight = 836;
-    const plotTop = 25;
-    const plotBottom = 265;
+    const size = terminalChartSize();
+    const svg = terminalSvg('svg', { viewBox: '0 0 ' + size.width + ' ' + size.height, role: 'img',
+      'aria-label': translate('terminal_trend'), preserveAspectRatio: 'xMinYMin meet', 'data-selectable': 'true' });
+    const plotTop = 18;
+    const plotBottom = size.height - 92;
+    const volumeBottom = size.height - 36;
+    const coverageY = size.height - 27;
     const values = buckets.map(function (bucket) {
       return bucket.hasRows ? (metric === 'quantity' ? Number(bucket.quantity) / Number(core.QUANTITY_SCALE) : bucket.lines) : 0;
     });
-    const maxValue = values.reduce(function (max, value) { return Math.max(max, value); }, 1);
+    const observedMax = values.reduce(function (max, value) { return Math.max(max, value); }, 0) || 1;
+    const tickCount = metric === 'quantity' ? 4 : Math.min(4, Math.max(1, Math.floor(observedMax)));
+    const maxValue = metric === 'quantity' ? observedMax : Math.ceil(observedMax / tickCount) * tickCount;
+    const digits = metric === 'quantity' ? Math.min(8, Math.max(3, 2 - Math.floor(Math.log10(maxValue)))) : 0;
+    const tickLabels = Array.from({ length: tickCount + 1 }, function (_, tick) {
+      return formatNumber(maxValue * tick / tickCount, digits);
+    });
+    // Conservative character widths reserve space for grouped numbers in either locale.
+    const plotLeft = Math.max(54, Math.max.apply(null, tickLabels.map(function (label) { return label.length * 7; })) + 20);
+    const plotRight = size.width - 16;
+    svg.setAttribute('data-plot-left', plotLeft);
+    svg.setAttribute('data-plot-right', plotRight);
+    svg.setAttribute('data-plot-top', plotTop);
+    svg.setAttribute('data-selection-bottom', coverageY + 7);
     const minTime = Date.parse(chartData.start + 'T00:00:00Z');
     const maxTime = Date.parse(chartData.end + 'T00:00:00Z');
     const span = Math.max(86400000, maxTime - minTime + 86400000);
@@ -4853,11 +5188,10 @@
     };
     const x = function (bucket) { return (dateX(bucket.from, false) + dateX(bucket.to, true)) / 2; };
     const y = function (value) { return plotBottom - Math.max(0, value) / maxValue * (plotBottom - plotTop); };
-    for (let tick = 0; tick <= 4; tick += 1) {
-      const tickY = plotBottom - tick * (plotBottom - plotTop) / 4;
+    for (let tick = 0; tick <= tickCount; tick += 1) {
+      const tickY = plotBottom - tick * (plotBottom - plotTop) / tickCount;
       svg.appendChild(terminalSvg('line', { x1: plotLeft, y1: tickY, x2: plotRight, y2: tickY, class: 'terminal-grid-line' }));
-      const scaleValue = metric === 'quantity' ? BigInt(Math.round(maxValue * tick / 4 * Number(core.QUANTITY_SCALE))) : maxValue * tick / 4;
-      svg.appendChild(terminalSvg('text', { x: plotLeft - 12, y: tickY + 4, 'text-anchor': 'end', class: 'terminal-axis-label' }, metric === 'quantity' ? formatQuantity(scaleValue) : formatNumber(scaleValue, 0)));
+      svg.appendChild(terminalSvg('text', { x: plotLeft - 10, y: tickY + 4, 'text-anchor': 'end', class: 'terminal-axis-label' }, tickLabels[tick]));
     }
     if (!terminalView.day && (filterFrom || filterTo) && (!filterFrom || filterFrom <= chartData.end) &&
         (!filterTo || filterTo >= chartData.start) && (!filterFrom || !filterTo || filterFrom <= filterTo)) {
@@ -4866,7 +5200,7 @@
       const bandX = plotLeft + (bandStart - minTime) / span * (plotRight - plotLeft);
       const bandWidth = Math.max(2, (bandEnd - bandStart + 86400000) / span * (plotRight - plotLeft));
       svg.appendChild(terminalSvg('rect', { x: bandX, y: plotTop, width: bandWidth,
-        height: 305, class: 'terminal-chart-range' }));
+        height: coverageY + 7 - plotTop, class: 'terminal-chart-range' }));
     }
     const points = buckets.map(function (bucket, index) { return [x(bucket), y(values[index])]; });
     const segments = [];
@@ -4886,7 +5220,7 @@
       const activeIndex = buckets.findIndex(function (bucket) { return bucket.from <= terminalView.day && bucket.to >= terminalView.day; });
       if (activeIndex >= 0) {
         svg.appendChild(terminalSvg('line', { x1: points[activeIndex][0], y1: plotTop,
-          x2: points[activeIndex][0], y2: 330, class: 'terminal-chart-selection' }));
+          x2: points[activeIndex][0], y2: coverageY + 7, class: 'terminal-chart-selection' }));
         if (buckets[activeIndex].hasRows) svg.appendChild(terminalSvg('circle', {
           cx: points[activeIndex][0], cy: points[activeIndex][1],
           r: 7, class: 'terminal-chart-selected-point' }));
@@ -4905,19 +5239,19 @@
       });
     }
     const maxLines = buckets.reduce(function (max, bucket) { return Math.max(max, bucket.lines); }, 1);
-    const barWidth = Math.max(1, Math.min(12, 600 / buckets.length));
+    const barWidth = Math.max(1, Math.min(12, (plotRight - plotLeft) / buckets.length * .8));
     buckets.forEach(function (bucket) {
       if (!bucket.hasRows) return;
-      const barHeight = bucket.lines / maxLines * 48;
-      svg.appendChild(terminalSvg('rect', { x: x(bucket) - barWidth / 2, y: 330 - barHeight,
+      const barHeight = bucket.lines / maxLines * Math.min(48, size.height * .13);
+      svg.appendChild(terminalSvg('rect', { x: x(bucket) - barWidth / 2, y: volumeBottom - barHeight,
         width: barWidth, height: barHeight, class: 'terminal-volume-bar' }));
     });
     buckets.forEach(function (bucket) {
       const className = bucket.expectedDays === 0 ? 'terminal-coverage-unavailable' :
         bucket.observedDays === 0 ? 'terminal-coverage-unknown' :
         bucket.observedDays < bucket.expectedDays ? 'terminal-coverage-partial' : 'terminal-coverage-complete';
-      const rect = terminalSvg('rect', { x: dateX(bucket.from, false), y: 336,
-        width: Math.max(1, dateX(bucket.to, true) - dateX(bucket.from, false)), height: 8, class: className });
+      const rect = terminalSvg('rect', { x: dateX(bucket.from, false), y: coverageY,
+        width: Math.max(1, dateX(bucket.to, true) - dateX(bucket.from, false)), height: 7, class: className });
       rect.appendChild(terminalSvg('title', {}, bucket.expectedDays > 0
         ? translate(bucket.hasRows ? 'terminal_chart_bucket_title' : 'terminal_chart_bucket_empty', {
           from: formatCalendarDate(bucket.from), to: formatCalendarDate(bucket.to),
@@ -4926,15 +5260,23 @@
         }) : translate('terminal_chart_no_expected')));
       svg.appendChild(rect);
     });
-    [0, Math.floor((buckets.length - 1) / 2), buckets.length - 1].filter(function (index, position, array) { return array.indexOf(index) === position; }).forEach(function (index) {
+    reasons.notes.forEach(function (note) {
+      const label = translate('terminal_coverage_reason', { date: formatCalendarDate(note.date), reason: note.reason });
+      const marker = terminalSvg('rect', { x: dateX(note.date, false), y: coverageY - 2,
+        width: Math.max(1, dateX(note.date, true) - dateX(note.date, false)), height: 9,
+        class: 'terminal-coverage-explained', role: 'img', 'aria-label': label, 'data-coverage-note-date': note.date });
+      marker.appendChild(terminalSvg('title', {}, label));
+      svg.appendChild(marker);
+    });
+    (plotRight - plotLeft >= 280 ? [0, Math.floor((buckets.length - 1) / 2), buckets.length - 1] : [0, buckets.length - 1]).filter(function (index, position, array) { return array.indexOf(index) === position; }).forEach(function (index) {
       const bucket = buckets[index];
-      svg.appendChild(terminalSvg('text', { x: x(bucket), y: 357,
+      svg.appendChild(terminalSvg('text', { x: x(bucket), y: size.height - 6,
         'text-anchor': index === 0 ? 'start' : index === buckets.length - 1 ? 'end' : 'middle',
         class: 'terminal-axis-label' }, chartData.granularity === 'month'
         ? new Intl.DateTimeFormat(state.language === 'de' ? 'de-DE' : 'en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(bucket.from + 'T00:00:00Z'))
         : formatCalendarDate(bucket.from)));
     });
-    if (summary.points.length === 0) svg.appendChild(terminalSvg('text', { x: 450, y: 150,
+    if (summary.points.length === 0) svg.appendChild(terminalSvg('text', { x: (plotLeft + plotRight) / 2, y: (plotTop + plotBottom) / 2,
       'text-anchor': 'middle', class: 'terminal-axis-label' }, translate('terminal_no_period_rows')));
     elements.terminalChart.appendChild(svg);
   }
@@ -4943,8 +5285,10 @@
     const chartData = terminalView.chartData;
     const context = terminalView.lineContext;
     const active = Boolean(terminalView.day || elements.terminalFilterFrom.value || elements.terminalFilterTo.value);
-    elements.terminalSelectionSummary.classList.toggle('hidden', !active || !chartData || !context);
-    if (!active || !chartData || !context) return;
+    elements.terminalCoverageReasons.replaceChildren();
+    elements.terminalSelectionSummary.classList.toggle('hidden', !chartData || !context);
+    if (!chartData || !context) return;
+    setText(elements.terminalSelectionTitle, translate(active ? 'terminal_selection_title' : 'terminal_total_period'));
     const from = terminalView.day || elements.terminalFilterFrom.value || chartData.start;
     const to = terminalView.day || elements.terminalFilterTo.value || chartData.end;
     setText(elements.terminalSelectionRange, formatCalendarDate(from) + ' – ' + formatCalendarDate(to));
@@ -4968,7 +5312,8 @@
       [translate('terminal_quantity'), formatQuantity(selected.quantity)],
       [translate('terminal_lines'), formatNumber(selected.lines, 0)],
       [translate('terminal_distinct_orders'), formatNumber(selected.orders, 0)],
-      [translate('terminal_distinct_customers'), formatNumber(selected.customers, 0)],
+      [translate(context.scope === 'article' ? 'terminal_distinct_customers' : 'terminal_distinct_articles'),
+        formatNumber(context.scope === 'article' ? selected.customers : selected.articles, 0)],
       [translate('terminal_selection_days'), formatNumber(selected.days, 0)]
     ];
     const fragment = document.createDocumentFragment();
@@ -4984,14 +5329,30 @@
     });
     elements.terminalSelectionMetrics.replaceChildren(fragment);
     const coverage = terminalView.selectionCache.coverage;
+    const reasons = terminalModel.coverageReasons(chartData.coverage.expectedDates,
+      chartData.coverage.observedDates, chartData.coverageNotes, from > chartData.start ? from : chartData.start,
+      to < chartData.end ? to : chartData.end);
     setText(elements.terminalSelectionCoverage, (chartData.expectedWeekdaysConfigured && coverage.expected > 0
       ? translate('terminal_selection_coverage', {
         observed: formatNumber(coverage.observed, 0), expected: formatNumber(coverage.expected, 0),
-        unknown: formatNumber(coverage.unknown, 0)
+        unknown: formatNumber(reasons.unknown, 0), explained: formatNumber(reasons.notes.length, 0)
       }) : chartData.expectedWeekdaysConfigured ? translate('terminal_chart_no_expected')
         : translate('terminal_selection_coverage_unavailable')) + ' ' +
       (selected.lines === 0 ? translate('terminal_selection_no_rows') + ' ' : '') +
       translate('terminal_selection_scope_note'));
+    if (reasons.notes.length) {
+      const details = document.createElement('details'), heading = document.createElement('summary');
+      const list = document.createElement('ul');
+      const labelFor = function (note) { return translate('terminal_coverage_reason', {
+        date: formatCalendarDate(note.date), reason: note.reason }); };
+      heading.title = reasons.notes.length === 1 ? labelFor(reasons.notes[0]) : '';
+      setText(heading, reasons.notes.length === 1 ? translate('terminal_coverage_reason_single')
+        : translate('terminal_coverage_reasons', { count: formatNumber(reasons.notes.length, 0) }));
+      reasons.notes.forEach(function (note) {
+        const item = document.createElement('li'); setText(item, labelFor(note)); list.appendChild(item);
+      });
+      details.appendChild(heading); details.appendChild(list); elements.terminalCoverageReasons.appendChild(details);
+    }
   }
 
   function renderTerminalWatchlistWindow(selected) {
@@ -5067,10 +5428,10 @@
   const TERMINAL_LINE_ROW_HEIGHT = 36;
 
   function revealCoverageEvidence() {
-    const page = elements.coverageDrilldown.closest('.app-page');
-    if (!page) return;
-    const offset = elements.coverageDrilldown.getBoundingClientRect().top - page.getBoundingClientRect().top;
-    page.scrollTo({ top: page.scrollTop + offset - 12, behavior: 'smooth' });
+    if (state.coverageView !== 'evidence') state.coverageReturnView = state.coverageView || 'calendar';
+    state.coverageView = 'evidence';
+    renderCoverageViews();
+    elements.coverageDrilldownTitle.focus({ preventScroll: true });
   }
 
   function terminalOptionalColumns() {
@@ -5093,7 +5454,7 @@
       { key: 'delivery_date', label: translate('detail_order_date'), required: true },
       { key: 'article_id', label: translate('column_article_id'), required: true },
       { key: 'order_id', label: translate('detail_order_id'), required: true },
-      { key: 'customer', label: translate('terminal_customer'), required: true },
+      { key: 'customer', label: translate('detail_customer_name'), required: true },
       { key: 'quantity', label: translate('column_quantity'), number: true, required: true }
     ].concat(terminalOptionalColumns(), [
       { key: 'source_file', label: translate('detail_source_file'), required: true },
@@ -5210,7 +5571,7 @@
 
   function terminalLineValue(line, key) {
     if (key === 'delivery_date') return formatCalendarDate(line.delivery_date);
-    if (key === 'customer') return optionalText(line.customer_name || line.customer_id);
+    if (key === 'customer') return optionalText(line.customer_name);
     if (key === 'quantity' || key === 'sales_unit_count' || key === 'quantity_per_sales_unit') return formatQuantity(line[key]);
     if (key === 'source_file') return line.source_file_label || line.source_file_name || '';
     if (key === 'source_line') return Number.isInteger(line.source_line) ? String(line.source_line) : '';
@@ -5354,6 +5715,7 @@
     elements.terminalEmpty.classList.toggle('hidden', ready);
     elements.terminalData.classList.toggle('hidden', !ready);
     document.getElementById('main-menu-panel').classList.toggle('hidden', ready);
+    scheduleWorkspaceFrame();
     if (!ready) return;
     if (terminalView.rows !== rows) {
       terminalView.rows = rows;
@@ -5401,18 +5763,12 @@
     }
     const granularity = terminalModel.chartGranularity(chartStart, chartEnd, elements.terminalChartGranularity.value);
     terminalView.chartData = { start: chartStart, end: chartEnd, granularity: granularity,
+      coverageNotes: state.coverageNotes,
       expectedWeekdaysConfigured: expectedWeekdays.length > 0, coverage: terminalView.coverage.result,
       buckets: terminalModel.aggregateChart(summary.points, chartStart, chartEnd, granularity,
         terminalView.coverage.result.expectedDates, terminalView.coverage.result.observedDates) };
     setText(elements.terminalDataPeriod, chartStart && chartEnd
       ? formatCalendarDate(chartStart) + ' – ' + formatCalendarDate(chartEnd) : '—');
-    renderMetricCards(elements.terminalKpis, [
-      [translate('terminal_quantity'), formatQuantity(summary.quantity), translate('terminal_total_period')],
-      [translate('terminal_lines'), formatNumber(summary.lines, 0), translate('terminal_total_period')],
-      [translate('terminal_distinct_orders'), formatNumber(summary.orders, 0), translate('terminal_total_period')],
-      [translate(scope === 'article' ? 'terminal_distinct_customers' : 'terminal_distinct_articles'),
-        formatNumber(scope === 'article' ? summary.customers : summary.articles, 0), translate('terminal_total_period')]
-    ]);
     setText(elements.terminalChartTotal, elements.terminalMetric.value === 'quantity' ? formatQuantity(summary.quantity) : formatNumber(summary.lines, 0));
     setText(elements.terminalChartNote, translate('terminal_total_period') + ' · ' +
       translate(elements.terminalMetric.value === 'quantity' ? 'terminal_quantity' : 'terminal_lines') +
@@ -5866,7 +6222,7 @@
     state.analysis = core.enrichAnalysisWithRegistry(state.analysis, state.articleRegistry, { locale: state.language });
     core.prepareArticleSearchProjections(state.analysis.articles, state.language);
     invalidateViewCaches();
-    state.periodSettings = settingsForDetectedCalendarWeeks(state.periodSettings, result.rows);
+    state.periodSettings = settingsForDetectedCalendarWeeks(state.periodSettings, result);
     if (state.comparison) {
       state.comparison = periods.comparePeriods(result.rows, state.periodSettings, core.analyzeRows, result.featureReadiness, state.articleRegistry, { indexRevision: result });
       core.prepareArticleSearchProjections(state.comparison.articles, state.language);
@@ -6107,6 +6463,8 @@
       customFieldMapping: file.customFieldMapping, confirmedCustomFieldMapping: file.confirmedCustomFieldMapping,
       preparationRules: file.preparationRules, sourceRules: file.sourceRules, columnCatalog: file.columnCatalog,
       appliedImportProfile: file.appliedImportProfile,
+      linkedSource: file.linkedSource,
+      tags: file.tags,
       dataRowCount: file.dataRowCount, hasParseErrors: file.hasParseErrors, result: null
     };
   }
@@ -6157,6 +6515,7 @@
   }
 
   function clearAnalysis(options) {
+    comparisonSetupCache.clear();
     const preserveMappings = Boolean(options && options.preserveMappings);
     state.importProfileMessage = null;
     state.result = null;
@@ -6168,6 +6527,9 @@
     state.comparisonPage = 1;
     state.coverageDatePage = 1;
     state.coverageDrilldown = null;
+    state.coverageView = 'calendar';
+    state.coverageReturnView = 'calendar';
+    state.coverageEvidencePage = 1;
     state.selectedComparisonArticleId = null;
     state.comparisonDetailPage = 1;
     state.articleDetailTab = 'overview';
@@ -6214,6 +6576,182 @@
     return workspacePreparation.importBufferStreaming(file, mapping, options);
   }
 
+  function linkedFilesSupported() {
+    return Boolean(window.isSecureContext && typeof window.showOpenFilePicker === 'function');
+  }
+
+  function setLinkedMessage(key, replacements, error) {
+    linkedImportMessage = key ? { key: key, replacements: replacements || {}, error: Boolean(error) } : null;
+    renderLinkedSourceControls();
+  }
+
+  function renderLinkedSourceControls() {
+    if (importManager) importManager.render();
+    const ready = Boolean(state.activeWorkspace && state.storageReady && !state.workspaceLoading &&
+      !state.files.some(function (file) { return file.reading; }));
+    const supported = linkedFilesSupported();
+    elements.linkedPick.disabled = !ready || !supported;
+    elements.linkedAll.disabled = !ready || !supported || !state.files.some(function (file) { return Boolean(file.linkedSource); });
+    setText(elements.linkedHint, translate(supported ? 'linked_help' : 'linked_unsupported'));
+    elements.linkedCancel.classList.toggle('hidden', !state.workspaceLoading || !state.workspaceLoadCancellable);
+    elements.linkedMessage.className = 'linked-message' + (!linkedImportMessage ? ' hidden' : linkedImportMessage.error ? ' error' : '');
+    setText(elements.linkedMessage, linkedImportMessage ? translate(linkedImportMessage.key, linkedImportMessage.replacements) +
+      (linkedImportMessage.error && linkedImportMessage.replacements.file ? ' (' + linkedImportMessage.replacements.file + ')' : '') : '');
+    elements.importedFiles.querySelectorAll('button[data-linked-action]').forEach(function (button) {
+      button.disabled = !ready || (button.dataset.linkedAction !== 'unlink' && !supported) ||
+        (button.dataset.linkedAction === 'update' && !linkedSourceHandles.has(button.dataset.sourceId));
+    });
+    elements.importedFiles.querySelectorAll('button[data-remove-file-id]').forEach(function (button) { button.disabled = !ready; });
+  }
+
+  function requestImportConflict(incoming, matches) {
+    const dialog = document.getElementById('import-conflict-dialog'), select = document.getElementById('import-conflict-target');
+    setText(document.getElementById('import-conflict-filename'), incoming.name);
+    setText(document.getElementById('import-conflict-hint'), translate('import_conflict_hint') +
+      (incoming.linked === false && matches.some(function (file) { return file.linkedSource; }) ? ' ' + translate('import_conflict_snapshot') : ''));
+    select.replaceChildren();
+    matches.forEach(function (file) { addOption(select, file.id, file.label + (file.dataRowCount ? ' · ' + translate('mapping_file_rows', { count: file.dataRowCount }) : '')); });
+    dialog.returnValue = '';
+    return new Promise(function (resolve) {
+      const cancel = function () { if (dialog.open) dialog.close('cancel'); };
+      importConflictCancel = cancel;
+      dialog.addEventListener('close', function () {
+        if (importConflictCancel === cancel) importConflictCancel = null;
+        resolve({ action: dialog.returnValue === 'replace' ? 'replace' : dialog.returnValue === 'keep' ? 'keep' : 'cancel', id: select.value });
+      }, { once: true });
+      dialog.showModal();
+    });
+  }
+
+  async function runLinkedImport(action, sourceId, selectedFiles) {
+    if (!state.activeWorkspace || !state.storageReady || state.workspaceLoading ||
+        state.files.some(function (file) { return file.reading; }) || (action !== 'unlink' && action !== 'snapshot' && !linkedFilesSupported())) return;
+    const workspaceId = state.activeWorkspace.id, revision = ++workspaceLoadRevision;
+    const originalFiles = state.files, hadAnalysis = Boolean(state.analysis);
+    let currentFile = null, skipped = 0;
+    state.workspaceLoading = true; state.workspaceLoadCancellable = action !== 'unlink';
+    renderWorkspaceControls(); setLinkedMessage(null);
+    function current() { return revision === workspaceLoadRevision && state.activeWorkspace && state.activeWorkspace.id === workspaceId; }
+    function check() { if (!current()) throw workspaceLoadError('workspace_load_cancelled'); }
+    async function commit(prepared, links) {
+      check();
+      const proposedSettings = prepared.result ? settingsForDetectedCalendarWeeks(state.periodSettings, prepared.result) : state.periodSettings;
+      const runtimeState = Object.assign({}, state, { files: prepared.files, analysis: prepared.analysis,
+        articleRegistry: prepared.result ? prepared.result.articleRegistry : action === 'unlink' ? state.articleRegistry : [], periodSettings: proposedSettings });
+      state.workspaceLoadCancellable = false; renderWorkspaceControls();
+      let committed = false;
+      try {
+        await persistActiveWorkspace(undefined, { allowWhileLoading: true, runtimeState: runtimeState, sourceLinks: links,
+          onCommitted: function () { committed = true; } });
+      } catch (error) { if (!committed) throw error; }
+      if (!committed || !current()) throw workspaceLoadError('workspace_load_cancelled');
+      state.files = prepared.files; state.periodSettings = proposedSettings;
+      state.fileSelectionVersion += 1;
+      links.forEach(function (link) { if (link.handle) linkedSourceHandles.set(link.sourceId, link.handle); else linkedSourceHandles.delete(link.sourceId); });
+      if (prepared.result) renderResults(prepared.result, { preserveView: true, analysis: prepared.analysis });
+      else if (action !== 'unlink') clearAnalysis({ preserveMappings: true });
+      renderMapping(); updateSourceStatus();
+    }
+    try {
+      if (action === 'unlink') {
+        const target = originalFiles.find(function (file) { return file.id === sourceId; });
+        if (!target) throw workspaceLoadError('linked_missing');
+        const files = originalFiles.map(function (file) { return file === target ? Object.assign({}, file, { linkedSource: null }) : file; });
+        await commit({ files: files, result: null, analysis: state.analysis }, [{ sourceId: sourceId, handle: null }]);
+        setLinkedMessage('linked_unlinked'); return;
+      }
+      let operations;
+      if (action === 'snapshot') {
+        const incoming = selectedFiles.map(function (file) { return { name: file.name, linked: false, handle: { name: file.name, getFile: async function () { return file; } } }; });
+        operations = await linkedSources.planImports(originalFiles, incoming, { check: check, resolve: requestImportConflict, onSkip: function () { skipped += 1; } });
+      } else if (action === 'pick' || action === 'connect') {
+        const handles = await window.showOpenFilePicker({ multiple: action === 'pick', types: [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }] });
+        check();
+        if (action === 'pick') {
+          operations = await linkedSources.planImports(originalFiles, handles.map(function (handle) { return { name: handle.name, handle: handle }; }), { check: check, resolve: requestImportConflict, onSkip: function () { skipped += 1; } });
+        } else {
+          operations = [];
+          for (const handle of handles) {
+            for (const [id, existing] of linkedSourceHandles) {
+              if (id !== sourceId && await handle.isSameEntry(existing)) throw workspaceLoadError('linked_already');
+            }
+            operations.push({ id: sourceId, handle: handle, create: false });
+          }
+        }
+      } else {
+        const targets = originalFiles.filter(function (file) { return sourceId ? file.id === sourceId : Boolean(file.linkedSource); });
+        operations = targets.map(function (file) { return { id: file.id, handle: linkedSourceHandles.get(file.id) }; });
+      }
+      if (!operations.length) { if (skipped) setLinkedMessage('import_skipped', { count: skipped }); return; }
+      // Ask for read access before reading/processing any selected source.
+      for (const operation of operations) {
+        const source = originalFiles.find(function (file) { return file.id === operation.id; });
+        currentFile = source ? source.label : operation.handle && operation.handle.name;
+        if (operation.linked !== false) await linkedSources.requestRead(operation.handle);
+        check();
+      }
+      let reading = 0;
+      updateWorkspaceLoadProgress({ phase: 'file', current: 0, total: operations.length, file: currentFile }, state.activeWorkspace.name);
+      await linkedSources.refresh({ files: originalFiles, operations: operations, customFields: state.customFields,
+        analyzed: hadAnalysis && action !== 'pick' && action !== 'snapshot', isCurrent: current,
+        allowInvalidNew: action === 'snapshot', finalize: action === 'pick' || action === 'snapshot' ? linkedSources.finalizeImports : null,
+        onFile: function (file) {
+          check(); currentFile = file; setLinkedMessage(action === 'snapshot' ? 'import_reading' : 'linked_reading', { file: file });
+          updateWorkspaceLoadProgress({ phase: 'file', current: ++reading, total: operations.length, file: file }, state.activeWorkspace.name);
+        },
+        profile: async function (candidate) {
+          try {
+            const prepared = await runWorkspaceWorker(null, state.language, revision, candidate.label, { profileFile: calculationFile(candidate) });
+            return prepared.file;
+          } catch (error) {
+            if (!error || error.code !== 'worker_unavailable') throw error;
+            decodeFileEntry(candidate, { streaming: true }); return candidate;
+          }
+        },
+        analyze: async function (files) {
+          try {
+            return await runWorkspaceWorker(null, state.language, revision, state.activeWorkspace.name,
+              { analysisFiles: files.map(calculationFile), customFields: state.customFields });
+          } catch (error) {
+            if (!error || error.code !== 'worker_unavailable') throw error;
+            return workspacePreparation.analyzeFiles(files, state.language, state.customFields);
+          }
+        }, commit: commit });
+      check(); setLinkedMessage(action === 'snapshot' || skipped ? 'import_saved' : action === 'pick' ? 'linked_added' : 'linked_done', { count: operations.length, skipped: skipped });
+    } catch (error) {
+      if (current()) {
+        const key = error && (error.code || error.translationKey);
+        setLinkedMessage(error && (error.name === 'AbortError' || key === 'workspace_load_cancelled') ? (action === 'snapshot' || action === 'pick' ? 'import_cancelled' : 'linked_cancelled')
+          : error && error.name === 'NotAllowedError' ? 'linked_permission' : error && error.name === 'NotFoundError' ? 'linked_missing'
+            : key && TRANSLATIONS.en[key] ? key : 'linked_failed', { file: error && error.file || currentFile }, true);
+      }
+    } finally {
+      if (revision === workspaceLoadRevision) {
+        state.workspaceLoading = false; state.workspaceLoadCancellable = false;
+        updateWorkspaceLoadProgress(null); renderWorkspaceControls(); renderImportedFiles();
+      }
+    }
+  }
+
+  async function saveImportTags(id, tags) {
+    if (!state.activeWorkspace || !state.storageReady || state.workspaceLoading || state.files.some(function (file) { return file.reading; })) throw new Error('import-tags-locked');
+    const file = state.files.find(function (file) { return file.id === id; });
+    if (!file) throw new Error('import-missing');
+    const proposed = workspaceModel.normalizeImportTags(tags), workspaceId = state.activeWorkspace.id;
+    let committed = false;
+    state.workspaceLoading = true; state.workspaceLoadCancellable = false; renderWorkspaceControls();
+    try {
+      try {
+        await persistActiveWorkspace(undefined, { allowWhileLoading: true, sourceTags: { id: id, tags: proposed },
+          onCommitted: function () {
+            committed = true;
+            if (state.activeWorkspace && state.activeWorkspace.id === workspaceId) file.tags = proposed;
+          } });
+      } catch (error) { if (!committed) throw error; }
+      if (!committed) throw new Error('import-tags-not-saved');
+    } finally { state.workspaceLoading = false; renderWorkspaceControls(); }
+  }
+
   async function handleFileChange() {
     if (!state.activeWorkspace || state.workspaceLoading || state.files.some(function (file) { return Boolean(file.reading); })) {
       elements.fileInput.value = '';
@@ -6223,109 +6761,8 @@
     if (selectedFiles.length === 0) {
       return;
     }
-    const selectionVersion = state.fileSelectionVersion + 1;
-    state.fileSelectionVersion = selectionVersion;
-    clearAnalysis({ preserveMappings: true });
-    elements.articleFilter.value = '';
-    elements.analyzeButton.disabled = true;
-    showMappingMessage('');
-
-    const descriptors = state.files.map(function (file) {
-      return {
-        id: file.id,
-        name: file.name,
-        size: file.size,
-        lastModified: file.lastModified
-      };
-    }).concat(selectedFiles.map(function (file) {
-      return {
-        id: workspaceModel.createId('source'),
-        name: file.name,
-        size: file.size,
-        lastModified: file.lastModified
-      };
-    }));
-    const labeled = core.assignSourceFileLabels(descriptors);
-    state.files.forEach(function (file, index) {
-      file.label = labeled[index].label;
-      refreshColumnCatalogOwnership(file);
-    });
-    const newEntries = labeled.slice(state.files.length).map(function (source, index) {
-      return {
-        id: source.id,
-        name: source.name,
-        label: source.label,
-        size: source.size,
-        lastModified: source.lastModified,
-        browserFile: selectedFiles[index],
-        buffer: null,
-        reading: true,
-        errorKey: null,
-        encodingMode: 'auto',
-        activeEncoding: null,
-        detectedEncoding: null,
-        content: null,
-        contentFingerprint: null,
-        parsed: null,
-        headers: [],
-        mapping: {},
-        preparationRules: {},
-        sourceRules: [],
-        customFieldMapping: {},
-        confirmedMapping: null,
-        columnCatalog: [],
-        dataRowCount: 0,
-        hasParseErrors: false,
-        result: null,
-        sourceType: workspaceModel.DEFAULT_SOURCE_TYPE
-      };
-    });
-    state.files = state.files.concat(newEntries);
-    setSourceStatus('reading_files', { count: newEntries.length });
-    elements.mappingPanel.classList.remove('hidden');
-    renderMapping();
-    renderWorkspaceControls();
-
-    for (const file of newEntries) {
-      try {
-        file.buffer = await readFileBuffer(file.browserFile);
-        if (selectionVersion !== state.fileSelectionVersion) {
-          return;
-        }
-        try {
-          const prepared = await runWorkspaceWorker(null, state.language, workspaceLoadRevision, file.label, {
-            profileFile: calculationFile(file)
-          });
-          if (selectionVersion !== state.fileSelectionVersion || !state.files.includes(file)) return;
-          Object.assign(file, prepared.file);
-        } catch (error) {
-          if (!error || error.code !== 'worker_unavailable') throw error;
-          decodeFileEntry(file, { streaming: true });
-        }
-      } catch (error) {
-        file.errorKey = error && error.translationKey ? error.translationKey : 'file_read_error';
-      } finally {
-        file.reading = false;
-      }
-    }
-
-    if (selectionVersion !== state.fileSelectionVersion) {
-      renderWorkspaceControls();
-      return;
-    }
-    state.files.forEach(function (file) {
-      if (file.parsed && !file.errorKey) {
-        file.content = null;
-      }
-    });
-    renderMapping();
-    updateSourceStatus();
-    const hasPreparedFile = state.files.some(function (file) { return Boolean(file.parsed); });
-    elements.analyzeButton.disabled = !hasPreparedFile;
-    showMappingMessage(hasPreparedFile ? '' : translate('no_prepared_files'));
-    elements.fileInput.value = '';
-    renderWorkspaceControls();
-    persistActiveWorkspace().catch(function () {});
+    try { await runLinkedImport('snapshot', null, selectedFiles); }
+    finally { elements.fileInput.value = ''; }
   }
 
   async function analyze() {
@@ -6402,6 +6839,13 @@
   function updateWorkspaceLoadProgress(progress, workspaceName) {
     if (!progress) {
       state.workspaceProgress = null;
+    } else if (progress.phase === 'backup' || progress.phase === 'restore') {
+      state.workspaceProgress = {
+        key: 'workspace_archive_progress',
+        replacements: { bytes: formatStorageBytes(progress.bytes), name: workspaceName },
+        value: progress.total ? progress.bytes : undefined,
+        max: progress.total || undefined
+      };
     } else if (progress.phase === 'validating') {
       state.workspaceProgress = {
         key: 'workspace_loading_validating',
@@ -6469,6 +6913,7 @@
       return;
     }
     workspaceLoadRevision += 1;
+    if (typeof importConflictCancel === 'function') importConflictCancel();
     if (workspaceWorkerTask) {
       workspaceWorkerTask = null;
     }
@@ -6548,6 +6993,8 @@
   }
 
   function clearWorkspaceView(options) {
+    linkedSourceHandles = new Map();
+    linkedImportMessage = null;
     sourceRowCache.clear();
     terminalRowCache.clear();
     state.files = [];
@@ -6725,6 +7172,10 @@
       state.tablePreferences = workspaceModel.normalizeTablePreferences(prepared.workspace.tablePreferences);
       state.walkPreferences = workspaceModel.normalizeWalkPreferences(prepared.workspace.walkPreferences);
       state.files = prepared.files;
+      try {
+        const links = await workspaceRepository.listSourceLinks(workspaceId);
+        if (revision === workspaceLoadRevision) linkedSourceHandles = new Map(links.map(function (link) { return [link.sourceId, link.handle]; }));
+      } catch (error) { linkedSourceHandles = new Map(); }
       state.articleRegistry = workspaceModel.normalizeArticleRegistry(prepared.workspace.articleRegistry);
       if (state.files.length > 0) {
         renderMapping();
@@ -6989,67 +7440,70 @@
     }
   }
 
-  async function exportWorkspaceBackup() {
-    const selected = state.workspaces.find(function (workspace) { return workspace.id === state.selectedWorkspaceId; });
-    if (!selected) {
-      return;
-    }
-    const revision = workspaceLoadRevision + 1;
-    workspaceLoadRevision = revision;
+  async function exportWorkspaceBackup(workspaceId) {
+    if (!state.storageReady || state.workspaceLoading || state.files.some(function (file) { return Boolean(file.reading); })) return;
+    const targetId = workspaceId || state.selectedWorkspaceId;
+    const selected = state.workspaces.find(function (workspace) { return workspace.id === targetId; });
+    if (!selected) return;
+    const revision = ++workspaceLoadRevision;
     state.workspaceLoading = true;
-    state.workspaceLoadCancellable = false;
+    state.workspaceLoadCancellable = true;
     renderWorkspaceControls();
+    let sink = null, directSave = false;
+    setWorkspaceMessage(null);
+    updateWorkspaceLoadProgress({ phase: 'backup', bytes: 0 }, selected.name);
     try {
+      const filename = workspaceArchive.filename(selected.name);
+      // The picker must run in the original click gesture, before autosave awaits.
+      if (typeof window.showSaveFilePicker === 'function') {
+        let handle;
+        try {
+          handle = await window.showSaveFilePicker({
+            suggestedName: filename,
+            types: [{ description: translate('workspace_backup'), accept: { 'application/octet-stream': ['.osworkspace'] } }]
+          });
+        } catch (error) {
+          if (!error || !['SecurityError', 'NotAllowedError', 'NotSupportedError'].includes(error.name)) throw error;
+        }
+        if (revision !== workspaceLoadRevision) throw workspaceLoadError('workspace_load_cancelled');
+        if (handle) { sink = await handle.createWritable(); directSave = true; }
+      }
+      if (!sink) {
+        sink = workspaceArchive.blobSink(async function (blob) {
+          const url = URL.createObjectURL(blob), link = document.createElement('a');
+          link.href = url; link.download = filename; document.body.appendChild(link); link.click(); link.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+        });
+      }
+      if (revision !== workspaceLoadRevision) throw workspaceLoadError('workspace_load_cancelled');
       if (state.activeWorkspace && state.activeWorkspace.id === selected.id) {
         await persistActiveWorkspace(undefined, { allowWhileLoading: true });
-      } else {
-        await workspaceSaveChain;
-      }
-      const record = await workspaceRepository.loadWorkspaceRaw(selected.id);
-      if (!record) {
-        throw new storageApi.WorkspaceStorageError('workspace_not_found', 'Workspace does not exist.');
-      }
-      await nextBrowserPaint();
-      let serialized;
-      try {
-        serialized = await runWorkspaceWorker(null, null, revision, record.name, {
-          backupExport: record
-        });
-      } catch (error) {
-        if (!error || error.code !== 'worker_unavailable') {
-          throw error;
-        }
-        setWorkspaceMessage('workspace_worker_fallback', {}, 'warning');
-        const fallbackRecord = await workspaceRepository.loadWorkspace(selected.id);
-        if (!fallbackRecord || revision !== workspaceLoadRevision) {
-          throw workspaceLoadError('workspace_load_cancelled');
-        }
-        const fallbackSchemaVersion = Number(record.schemaVersion);
-        let fallbackExport = fallbackRecord;
-        if (fallbackSchemaVersion < 10 && fallbackRecord.analyzed) {
-          const prepared = prepareWorkspaceRecord(fallbackRecord, fallbackRecord.language, function (progress) {
-            updateWorkspaceLoadProgress(progress, fallbackRecord.name);
-          });
-          fallbackExport = Object.assign({}, fallbackRecord, {
-            articleRegistry: prepared.workspace.articleRegistry
-          });
-        }
-        serialized = {
-          backupText: workspaceModel.stringifyBackup(fallbackExport),
-          filename: workspaceModel.backupFilename(fallbackExport.name)
-        };
-      }
-      if (revision !== workspaceLoadRevision) {
-        throw workspaceLoadError('workspace_load_cancelled');
-      }
-      downloadTextFile(serialized.filename, serialized.backupText, 'application/json;charset=utf-8');
-      setWorkspaceMessage('workspace_backup_exported', { name: record.name });
+      } else await workspaceSaveChain;
+      if (revision !== workspaceLoadRevision) throw workspaceLoadError('workspace_load_cancelled');
+      await workspaceArchive.write(workspaceRepository.readBackupRecords(selected.id, {
+        isCurrent: function () { return revision === workspaceLoadRevision; }
+      }), sink, {
+        applicationVersion: core.APP_VERSION,
+        isCurrent: function () { return revision === workspaceLoadRevision; },
+        beforeClose: function () {
+          if (revision !== workspaceLoadRevision) throw workspaceLoadError('workspace_load_cancelled');
+          state.workspaceLoadCancellable = false; renderWorkspaceControls();
+        },
+        onProgress: function (progress) { updateWorkspaceLoadProgress(progress, selected.name); }
+      });
+      if (revision !== workspaceLoadRevision) throw workspaceLoadError('workspace_load_cancelled');
+      setWorkspaceMessage(directSave ? 'workspace_backup_exported' : 'workspace_backup_download_started', { name: selected.name });
     } catch (error) {
-      showWorkspaceError(error);
+      if (sink && sink.abort) await sink.abort().catch(function () {});
+      if (error && error.name === 'AbortError') setWorkspaceMessage('workspace_loading_cancelled', {}, 'warning');
+      else if (!error || error.code !== 'workspace_load_cancelled') showWorkspaceError(error);
     } finally {
-      state.workspaceLoading = false;
-      state.workspaceLoadCancellable = false;
-      renderWorkspaceControls();
+      if (revision === workspaceLoadRevision) {
+        state.workspaceLoading = false;
+        state.workspaceLoadCancellable = false;
+        updateWorkspaceLoadProgress(null);
+        renderWorkspaceControls();
+      }
     }
   }
 
@@ -7060,6 +7514,47 @@
       reader.onerror = function () { reject(createTranslationError('backup_read_failed')); };
       reader.readAsText(file, 'utf-8');
     });
+  }
+
+  async function restoreWorkspaceArchive(file, mode, revision) {
+    let stage = null;
+    try {
+      await workspaceSaveChain;
+      if (revision !== workspaceLoadRevision) throw workspaceLoadError('workspace_load_cancelled');
+      const target = mode === 'replace'
+        ? state.workspaces.find(function (entry) { return entry.id === state.selectedWorkspaceId; }) : null;
+      if (mode === 'replace' && !target) throw workspaceLoadError('workspace_not_found');
+      await workspaceRepository.cleanupBackupStages();
+      stage = await workspaceRepository.beginBackupStage();
+      const summary = await workspaceArchive.read(file, function (record) {
+        return workspaceRepository.stageBackupRecord(stage, record);
+      }, {
+        isCurrent: function () { return revision === workspaceLoadRevision; },
+        onProgress: function (progress) { updateWorkspaceLoadProgress(progress, file.name); }
+      });
+      if (revision !== workspaceLoadRevision) throw workspaceLoadError('workspace_load_cancelled');
+      await workspaceRepository.finishBackupStage(stage, summary);
+      if (target && !window.confirm(translate('workspace_replace_confirm', { name: target.name }))) return;
+      if (revision !== workspaceLoadRevision) throw workspaceLoadError('workspace_load_cancelled');
+      state.workspaceLoadCancellable = false;
+      renderWorkspaceControls();
+      const committed = await workspaceRepository.commitBackupStage(stage, {
+        mode: target ? 'replace' : 'new',
+        targetId: target ? target.id : workspaceModel.createId('workspace'),
+        expectedRevision: target ? target.storageRevision : undefined
+      });
+      stage = null;
+      if (state.activeWorkspace && state.activeWorkspace.id === committed.id) {
+        state.activeWorkspace = null; state.customFields = []; clearWorkspaceView();
+      }
+      state.selectedWorkspaceId = committed.id;
+      await refreshWorkspaceCatalog(); scheduleStorageEstimateRefresh();
+      await activateWorkspace(committed.id, target ? 'workspace_restored_replace' : 'workspace_restored_new', {
+        cancellable: false, expectedRevision: committed.storageRevision
+      });
+    } finally {
+      if (stage) await workspaceRepository.discardBackupStage(stage);
+    }
   }
 
   async function restoreWorkspaceBackup(file, mode) {
@@ -7074,6 +7569,10 @@
     setWorkspaceMessage('workspace_loading_validating', { name: file.name });
     renderWorkspaceControls();
     try {
+      if (await workspaceArchive.isArchive(file)) {
+        await restoreWorkspaceArchive(file, mode, revision);
+        return;
+      }
       const text = await readBackupFile(file);
       if (revision !== workspaceLoadRevision) {
         throw workspaceLoadError('workspace_load_cancelled');
@@ -7274,8 +7773,12 @@
     );
   }
 
-  function handlePeriodSettingsChange() {
-    state.periodSettings = periodSettingsFromControls();
+  function handlePeriodSettingsChange(target) {
+    if (!state.activeWorkspace || !state.storageReady || state.workspaceLoading ||
+        state.files.some(function (file) { return Boolean(file.reading); })) return;
+    state.periodSettings = target === 'coverage-panel'
+      ? periods.normalizeSettings(Object.assign({}, state.periodSettings, { expectedWeekdays: elements.expectedWeekdays.filter(function (input) { return input.checked; }).map(function (input) { return Number(input.value); }) }))
+      : periodSettingsFromControls();
     state.comparison = null;
     invalidateViewCaches();
     state.comparisonPage = 1;
@@ -7290,14 +7793,15 @@
     }
     renderCoverage();
     renderComparison();
-    renderWorkflow('coverage-panel');
+    renderWorkflow(target === 'coverage-panel' ? 'coverage-panel' : 'comparison-panel');
     if (periodSettingsStorable(state.periodSettings)) {
       persistActiveWorkspace(undefined, { metadataOnly: true }).catch(function () {});
     }
   }
 
   function reset() {
-    if (!state.activeWorkspace || state.files.length === 0) {
+    if (!state.activeWorkspace || !state.storageReady || state.workspaceLoading ||
+        state.files.some(function (file) { return Boolean(file.reading); }) || state.files.length === 0) {
       return;
     }
     if (!window.confirm(translate('workspace_reset_confirm', { name: state.activeWorkspace.name }))) {
@@ -7314,7 +7818,11 @@
   elements.customFieldCreate.addEventListener('click', createCustomField);
   elements.workspaceRename.addEventListener('click', renameActiveWorkspace);
   elements.workspaceDelete.addEventListener('click', deleteActiveWorkspace);
-  elements.workspaceBackup.addEventListener('click', exportWorkspaceBackup);
+  elements.workspaceBackup.addEventListener('click', function () { exportWorkspaceBackup(); });
+  elements.settingsWorkspaceBackup.addEventListener('click', function () {
+    if (state.activeWorkspace) exportWorkspaceBackup(state.activeWorkspace.id);
+  });
+  elements.settingsBackupCancel.addEventListener('click', cancelWorkspaceLoading);
   elements.workspaceOpen.addEventListener('click', function () {
     if (state.selectedWorkspaceId) {
       if (state.activeWorkspace && state.selectedWorkspaceId === state.activeWorkspace.id) {
@@ -7367,7 +7875,12 @@
     }
   });
   elements.fileInput.addEventListener('change', handleFileChange);
+  elements.linkedPick.addEventListener('click', function () { runLinkedImport('pick'); });
+  elements.linkedAll.addEventListener('click', function () { runLinkedImport('update'); });
+  elements.linkedCancel.addEventListener('click', function () { cancelWorkspaceLoading(); setLinkedMessage('linked_cancelled'); });
   elements.importedFiles.addEventListener('click', function (event) {
+    const linked = event.target.closest('button[data-linked-action]');
+    if (linked && elements.importedFiles.contains(linked) && !linked.disabled) { runLinkedImport(linked.dataset.linkedAction, linked.dataset.sourceId); return; }
     const button = event.target.closest('button[data-remove-file-id]');
     if (button && elements.importedFiles.contains(button)) removeImportedFile(button.dataset.removeFileId);
   });
@@ -7828,10 +8341,11 @@
   elements.comparePeriods.addEventListener('click', compareSelectedPeriods);
   elements.exportComparison.addEventListener('click', exportPeriodComparison);
   elements.resetPeriods.addEventListener('click', function () {
-    if (!state.result) {
+    if (!state.result || !state.activeWorkspace || !state.storageReady || state.workspaceLoading ||
+        state.files.some(function (file) { return Boolean(file.reading); })) {
       return;
     }
-    state.periodSettings = periods.defaultSettings(state.result.rows);
+    state.periodSettings = comparisonSetupCache.defaultSettings(state.result, state.activeWorkspace.id);
     state.comparison = null;
     invalidateViewCaches();
     state.comparisonPage = 1;
@@ -7840,12 +8354,12 @@
     showPeriodMessage('');
     renderCoverage();
     renderComparison();
-    renderWorkflow('coverage-panel');
+    renderWorkflow('comparison-panel');
     persistActiveWorkspace(undefined, { metadataOnly: true }).catch(function () {});
   });
   elements.editPeriods.addEventListener('click', function () {
-    renderWorkflow('coverage-panel');
-    elements.coveragePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    renderWorkflow('comparison-panel');
+    elements.comparisonSetup.scrollIntoView({ behavior: 'smooth', block: 'start' });
     (state.periodSettings.mode === 'weeks' ? elements.periodAWeek : elements.periodAStart).focus();
   });
   elements.periodModes.forEach(function (control) {
@@ -7858,7 +8372,11 @@
     control.addEventListener('change', handlePeriodSettingsChange);
   });
   elements.expectedWeekdays.forEach(function (control) {
-    control.addEventListener('change', handlePeriodSettingsChange);
+    control.addEventListener('change', function () { handlePeriodSettingsChange('coverage-panel'); });
+  });
+  elements.navigationToggle.addEventListener('click', function () {
+    state.navigationCollapsed = !state.navigationCollapsed;
+    renderNavigation();
   });
   elements.workflowSteps.forEach(function (button) {
     button.addEventListener('click', function () {
@@ -7925,24 +8443,27 @@
   let terminalChartDrag = null;
   function terminalChartPointerX(event, svg) {
     const bounds = svg.getBoundingClientRect();
-    return (event.clientX - bounds.left) / bounds.width * 900;
+    return (event.clientX - bounds.left) / bounds.width * svg.viewBox.baseVal.width;
   }
   elements.terminalChart.addEventListener('pointerdown', function (event) {
     if (event.button !== 0 || !event.isPrimary) return;
     const svg = event.target.closest('svg[data-selectable]');
     if (!svg || !terminalView.chartData || !terminalView.chartData.buckets.length) return;
     const chartX = terminalChartPointerX(event, svg);
-    if (chartX < 64 || chartX > 836) return;
-    const band = terminalSvg('rect', { x: chartX, y: 25, width: 1, height: 305, class: 'terminal-chart-drag-range' });
+    const left = Number(svg.dataset.plotLeft), right = Number(svg.dataset.plotRight);
+    if (chartX < left || chartX > right) return;
+    const top = Number(svg.dataset.plotTop);
+    const band = terminalSvg('rect', { x: chartX, y: top, width: 1,
+      height: Number(svg.dataset.selectionBottom) - top, class: 'terminal-chart-drag-range' });
     svg.appendChild(band);
-    terminalChartDrag = { svg: svg, pointerId: event.pointerId, startX: chartX, endX: chartX, band: band };
+    terminalChartDrag = { svg: svg, pointerId: event.pointerId, startX: chartX, endX: chartX, left: left, right: right, band: band };
     svg.setPointerCapture(event.pointerId);
     event.preventDefault();
   });
   elements.terminalChart.addEventListener('pointermove', function (event) {
     const drag = terminalChartDrag;
     if (!drag || drag.pointerId !== event.pointerId) return;
-    drag.endX = Math.max(64, Math.min(836, terminalChartPointerX(event, drag.svg)));
+    drag.endX = Math.max(drag.left, Math.min(drag.right, terminalChartPointerX(event, drag.svg)));
     drag.band.setAttribute('x', String(Math.min(drag.startX, drag.endX)));
     drag.band.setAttribute('width', String(Math.max(1, Math.abs(drag.endX - drag.startX))));
   });
@@ -7950,12 +8471,12 @@
     const drag = terminalChartDrag;
     if (!drag || drag.pointerId !== event.pointerId) return;
     terminalChartDrag = null;
-    drag.endX = Math.max(64, Math.min(836, terminalChartPointerX(event, drag.svg)));
+    drag.endX = Math.max(drag.left, Math.min(drag.right, terminalChartPointerX(event, drag.svg)));
     if (drag.svg.hasPointerCapture(event.pointerId)) drag.svg.releasePointerCapture(event.pointerId);
     const chartData = terminalView.chartData;
     if (!chartData || !chartData.buckets.length) return;
     const domain = [{ date: chartData.start }, { date: chartData.end }];
-    const range = terminalModel.chartDateRange(domain, drag.startX, drag.endX, 64, 836);
+    const range = terminalModel.chartDateRange(domain, drag.startX, drag.endX, drag.left, drag.right);
     if (Math.abs(drag.endX - drag.startX) > 6 && range && range.from !== range.to) {
       terminalView.day = null;
       elements.terminalFilterFrom.value = range.from;
@@ -7964,7 +8485,7 @@
       updateTerminalFilters();
       return;
     }
-    const clickedDate = terminalModel.chartDateAtX(domain, drag.endX, 64, 836);
+    const clickedDate = terminalModel.chartDateAtX(domain, drag.endX, drag.left, drag.right);
     if (chartData.granularity === 'day') {
       const points = terminalView.chartPoints || [];
       const target = Date.parse(clickedDate + 'T00:00:00Z');
@@ -8142,6 +8663,7 @@
       state.coverageDrilldown = button.dataset.coverageDate
         ? { type: 'date', value: button.dataset.coverageDate }
         : { type: 'source', value: button.dataset.coverageSourceId };
+      state.coverageEvidencePage = 1;
       renderCoverageDrilldown();
       revealCoverageEvidence();
     });
@@ -8149,6 +8671,25 @@
   elements.coverageDrilldownClose.addEventListener('click', function () {
     state.coverageDrilldown = null;
     renderCoverageDrilldown();
+    state.coverageView = state.coverageReturnView || 'calendar';
+    renderCoverageViews();
+    const button = elements.coverageViews.find(function (button) { return button.dataset.coverageView === state.coverageView; });
+    if (button) button.focus({ preventScroll: true });
+  });
+  elements.coverageViews.forEach(function (button) {
+    button.addEventListener('click', function () { state.coverageView = button.dataset.coverageView; renderCoverageViews(); });
+    button.addEventListener('keydown', function (event) {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      const available = elements.coverageViews.filter(function (button) { return !button.disabled; });
+      const index = available.indexOf(button), next = event.key === 'Home' ? 0 : event.key === 'End' ? available.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + available.length) % available.length;
+      event.preventDefault(); available[next].click(); available[next].focus({ preventScroll: true });
+    });
+  });
+  [elements.coverageEvidencePrevious, elements.coverageEvidenceNext].forEach(function (button, index) {
+    button.addEventListener('click', function () {
+      state.coverageEvidencePage += index === 0 ? -1 : 1; renderCoverageDrilldown(); renderCoverageViews();
+      elements.coverageDrilldown.querySelector('.table-scroll').scrollTop = 0;
+    });
   });
   elements.articleFilter.addEventListener('input', function () {
     state.selectedArticleId = null;
@@ -8318,6 +8859,15 @@
     canCoverage: hasCoverageContent,
     openCoverage: function () { renderWorkflow('coverage-panel'); }
   });
+  importManager = window.OpenSlottingImportManager.create({
+    root: elements.importedFiles, model: workspaceModel,
+    getFiles: function () { return state.files; }, getWorkspaceId: function () { return state.activeWorkspace && state.activeWorkspace.id; },
+    getLanguage: function () { return state.language; }, hasHandle: function (id) { return linkedSourceHandles.has(id); },
+    linkSupported: linkedFilesSupported,
+    isLocked: function () { return !state.activeWorkspace || !state.storageReady || state.workspaceLoading || state.files.some(function (file) { return file.reading; }); },
+    saveTags: saveImportTags,
+    openEditor: openManagedImport
+  });
   importProfilePanel = window.OpenSlottingImportProfilePanel.create({
     root: document.getElementById('import-profile-batch-root'), model: workspaceModel,
     batch: window.OpenSlottingImportProfileBatch,
@@ -8352,14 +8902,17 @@
     save: saveCoverageNote,
     showEvidence: function (date) {
       state.coverageDrilldown = { type: 'date', value: date };
+      state.coverageEvidencePage = 1;
       renderCoverageDrilldown();
       revealCoverageEvidence();
     }
   });
   window.addEventListener('resize', scheduleWorkspaceFrame);
+  elements.terminalPanel.closest('.app-page').addEventListener('scroll', scheduleWorkspaceFrame, { passive: true });
   if (typeof window.ResizeObserver === 'function') {
     const observer = new window.ResizeObserver(scheduleWorkspaceFrame);
-    ['.app-header', '.app-footer', '.workflow-content'].forEach(function (selector) {
+    ['.workflow-content', '.page-context', '.terminal-toolbar', '#terminal-watchlist-rows',
+      '.terminal-titlebar', '.terminal-chart-panel', '.terminal-lines-toolbar', '.terminal-lines-filters', '#terminal-lines-scroll'].forEach(function (selector) {
       const element = document.querySelector(selector);
       if (element) observer.observe(element);
     });

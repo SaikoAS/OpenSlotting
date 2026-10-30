@@ -47,8 +47,11 @@ The current implementation includes:
 - paginated detail rows with 100 rows per page
 - true chunked CSV decoding, parser state across chunk boundaries, and streaming normalization for large imports
 - incremental article and global aggregation during normalization with a batch-compatible analysis wrapper
-- English as the default interface language, with German available from the language selector
+- English as the default interface language, with German available under Settings → Workspace → Language
 - multiple source files in one in-memory analysis batch
+- optional linked CSV sources with read-only file references, per-file/batch refresh, schema checks and atomic replacement; snapshot import remains available
+- compact import management with search, sortable file metadata, status/link/tag filters, selected-file actions and workspace-backed custom tags
+- fitted coverage desk with expected-weekday settings, calendar/week numbers, day reasons and internally scrolling source/date/evidence views
 - explicit persisted source types (`order-lines` and `article-master`), with order-line defaults for existing and new imports
 - source-scoped field mappings with the core movement contract `article_id + quantity + delivery_date`; order identity, customer, sales, location, selling-unit, and master-data capabilities remain optional
 - independent net/gross sales-value and unit-price fields, with legacy unclassified sales values preserved without guessing their tax semantics
@@ -69,6 +72,7 @@ The current implementation includes:
 - persistent, strictly isolated browser-local workspaces backed by IndexedDB
 - chunked workspace persistence with independently stored sources, source bytes, normalized rows, and validation issues
 - automatic storage of original source bytes, mappings, normalized rows, validation results, and provenance
+- complete blockwise `.osworkspace` backups with SHA-256 verification, cancellable progress and atomic staged restore; legacy `.workspace.json` backups remain readable (see [backup format](docs/workspace-format.md#current-archive-format-version-2))
 - workspace creation, selection, rename, confirmed clearing, and confirmed deletion
 - metadata-first workspace overview without automatically loading the last large payload
 - cancellable background validation, CSV profiling, preparation, and analysis in a reusable local module worker
@@ -77,7 +81,7 @@ The current implementation includes:
 - complete single-workspace JSON backup and validated restore as new or explicit replacement
 - versioned workspace and backup schemas without a workspace merge path
 - optional selling-unit / cases and quantity-per-selling-unit import fields with zero-unit and partial-sale support
-- visible date coverage with configurable expected weekdays and missing-day warnings
+- visible date coverage with configurable expected weekdays and missing-day warnings; saved reasons appear as blue markers and range-specific details on the analysis desk, with explained and unexplained missing days counted separately
 - automatic ISO-calendar-week selection plus optional custom, workspace-persisted comparison periods
 - article-level comparison filters, data-quality indicators, detail links, and CSV export
 - a TradingView-inspired analysis desk with article, customer, and order views, an observed-date trend, searchable entity list, and source-line evidence

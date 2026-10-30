@@ -180,6 +180,7 @@
   function summarizeSelection(lines, from, to) {
     const orders = new Set();
     const customers = new Set();
+    const articles = new Set();
     const days = new Set();
     let quantity = 0n;
     let count = 0;
@@ -190,8 +191,9 @@
       days.add(line.delivery_date);
       if (line.order_id) orders.add(JSON.stringify([line.customer_id || '', line.order_id]));
       if (line.customer_id) customers.add(line.customer_id);
+      if (line.article_id) articles.add(line.article_id);
     });
-    return { quantity: quantity, lines: count, orders: orders.size, customers: customers.size, days: days.size };
+    return { quantity: quantity, lines: count, orders: orders.size, customers: customers.size, articles: articles.size, days: days.size };
   }
 
   function chartGranularity(start, end, requested) {
@@ -275,6 +277,19 @@
     return { expected: expectedCount, observed: observedCount, unknown: expectedCount - observedCount };
   }
 
+  function coverageReasons(expectedDates, observedDates, notes, from, to) {
+    const observed = new Set(observedDates || []);
+    const missing = new Set((expectedDates || []).filter(function (date) {
+      return (!from || date >= from) && (!to || date <= to) && !observed.has(date);
+    }));
+    const explained = new Map();
+    (notes || []).forEach(function (note) {
+      if (missing.has(note.date) && note.reason && note.reason.trim()) explained.set(note.date, note);
+    });
+    return { notes: Array.from(explained.values()).sort(function (a, b) { return a.date.localeCompare(b.date); }),
+      unknown: missing.size - explained.size };
+  }
+
   function customLineValue(line, fieldId, masterIndex) {
     const own = line.custom_fields && line.custom_fields[fieldId];
     if (own !== undefined && own !== null && own !== '') return { value: own, source: 'order-lines' };
@@ -307,10 +322,10 @@
   function sortLines(lines, key, direction, valueFor) {
     const factor = direction === 'asc' ? 1 : -1;
     return (lines || []).slice().sort(function (a, b) {
-      const av = valueFor ? valueFor(a, key) : key === 'customer' ? a.customer_name || a.customer_id || '' :
+      const av = valueFor ? valueFor(a, key) : key === 'customer' ? a.customer_name || '' :
         key === 'source_file' ? a.source_file_label || a.source_file_name || '' :
         key.indexOf('custom:') === 0 ? (a.custom_fields && a.custom_fields[key.slice(7)]) || '' : a[key];
-      const bv = valueFor ? valueFor(b, key) : key === 'customer' ? b.customer_name || b.customer_id || '' :
+      const bv = valueFor ? valueFor(b, key) : key === 'customer' ? b.customer_name || '' :
         key === 'source_file' ? b.source_file_label || b.source_file_name || '' :
         key.indexOf('custom:') === 0 ? (b.custom_fields && b.custom_fields[key.slice(7)]) || '' : b[key];
       let result = 0;
@@ -398,5 +413,5 @@
     entityMatchesNormalizedQuery: entityMatchesNormalizedQuery, filterEntities: filterEntities,
     chartDateAtX: chartDateAtX, chartDateRange: chartDateRange,
     summarizeSelection: summarizeSelection, chartGranularity: chartGranularity,
-    aggregateChart: aggregateChart, coverageCounts: coverageCounts };
+    aggregateChart: aggregateChart, coverageCounts: coverageCounts, coverageReasons: coverageReasons };
 });
