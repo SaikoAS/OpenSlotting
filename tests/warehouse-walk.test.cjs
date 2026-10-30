@@ -267,6 +267,48 @@ test('separate-window start exports prepared view without capturing the main win
   assert.equal(denied.nodes.get('[data-walk-action="windowed"]').hidden,false);assert.deepEqual(denied.calls,[]);
 });
 
+test('walk work modes separate read-only article interaction from scoped physical editing and keep pose on menu switches',async()=>{
+  const value=layout(),before=structuredClone(value),opened=[],modes=[];
+  const h=harness(value,true,true,{standalone:true,editorAvailable:true,openEditor:scope=>opened.push(scope),setWorkMode:async mode=>modes.push(mode)});
+  h.tick(100);const pose={...h.camera};await h.change('work-mode','editor');assert.deepEqual(modes,['editor']);
+  await h.action('resume');h.aim(value.locations[0].id);h.tick(116);
+  assert.match(h.nodes.get('[data-walk-interact-hint]').textContent,/Edit:/);
+  h.key('KeyE');assert.equal(opened.length,1);assert.equal(opened[0].objectId,value.objects[0].id);
+  assert.equal(h.document.pointerLockElement,null);assert.equal(h.nodes.get('.wh-walk-interaction').hidden,true);
+  await h.change('work-mode','analysis');await h.action('edit-layout');assert.equal(opened.length,1);
+  await h.action('resume');h.key('KeyE');assert.equal(h.nodes.get('.wh-walk-interaction').hidden,false);
+  h.tick(132);assert.deepEqual(h.camera,pose);assert.deepEqual(value,before);
+});
+
+test('editor rays include physical objects and floor areas without making decorative areas walking obstacles',()=>{
+  const area=box({object:{id:'floor',type:'aisle',x:0,z:0,rotation:0},height:10});
+  const world=walk.createWorld([area]);assert.equal(world.decorations.length,1);
+  const origin={x:1,y:1.7,z:.05},down={x:0,y:-1,z:0};
+  assert.equal(walk.raycast(world,origin,down,false,6),null);
+  assert.equal(walk.raycast(world,origin,down,false,6,true).item.box.object.id,'floor');
+  assert.equal(walk.canStand(world,{x:1,z:.05},1.7),true);
+});
+
+test('an empty warehouse can start in Editor mode and open construction while Evaluation stays unavailable',async()=>{
+  let opened=0;
+  const h=harness(model.createLayout(),true,true,{editorAvailable:true,openEditor:()=>opened++});
+  assert.equal(h.nodes.get('[data-walk-action="fullscreen"]').disabled,true);
+  await h.change('work-mode','editor');assert.equal(h.nodes.get('[data-walk-action="fullscreen"]').disabled,false);
+  await h.action('fullscreen');assert.equal(h.document.pointerLockElement,h.canvas);
+  h.key('Escape');await h.action('edit-layout');assert.equal(opened,1);
+  await h.change('work-mode','analysis');assert.equal(h.nodes.get('[data-walk-action="fullscreen"]').disabled,true);
+});
+
+test('new walk objects start centered ahead of the observer on a 100 mm grid with a predictable access side',()=>{
+  const h=harness(layout(),true,true);h.tick(100);const rack=model.createRack('pallet-rack',{bayCount:1,levelCount:2});
+  const point=h.editor.insertionPoint(rack),placed={...rack,...point},corners=model.footprintCorners(placed);
+  const center={x:(Math.min(...corners.map(p=>p.x))+Math.max(...corners.map(p=>p.x)))/2000,
+    z:(Math.min(...corners.map(p=>p.z))+Math.max(...corners.map(p=>p.z)))/2000};
+  assert.ok(Math.abs(center.x-h.camera.x-Math.sin(h.camera.yaw)*3)<.1);
+  assert.ok(Math.abs(center.z-h.camera.z-Math.cos(h.camera.yaw)*3)<.1);
+  assert.equal(point.x%100,0);assert.equal(point.z%100,0);assert.equal(point.rotation%90,0);
+});
+
 test('standalone viewer fills its window, begins paused and uses mouse look without native fullscreen',async()=>{
   let refreshed=0,closed=0;
   const h=harness(layout(),true,true,{standalone:true,refreshSnapshot:async()=>{refreshed++;},closeWindow:()=>closed++});

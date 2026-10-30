@@ -71,6 +71,7 @@ jobs:
           node --check warehouse-walk-renderer.js
           node --check warehouse-walk.js
           node --check warehouse-walk-window.js
+          node --check warehouse-walk-editor.js
           node --check src/application/walk-window-session.js
           node --check src/application/workspace-preparation.js
           node --check src/application/worker-session.js

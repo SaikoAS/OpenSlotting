@@ -50,8 +50,10 @@ bundled same-origin module workers, styles and rendering.
 The Windows walk launcher accepts only an opaque session ID at that guarded
 control route, then starts a fixed bundled PowerShell helper and maximized Edge
 app window. Business data stays in a same-origin/profile BroadcastChannel. The
-viewer receives a read-only layout/matched-article snapshot without imports,
-normalized order rows or workspace storage access. See
+walk receives a layout/matched-article snapshot without imports,
+normalized order rows or workspace storage access. Evaluation keeps geometry
+read-only; Editor returns proposed layouts directly to the main browser window,
+which checks the expected base and persists using the existing editor/save path. See
 [Warehouse walk](warehouse-walk.md) and [Security](../SECURITY.md) for refresh,
 lifecycle, profile requirements and launch protections.
 

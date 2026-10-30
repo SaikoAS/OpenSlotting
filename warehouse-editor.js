@@ -298,11 +298,11 @@
       }).join('');
     }
 
-    webglRenderer = window.OpenSlottingWarehouseWebGL && window.OpenSlottingWarehouseWebGL.create(glCanvas, {
+    webglRenderer = !options.inspectorOnly && window.OpenSlottingWarehouseWebGL && window.OpenSlottingWarehouseWebGL.create(glCanvas, {
       onLost: function () { camera.mode = 'top'; message = labels().webglUnavailable; render(); },
       onRestored: function () { message = ''; render(); }
     });
-    if (!webglRenderer) { camera.mode = 'top'; message = LABELS[options.getLanguage() === 'de' ? 'de' : 'en'].webglUnavailable; }
+    if (!webglRenderer) { camera.mode = 'top'; if (!options.inspectorOnly) message = LABELS[options.getLanguage() === 'de' ? 'de' : 'en'].webglUnavailable; }
 
     function labels() { return LABELS[options.getLanguage() === 'de' ? 'de' : 'en']; }
     function layout() { return options.getLayout(); }
@@ -369,6 +369,7 @@
       root.scrollTop = state.rootTop; root.scrollLeft = state.rootLeft;
     }
     function scheduleSize() {
+      if (options.inspectorOnly) return;
       if (sizeFrame !== null) return;
       sizeFrame = window.requestAnimationFrame(function () {
         sizeFrame = null;
@@ -588,7 +589,7 @@
       render();
     }
 
-    async function commit(next, historyAction, selectionAfter, toggleLockId, closeWizardOnSuccess, assemblyPose) {
+    async function commit(next, historyAction, selectionAfter, toggleLockId, closeWizardOnSuccess, assemblyPose, external) {
       if (saving) return;
       syncHistoryScope();
       const scope = historyWorkspaceId;
@@ -601,7 +602,7 @@
           const currentLocks = new Map(before.objects.map(function (object) { return [object.id, object.locked === true]; }));
           next.objects.forEach(function (object) { object.locked = currentLocks.get(object.id) || false; });
         }
-        if (!historyAction && !toggleLockId) model.applyAssemblyChanges(before, next, assemblyPose);
+        if (!external && !historyAction && !toggleLockId) model.applyAssemblyChanges(before, next, assemblyPose);
         normalized = model.reconcileLayout(next, historyAction ? null : before);
         if (model.lockedEditConflict(before, normalized, toggleLockId)) {
           message = labels().lockedEdit; render(); return false;
@@ -610,17 +611,17 @@
         const impact = model.layoutImpact(before, normalized, options.getRegistry ? options.getRegistry() : []);
         const withoutPlacement = function (value) { return Object.assign({},value,{locations:value.locations.map(function (item) { return Object.assign({},item,{placement:null}); })}); };
         const placementOnly = JSON.stringify(withoutPlacement(before)) === JSON.stringify(withoutPlacement(normalized));
-        if (impact.locations && !placementOnly) {
+        if (!external && impact.locations && !placementOnly) {
           const warning = labels().impactWarning.replace(/\{\{(locations|codes|articles|removed)\}\}/g,
             function (_, key) { return impact[key]; });
           if (!window.confirm(warning)) { render(); return false; }
-        } else if (impact.removedObjects && !window.confirm(labels().deleteStructureWarning)) {
+        } else if (!external && impact.removedObjects && !window.confirm(labels().deleteStructureWarning)) {
           render(); return false;
         }
         saving = true;
         root.setAttribute('aria-busy', 'true');
         root.classList.add('is-saving');
-        await options.save(normalized);
+        await options.save(normalized, { toggleLockId: toggleLockId || null, external: external === true });
         preview = null;
         syncHistoryScope();
         if (scope === historyWorkspaceId) {
@@ -653,6 +654,7 @@
         const previous = layout().objects[layout().objects.length - 1];
         rack.x = previous ? previous.x + 1800 : 0;
         rack.z = previous ? previous.z + 1200 : 0;
+        if (options.getInsertPosition) Object.assign(rack, options.getInsertPosition(rack));
       }
       rackWizard = { mode: object ? 'edit' : 'create', draft: rack, step: 0, activeBay: 0, error: '', saveError: '' };
       render();
@@ -1319,7 +1321,7 @@
           '<button type="button" data-action="apply-preview">' + esc(t.applyPreview) + '</button><button type="button" data-action="cancel-preview">' + esc(t.cancel) + '</button></div>' : '') +
         '<nav class="wh-modes" aria-label="' + esc(t.view) + '"' + (rackWizard || preview ? ' inert' : '') + '>' + ['structure', 'zones', 'locations'].map(function (step, index) {
           return '<button type="button" data-mode="' + step + '" aria-pressed="' + (step === mode) + '">' + (index + 1) + ' · ' + esc(t[step]) + '</button>';
-        }).join('') + '</nav>' +
+        }).join('') + (options.inspectorOnly ? '<button type="button" data-action="undo"' + (undoStack.length ? '' : ' disabled') + '>' + esc(t.undo) + '</button><button type="button" data-action="redo"' + (redoStack.length ? '' : ' disabled') + '>' + esc(t.redo) + '</button>' : '') + '</nav>' +
         '<div class="wh-editor-grid"' + (rackWizard ? ' inert' : '') + '><aside class="wh-sidebar"' + (preview ? ' inert' : '') + '>' + (mode === 'structure' ? '<div class="wh-card"><h4>' + esc(t.add) + '</h4>' +
         '<select id="wh-recipe" aria-label="' + esc(t.choose) + '">' +
         recipeOptions(t) + '</select><button type="button" class="wh-add-button" data-action="add">' + esc(t.addButton) +
@@ -1399,6 +1401,11 @@
       restoreUi(uiState, scope);
       revealProperties();
       lastRenderedObjectId = choice.objectId; lastRenderedScope = scope;
+      if (options.inspectorOnly) {
+        const placement = root.querySelector('.wh-location-editor');
+        if (placement) root.appendChild(placement);
+        return;
+      }
       paint(warehouse, collisionIds, collisions);
       wireCanvas();
     }
@@ -1945,6 +1952,7 @@
         const last = next.objects[next.objects.length - 1];
         newObject.x = last ? last.x + 1800 : 0;
         newObject.z = last ? last.z + 1200 : 0;
+        if (options.getInsertPosition) Object.assign(newObject, options.getInsertPosition(newObject));
         next.objects.push(newObject); choice.slotId = null;
         if (camera.mode === 'top') topView.ready = false;
         commit(next, null, newObject.id); return;
@@ -2210,7 +2218,29 @@
       });
       observer.observe(page, { attributes: true, attributeFilter: ['class', 'hidden', 'style'] });
     }
-    return { render: render };
+    return { render: render,
+      selectScope: function (scope) {
+        syncHistoryScope();
+        if (scope && layout().objects.some(function (item) { return item.id === scope.objectId; })) {
+          choice.objectId = scope.objectId; choice.bay = scope.bayIndex || 0;
+          choice.level = Number.isInteger(scope.levelIndex) ? scope.levelIndex : 0;
+          choice.slotId = scope.slotId || null; selectionKind = choice.slotId ? 'slot' : 'object'; revealSelection = true;
+        }
+        render();
+      },
+      isBusy: function () { return saving; },
+      hasDraft: function () { return Boolean(rackWizard || preview); },
+      clearHistory: function () {
+        undoStack = []; redoStack = []; rackWizard = null; preview = null;
+        locationDrag = null; locationEditorOpen = false; locationDraw = false;
+        currentFindings = []; pickFaces = []; focusedPart = null; snapPreview = null; groupSelection.clear();
+      },
+      applyExternal: async function (next, expected, toggleLockId) {
+        if (saving) throw new Error('edit-busy');
+        if (JSON.stringify(layout()) !== expected) throw new Error('edit-conflict');
+        if (!await commit(clone(next), null, undefined, toggleLockId, false, null, true)) throw new Error(message || 'edit-failed');
+      }
+    };
   }
   return { create: create };
 }));

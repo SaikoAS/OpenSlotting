@@ -76,6 +76,7 @@ $releaseFiles = @(
     'warehouse-walk.css',
     'warehouse-walk-window.html',
     'warehouse-walk-window.js',
+    'warehouse-walk-editor.js',
     'src/application/walk-window-session.js',
     'Start-OpenSlotting-WalkWindow.ps1',
     'encoding.js',

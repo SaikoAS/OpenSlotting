@@ -1671,6 +1671,7 @@
   let warehouseAnalysis = null;
   let warehouseWalk = null;
   let warehouseWalkWindow = null;
+  let walkEditorOverlay = null;
   let importProfilePanel = null;
   let importManager = null;
   let coverageCalendar = null;
@@ -2221,6 +2222,7 @@
 
   function renderWorkspaceControls() {
     if(typeof warehouseWalkWindow!=='undefined'&&warehouseWalkWindow)warehouseWalkWindow.checkWorkspace();
+    if(typeof walkEditorOverlay!=='undefined'&&walkEditorOverlay)walkEditorOverlay.checkWorkspace();
     renderWorkspaceIdentity();
     setText(elements.mainMenuWorkspaceName, state.activeWorkspace ? '· ' + state.activeWorkspace.name : '');
     document.body.classList.toggle('workspace-picker-mode', !state.activeWorkspace || state.activePageTarget === 'workspace-panel');
@@ -8826,15 +8828,20 @@
     getRegistry: function () { return state.articleRegistry; },
     getWorkspaceId: function () { return state.activeWorkspace ? state.activeWorkspace.id : null; },
     getLanguage: function () { return state.language; },
-    save: async function (layout) {
+    save: async function (layout, metadata) {
       const previous = state.warehouseLayout;
       const normalized = warehouseModel.normalizeLayout(layout);
+      let committed = false;
       state.warehouseLayout = normalized;
       try {
-        await persistActiveWorkspace(undefined, { metadataOnly: true });
+        await persistActiveWorkspace(undefined, { metadataOnly: true, allowWhileLoading: Boolean(metadata && metadata.external),
+          onCommitted: function () { committed = true; } });
+        if (!committed) throw new Error('edit-busy');
       } catch (error) {
-        if (state.warehouseLayout === normalized) state.warehouseLayout = previous;
-        throw error;
+        if (!committed) {
+          if (state.warehouseLayout === normalized) state.warehouseLayout = previous;
+          throw error;
+        }
       }
     }
   });
@@ -8852,18 +8859,26 @@
       workspaceId: state.activeWorkspace && state.activeWorkspace.id, language: state.language,
       layout: state.warehouseLayout, registry: state.articleRegistry,
       articles: state.analysis ? state.analysis.articles : [], comparison: state.comparison,
-      customFields: state.customFields, preferences: state.walkPreferences
+      customFields: state.customFields, preferences: state.walkPreferences, editorAvailable: true
     }, view, warehouseModel); },
+    applyLayout: applyWalkLayout,
     savePreferences: async function (value) {
       await saveWarehouseWalkPreferences(value);
       if(warehouseWalk)warehouseWalk.refreshPreferences();
     }
   });
   window.addEventListener('pagehide', function () { warehouseWalkWindow.close(); });
+  async function applyWalkLayout(layout, expected, toggleLockId) {
+    if(!state.activeWorkspace||!state.storageReady||state.workspaceLoading||state.files.some(function(file){return file.reading;}))throw new Error('edit-busy');
+    state.workspaceLoading=true;renderWorkspaceControls();
+    try {await warehouseEditor.applyExternal(layout,expected,toggleLockId);}
+    finally {state.workspaceLoading=false;renderWorkspaceControls();}
+  }
   warehouseWalk = window.OpenSlottingWarehouseWalk.create({
     root: document.getElementById('warehouse-walk-root'), model: warehouseModel,
     getPreferences: function () { return state.walkPreferences; }, savePreferences: saveWarehouseWalkPreferences,
     startWindow: function (view) { return warehouseWalkWindow.start(view); },
+    editorAvailable: true, openEditor: function(scope){walkEditorOverlay.open(scope);},
     getLayout: function () { return state.warehouseLayout; },
     getRegistry: function () { return state.articleRegistry; },
     getArticles: function () { return state.analysis ? state.analysis.articles : []; },
@@ -8875,6 +8890,12 @@
     formatQuantity: formatQuantity, openArticle: openArticleDetail,
     canCoverage: hasCoverageContent,
     openCoverage: function () { renderWorkflow('coverage-panel'); }
+  });
+  walkEditorOverlay=window.OpenSlottingWalkEditor.create({
+    walk:warehouseWalk,walkRoot:document.getElementById('warehouse-walk-root'),model:warehouseModel,
+    getLayout:function(){return state.warehouseLayout;},getRegistry:function(){return state.articleRegistry;},
+    getWorkspaceId:function(){return state.activeWorkspace&&state.activeWorkspace.id;},getLanguage:function(){return state.language;},
+    save:applyWalkLayout
   });
   importManager = window.OpenSlottingImportManager.create({
     root: elements.importedFiles, model: workspaceModel,

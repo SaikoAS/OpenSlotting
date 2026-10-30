@@ -25,7 +25,7 @@
       obstacle:!floorTypes.has(box.object.type) && !['location','ground-scope','orientation'].includes(box.kind) };
   }
   function createWorld(boxes) {
-    const entries = boxes.map(entry), grid = new Map(), large = [], positions = new Map();
+    const entries = boxes.map(entry), grid = new Map(), large = [], decorations = [], positions = new Map();
     const bounds = { minX:Infinity,maxX:-Infinity,minZ:Infinity,maxZ:-Infinity };
     entries.forEach(function (item) {
       const points = [[0,0],[item.width,0],[item.width,item.depth],[0,item.depth]].map(function (p) { return world(item,item.x+p[0],0,item.z+p[1]); });
@@ -34,7 +34,10 @@
       bounds.minX=Math.min(bounds.minX,item.bounds.minX); bounds.maxX=Math.max(bounds.maxX,item.bounds.maxX);
       bounds.minZ=Math.min(bounds.minZ,item.bounds.minZ); bounds.maxZ=Math.max(bounds.maxZ,item.bounds.maxZ);
       if (item.slotId) positions.set(item.slotId,item);
-      if (!item.obstacle && !item.slotId) return;
+      if (!item.obstacle && !item.slotId) {
+        if (!['orientation','ground-scope'].includes(item.box.kind)) decorations.push(item);
+        return;
+      }
       const x0=Math.floor(item.bounds.minX/CELL), x1=Math.floor(item.bounds.maxX/CELL), z0=Math.floor(item.bounds.minZ/CELL), z1=Math.floor(item.bounds.maxZ/CELL);
       if ((x1-x0+1)*(z1-z0+1)>256) { large.push(item); return; }
       for(let x=x0;x<=x1;x++) for(let z=z0;z<=z1;z++) {
@@ -43,7 +46,7 @@
     });
     if (!entries.length) Object.assign(bounds,{minX:-5,maxX:5,minZ:-5,maxZ:5});
     bounds.minX-=4; bounds.maxX+=4; bounds.minZ-=4; bounds.maxZ+=4;
-    return { entries:entries, grid:grid, large:large, positions:positions, bounds:bounds };
+    return { entries:entries, grid:grid, large:large, decorations:decorations, positions:positions, bounds:bounds };
   }
   function nearby(scene, x, z, radius) {
     const found=new Set(scene.large);
@@ -147,9 +150,10 @@
     }
     return near;
   }
-  function raycast(scene, origin, direction, physicalOnly, maxDistance) {
+  function raycast(scene, origin, direction, physicalOnly, maxDistance, includeObjects) {
     const limit=Number.isFinite(maxDistance)?Math.max(0,Math.min(FAR,maxDistance)):FAR;
     const candidates=new Set(scene.large);
+    if(includeObjects)(scene.decorations||[]).forEach(item=>candidates.add(item));
     let x=Math.floor(origin.x/CELL),z=Math.floor(origin.z/CELL),time=0;
     const sx=direction.x>=0?1:-1,sz=direction.z>=0?1:-1;
     const dx=Math.abs(direction.x)<1e-10?Infinity:CELL/Math.abs(direction.x), dz=Math.abs(direction.z)<1e-10?Infinity:CELL/Math.abs(direction.z);
@@ -162,7 +166,7 @@
     }
     let result=null;
     for(const item of candidates) {
-      if(!item.obstacle && (physicalOnly||!item.slotId)) continue;
+      if(!item.obstacle && (physicalOnly||!item.slotId)&&!(includeObjects&&!['orientation','ground-scope'].includes(item.box.kind))) continue;
       const distance=intersect(item,origin,direction);
       if(distance!==null&&distance<=limit&&(!result||distance<result.distance)) result={item:item,distance:distance};
     }

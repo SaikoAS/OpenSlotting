@@ -93,10 +93,14 @@ an exact Origin, same-origin Fetch Metadata, the token and a small JSON body
 containing only a random 64-character session ID. Paths, commands, URLs and
 business payloads are rejected. Launches are rate-limited and use fixed,
 shell-free arguments. The viewer URL keeps its ID in the fragment, outside HTTP
-paths/logs. A same-origin/profile BroadcastChannel sends only a read-only layout
+paths/logs. A same-origin/profile BroadcastChannel sends only a layout snapshot
 and matched-article projection directly between browser windows. Original
-imports and order rows are excluded. The viewer opens no IndexedDB and clears
-its data when the workspace or session ends. See [Warehouse walk](docs/warehouse-walk.md).
+imports and order rows are excluded. The walk opens no IndexedDB and clears
+its data when the workspace or session ends. Evaluation rejects layout writes.
+Explicit Editor mode can return layout proposals over the same browser channel;
+the main editor checks the delivered base against its current layout, validates
+locks/structure and persists through its existing browser-local save path.
+Python still receives no geometry, articles or edit payloads. See [Warehouse walk](docs/warehouse-walk.md).
 
 Only explicitly allowed interface assets enter the server's private byte/ETag
 cache. HTML, health and error responses remain `no-store`; other interface files

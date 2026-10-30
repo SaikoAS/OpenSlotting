@@ -14,7 +14,7 @@
     const matches=model.matchArticles(source.layout,source.registry||[]),ids=new Set();
     matches.bySlot.forEach(assigned=>assigned.forEach(article=>ids.add(article.articleId)));
     return {version:VERSION,workspaceId:source.workspaceId,language:source.language==='de'?'de':'en',
-      layout:source.layout,view:view,preferences:{fov:source.preferences.fov},
+      layout:source.layout,view:view,preferences:{fov:source.preferences.fov},editorAvailable:source.editorAvailable===true,
       registry:(source.registry||[]).filter(article=>ids.has(article.article_id)).map(article=>({
         article_id:article.article_id,article_name:article.article_name,
         master_data:Object.fromEntries(['article_name','location','unit_of_measure','quantity_per_sales_unit','vat_rate']
@@ -64,9 +64,11 @@
         checkWorkspace();if(current!==session)return;
         const message=event.data;if(!message||typeof message!=='object')return;
         if(message.type==='ready'||message.type==='refresh'){
+          if(session.saving){send(session,{type:'refresh-error',error:'edit-busy'});return;}
           try {
             const data=options.getSnapshot(session.view);
             if(!validSnapshot(data)||options.getWorkspaceId()!==session.workspaceId)throw new Error('workspace-changed');
+            session.base=JSON.stringify(data.layout);
             send(session,{type:'snapshot',data:data});
             session.sent=true;
           } catch(error){finish(session,error);}
@@ -74,6 +76,28 @@
           session.ready=true;scope.clearTimeout(session.timer);session.resolve();
         }else if(message.type==='closed')finish(session);
         else if(message.type==='ping')send(session,{type:'pong'});
+        else if(message.type==='work-mode'&&Number.isSafeInteger(message.requestId)&&message.requestId>0){
+          const allowed=!session.saving&&(message.mode==='analysis'||message.mode==='editor'&&options.applyLayout);
+          if(allowed)session.view=Object.assign({},session.view,{workMode:message.mode});
+          send(session,{type:'edit-result',requestId:message.requestId,mode:allowed?message.mode:null,error:allowed?null:'edit-busy'});
+        }
+        else if(message.type==='edit-layout'&&Number.isSafeInteger(message.requestId)&&message.requestId>0){
+          let error=null;
+          if(!options.applyLayout||!session.view||session.view.workMode!=='editor')error='edit-disabled';
+          else if(session.saving)error='edit-busy';
+          else if(typeof message.base!=='string'||message.base!==session.base)error='edit-conflict';
+          if(error){send(session,{type:'edit-result',requestId:message.requestId,error:error});return;}
+          session.saving=true;
+          try {
+            await options.applyLayout(message.layout,message.base,message.toggleLockId);
+            checkWorkspace();if(current!==session)return;
+            const data=options.getSnapshot(session.view);
+            if(!validSnapshot(data))throw new Error('edit-failed');
+            session.base=JSON.stringify(data.layout);
+            send(session,{type:'edit-result',requestId:message.requestId,data:data});
+          }catch(failure){send(session,{type:'edit-result',requestId:message.requestId,error:failure&&failure.message||'edit-failed'});}
+          finally{session.saving=false;}
+        }
         else if(message.type==='preferences'&&Number.isSafeInteger(message.requestId)&&message.requestId>0&&
           Number.isInteger(message.fov)&&message.fov>=45&&message.fov<=100){
           if(session.saving)return;
@@ -121,6 +145,13 @@
       lastSeen=clock();
       if(message.type==='end'){finish();return;}
       if(message.type==='focus'){if(options.onFocus)options.onFocus();return;}
+      if(message.type==='refresh-error'&&refreshRequest){
+        scope.clearTimeout(refreshRequest.timer);refreshRequest.reject(new Error(message.error||'edit-busy'));refreshRequest=null;return;
+      }
+      if(message.type==='edit-result'&&pending.has(message.requestId)){
+        const request=pending.get(message.requestId);pending.delete(message.requestId);scope.clearTimeout(request.timer);
+        if(message.error)request.reject(new Error(message.error));else request.resolve(message);return;
+      }
       if(message.type==='snapshot'){
         if(!validSnapshot(message.data)||workspaceId&&workspaceId!==message.data.workspaceId){finish(new Error('invalid-snapshot'));return;}
         workspaceId=message.data.workspaceId;
@@ -136,8 +167,21 @@
       }
     };
     channel.postMessage({type:'ready'});
+    function editRequest(type,value){
+      if(ended||!loaded)return Promise.reject(new Error('session-ended'));
+      if(pending.size>=4)return Promise.reject(new Error('edit-busy'));
+      const requestId=++sequence;
+      return new Promise((resolve,reject)=>{
+        // Layout persistence may be slow. Never retry a timed-out write automatically.
+        const timer=scope.setTimeout(()=>{pending.delete(requestId);reject(new Error('edit-timeout'));},60000);
+        pending.set(requestId,{resolve:resolve,reject:reject,timer:timer});
+        channel.postMessage(Object.assign({type:type,requestId:requestId},value));
+      });
+    }
     return {
       close:()=>finish(),
+      setWorkMode:mode=>editRequest('work-mode',{mode:mode}),
+      editLayout:(layout,base,metadata)=>editRequest('edit-layout',{layout:layout,base:base,toggleLockId:metadata&&metadata.toggleLockId||null}),
       refresh:function(){
         if(ended||!loaded)return Promise.reject(new Error('session-ended'));
         if(refreshRequest)return refreshRequest.promise;

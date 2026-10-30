@@ -100,3 +100,46 @@ test('viewer heartbeat tolerates device sleep but expires an unresponsive visibl
   assert.equal(ended,1);assert.equal(scope.channels.size,0);assert.equal(scope.intervals.size,0);
   client.close();assert.equal(ended,1);
 });
+
+test('walk writes require editor mode and the delivered base, return fresh projections and reject parallel main-window edits',async t=>{
+  const scope=environment(),source=fixture();source.editorAvailable=true;let client,writes=0;
+  const host=sessions.createHost({environment:scope,getWorkspaceId:()=>source.workspaceId,getSnapshot:view=>sessions.snapshot(source,view,model),
+    applyLayout:async(next,expected)=>{if(JSON.stringify(source.layout)!==expected)throw Error('edit-conflict');writes++;source.layout=model.normalizeLayout(next);},
+    launch:id=>{client=sessions.createClient({id,environment:scope,onSnapshot(){}});}});
+  t.after(()=>host.close());await host.start({workMode:'analysis'});
+  const base=JSON.stringify(source.layout),next=structuredClone(source.layout);next.objects[0].name='Synthetic changed';
+  await assert.rejects(client.editLayout(next,base),/edit-disabled/);assert.equal(writes,0);
+  await client.setWorkMode('editor');await assert.rejects(client.editLayout(next,'stale'),/edit-conflict/);
+  const result=await client.editLayout(next,base);assert.equal(writes,1);assert.equal(result.data.layout.objects[0].name,'Synthetic changed');
+  source.layout.objects[0].x+=100;
+  await assert.rejects(client.editLayout(next,JSON.stringify(result.data.layout)),/edit-conflict/);assert.equal(writes,1);
+  await client.setWorkMode('analysis');await assert.rejects(client.editLayout(next,base),/edit-disabled/);
+});
+
+test('pending walk saves block refresh/mode/second writes and workspace switches terminate their replies',async()=>{
+  const scope=environment(),source=fixture();let client,release,writes=0;
+  const host=sessions.createHost({environment:scope,getWorkspaceId:()=>source.workspaceId,getSnapshot:view=>sessions.snapshot(source,view,model),
+    applyLayout:async()=>{writes++;await new Promise(resolve=>{release=resolve;});},
+    launch:id=>{client=sessions.createClient({id,environment:scope,onSnapshot(){}});}});
+  await host.start({workMode:'editor'});const base=JSON.stringify(source.layout),saving=client.editLayout(source.layout,base);
+  const cancelled=assert.rejects(saving,/session-ended/);await flush();
+  await assert.rejects(client.refresh(),/edit-busy/);await assert.rejects(client.setWorkMode('analysis'),/edit-busy/);
+  await assert.rejects(client.editLayout(source.layout,base),/edit-busy/);assert.equal(writes,1);
+  source.workspaceId='other';host.checkWorkspace();await cancelled;release();await flush();
+  assert.equal(scope.messages.filter(message=>message.type==='snapshot').length,1);
+  assert.equal(scope.channels.size,0);assert.equal(scope.timeouts.size,0);
+});
+
+test('failed or timed-out writes leave the viewer snapshot untouched and never retry an ambiguous save',async t=>{
+  const scope=environment(),source=fixture(),seen=[];let client,fail=true,release,writes=0;
+  const host=sessions.createHost({environment:scope,getWorkspaceId:()=>source.workspaceId,getSnapshot:view=>sessions.snapshot(source,view,model),
+    applyLayout:async next=>{writes++;if(fail)throw Error('Synthetic storage failure');await new Promise(resolve=>{release=resolve;});source.layout=next;},
+    launch:id=>{client=sessions.createClient({id,environment:scope,onSnapshot:value=>seen.push(value)});}});
+  t.after(()=>host.close());await host.start({workMode:'editor'});
+  const base=JSON.stringify(source.layout),next=structuredClone(source.layout);next.objects[0].name='Synthetic saved';
+  await assert.rejects(client.editLayout(next,base),/Synthetic storage failure/);assert.equal(seen.length,1);
+  fail=false;const saving=client.editLayout(next,base),timedOut=assert.rejects(saving,/edit-timeout/);await flush();
+  for(const timer of [...scope.timeouts.values()])timer();await timedOut;
+  release();await flush();assert.equal(writes,2);assert.equal(seen.length,1);
+  await client.refresh();assert.equal(seen.at(-1).layout.objects[0].name,'Synthetic saved');
+});

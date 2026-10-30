@@ -1,6 +1,25 @@
 # Warehouse walk / Lager-Rundgang
 
-The **Walk / Rundgang** menu opens a preparation screen and a separate, read-only first-person view of the active workspace. It reuses the saved warehouse geometry, locations and current article-master assignments. It never saves geometry, source settings, article assignments or camera positions. Only the existing field-of-view preference is saved. This start/menu flow adds no workspace, database or layout schema changes. No dependency, external asset or network service is added; the existing Python standard-library localhost launcher serves the additional runtime files.
+The **Walk / Rundgang** menu opens a preparation screen and a separate first-person view of the active workspace. **Evaluation / Auswertung** is the default and keeps geometry read-only. **Editor** can change the same saved warehouse layout through the main application's existing editor and persistence path. Both reuse current article-master assignments. Source settings, article assignments and camera poses are not saved by the walk. FOV remains the existing workspace preference. No workspace/database/layout schema, dependency, external asset or network service is added.
+
+## Evaluation and Editor
+
+Choose **Walk mode / Rundgang-Modus** before starting or in the paused walk menu. Changing modes pauses movement and retains the observer pose. Reusing an already open walk window focuses that session with its current mode/settings; change its mode in its menu or close it before starting a new session. Modes are transient, not stored in backups.
+
+| Mode | E under the crosshair | Available actions |
+| --- | --- | --- |
+| Evaluation / Auswertung | Inspect a reachable location's current articles. | Metrics, master data and available A/B comparison; no geometry writes. |
+| Editor | Edit the nearest reachable physical object, location or floor area within 6 m. | Existing Structure, Zones and Locations properties; move/rotate/name/dimensions, rack configuration, floor locations, codes and placement, add/duplicate/delete, locks and undo/redo. |
+
+In Editor, **Edit warehouse / add object / Lager bearbeiten / Objekt hinzufügen** opens the same inspector from the menu or preparation screen, including an empty warehouse. E on a rack carries the targeted bay/level/location into selection where available. Opening the inspector pauses movement, releases mouse capture and confines keyboard focus. The warehouse remains visible behind it. The inspector reuses `warehouse-editor.js` without allocating another 3D renderer. It uses the existing numeric/structural controls and dialogs; location placement retains its existing schematic editor.
+
+New objects start with their footprint centered about three meters ahead of the observer on a 100 mm grid. Their initial access-side rotation faces the observer, snapped to 90 degrees. Position, dimensions and rotation remain editable; the existing layout findings report modeled collisions.
+
+Accepted property edits save in the current workspace. Existing locks, reconciliation, location/code preservation, collision findings and impact/deletion confirmations remain active. **Close / pause** returns to the paused walk menu. **Return with mouse look / Zurück mit Mausblick** resumes through explicit mouse capture. Closing a pending save is blocked; abandoning an unapplied rack/connection preview asks for confirmation. No unlocked mouse-navigation mode is introduced.
+
+The separate window sends a proposed layout and its exact delivered base through the browser session. The host accepts writes only in Editor mode and rejects concurrent work or a changed layout base. The main editor validates and saves the proposal using its existing metadata-save path, with rollback on pre-commit failure. A successful reply returns a fresh layout/article projection, and the walk rebuilds its scene without moving the observer unless the changed geometry makes that position invalid. On conflict, close the inspector and use **Update data snapshot** before editing again. This does not merge concurrent geometry edits automatically.
+
+Inspector undo/redo covers its retained edits; accepted transactions also enter the main editor's history. Refreshing from another layout clears the inspector history, so it cannot undo another window's edits accidentally. A timed-out save is not retried automatically: its result may already be committed, so refresh before continuing. Workspace switches/end-of-session clear the inspector and its history. The source CSVs/analysis remain untouched, and backups retain geometry changes through the existing warehouse layout field.
 
 ## Navigation
 
@@ -29,9 +48,9 @@ While moving, only the menu hint/button, position, crosshair, nearby labels and 
 
 Both windows require the same Edge profile and localhost origin. The launcher does not select or copy a profile. If connection fails after 18 seconds, or native launch is blocked/unsupported, an error offers **Start here / Hier starten** explicitly inside the main page, still requiring mouse capture. Restart the local server after updating the application; old servers cannot launch the new viewer. Without WebGL or modeled objects Start is disabled.
 
-### Read-only data session
+### Browser data session
 
-A random browser session channel delivers the layout, matching article master fields, relevant calculated metrics and A/B comparison. Exact quantities/IDs are preserved; up to twenty source references per matched article are included with their total count. Original CSV bytes, normalized order rows, unrelated articles and raw provenance payloads are excluded. The viewer loads neither workspace storage nor import/analysis workers and creates no persistent workspace copy.
+A random browser session channel delivers the layout, matching article master fields, relevant calculated metrics and A/B comparison. Exact quantities/IDs are preserved; up to twenty source references per matched article are included with their total count. Original CSV bytes, normalized order rows, unrelated articles and raw provenance payloads are excluded. The walk window loads neither workspace storage nor import/analysis workers and creates no persistent workspace copy. Editor proposals travel back through this same channel; only the main application writes IndexedDB.
 
 **Update data snapshot / Datenstand aktualisieren** in the paused menu requests current data from the main application, retaining the pose where still valid. Main-window article/layout/comparison changes become visible after refresh or a new session. Viewer FOV changes save in the main application and update its preparation slider. A workspace identity change ends the channel instead of sending another workspace's data. A lost main-window connection clears the viewer after a heartbeat timeout; device sleep and hidden-window throttling are allowed to resume before that check expires.
 

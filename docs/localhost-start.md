@@ -34,7 +34,7 @@ user/IT action. The Windows launcher rejects remote application roots.
 
 ## Separate walk window
 
-Select Walk, prepare speed/FOV/start point, then Start walk. The bundled
+Select Walk, choose Evaluation or Editor, prepare speed/FOV/start point, then Start walk. The bundled
 `Start-OpenSlotting-WalkWindow.ps1` opens a second maximized Edge app window.
 Use the same Edge profile as the main application; no profile data is moved or
 exported. Click Resume mouse look in the new window. Its X closes only that

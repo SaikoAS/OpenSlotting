@@ -43,6 +43,7 @@ RUNTIME_FILES = frozenset(
         "warehouse-walk.css",
         "warehouse-walk-window.html",
         "warehouse-walk-window.js",
+        "warehouse-walk-editor.js",
         "src/application/walk-window-session.js",
         "encoding.js",
         "csv.js",

@@ -10,7 +10,7 @@ const scene = require('../warehouse-scene.js');
 
 // Small DOM adapter for testing the real controller's user actions and save boundary.
 // Canvas/WebGL appearance is covered by scene tests and browser acceptance.
-function harness(initial, registry = [], activeModel = model, draw = false, navigation = false) {
+function harness(initial, registry = [], activeModel = model, draw = false, navigation = false, extra = {}) {
   const listeners = {}, controls = new Map(), warnings = [], saves = [];
   const pointerListeners = {}, rendered = [], paintedText = [];
   const canvas = { className: '', clientWidth: 800, clientHeight: 600, setAttribute() {},
@@ -19,18 +19,18 @@ function harness(initial, registry = [], activeModel = model, draw = false, navi
     getContext(kind) { return draw && kind === '2d' ? new Proxy({}, { get(_, name) {
       return name === 'measureText' ? () => ({ width: 20 }) : name === 'fillText' ? (...args) => paintedText.push(args) : () => {};
     } }) : null; }, addEventListener(type, callback) { pointerListeners[type] = callback; } };
-  const root = { innerHTML: '', closest() { return null; }, classList: { add() {}, remove() {} }, contains() { return false; },
+  const root = { innerHTML: '', appendChild() {}, closest() { return null; }, classList: { add() {}, remove() {} }, contains() { return false; },
     addEventListener(type, callback) { listeners[type] = callback; }, setAttribute() {}, removeAttribute() {},
     querySelector(selector) {
       if (selector === 'canvas.is-top') return canvas;
       if (!controls.has(selector)) controls.set(selector, { value: '', focus() {}, appendChild() {}, disabled: false });
       return controls.get(selector);
     }, querySelectorAll() { return []; } };
-  const h = { layout: structuredClone(initial), workspaceId: 'synthetic', root, warnings, saves, rendered, paintedText, accept: true, failSave: false };
+  const h = { layout: structuredClone(initial), workspaceId: 'synthetic', root, warnings, saves, rendered, paintedText, rendererCreates: 0, accept: true, failSave: false };
   const context = vm.createContext({ document: { createElement() { return canvas; }, activeElement: null },
     window: { OpenSlottingWarehouseScene: scene,
       OpenSlottingWarehouseWebGL: navigation ? { projectScene: require('../warehouse-webgl.js').projectScene,
-        create() { return { available() { return true; }, pick() { return h.pick; },
+        create() { h.rendererCreates++;return { available() { return true; }, pick() { return h.pick; },
           view() { return { fitTarget:{x:0,y:0,z:0},fitScale:.1 }; },
           render(boxes,camera,objectId,selection) { rendered.push({boxes,camera:structuredClone(camera),objectId,selection:structuredClone(selection)}); }
         }; } } : undefined,
@@ -41,8 +41,8 @@ function harness(initial, registry = [], activeModel = model, draw = false, navi
     save: async (layout) => {
       if (h.failSave) throw new Error('Synthetic save failure');
       h.layout = structuredClone(layout); saves.push(structuredClone(layout));
-    } });
-  h.render = editor.render;
+    }, ...extra });
+  h.api = editor;h.render = editor.render;
   h.control = (selector, value) => { root.querySelector(selector).value = String(value); };
   h.action = async (type, dataset, value, inputType = 'text') => {
     const target = { dataset, value: String(value === undefined ? '' : value), type: inputType, checked: value === true,
@@ -74,6 +74,26 @@ function harness(initial, registry = [], activeModel = model, draw = false, navi
 function fresh() {
   return model.normalizeLayout({ ...model.createLayout(), objects: [model.createRack('shelf-rack', { bayCount: 1, levelCount: 2 })] });
 }
+
+test('walk inspector shares edit validation without allocating or painting another 3D renderer',async()=>{
+  const h=harness(fresh(),[],model,false,true,{inspectorOnly:true});
+  assert.doesNotMatch(h.root.innerHTML,/WebGL2 is unavailable/);
+  h.api.selectScope({objectId:h.layout.objects[0].id,bayIndex:0,levelIndex:1});
+  await h.change({field:'name'},'Synthetic walk edit');
+  assert.equal(h.layout.objects[0].name,'Synthetic walk edit');assert.equal(h.saves.length,1);
+  assert.equal(h.rendered.length,0);assert.equal(h.rendererCreates,0);assert.match(h.root.innerHTML,/data-action="undo"/);
+});
+
+test('external walk edits reject stale layout bases and locked changes, save atomically and enter editor undo history',async()=>{
+  const h=harness(fresh()),base=JSON.stringify(h.layout),next=structuredClone(h.layout);next.objects[0].x+=100;
+  await assert.rejects(h.api.applyExternal(next,'stale'),/edit-conflict/);assert.equal(h.saves.length,0);
+  await h.api.applyExternal(next,base);assert.equal(h.layout.objects[0].x,next.objects[0].x);
+  await h.click({action:'undo'});assert.equal(JSON.stringify(h.layout),base);
+  h.failSave=true;await assert.rejects(h.api.applyExternal(next,base),/Synthetic save failure/);assert.equal(JSON.stringify(h.layout),base);
+  h.failSave=false;h.layout.objects[0].locked=true;
+  const locked=JSON.stringify(h.layout),modified=structuredClone(h.layout);modified.objects[0].x+=100;
+  await assert.rejects(h.api.applyExternal(modified,locked),/Unlock/);assert.equal(JSON.stringify(h.layout),locked);
+});
 
 function placementLayout() {
   let value=fresh();
