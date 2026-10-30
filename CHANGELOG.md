@@ -10,6 +10,7 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Start the warehouse walk in a separate maximized Edge app window with a pause/resume menu. Keep preparation in the main app, transfer only a read-only matched-article/layout snapshot through a same-origin browser session, support explicit refresh and parent-owned FOV persistence, and dispose data on workspace/session changes. Restrict launch to an authenticated, rate-limited loopback route with fixed arguments and no business-data transfer to Python; retain an explicit inline fallback.
 - Make the warehouse walk start from a stationary preparation screen with movement/FOV settings and an explicit fullscreen launch. Unify mouse-look pause/resume with a focus-contained menu, preserve the pose through menus, request pointer lock before fullscreen, and keep denied/late browser grants safe with an explicit window fallback.
 
 - Fragment oversized individual backup records instead of rejecting valid imported values above 8 MiB. Preserve the physical block limit, per-block checksums, ordered validation and atomic restore, including Unicode values split across blocks.

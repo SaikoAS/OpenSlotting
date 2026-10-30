@@ -32,6 +32,16 @@ can block scripts or processes; OpenSlotting changes no machine or browser
 policy. Ask company IT for an approved launch path. Taskbar pinning remains a
 user/IT action. The Windows launcher rejects remote application roots.
 
+## Separate walk window
+
+Select Walk, prepare speed/FOV/start point, then Start walk. The bundled
+`Start-OpenSlotting-WalkWindow.ps1` opens a second maximized Edge app window.
+Use the same Edge profile as the main application; no profile data is moved or
+exported. Click Resume mouse look in the new window. Its X closes only that
+viewer. A launch/profile error offers an explicit inline fallback. Restart the
+local server after updating these files; an older running server cannot launch
+the viewer. See [Warehouse walk](warehouse-walk.md).
+
 ## Start Python directly
 
 From the application folder, use `python Start-OpenSlotting-Localhost.py --no-browser`
@@ -49,7 +59,8 @@ migration. Port 0 is for automated tests.
 
 The server binds only to `127.0.0.1`, validates HTTP Host and serves an explicit
 runtime-file allowlist. It provides no directory listing, upload API, workspace
-database or telemetry. Browser policy blocks application connection requests.
+database or telemetry. Browser policy permits connections only to the fixed
+same-origin walk-window control path.
 CSV input and workspace persistence stay in the browser.
 
 The server revalidates cached interface assets with ETags; the entry HTML and

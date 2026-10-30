@@ -4,7 +4,7 @@
 }(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   const TEXT={
-    de:{start:'Rundgang starten',setup:'Rundgang vorbereiten',menu:'Rundgangmenü',menuHint:'Tab: Menü öffnen · M: Menü öffnen/schließen · Weiter: Rundgang fortsetzen',setupHint:'Bewegung und Sichtfeld einstellen, einen Startpunkt auf der Minikarte wählen und den Rundgang im Vollbild starten.',motionSettings:'Bewegung',viewSettings:'Sicht & Darstellung',navigationSettings:'Startpunkt & Stellplätze',windowed:'Im Fenster starten',backToSetup:'Zur Vorbereitung',interact:'Interagieren',noTarget:'Kein erreichbarer Stellplatz im Fadenkreuz (max. 6 m).',articleDetails:'Artikel am Stellplatz',articleOutside:'Artikelansicht öffnen (Rundgang verlassen)',backToWalk:'Zurück zum Rundgang',closeDetails:'Details schließen',chooseArticle:'Artikel auswählen',overview:'Kennzahlen',master:'Stammdaten',periods:'Periodenvergleich',orders:'Aufträge',customers:'Kunden',sources:'Quelldateien',allData:'Alle geprüften Daten · aktuelle Artikelzuordnung',masterName:'Artikelbezeichnung',currentLocation:'Aktueller Stellplatz',unit:'Mengeneinheit',pack:'Menge pro Verkaufseinheit',vat:'Steuersatz',evidence:'Quellnachweise',noComparison:'Noch kein Periodenvergleich berechnet.',mode:'Bewegung',walk:'Gehen',fly:'Freiflug (ohne Kollision)',jump:'Springen',crouch:'Ducken',standing:'Stehend',crouched:'Geduckt',standBlocked:'Aufrichten blockiert',heightView:'Sichthöhe',flightHint:'Freiflug ohne Kollision · WASD: in Blickrichtung · Leertaste: steigen · C: sinken · Maus: umsehen · E: interagieren · Tab: Menü · Esc: pausieren',walkHint:'WASD: gehen · Leertaste: springen · C halten: ducken · Maus: umsehen · E: interagieren · Tab: Menü · Esc: pausieren',fov:'Sichtfeld (vertikal)',fovReset:'Sichtfeld zurücksetzen',fovFailed:'Sichtfeld konnte nicht gespeichert werden. Der gespeicherte Wert wurde wiederhergestellt.',dragResume:'Weiter ohne Mausblick',fullscreen:'Vollbild starten',exitFullscreen:'Vollbild verlassen',resume:'Weiter mit Mausblick',pause:'Pause / Bedienen',controls:'Bedienelemente',toggleMap:'Minikarte',fullscreenFailed:'Vollbild konnte nicht gestartet werden. Erneut versuchen oder ausdrücklich im Fenster starten.',immersiveHint:'WASD: gehen · Maus: umsehen · Klick: Stellplatz wählen · Tab: Menü · Esc: pausieren',title:'Lager-Rundgang',intro:'Lager aus Augenhöhe erkunden und modellierte Stellplätze auswerten.',search:'Stellplatzcode suchen',find:'Finden',go:'Vor Stellplatz stellen',reset:'Startposition',look:'Mausblick aktivieren',info:'Details ein-/ausblenden',
+    de:{startHere:'Hier starten',windowReady:'Rundgang geöffnet. Das Fenster kann mit Alt+Tab gewechselt werden.',windowFailed:'Rundgangfenster konnte nicht verbunden werden. Lokalen Server neu starten und dasselbe Edge-Profil verwenden; alternativ hier starten.',refresh:'Datenstand aktualisieren',refreshed:'Datenstand aktualisiert. Weiter setzt den Rundgang fort.',closeWindow:'Rundgang schließen',windowIntro:'Bewegung und Sichtfeld einstellen, einen Startpunkt wählen und den Rundgang im eigenen Fenster starten.',start:'Rundgang starten',setup:'Rundgang vorbereiten',menu:'Rundgangmenü',menuHint:'Tab: Menü öffnen · M: Menü öffnen/schließen · Weiter: Rundgang fortsetzen',setupHint:'Bewegung und Sichtfeld einstellen, einen Startpunkt auf der Minikarte wählen und den Rundgang im Vollbild starten.',motionSettings:'Bewegung',viewSettings:'Sicht & Darstellung',navigationSettings:'Startpunkt & Stellplätze',windowed:'Im Fenster starten',backToSetup:'Zur Vorbereitung',interact:'Interagieren',noTarget:'Kein erreichbarer Stellplatz im Fadenkreuz (max. 6 m).',articleDetails:'Artikel am Stellplatz',articleOutside:'Artikelansicht öffnen (Rundgang verlassen)',backToWalk:'Zurück zum Rundgang',closeDetails:'Details schließen',chooseArticle:'Artikel auswählen',overview:'Kennzahlen',master:'Stammdaten',periods:'Periodenvergleich',orders:'Aufträge',customers:'Kunden',sources:'Quelldateien',allData:'Alle geprüften Daten · aktuelle Artikelzuordnung',masterName:'Artikelbezeichnung',currentLocation:'Aktueller Stellplatz',unit:'Mengeneinheit',pack:'Menge pro Verkaufseinheit',vat:'Steuersatz',evidence:'Quellnachweise',noComparison:'Noch kein Periodenvergleich berechnet.',mode:'Bewegung',walk:'Gehen',fly:'Freiflug (ohne Kollision)',jump:'Springen',crouch:'Ducken',standing:'Stehend',crouched:'Geduckt',standBlocked:'Aufrichten blockiert',heightView:'Sichthöhe',flightHint:'Freiflug ohne Kollision · WASD: in Blickrichtung · Leertaste: steigen · C: sinken · Maus: umsehen · E: interagieren · Tab: Menü · Esc: pausieren',walkHint:'WASD: gehen · Leertaste: springen · C halten: ducken · Maus: umsehen · E: interagieren · Tab: Menü · Esc: pausieren',fov:'Sichtfeld (vertikal)',fovReset:'Sichtfeld zurücksetzen',fovFailed:'Sichtfeld konnte nicht gespeichert werden. Der gespeicherte Wert wurde wiederhergestellt.',dragResume:'Weiter ohne Mausblick',fullscreen:'Vollbild starten',exitFullscreen:'Vollbild verlassen',resume:'Weiter mit Mausblick',pause:'Pause / Bedienen',controls:'Bedienelemente',toggleMap:'Minikarte',fullscreenFailed:'Vollbild konnte nicht gestartet werden. Erneut versuchen oder ausdrücklich im Fenster starten.',immersiveHint:'WASD: gehen · Maus: umsehen · Klick: Stellplatz wählen · Tab: Menü · Esc: pausieren',title:'Lager-Rundgang',intro:'Lager aus Augenhöhe erkunden und modellierte Stellplätze auswerten.',search:'Stellplatzcode suchen',find:'Finden',go:'Vor Stellplatz stellen',reset:'Startposition',look:'Mausblick aktivieren',info:'Details ein-/ausblenden',
       eye:'Augenhöhe (mm)',speed:'Geschwindigkeit (m/s)',slow:'Langsam',normal:'Normal',fast:'Schnell',map:'Minikarte · Startposition anklicken',view:'Lager aus Augenhöhe',
       hint:'Ansicht anklicken, dann steuern. Maus ziehen zum Umsehen. Esc pausiert. Auf der Minikarte eine freie Startposition wählen.',
       colors:'Farben',assignments:'Zuordnung',usage:'Nutzung',demand:'Nachfrage',select:'Stellplatz anklicken oder exakten Code suchen.',noCode:'Ohne Code',none:'Keine aktuelle Artikelzuordnung.',
@@ -14,7 +14,7 @@
       unassigned:'Nicht zugewiesen',picking:'Kommissionierung',reserve:'Reserve',bay:'Fach',level:'Ebene',ground:'Boden (Ebene 0)',place:'Stellplatz',size:'Breite × Tiefe',height:'Höhe über Boden',
       unknown:'Unbekannt',coverage:'Datenabdeckung prüfen',lookFailed:'Mausblick nicht verfügbar. Ziehen mit gedrückter Maustaste bleibt möglich.',paused:'Bewegung pausiert.',position:'Position',matched:'Artikel zugeordnet',coded:'Code ohne Artikelzuordnung',empty:'Ohne Code',
       demandLegend:'Auftragszeilen: blau = niedrig, orange = hoch · grau = unbekannt',previous:'A',current:'B',comparison:'Periodenvergleich der aktuell zugeordneten Artikel'},
-    en:{start:'Start walk',setup:'Prepare walk',menu:'Walk menu',menuHint:'Tab: open menu · M: toggle menu · Resume: continue walk',setupHint:'Adjust movement and field of view, choose a starting point on the minimap, then start the fullscreen walk.',motionSettings:'Movement',viewSettings:'View & display',navigationSettings:'Start position & locations',windowed:'Start in window',backToSetup:'Back to setup',interact:'Interact',noTarget:'No reachable location under the crosshair (max. 6 m).',articleDetails:'Articles at location',articleOutside:'Open article view (leave walk)',backToWalk:'Back to walk',closeDetails:'Close details',chooseArticle:'Select article',overview:'Metrics',master:'Master data',periods:'Period comparison',orders:'Orders',customers:'Customers',sources:'Source files',allData:'All validated data · current article assignment',masterName:'Article name',currentLocation:'Current location',unit:'Unit of measure',pack:'Quantity per selling unit',vat:'VAT rate',evidence:'Source evidence',noComparison:'No period comparison has been calculated.',mode:'Movement',walk:'Walk',fly:'Free flight (no collision)',jump:'Jump',crouch:'Crouch',standing:'Standing',crouched:'Crouched',standBlocked:'Standing blocked',heightView:'View height',flightHint:'Free flight without collision · WASD: follow view · Space: ascend · C: descend · Mouse: look · E: interact · Tab: menu · Esc: pause',walkHint:'WASD: walk · Space: jump · Hold C: crouch · Mouse: look · E: interact · Tab: menu · Esc: pause',fov:'Field of view (vertical)',fovReset:'Reset field of view',fovFailed:'Field of view could not be saved. The saved value was restored.',dragResume:'Resume without mouse look',fullscreen:'Enter fullscreen',exitFullscreen:'Exit fullscreen',resume:'Resume mouse look',pause:'Pause / interact',controls:'Controls',toggleMap:'Minimap',fullscreenFailed:'Fullscreen is unavailable. Try again or explicitly start in the window.',immersiveHint:'WASD: walk · Mouse: look · Click: select location · Tab: menu · Esc: pause',title:'Warehouse walk',intro:'Explore the warehouse at eye level and inspect modeled locations.',search:'Find location code',find:'Find',go:'Stand in front of location',reset:'Start position',look:'Enable mouse look',info:'Show/hide details',
+    en:{startHere:'Start here',windowReady:'Walk opened. Use Alt+Tab to switch windows.',windowFailed:'Could not connect the walk window. Restart the local server and use the same Edge profile; alternatively start here.',refresh:'Update data snapshot',refreshed:'Data snapshot updated. Resume to continue the walk.',closeWindow:'Close walk',windowIntro:'Adjust movement and field of view, choose a starting point, then start the walk in its own window.',start:'Start walk',setup:'Prepare walk',menu:'Walk menu',menuHint:'Tab: open menu · M: toggle menu · Resume: continue walk',setupHint:'Adjust movement and field of view, choose a starting point on the minimap, then start the fullscreen walk.',motionSettings:'Movement',viewSettings:'View & display',navigationSettings:'Start position & locations',windowed:'Start in window',backToSetup:'Back to setup',interact:'Interact',noTarget:'No reachable location under the crosshair (max. 6 m).',articleDetails:'Articles at location',articleOutside:'Open article view (leave walk)',backToWalk:'Back to walk',closeDetails:'Close details',chooseArticle:'Select article',overview:'Metrics',master:'Master data',periods:'Period comparison',orders:'Orders',customers:'Customers',sources:'Source files',allData:'All validated data · current article assignment',masterName:'Article name',currentLocation:'Current location',unit:'Unit of measure',pack:'Quantity per selling unit',vat:'VAT rate',evidence:'Source evidence',noComparison:'No period comparison has been calculated.',mode:'Movement',walk:'Walk',fly:'Free flight (no collision)',jump:'Jump',crouch:'Crouch',standing:'Standing',crouched:'Crouched',standBlocked:'Standing blocked',heightView:'View height',flightHint:'Free flight without collision · WASD: follow view · Space: ascend · C: descend · Mouse: look · E: interact · Tab: menu · Esc: pause',walkHint:'WASD: walk · Space: jump · Hold C: crouch · Mouse: look · E: interact · Tab: menu · Esc: pause',fov:'Field of view (vertical)',fovReset:'Reset field of view',fovFailed:'Field of view could not be saved. The saved value was restored.',dragResume:'Resume without mouse look',fullscreen:'Enter fullscreen',exitFullscreen:'Exit fullscreen',resume:'Resume mouse look',pause:'Pause / interact',controls:'Controls',toggleMap:'Minimap',fullscreenFailed:'Fullscreen is unavailable. Try again or explicitly start in the window.',immersiveHint:'WASD: walk · Mouse: look · Click: select location · Tab: menu · Esc: pause',title:'Warehouse walk',intro:'Explore the warehouse at eye level and inspect modeled locations.',search:'Find location code',find:'Find',go:'Stand in front of location',reset:'Start position',look:'Enable mouse look',info:'Show/hide details',
       eye:'Eye height (mm)',speed:'Speed (m/s)',slow:'Slow',normal:'Normal',fast:'Fast',map:'Minimap · click a start position',view:'Warehouse at eye level',
       hint:'Click the view to use movement keys. Drag to look around. Esc pauses. Choose a free starting point on the minimap.',
       colors:'Colors',assignments:'Assignments',usage:'Usage',demand:'Demand',select:'Click a location or search its exact code.',noCode:'No code',none:'No current article assignment.',
@@ -46,7 +46,7 @@
       body=cards(items);
       const refs=master.master_row_refs||[];
       if(refs.length)body+='<details><summary>'+esc(t.evidence)+' ('+refs.length+')</summary><ul>'+refs.slice(0,20).map(r=>
-        '<li>'+esc(r.source_file_label||r.source_file_name||r.source_file_id)+' · '+esc(r.source_line==null?t.unknown:r.source_line)+'</li>').join('')+'</ul>'+(refs.length>20?'<p>20 / '+refs.length+'</p>':'')+'</details>';
+        '<li>'+esc(r.source_file_label||r.source_file_name||r.source_file_id)+' · '+esc(r.source_line==null?t.unknown:r.source_line)+'</li>').join('')+'</ul>'+((master.master_row_ref_count||refs.length)>20?'<p>20 / '+(master.master_row_ref_count||refs.length)+'</p>':'')+'</details>';
     }else if(data.tab==='periods'){
       const comparison=data.comparison,compared=data.compared;
       body=compared&&comparison?'<div class="wh-walk-periods">'+['a','b'].map((side,index)=>{
@@ -71,7 +71,7 @@
     canvas.className='wh-walk-canvas';canvas.tabIndex=0;map.className='wh-walk-map';map.width=240;map.height=160;map.tabIndex=0;
     const camera={x:0,z:0,eye:1.7,yaw:Math.PI,pitch:0,fov:walk.DEFAULT_FOV};
     let scene=null,info=null,workspaceId=null,selectedId=null,search='',message='',colorMode='assignments',speed=1.4,details=true;
-    let active=false,request=null,lastTime=0,drag=null,labels=[],labelTime=-Infinity;
+    let active=false,disposed=false,request=null,lastTime=0,drag=null,labels=[],labelTime=-Infinity;
     let interactionSlotId=null,interactionArticleId=null,interactionTab='overview';
     const inertBefore=new Map();
     let motion=walk.createMotion(),standingEye=1.7,walkSpeed=1.4,flySpeed=5,crouchToggle=false,jumpQueued=false,simulationRunning=false;
@@ -80,10 +80,10 @@
     let immersiveRequest=0,immersivePaused=true,showControls=false,mapVisible=true,fullscreenPending=false,mouseLookUnavailable=false;
     let mouseRequest=0,inlineFallback=false,fallbackOffered=false;
     const renderer=window.OpenSlottingWarehouseWalkRenderer.create(canvas,walk,{
-      lost:function(){pauseImmersive();message=text().unavailable;labelTime=-Infinity;
+      lost:function(){if(disposed)return;pauseImmersive();message=text().unavailable;labelTime=-Infinity;
         const overlay=root.querySelector('.wh-walk-labels');if(overlay)overlay.innerHTML='';
         updatePanel();syncImmersive();},
-      restored:function(){message='';labelTime=-Infinity;
+      restored:function(){if(disposed)return;message='';labelTime=-Infinity;
         updatePanel();syncImmersive();schedule();}
     });
     function savedFov(){const prefs=options.getPreferences?options.getPreferences():null;return walk.fieldOfView({fov:prefs&&prefs.fov});}
@@ -210,14 +210,15 @@
       speed=walk.movementSpeed(Number(value));if(motion.mode==='fly')flySpeed=speed;else walkSpeed=speed;
       syncMotionControls(preserveNumber);
     }
-    function visible(){return active&&options.isVisible()&&!document.hidden;}
+    function visible(){return !disposed&&active&&options.isVisible()&&!document.hidden;}
     function stop(){keys.clear();jumpQueued=false;simulationRunning=false;drag=null;lastTime=0;if(request!==null){window.cancelAnimationFrame(request);request=null;}}
-    function fullscreen(){return document.fullscreenElement===root;}
+    function fullscreen(){return Boolean(options.standalone)||document.fullscreenElement===root;}
     function releaseMouse(){if(document.pointerLockElement===canvas)document.exitPointerLock();}
     function syncImmersive(repaint){
+      if(disposed)return;
       const locked=document.pointerLockElement===canvas;
       root.classList.toggle('is-walk-paused',immersivePaused);root.classList.toggle('walk-controls-open',showControls);
-      root.classList.toggle('is-walk-windowed',inlineFallback);
+      root.classList.toggle('is-walk-windowed',inlineFallback);root.classList.toggle('is-walk-window',Boolean(options.standalone));
       root.classList.toggle('walk-map-hidden',!mapVisible);
       const menu=root.querySelector('.wh-walk-menu');
       if(menu){
@@ -229,9 +230,9 @@
       const body=root.querySelector('.wh-walk-body');if(body)body.inert=fullscreen()&&immersivePaused;
       const hud=root.querySelector('.wh-walk-immersive-controls');if(hud)hud.inert=fullscreen()&&showControls;
       const hint=root.querySelector('#warehouse-walk-hint');if(hint)hint.textContent=fullscreen()||inlineFallback
-        ?(motion.mode==='fly'?text().flightHint:text().walkHint)+' · '+text().menuHint:text().setupHint;
+        ?(motion.mode==='fly'?text().flightHint:text().walkHint)+' · '+text().menuHint:options.startWindow?text().windowIntro:text().setupHint;
       const start=root.querySelector('[data-walk-action="fullscreen"]');
-      if(start)start.disabled=fullscreenPending||savingFov||!root.requestFullscreen||!renderer||!renderer.available()||!info||!info.layout.objects.length;
+      if(start)start.disabled=fullscreenPending||savingFov||!options.startWindow&&!root.requestFullscreen||!renderer||!renderer.available()||!info||!info.layout.objects.length;
       const fallback=root.querySelector('[data-walk-action="windowed"]');
       if(fallback){fallback.hidden=!fallbackOffered;fallback.disabled=savingFov||!renderer||!renderer.available()||!info||!info.layout.objects.length;}
       const resume=root.querySelector('[data-walk-action="resume"]');if(resume)resume.textContent=locked||fullscreen()&&!immersivePaused?text().pause:mouseLookUnavailable?text().dragResume:text().resume;
@@ -248,7 +249,7 @@
     }
     function leaveImmersive(){closeInteraction(false);pauseImmersive();showControls=false;
       inlineFallback=false;
-      if(fullscreen()&&document.exitFullscreen)Promise.resolve(document.exitFullscreen()).catch(()=>tell(text().fullscreenFailed));
+      if(document.fullscreenElement===root&&document.exitFullscreen)Promise.resolve(document.exitFullscreen()).catch(()=>tell(text().fullscreenFailed));
       syncImmersive();
     }
     function acceptMouseLook(token){
@@ -291,6 +292,31 @@
         immersiveRequest++;stop();immersivePaused=true;releaseMouse();fallbackOffered=true;tell(text().fullscreenFailed);
       }}
       finally{fullscreenPending=false;if(fullscreen()&&immersivePaused&&!interactionSlotId)showControls=true;syncImmersive();}
+    }
+    function viewSnapshot(){return {camera:{...camera},mode:motion.mode,standingEye:standingEye,
+      speed:speed,walkSpeed:walkSpeed,flySpeed:flySpeed,mapVisible:mapVisible,selectedId:selectedId,colorMode:colorMode};}
+    async function startWalk(){
+      if(!options.startWindow)return enterFullscreen();
+      if(fullscreenPending||savingFov||!visible()||!renderer||!renderer.available()||!info.layout.objects.length)return;
+      const revision=workspaceRevision;fullscreenPending=true;pauseImmersive();syncImmersive();
+      try {await options.startWindow(viewSnapshot());if(visible()&&revision===workspaceRevision)tell(text().windowReady);}
+      catch(_){if(visible()&&revision===workspaceRevision){fallbackOffered=true;tell(text().windowFailed);}}
+      finally{fullscreenPending=false;syncImmersive();}
+    }
+    function applyInitialView(value){
+      if(!value||!value.camera)return;
+      const supplied=value.camera,b=scene.bounds;
+      if(!['x','z','eye','yaw','pitch'].every(key=>Number.isFinite(supplied[key])))return;
+      if(supplied.x<b.minX||supplied.x>b.maxX||supplied.z<b.minZ||supplied.z>b.maxZ)return;
+      const nextMode=value.mode==='fly'?'fly':'walk',eye=Number(value.standingEye);
+      if(!Number.isFinite(eye)||eye<1||eye>2.2||nextMode==='walk'&&!walk.canStand(scene,supplied,eye))return;
+      motion=walk.createMotion(nextMode);standingEye=eye;
+      camera.x=supplied.x;camera.z=supplied.z;camera.eye=nextMode==='walk'?eye:Math.max(.3,Math.min(80,supplied.eye));
+      camera.yaw=supplied.yaw%(Math.PI*2);camera.pitch=Math.max(-1.35,Math.min(1.35,supplied.pitch));
+      walkSpeed=walk.movementSpeed(value.walkSpeed);flySpeed=walk.movementSpeed(value.flySpeed);
+      speed=nextMode==='walk'?walkSpeed:flySpeed;mapVisible=value.mapVisible!==false;
+      if(scene.positions.has(value.selectedId))selectedId=value.selectedId;
+      if(renderer)renderer.selection(selectedId);
     }
     function setActive(value){active=Boolean(value);if(!active)leaveImmersive();else schedule();}
     function tell(value){message=value;const output=root.querySelector('[data-walk-message]');if(output){
@@ -416,14 +442,18 @@
     }
     function schedule(){if(visible()&&request===null)request=window.requestAnimationFrame(tick);}
     function render(){
+      if(disposed)return;
       restoreBackground();
       const id=options.getWorkspaceId(),changed=id!==workspaceId;workspaceId=id;stop();
       if(changed||!savingFov)camera.fov=savedFov();
       if(changed){workspaceRevision++;leaveImmersive();fallbackOffered=false;mouseLookUnavailable=false;mapVisible=true;selectedId=null;search='';message='';camera.eye=standingEye=1.7;motion=walk.createMotion();walkSpeed=speed=1.4;flySpeed=5;crouchToggle=false;colorMode='assignments';details=true;}
+      if(changed&&options.initialView&&['assignments','usage','demand'].includes(options.initialView.colorMode))colorMode=options.initialView.colorMode;
       refresh();if(changed||motion.mode==='walk'&&!walk.canOccupy(scene,camera,motion.feet,camera.eye-motion.feet))resetPosition();const t=text();
+      if(changed&&options.initialView)applyInitialView(options.initialView);
+      if(options.standalone)showControls=immersivePaused&&!interactionSlotId;
       root.classList.add('wh-walk-root');
-      root.innerHTML='<div class="wh-header"><div><p class="wh-eyebrow">OpenSlotting · 3D</p><h3>'+esc(t.title)+'</h3><p>'+esc(t.setupHint)+'</p></div>'+
-        '<div class="wh-walk-launch"><button type="button" data-walk-action="fullscreen">'+esc(t.start)+'</button><button type="button" data-walk-action="windowed" hidden>'+esc(t.windowed)+'</button><button type="button" data-walk-action="setup">'+esc(t.backToSetup)+'</button></div></div>'+
+      root.innerHTML='<div class="wh-header"><div><p class="wh-eyebrow">OpenSlotting · 3D</p><h3>'+esc(t.title)+'</h3><p>'+esc(options.startWindow?t.windowIntro:t.setupHint)+'</p></div>'+
+        '<div class="wh-walk-launch"><button type="button" data-walk-action="fullscreen">'+esc(t.start)+'</button><button type="button" data-walk-action="windowed" hidden>'+esc(options.startWindow?t.startHere:t.windowed)+'</button><button type="button" data-walk-action="setup">'+esc(t.backToSetup)+'</button></div></div>'+
         '<div class="wh-walk-main"><section class="wh-walk-menu" role="region" aria-labelledby="warehouse-walk-menu-title" tabindex="-1"><header class="wh-walk-menu-heading"><h4 id="warehouse-walk-menu-title" data-walk-menu-title>'+esc(t.setup)+'</h4></header>'+
         '<div class="wh-walk-toolbar"><fieldset><legend>'+esc(t.motionSettings)+'</legend>'+
         '<label>'+esc(t.mode)+'<select data-walk-mode><option value="walk"'+(motion.mode==='walk'?' selected':'')+'>'+esc(t.walk)+'</option><option value="fly"'+(motion.mode==='fly'?' selected':'')+'>'+esc(t.fly)+'</option></select></label>'+
@@ -433,8 +463,9 @@
         '<fieldset><legend>'+esc(t.viewSettings)+'</legend><label class="wh-walk-fov">'+esc(t.fov)+'<span><input type="range" data-walk-fov min="'+walk.MIN_FOV+'" max="'+walk.MAX_FOV+'" step="1" value="'+camera.fov+'"><output data-walk-fov-value>'+camera.fov+'°</output></span></label><button type="button" data-walk-action="fov-reset">'+esc(t.fovReset)+'</button>'+
         '<label>'+esc(t.colors)+'<select data-walk-colors>'+['assignments','usage','demand'].map(key=>'<option value="'+key+'"'+(key===colorMode?' selected':'')+'>'+esc(t[key])+'</option>').join('')+'</select></label>'+
         '<button type="button" data-walk-action="map" aria-pressed="'+mapVisible+'">'+esc(t.toggleMap)+'</button><button type="button" data-walk-action="details" aria-expanded="'+details+'">'+esc(t.info)+'</button></fieldset>'+
-        '<fieldset><legend>'+esc(t.navigationSettings)+'</legend><label>'+esc(t.search)+'<input type="search" data-walk-search maxlength="80" value="'+esc(search)+'"></label><button type="button" data-walk-action="find">'+esc(t.find)+'</button><button type="button" data-walk-action="reset">'+esc(t.reset)+'</button></fieldset></div>'+
-        '<footer class="wh-walk-menu-actions"><button type="button" data-walk-action="resume">'+esc(t.resume)+'</button><button type="button" data-walk-action="exit-fullscreen">'+esc(t.exitFullscreen)+'</button><p>'+esc(t.menuHint)+'</p><p role="status" data-walk-immersive-message></p></footer></section>'+
+        '<fieldset><legend>'+esc(t.navigationSettings)+'</legend><label>'+esc(t.search)+'<input type="search" data-walk-search maxlength="80" value="'+esc(search)+'"></label><button type="button" data-walk-action="find">'+esc(t.find)+'</button><button type="button" data-walk-action="reset">'+esc(t.reset)+'</button>'+
+        (options.refreshSnapshot?'<button type="button" data-walk-action="refresh-window">'+esc(t.refresh)+'</button>':'')+'</fieldset></div>'+
+        '<footer class="wh-walk-menu-actions"><button type="button" data-walk-action="resume">'+esc(t.resume)+'</button><button type="button" data-walk-action="exit-fullscreen">'+esc(options.standalone?t.closeWindow:t.exitFullscreen)+'</button><p>'+esc(t.menuHint)+'</p><p role="status" data-walk-immersive-message></p></footer></section>'+
         '<div class="wh-walk-body"><div class="wh-walk-viewport"><div class="wh-walk-labels"></div><div class="wh-walk-map-wrap"><small>'+esc(t.map)+'</small></div><span class="wh-walk-crosshair" aria-hidden="true">+</span><span class="wh-walk-interact-hint" data-walk-interact-hint hidden></span></div><aside class="wh-walk-inspector wh-card"></aside></div></div>'+
         '<div class="wh-walk-immersive-controls" role="group" aria-label="'+esc(t.controls)+'"><button type="button" data-walk-action="controls" aria-expanded="false">'+esc(t.menu)+'</button><small>'+esc(motion.mode==='fly'?t.flightHint:t.walkHint)+'</small><small data-walk-hud-position></small></div>'+
         '<div class="wh-walk-footer"><p id="warehouse-walk-hint">'+esc(motion.mode==='fly'?t.flightHint:t.walkHint)+' · '+esc(t.menuHint)+'</p><output data-walk-position></output><p class="wh-legend">'+esc(colorMode==='demand'?t.demandLegend:colorMode==='usage'?[t.unassigned,t.picking,t.reserve].join(' · '):[t.matched,t.coded,t.empty].join(' · '))+'</p><p role="status" aria-live="polite" data-walk-message></p></div>'+
@@ -442,8 +473,8 @@
       root.querySelector('.wh-walk-viewport').prepend(canvas);root.querySelector('.wh-walk-map-wrap').appendChild(map);
       canvas.setAttribute('aria-label',t.view);canvas.setAttribute('aria-describedby','warehouse-walk-hint');map.setAttribute('aria-label',t.map);map.setAttribute('role','img');
       if(!renderer||!renderer.available())message=t.unavailable;else if(!info.layout.objects.length)message=t.noLayout;
-      else if(!root.requestFullscreen)message=t.fullscreenFailed;
-      fallbackOffered=fallbackOffered||!root.requestFullscreen;
+      else if(!options.startWindow&&!root.requestFullscreen)message=t.fullscreenFailed;
+      fallbackOffered=fallbackOffered||!options.startWindow&&!root.requestFullscreen;
       const fullButton=root.querySelector('[data-walk-action="fullscreen"]');if(fullButton)fullButton.disabled=!root.requestFullscreen||!renderer||!renderer.available();
       updatePanel();syncFovControls();syncMotionControls();active=options.isVisible();renderInteraction();syncImmersive();paint(0);schedule();
     }
@@ -480,12 +511,14 @@
       else if(action==='coverage'&&options.openCoverage){stop();options.openCoverage();}
       else if(action==='details'){if(fullscreen())pauseImmersive();details=!details;button.setAttribute('aria-expanded',String(details));updatePanel();schedule();}
       else if(action==='fov-reset')await saveFov(walk.DEFAULT_FOV);
-      else if(action==='fullscreen')await enterFullscreen();
+      else if(action==='refresh-window'&&options.refreshSnapshot){openMenu(true);
+        try{await options.refreshSnapshot();tell(text().refreshed);}catch(_){tell(text().windowFailed);}}
+      else if(action==='fullscreen')await startWalk();
       else if(action==='windowed'&&!savingFov&&fallbackOffered&&renderer&&renderer.available()&&info.layout.objects.length){
         inlineFallback=true;mouseLookUnavailable=true;immersivePaused=true;await resumeMovement();
       }
       else if(action==='setup')leaveImmersive();
-      else if(action==='exit-fullscreen')leaveImmersive();
+      else if(action==='exit-fullscreen'){if(options.closeWindow)options.closeWindow();else leaveImmersive();}
       else if(action==='resume')await resumeMovement();
       else if(action==='controls'){if(fullscreen()&&showControls)await resumeMovement();else openMenu(true);}
       else if(action==='map'){if(fullscreen())pauseImmersive();mapVisible=!mapVisible;syncImmersive();}
@@ -541,7 +574,14 @@
       if(motion.mode==='walk'){motion=walk.createMotion();camera.eye=standingEye;crouchToggle=false;}syncMotionControls();tell('');canvas.focus({preventScroll:true});schedule();});
     window.addEventListener('resize',()=>{labelTime=-Infinity;schedule();});
     if(window.ResizeObserver)new window.ResizeObserver(()=>{labelTime=-Infinity;schedule();}).observe(root);
-    return {render:render,setActive:setActive};
+    function destroy(){
+      if(disposed)return;active=false;leaveImmersive();stop();disposed=true;workspaceRevision++;
+      if(renderer)renderer.setWorld(walk.createWorld([]));scene=null;info=null;labels=[];selectedId=null;search='';message='';
+      restoreBackground();root.replaceChildren();
+      ['is-walk-window','is-walk-paused','walk-controls-open','is-interacting','is-walk-windowed'].forEach(key=>root.classList.toggle(key,false));
+    }
+    return {render:render,setActive:setActive,pause:function(){openMenu(true);},notify:tell,destroy:destroy,
+      refreshPreferences:function(){if(!savingFov&&!disposed)previewFov(savedFov());}};
   }
   return {create:create,interactionHtml:interactionHtml};
 }));

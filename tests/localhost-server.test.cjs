@@ -102,7 +102,7 @@ test('Python server is loopback-only, blocks data transmission, and serves only 
   assert.equal(indexResponse.headers.get('cache-control'), 'no-store');
   assert.equal(indexResponse.headers.get('x-content-type-options'), 'nosniff');
   const policy = indexResponse.headers.get('content-security-policy');
-  assert.match(policy, /connect-src 'none'/);
+  assert.ok(policy.includes('connect-src ' + new URL(url).origin + '/walk-window;'));
   assert.match(policy, /worker-src 'self' blob:/);
   assert.match(policy, /frame-ancestors 'none'/);
   assert.match(await indexResponse.text(), /<title>OpenSlotting[^<]*<\/title>/);
@@ -192,7 +192,7 @@ test('Python server is loopback-only, blocks data transmission, and serves only 
     const response = await fetch(origin + '/index.html', {
       method, body: 'synthetic upload must not be accepted'
     });
-    assert.equal(response.status, 501, method);
+    assert.equal(response.status, method === 'POST' ? 405 : 501, method);
     await response.arrayBuffer();
   }
 });

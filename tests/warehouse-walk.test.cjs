@@ -198,11 +198,11 @@ test('GPU geometry is uploaded once and camera frames only change uniforms',()=>
   events.webglcontextrestored();assert.equal(engine.available(),true);assert.ok(uploads>count+1);
 });
 
-function harness(value,available=true,native=false){
+function harness(value,available=true,native=false,options={}){
   const listeners={},windowListeners={},documentListeners={},nodes=new Map(),canvases=[],frames=new Map();let sequence=0;
   function node(){const classes=new Set();const n={innerHTML:'',textContent:'',dataset:{},style:{},hidden:false,disabled:false,isConnected:true,clientWidth:900,clientHeight:600,events:{},
     classList:{add:key=>classes.add(key),toggle(key,on){if(on)classes.add(key);else classes.delete(key);},contains:key=>classes.has(key)},attributes:{},setAttribute(key,value){this.attributes[key]=String(value);},getAttribute(key){return this.attributes[key]??null;},querySelectorAll(){return [];},appendChild(){},prepend(){},focus(){h.document.activeElement=this;},hasAttribute(){return false;},
-    getBoundingClientRect(){return {left:0,top:0,width:900,height:600};},getContext(){return null;},
+    replaceChildren(){this.innerHTML='';},getBoundingClientRect(){return {left:0,top:0,width:900,height:600};},getContext(){return null;},
     addEventListener(type,callback){this.events[type]=callback;},setPointerCapture(){}};return n;}
   const root=node();root.querySelector=selector=>{if(!nodes.has(selector))nodes.set(selector,node());return nodes.get(selector);};root.addEventListener=(type,cb)=>listeners[type]=cb;
   const h={visible:true,gpu:available,value:value,root,nodes,frames,rendered:0,worlds:0,preferences:{fov:60},fovSaves:[],calls:[],documentListeners};
@@ -228,8 +228,8 @@ function harness(value,available=true,native=false){
     getPreferences:()=>h.preferences,savePreferences:async proposed=>{
       const workspace=h.workspace;if(h.failFov)throw new Error('Synthetic save failure');
       if(h.fovGate)await h.fovGate;h.fovSaves.push({...proposed});if(h.workspace===workspace)h.preferences={...proposed};
-    },formatQuantity:value=>String(value),openArticle:id=>{h.openedArticle=id;h.active(false);},isVisible:()=>h.visible});
-  h.render=editor.render;h.active=editor.setActive;h.canvas=canvases[0];
+    },formatQuantity:value=>String(value),openArticle:id=>{h.openedArticle=id;h.active(false);},isVisible:()=>h.visible,...options});
+  h.editor=editor;h.render=editor.render;h.active=editor.setActive;h.canvas=canvases[0];
   if(native)h.canvas.requestPointerLock=()=>{
     h.calls.push('pointerlock');
     const grant=()=>{context.document.pointerLockElement=h.canvas;documentListeners.pointerlockchange();};
@@ -253,6 +253,39 @@ function harness(value,available=true,native=false){
   h.event=event=>listeners.keydown({target:canvases[0],preventDefault(){},...event});
   h.blur=()=>windowListeners.blur();h.render();return h;
 }
+
+test('separate-window start exports prepared view without capturing the main window and keeps failure fallback explicit',async()=>{
+  let release,exported;
+  const h=harness(layout(),true,false,{startWindow:value=>{exported=value;return new Promise(resolve=>{release=resolve;});}});
+  await h.change('mode','fly');await h.change('speed',3.7);await h.fov(85,'change');h.tick(100);
+  const pending=h.action('fullscreen');assert.equal(h.nodes.get('[data-walk-action="fullscreen"]').disabled,true);
+  assert.equal(exported.mode,'fly');assert.equal(exported.flySpeed,3.7);assert.equal(exported.camera.fov,85);
+  h.key('KeyW');h.tick(116);assert.deepEqual(h.calls,[]);assert.equal(h.frames.size,0);
+  release();await pending;assert.match(h.nodes.get('[data-walk-message]').textContent,/Walk opened/);
+  const denied=harness(layout(),true,false,{startWindow:async()=>{throw Error('native launch denied');}});
+  await denied.action('fullscreen');assert.match(denied.nodes.get('[data-walk-message]').textContent,/Restart the local server/);
+  assert.equal(denied.nodes.get('[data-walk-action="windowed"]').hidden,false);assert.deepEqual(denied.calls,[]);
+});
+
+test('standalone viewer fills its window, begins paused and uses mouse look without native fullscreen',async()=>{
+  let refreshed=0,closed=0;
+  const h=harness(layout(),true,true,{standalone:true,refreshSnapshot:async()=>{refreshed++;},closeWindow:()=>closed++});
+  h.tick(100);assert.equal(h.root.classList.contains('is-walk-window'),true);
+  assert.equal(h.nodes.get('.wh-walk-menu').hidden,false);assert.equal(h.document.fullscreenElement,undefined);
+  h.key('KeyW');assert.equal(h.frames.size,0);
+  await h.action('resume');h.tick(116);assert.deepEqual(h.calls,['pointerlock']);assert.equal(h.document.pointerLockElement,h.canvas);
+  h.key('Tab');assert.equal(h.document.pointerLockElement,null);assert.equal(h.nodes.get('.wh-walk-menu').hidden,false);
+  await h.action('refresh-window');assert.equal(refreshed,1);assert.match(h.nodes.get('[data-walk-message]').textContent,/snapshot updated/);
+  await h.action('exit-fullscreen');assert.equal(closed,1);assert.equal(h.document.fullscreenElement,undefined);
+});
+
+test('standalone teardown empties scene data and rejects late mouse grants and GPU restoration',async()=>{
+  const h=harness(layout(),true,true,{standalone:true});h.delayLock=true;
+  const pending=h.action('resume');await new Promise(resolve=>setImmediate(resolve));
+  h.editor.destroy();assert.equal(h.world.positions.size,0);assert.equal(h.root.innerHTML,'');assert.equal(h.frames.size,0);
+  h.grantLock();await pending;assert.equal(h.document.pointerLockElement,null);
+  h.gpuCallbacks.restored();h.render();h.tick(100);assert.equal(h.frames.size,0);assert.equal(h.root.innerHTML,'');
+});
 
 test('native fullscreen requests mouse look, pauses on Esc, resumes and exits without editing the layout',async()=>{
   const value=layout(),before=structuredClone(value),h=harness(value,true,true);

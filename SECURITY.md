@@ -76,8 +76,8 @@ The core OpenSlotting workflow is designed to operate locally.
 Normal use requires the existing browser and a company-approved Python 3.8+
 runtime. Python uses only its standard library. It binds to `127.0.0.1`, serves
 an explicit runtime-file allowlist, checks HTTP Host authorities, and accepts
-no upload or data-storage request. The browser Content Security Policy uses
-`connect-src 'none'` to block application connection requests; bundled same-origin
+no business-data upload or data-storage request. The browser Content Security Policy permits
+connections only to the fixed same-origin loopback `/walk-window` control path; bundled same-origin
 module workers process data locally. No CDN, telemetry, remote API, account,
 additional package installation, OpenSlotting executable, or administrator
 rights are part of normal use.
@@ -86,6 +86,17 @@ Imported CSV data remains in the user's browser profile unless the user
 explicitly exports or transfers it. Localhost traffic is confined to the same
 device. This is a local interface-file service, not a central database or
 multi-user backend.
+
+The Windows-only `/walk-window` route starts the bundled Edge walk viewer. A
+same-origin capability request supplies a per-server token; POST also requires
+an exact Origin, same-origin Fetch Metadata, the token and a small JSON body
+containing only a random 64-character session ID. Paths, commands, URLs and
+business payloads are rejected. Launches are rate-limited and use fixed,
+shell-free arguments. The viewer URL keeps its ID in the fragment, outside HTTP
+paths/logs. A same-origin/profile BroadcastChannel sends only a read-only layout
+and matched-article projection directly between browser windows. Original
+imports and order rows are excluded. The viewer opens no IndexedDB and clears
+its data when the workspace or session ends. See [Warehouse walk](docs/warehouse-walk.md).
 
 Only explicitly allowed interface assets enter the server's private byte/ETag
 cache. HTML, health and error responses remain `no-store`; other interface files

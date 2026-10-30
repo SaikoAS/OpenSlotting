@@ -70,6 +70,8 @@ jobs:
           node --check warehouse-walk-model.js
           node --check warehouse-walk-renderer.js
           node --check warehouse-walk.js
+          node --check warehouse-walk-window.js
+          node --check src/application/walk-window-session.js
           node --check src/application/workspace-preparation.js
           node --check src/application/worker-session.js
           node --check src/application/workspace-archive.js
@@ -88,7 +90,9 @@ jobs:
 
       - name: Test Windows launcher logic
         shell: pwsh
-        run: ./tests/windows-launcher.test.ps1
+        run: |
+          ./tests/windows-launcher.test.ps1
+          ./tests/walk-window-launcher.test.ps1
 
       - name: Verify release packaging
         shell: pwsh
@@ -113,12 +117,14 @@ jobs:
         run: |
           ./tests/windows-launcher.test.ps1
           ./tests/localhost-windows-launcher.test.ps1
+          ./tests/walk-window-launcher.test.ps1
 
       - name: Test launchers in Windows PowerShell 5.1
         shell: powershell
         run: |
           ./tests/windows-launcher.test.ps1
           ./tests/localhost-windows-launcher.test.ps1
+          ./tests/walk-window-launcher.test.ps1
 
       - name: Test candidate packaging on Windows
         shell: pwsh

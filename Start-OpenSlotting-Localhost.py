@@ -8,8 +8,12 @@ import hashlib
 import json
 import mimetypes
 import os
+import re
+import secrets
+import subprocess
 import sys
 import threading
+import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -37,6 +41,9 @@ RUNTIME_FILES = frozenset(
         "warehouse-walk-renderer.js",
         "warehouse-walk.js",
         "warehouse-walk.css",
+        "warehouse-walk-window.html",
+        "warehouse-walk-window.js",
+        "src/application/walk-window-session.js",
         "encoding.js",
         "csv.js",
         "periods.js",
@@ -85,7 +92,8 @@ class OpenSlottingRequestHandler(BaseHTTPRequestHandler):
             "Content-Security-Policy",
             "default-src 'self'; script-src 'self' blob:; worker-src 'self' blob:; "
             "style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
-            "connect-src 'none'; object-src 'none'; base-uri 'none'; "
+            f"connect-src http://127.0.0.1:{self.server.server_address[1]}/walk-window; "
+            "object-src 'none'; base-uri 'none'; "
             "frame-ancestors 'none'; form-action 'none'",
         )
         super().end_headers()
@@ -169,7 +177,77 @@ class OpenSlottingRequestHandler(BaseHTTPRequestHandler):
         if urlsplit(self.path).path == "/health":
             self._serve_health(include_body)
             return
+        if self.path == "/walk-window":
+            if not self._trusted_control_request(require_origin=False):
+                return
+            self._control_json(200, {"supported": self.server.walk_launcher is not None,
+                                     "token": self.server.walk_token}, include_body)
+            return
         self._serve_runtime_file(include_body)
+
+    def _control_json(self, status: int, value: dict, include_body: bool = True) -> None:
+        payload = json.dumps(value, separators=(",", ":")).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        if include_body:
+            self.wfile.write(payload)
+
+    def _trusted_control_request(self, require_origin: bool) -> bool:
+        origins = {"http://" + host for host in self.expected_hosts}
+        origin = self.headers.get("Origin")
+        if (len(self.headers.get_all("Host", [])) != 1
+                or self.headers.get("Sec-Fetch-Site") != "same-origin"
+                or len(self.headers.get_all("Origin", [])) > 1
+                or (require_origin and origin not in origins)
+                or (origin is not None and origin not in origins)):
+            self._control_json(403, {"error": "untrusted-origin"})
+            return False
+        return True
+
+    def do_POST(self) -> None:  # noqa: N802 - HTTP handler API name
+        self.close_connection = True
+        if not self._has_trusted_host():
+            return
+        if self.path != "/walk-window":
+            self._control_json(405, {"error": "method-not-allowed"})
+            return
+        if not self._trusted_control_request(require_origin=True):
+            return
+        token = self.headers.get("X-OpenSlotting-Launch", "")
+        if (len(self.headers.get_all("X-OpenSlotting-Launch", [])) != 1
+                or not re.fullmatch(r"[A-Za-z0-9_-]{43}", token)
+                or not secrets.compare_digest(token, self.server.walk_token)):
+            self._control_json(403, {"error": "invalid-token"})
+            return
+        length = self.headers.get("Content-Length", "")
+        if (self.headers.get("Transfer-Encoding") or len(self.headers.get_all("Content-Length", [])) != 1
+                or not length.isdigit() or not 0 < int(length) <= 96
+                or self.headers.get("Content-Type") != "application/json"):
+            self._control_json(400, {"error": "invalid-request"})
+            return
+        self.connection.settimeout(3)
+        try:
+            value = json.loads(self.rfile.read(int(length)).decode("utf-8"))
+        except (ValueError, OSError):
+            self._control_json(400, {"error": "invalid-request"})
+            return
+        if (not isinstance(value, dict) or set(value) != {"session"}
+                or not isinstance(value["session"], str)
+                or not re.fullmatch(r"[a-f0-9]{64}", value["session"])):
+            self._control_json(400, {"error": "invalid-request"})
+            return
+        try:
+            self.server.start_walk_window(value["session"])
+        except NotImplementedError:
+            self._control_json(503, {"error": "unavailable"})
+        except RuntimeError:
+            self._control_json(429, {"error": "launch-limit"})
+        except (OSError, subprocess.SubprocessError):
+            self._control_json(503, {"error": "launch-failed"})
+        else:
+            self._control_json(200, {"started": True})
 
     def do_GET(self) -> None:  # noqa: N802 - HTTP handler API name
         self._serve_request(include_body=True)
@@ -189,7 +267,28 @@ class LoopbackServer(ThreadingHTTPServer):
     def __init__(self, *args: object, **kwargs: object) -> None:
         self._runtime_cache = {}
         self._runtime_cache_lock = threading.Lock()
+        self.walk_token = secrets.token_urlsafe(32)
+        self.walk_launcher = kwargs.pop("walk_launcher", launch_walk_window if os.name == "nt" else None)
+        self._walk_launches = {}
+        self._walk_lock = threading.Lock()
         super().__init__(*args, **kwargs)
+
+    def start_walk_window(self, session: str) -> None:
+        if self.walk_launcher is None:
+            raise NotImplementedError()
+        with self._walk_lock:
+            now = time.monotonic()
+            self._walk_launches = {key: value for key, value in self._walk_launches.items() if now - value[0] < 60}
+            if session in self._walk_launches:
+                if self._walk_launches[session][1]:
+                    return
+                raise OSError("previous-launch-failed")
+            if len(self._walk_launches) >= 6:
+                raise RuntimeError("launch-limit")
+            self._walk_launches[session] = (now, False)
+            # Count failed attempts too; no unbounded process spawning or client-supplied commands.
+            self.walk_launcher(session, int(self.server_address[1]))
+            self._walk_launches[session] = (now, True)
 
     def runtime_asset(self, file_path: Path) -> tuple[bytes, str]:
         """Cache only explicitly allowed UI assets; revalidate changed files."""
@@ -203,6 +302,22 @@ class LoopbackServer(ThreadingHTTPServer):
             etag = '"' + hashlib.sha256(payload).hexdigest() + '"'
             self._runtime_cache[file_path] = (signature, payload, etag)
             return payload, etag
+
+
+def launch_walk_window(session: str, port: int) -> None:
+    """Launch only the bundled Edge helper; never accept paths, URLs or business data."""
+    if not re.fullmatch(r"[a-f0-9]{64}", session) or type(port) is not int or not 1 <= port <= 65535:
+        raise ValueError("invalid-walk-launch")
+    if str(APPLICATION_ROOT).startswith("\\\\"):
+        raise OSError("local-application-root-required")
+    powershell = Path(os.environ.get("SystemRoot", r"C:\Windows")) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    subprocess.run(
+        [str(powershell), "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+         str(APPLICATION_ROOT / "Start-OpenSlotting-WalkWindow.ps1"), "-Port", str(port), "-Session", session],
+        cwd=APPLICATION_ROOT, shell=False, check=True, timeout=8,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+    )
 
 
 def parse_arguments() -> argparse.Namespace:

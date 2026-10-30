@@ -17,30 +17,30 @@
 .wh-walk-motion-actions { display: none; }
 .is-walk-windowed .wh-walk-motion-actions { display: flex; gap: 8px; }
 .wh-walk-root:not(.is-walk-windowed) .wh-walk-crosshair { display: none; }
-.wh-walk-root:fullscreen { position: relative; width: 100%; height: 100%; min-height: 0; padding: 0; display: block; background: #0d151c; color: #d8eeec; }
-.wh-walk-root:fullscreen::backdrop { background: #0d151c; }
-.wh-walk-root:fullscreen > .wh-header, .wh-walk-root:fullscreen > .wh-walk-footer { display: none; }
-.wh-walk-root:fullscreen .wh-walk-main { display: contents; }
-.wh-walk-root:fullscreen .wh-walk-body { position: absolute; inset: 0; display: block; }
-.wh-walk-root:fullscreen .wh-walk-viewport { width: 100%; height: 100%; border: 0; border-radius: 0; }
-.wh-walk-root:fullscreen .wh-walk-canvas { min-height: 0; }
-.wh-walk-root:fullscreen .wh-walk-crosshair { display: block; }
-.wh-walk-root:fullscreen .wh-walk-immersive-controls { position: absolute; z-index: 6; top: 12px; right: 12px; left: 12px; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; pointer-events: none; }
-.wh-walk-root:fullscreen .wh-walk-immersive-controls button, .wh-walk-menu-actions button { pointer-events: auto; padding: 10px 14px; border: 1px solid #56766f; border-radius: 6px; color: #dff7f1; background: #203c3a; font: inherit; cursor: pointer; }
-.wh-walk-root:fullscreen .wh-walk-immersive-controls small { flex-basis: 100%; text-align: right; text-shadow: 0 1px 3px #000; }
-.wh-walk-root:fullscreen .wh-walk-menu { position: absolute; z-index: 10; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(920px, calc(100% - 32px)); max-height: calc(100% - 32px); box-shadow: 0 16px 80px #000b; }
-.wh-walk-root:fullscreen .wh-walk-menu .wh-walk-toolbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.wh-walk-root:fullscreen .wh-walk-menu-actions { display: flex; flex-wrap: wrap; flex: 0 0 auto; gap: 10px; padding: 14px; border-top: 1px solid #354b55; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) { position: relative; width: 100%; height: 100%; min-height: 0; padding: 0; display: block; background: #0d151c; color: #d8eeec; }
+.wh-walk-root:is(:fullscreen, .is-walk-window)::backdrop { background: #0d151c; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) > .wh-header, .wh-walk-root:is(:fullscreen, .is-walk-window) > .wh-walk-footer { display: none; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-main { display: contents; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-body { position: absolute; inset: 0; display: block; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-viewport { width: 100%; height: 100%; border: 0; border-radius: 0; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-canvas { min-height: 0; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-crosshair { display: block; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-immersive-controls { position: absolute; z-index: 6; top: 12px; right: 12px; left: 12px; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 6px; pointer-events: none; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-immersive-controls button, .wh-walk-menu-actions button { pointer-events: auto; padding: 10px 14px; border: 1px solid #56766f; border-radius: 6px; color: #dff7f1; background: #203c3a; font: inherit; cursor: pointer; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-immersive-controls small { flex-basis: 100%; text-align: right; text-shadow: 0 1px 3px #000; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-menu { position: absolute; z-index: 10; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(920px, calc(100% - 32px)); max-height: calc(100% - 32px); box-shadow: 0 16px 80px #000b; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-menu .wh-walk-toolbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-menu-actions { display: flex; flex-wrap: wrap; flex: 0 0 auto; gap: 10px; padding: 14px; border-top: 1px solid #354b55; }
 .wh-walk-menu-actions p { flex-basis: 100%; margin: 0; color: #a9c1c9; font-size: .75rem; }
 .wh-walk-menu-actions [data-walk-action="resume"] { background: #27665b; border-color: #7ce5cb; }
-.wh-walk-root:fullscreen .wh-walk-inspector { display: none; }
-.wh-walk-root:fullscreen [data-walk-action="details"] { display: none; }
-.wh-walk-root:fullscreen.is-walk-paused:not(.is-interacting)::after { content: ''; position: absolute; inset: 0; z-index: 8; background: #071017a8; backdrop-filter: blur(3px); pointer-events: none; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-inspector { display: none; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) [data-walk-action="details"] { display: none; }
+.wh-walk-root:is(:fullscreen, .is-walk-window).is-walk-paused:not(.is-interacting)::after { content: ''; position: absolute; inset: 0; z-index: 8; background: #071017a8; backdrop-filter: blur(3px); pointer-events: none; }
 .wh-walk-root.walk-map-hidden .wh-walk-map-wrap { display: none; }
-.wh-walk-root:fullscreen.is-walk-paused .wh-walk-crosshair { opacity: .25; }
-.wh-walk-root:fullscreen .wh-walk-map-wrap { bottom: 16px; left: 16px; }
-.wh-walk-root:fullscreen.is-interacting .wh-walk-immersive-controls,
-.wh-walk-root:fullscreen.is-interacting .wh-walk-menu { visibility: hidden; }
+.wh-walk-root:is(:fullscreen, .is-walk-window).is-walk-paused .wh-walk-crosshair { opacity: .25; }
+.wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-map-wrap { bottom: 16px; left: 16px; }
+.wh-walk-root:is(:fullscreen, .is-walk-window).is-interacting .wh-walk-immersive-controls,
+.wh-walk-root:is(:fullscreen, .is-walk-window).is-interacting .wh-walk-menu { visibility: hidden; }
 .wh-walk-interact-hint { position: absolute; top: calc(50% + 28px); left: 50%; transform: translateX(-50%); max-width: 80%; padding: 7px 12px; border: 1px solid #8bcbbb; border-radius: 7px; color: #e5fff7; background: #122a2bee; font-size: .8rem; text-align: center; pointer-events: none; }
 .wh-walk-interact-hint[hidden] { display: none; }
 .wh-walk-interaction { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: clamp(8px, 3vw, 36px); background: #071017bd; backdrop-filter: blur(4px); }
@@ -111,15 +111,22 @@
   .wh-walk-root .wh-header p { margin: 5px 0; font-size: .75rem; }
 }
 @media (max-width: 760px) {
-  .wh-walk-root:fullscreen .wh-walk-menu .wh-walk-toolbar { grid-template-columns: minmax(0, 1fr); }
+  .wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-menu .wh-walk-toolbar { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 650px) {
   #warehouse-walk-page { overflow: auto; }
   .wh-walk-root { height: auto; min-height: 100%; overflow: visible; }
   .wh-walk-main { grid-template-columns: minmax(0, 1fr); }
   .wh-walk-menu .wh-walk-toolbar { max-height: 45dvh; }
-  .wh-walk-root:fullscreen .wh-walk-menu .wh-walk-toolbar { max-height: none; }
+  .wh-walk-root:is(:fullscreen, .is-walk-window) .wh-walk-menu .wh-walk-toolbar { max-height: none; }
   .wh-walk-main .wh-walk-body { min-height: 350px; }
   .wh-walk-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 420px) { .wh-walk-metrics { grid-template-columns: minmax(0, 1fr); } }
+
+/* The dedicated Edge app window owns its whole client area without browser fullscreen. */
+html:has(.walk-window-document), .walk-window-document { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; }
+.walk-window-document { display: block; background: #0d151c; color: #d8eeec; }
+.walk-window-document #walk-window-root { width: 100%; height: 100dvh; max-width: none; margin: 0; padding: 0; }
+.walk-window-status { display: grid; place-content: center; min-height: 100dvh; padding: 24px; text-align: center; color: #d8eeec; background: #0d151c; }
+.walk-window-status button { padding: 10px 18px; color: #d8eeec; border: 1px solid #56766f; border-radius: 6px; background: #203c3a; cursor: pointer; }

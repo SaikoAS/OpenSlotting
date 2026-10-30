@@ -1670,6 +1670,7 @@
   let warehouseEditor = null;
   let warehouseAnalysis = null;
   let warehouseWalk = null;
+  let warehouseWalkWindow = null;
   let importProfilePanel = null;
   let importManager = null;
   let coverageCalendar = null;
@@ -2219,6 +2220,7 @@
   }
 
   function renderWorkspaceControls() {
+    if(typeof warehouseWalkWindow!=='undefined'&&warehouseWalkWindow)warehouseWalkWindow.checkWorkspace();
     renderWorkspaceIdentity();
     setText(elements.mainMenuWorkspaceName, state.activeWorkspace ? '· ' + state.activeWorkspace.name : '');
     document.body.classList.toggle('workspace-picker-mode', !state.activeWorkspace || state.activePageTarget === 'workspace-panel');
@@ -8844,9 +8846,24 @@
     getWorkspaceId: function () { return state.activeWorkspace ? state.activeWorkspace.id : null; },
     getLanguage: function () { return state.language; }
   });
+  warehouseWalkWindow = window.OpenSlottingWalkWindowSession.createHost({
+    getWorkspaceId: function () { return state.activeWorkspace && state.activeWorkspace.id; },
+    getSnapshot: function (view) { return window.OpenSlottingWalkWindowSession.snapshot({
+      workspaceId: state.activeWorkspace && state.activeWorkspace.id, language: state.language,
+      layout: state.warehouseLayout, registry: state.articleRegistry,
+      articles: state.analysis ? state.analysis.articles : [], comparison: state.comparison,
+      customFields: state.customFields, preferences: state.walkPreferences
+    }, view, warehouseModel); },
+    savePreferences: async function (value) {
+      await saveWarehouseWalkPreferences(value);
+      if(warehouseWalk)warehouseWalk.refreshPreferences();
+    }
+  });
+  window.addEventListener('pagehide', function () { warehouseWalkWindow.close(); });
   warehouseWalk = window.OpenSlottingWarehouseWalk.create({
     root: document.getElementById('warehouse-walk-root'), model: warehouseModel,
     getPreferences: function () { return state.walkPreferences; }, savePreferences: saveWarehouseWalkPreferences,
+    startWindow: function (view) { return warehouseWalkWindow.start(view); },
     getLayout: function () { return state.warehouseLayout; },
     getRegistry: function () { return state.articleRegistry; },
     getArticles: function () { return state.analysis ? state.analysis.articles : []; },

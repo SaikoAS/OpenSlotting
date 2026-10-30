@@ -43,9 +43,17 @@ Detection does not change calculations, storage or backup semantics.
 
 Python serves an explicit interface-file allowlist; it has no upload, database
 or business-calculation endpoint. Source CSVs, backups, repository files,
-documentation and scripts are excluded. Browser Content Security Policy blocks
-application connection requests with `connect-src 'none'`, while allowing
+documentation and scripts are excluded. Browser Content Security Policy permits
+connections only to the fixed same-origin loopback `/walk-window` control path, while allowing
 bundled same-origin module workers, styles and rendering.
+
+The Windows walk launcher accepts only an opaque session ID at that guarded
+control route, then starts a fixed bundled PowerShell helper and maximized Edge
+app window. Business data stays in a same-origin/profile BroadcastChannel. The
+viewer receives a read-only layout/matched-article snapshot without imports,
+normalized order rows or workspace storage access. See
+[Warehouse walk](warehouse-walk.md) and [Security](../SECURITY.md) for refresh,
+lifecycle, profile requirements and launch protections.
 
 The worker entrypoint is `src/workers/workspace-worker.mjs`. A sequential session
 reuses one worker, tags responses with a task ID, terminates cancelled/failed

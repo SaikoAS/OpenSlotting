@@ -17,12 +17,18 @@ test('release version is defined centrally for the UI and package', () => {
 });
 
 test('browser runtime has no remote assets or data transmission', () => {
-  const runtimeFiles = ['index.html', 'app.css', 'terminal-theme.css', 'warehouse-editor.css', 'runtime.js', 'app.js', 'terminal.js', 'warehouse-webgl.js', 'warehouse-scene.js', 'warehouse-editor.js', 'warehouse-analysis.js', 'warehouse-walk-model.js', 'warehouse-walk-renderer.js', 'warehouse-walk.js', 'warehouse-walk.css', 'warehouse.js', 'encoding.js', 'csv.js', 'periods.js', 'workspace.js', 'storage.js', 'src/application/workspace-preparation.js', 'src/application/worker-session.js', 'src/application/workspace-archive.js', 'src/ui/shared/windowed-dom.js', 'src/workers/workspace-worker.mjs', 'src/application/import-profile-batch.js', 'src/application/linked-sources.js', 'src/ui/import-manager.js', 'src/ui/import-profile-panel.js', 'src/ui/coverage-calendar.js'];
+  const runtimeFiles = ['index.html', 'app.css', 'terminal-theme.css', 'warehouse-editor.css', 'runtime.js', 'app.js', 'terminal.js', 'warehouse-webgl.js', 'warehouse-scene.js', 'warehouse-editor.js', 'warehouse-analysis.js', 'warehouse-walk-model.js', 'warehouse-walk-renderer.js', 'warehouse-walk.js', 'warehouse-walk.css', 'warehouse-walk-window.html', 'warehouse-walk-window.js', 'src/application/walk-window-session.js', 'warehouse.js', 'encoding.js', 'csv.js', 'periods.js', 'workspace.js', 'storage.js', 'src/application/workspace-preparation.js', 'src/application/worker-session.js', 'src/application/workspace-archive.js', 'src/ui/shared/windowed-dom.js', 'src/workers/workspace-worker.mjs', 'src/application/import-profile-batch.js', 'src/application/linked-sources.js', 'src/ui/import-manager.js', 'src/ui/import-profile-panel.js', 'src/ui/coverage-calendar.js'];
   const forbiddenPattern = /https?:\/\/|\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b/;
 
   runtimeFiles.forEach((fileName) => {
     const source = fs.readFileSync(path.join(__dirname, '..', fileName), 'utf8');
-    assert.doesNotMatch(source, forbiddenPattern, fileName);
+    // The sole HTTP control channel carries an opaque ID to a fixed loopback path.
+    // Continue rejecting every other connection API/URL in every runtime asset.
+    if(fileName==='src/application/walk-window-session.js'){
+      const fixedCalls=source.match(/scope\.fetch\('\/walk-window',/g)||[];
+      assert.equal(fixedCalls.length,2);
+      assert.doesNotMatch(source.replaceAll("scope.fetch('/walk-window',",'launchControl('),forbiddenPattern,fileName);
+    }else assert.doesNotMatch(source, forbiddenPattern, fileName);
   });
 });
 
@@ -32,7 +38,7 @@ test('persistent workspace runtime uses IndexedDB without localStorage payloads'
   const storageSource = fs.readFileSync(path.join(__dirname, '..', 'storage.js'), 'utf8');
   const workspaceSource = fs.readFileSync(path.join(__dirname, '..', 'workspace.js'), 'utf8');
 
-  assert.match(indexSource, /<script src="runtime\.js"><\/script>\s*<script src="encoding\.js"><\/script>\s*<script src="csv\.js"><\/script>\s*<script src="periods\.js"><\/script>\s*<script src="warehouse\.js"><\/script>\s*<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="terminal\.js"><\/script>\s*<script src="warehouse-webgl\.js"><\/script>\s*<script src="warehouse-scene\.js"><\/script>\s*<script src="warehouse-editor\.js"><\/script>\s*<script src="warehouse-analysis\.js"><\/script>\s*<script src="warehouse-walk-model\.js"><\/script>\s*<script src="warehouse-walk-renderer\.js"><\/script>\s*<script src="warehouse-walk\.js"><\/script>\s*<script src="src\/application\/workspace-preparation\.js"><\/script>\s*<script src="src\/application\/worker-session\.js"><\/script>\s*<script src="src\/ui\/shared\/windowed-dom\.js"><\/script>\s*<script src="src\/application\/import-profile-batch\.js"><\/script>\s*<script src="src\/application\/linked-sources\.js"><\/script>\s*<script src="src\/ui\/import-manager\.js"><\/script>\s*<script src="src\/ui\/import-profile-panel\.js"><\/script>\s*<script src="src\/ui\/coverage-calendar\.js"><\/script>\s*<script src="src\/application\/workspace-archive\.js"><\/script>\s*<script src="app\.js"><\/script>/);
+  assert.match(indexSource, /<script src="runtime\.js"><\/script>\s*<script src="encoding\.js"><\/script>\s*<script src="csv\.js"><\/script>\s*<script src="periods\.js"><\/script>\s*<script src="warehouse\.js"><\/script>\s*<script src="workspace\.js"><\/script>\s*<script src="storage\.js"><\/script>\s*<script src="terminal\.js"><\/script>\s*<script src="warehouse-webgl\.js"><\/script>\s*<script src="warehouse-scene\.js"><\/script>\s*<script src="warehouse-editor\.js"><\/script>\s*<script src="warehouse-analysis\.js"><\/script>\s*<script src="warehouse-walk-model\.js"><\/script>\s*<script src="warehouse-walk-renderer\.js"><\/script>\s*<script src="warehouse-walk\.js"><\/script>\s*<script src="src\/application\/walk-window-session\.js"><\/script>\s*<script src="src\/application\/workspace-preparation\.js"><\/script>\s*<script src="src\/application\/worker-session\.js"><\/script>\s*<script src="src\/ui\/shared\/windowed-dom\.js"><\/script>\s*<script src="src\/application\/import-profile-batch\.js"><\/script>\s*<script src="src\/application\/linked-sources\.js"><\/script>\s*<script src="src\/ui\/import-manager\.js"><\/script>\s*<script src="src\/ui\/import-profile-panel\.js"><\/script>\s*<script src="src\/ui\/coverage-calendar\.js"><\/script>\s*<script src="src\/application\/workspace-archive\.js"><\/script>\s*<script src="app\.js"><\/script>/);
   assert.match(storageSource, /indexedDb\.open\(databaseName, DATABASE_VERSION\)/);
   assert.match(appSource, /workspaceRepository\.updateWorkspace/);
   assert.match(appSource, /workspaceRepository\.createWorkspace/);
