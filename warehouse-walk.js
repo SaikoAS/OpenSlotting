@@ -4,25 +4,23 @@
 }(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   const TEXT={
-    de:{startHere:'Hier starten',windowReady:'Rundgang geöffnet. Das Fenster kann mit Alt+Tab gewechselt werden.',windowFailed:'Rundgangfenster konnte nicht verbunden werden. Lokalen Server neu starten und dasselbe Edge-Profil verwenden; alternativ hier starten.',refresh:'Datenstand aktualisieren',refreshed:'Datenstand aktualisiert. Weiter setzt den Rundgang fort.',closeWindow:'Rundgang schließen',windowIntro:'Bewegung und Sichtfeld einstellen, einen Startpunkt wählen und den Rundgang im eigenen Fenster starten.',start:'Rundgang starten',setup:'Rundgang vorbereiten',menu:'Rundgangmenü',menuHint:'Tab: Menü öffnen · M: Menü öffnen/schließen · Weiter: Rundgang fortsetzen',setupHint:'Bewegung und Sichtfeld einstellen, einen Startpunkt auf der Minikarte wählen und den Rundgang im Vollbild starten.',motionSettings:'Bewegung',viewSettings:'Sicht & Darstellung',navigationSettings:'Startpunkt & Stellplätze',windowed:'Im Fenster starten',backToSetup:'Zur Vorbereitung',interact:'Interagieren',noTarget:'Kein erreichbarer Stellplatz im Fadenkreuz (max. 6 m).',articleDetails:'Artikel am Stellplatz',articleOutside:'Artikelansicht öffnen (Rundgang verlassen)',backToWalk:'Zurück zum Rundgang',closeDetails:'Details schließen',chooseArticle:'Artikel auswählen',overview:'Kennzahlen',master:'Stammdaten',periods:'Periodenvergleich',orders:'Aufträge',customers:'Kunden',sources:'Quelldateien',allData:'Alle geprüften Daten · aktuelle Artikelzuordnung',masterName:'Artikelbezeichnung',currentLocation:'Aktueller Stellplatz',unit:'Mengeneinheit',pack:'Menge pro Verkaufseinheit',vat:'Steuersatz',evidence:'Quellnachweise',noComparison:'Noch kein Periodenvergleich berechnet.',mode:'Bewegung',walk:'Gehen',fly:'Freiflug (ohne Kollision)',jump:'Springen',crouch:'Ducken',standing:'Stehend',crouched:'Geduckt',standBlocked:'Aufrichten blockiert',heightView:'Sichthöhe',flightHint:'Freiflug ohne Kollision · WASD: in Blickrichtung · Leertaste: steigen · C: sinken · Maus: umsehen · E: interagieren · Tab: Menü · Esc: pausieren',walkHint:'WASD: gehen · Leertaste: springen · C halten: ducken · Maus: umsehen · E: interagieren · Tab: Menü · Esc: pausieren',fov:'Sichtfeld (vertikal)',fovReset:'Sichtfeld zurücksetzen',fovFailed:'Sichtfeld konnte nicht gespeichert werden. Der gespeicherte Wert wurde wiederhergestellt.',dragResume:'Weiter ohne Mausblick',fullscreen:'Vollbild starten',exitFullscreen:'Vollbild verlassen',resume:'Weiter mit Mausblick',pause:'Pause / Bedienen',controls:'Bedienelemente',toggleMap:'Minikarte',fullscreenFailed:'Vollbild konnte nicht gestartet werden. Erneut versuchen oder ausdrücklich im Fenster starten.',immersiveHint:'WASD: gehen · Maus: umsehen · Klick: Stellplatz wählen · Tab: Menü · Esc: pausieren',title:'Lager-Rundgang',intro:'Lager aus Augenhöhe erkunden und modellierte Stellplätze auswerten.',search:'Stellplatzcode suchen',find:'Finden',go:'Vor Stellplatz stellen',reset:'Startposition',look:'Mausblick aktivieren',info:'Details ein-/ausblenden',
+    de:{startHere:'Hier starten',windowReady:'Rundgang geöffnet. Das Fenster kann mit Alt+Tab gewechselt werden.',windowFailed:'Rundgangfenster konnte nicht verbunden werden. Lokalen Server neu starten und dasselbe Edge-Profil verwenden; alternativ hier starten.',refresh:'Datenstand aktualisieren',refreshed:'Datenstand aktualisiert. Weiter setzt den Rundgang fort.',closeWindow:'Rundgang schließen',windowIntro:'Bewegung und Sichtfeld einstellen, einen Startpunkt wählen und den Rundgang im eigenen Fenster starten.',start:'Rundgang starten',setup:'Rundgang vorbereiten',menu:'Rundgangmenü',menuHint:'Tab: Menü öffnen · M: Menü öffnen/schließen · Weiter: Rundgang fortsetzen',setupHint:'Bewegung und Sichtfeld einstellen, einen Startpunkt auf der Minikarte wählen und den Rundgang im Vollbild starten.',motionSettings:'Bewegung',viewSettings:'Sicht & Darstellung',navigationSettings:'Startpunkt & Stellplätze',windowed:'Im Fenster starten',backToSetup:'Zur Vorbereitung',interact:'Interagieren',noTarget:'Kein erreichbarer Stellplatz im Fadenkreuz (max. 6 m).',articleDetails:'Artikel am Stellplatz',articleOutside:'Artikelansicht öffnen (Rundgang verlassen)',backToWalk:'Zurück zum Rundgang',closeDetails:'Details schließen',chooseArticle:'Artikel auswählen',overview:'Kennzahlen',master:'Stammdaten',periods:'Periodenvergleich',orders:'Aufträge',customers:'Kunden',sources:'Quelldateien',allData:'Alle geprüften Daten · aktuelle Artikelzuordnung',masterName:'Artikelbezeichnung',currentLocation:'Aktueller Stellplatz',unit:'Mengeneinheit',pack:'Menge pro Verkaufseinheit',vat:'Steuersatz',evidence:'Quellnachweise',noComparison:'Noch kein Periodenvergleich berechnet.',mode:'Bewegung',walk:'Gehen',fly:'Freiflug (ohne Kollision)',jump:'Springen',crouch:'Ducken',standing:'Stehend',crouched:'Geduckt',standBlocked:'Aufrichten blockiert',heightView:'Sichthöhe',flightHint:'Freiflug ohne Kollision · WASD: in Blickrichtung · Leertaste: steigen · C: sinken · Maus: umsehen · E: interagieren · Tab: Menü · Esc: pausieren',walkHint:'WASD: gehen · Leertaste: springen · C halten: ducken · Maus: umsehen · E: interagieren · Tab: Menü · Esc: pausieren',fov:'Sichtfeld (vertikal)',fovReset:'Sichtfeld zurücksetzen',fovFailed:'Sichtfeld konnte nicht gespeichert werden. Der gespeicherte Wert wurde wiederhergestellt.',fullscreen:'Vollbild starten',exitFullscreen:'Vollbild verlassen',resume:'Weiter mit Mausblick',pause:'Pause / Bedienen',controls:'Bedienelemente',toggleMap:'Minikarte',fullscreenFailed:'Vollbild konnte nicht gestartet werden. Erneut versuchen oder ausdrücklich im Fenster starten.',immersiveHint:'WASD: gehen · Maus: umsehen · Klick: Stellplatz wählen · Tab: Menü · Esc: pausieren',title:'Lager-Rundgang',intro:'Lager aus Augenhöhe erkunden und modellierte Stellplätze auswerten.',search:'Stellplatzcode suchen',find:'Finden',go:'Vor Stellplatz stellen',reset:'Startposition',look:'Mausblick aktivieren',info:'Details ein-/ausblenden',
       eye:'Augenhöhe (mm)',speed:'Geschwindigkeit (m/s)',slow:'Langsam',normal:'Normal',fast:'Schnell',map:'Minikarte · Startposition anklicken',view:'Lager aus Augenhöhe',
-      hint:'Ansicht anklicken, dann steuern. Maus ziehen zum Umsehen. Esc pausiert. Auf der Minikarte eine freie Startposition wählen.',
       colors:'Farben',assignments:'Zuordnung',usage:'Nutzung',demand:'Nachfrage',select:'Stellplatz anklicken oder exakten Code suchen.',noCode:'Ohne Code',none:'Keine aktuelle Artikelzuordnung.',
       basis:'Aktuelle Artikelzuordnung ist kein Bestandsnachweis. Nachfrage bezieht sich auf die aktuell zugeordneten Artikel in den gesamten geprüften Daten, nicht auf historische Stellplatzbesuche.',
       lines:'Auftragszeilen',quantity:'Menge',days:'Aktive Tage',article:'Artikel öffnen',notFound:'Kein Stellplatz mit genau diesem Code gefunden.',blocked:'Hier ist kein freier Standpunkt erreichbar.',
       unavailable:'WebGL2 ist nicht verfügbar. Suche, Minikarte und Stellplatzdetails bleiben nutzbar.',noLayout:'Noch kein Lager modelliert. Zuerst im 3D-Editor ein Regal anlegen.',
       unassigned:'Nicht zugewiesen',picking:'Kommissionierung',reserve:'Reserve',bay:'Fach',level:'Ebene',ground:'Boden (Ebene 0)',place:'Stellplatz',size:'Breite × Tiefe',height:'Höhe über Boden',
-      unknown:'Unbekannt',coverage:'Datenabdeckung prüfen',lookFailed:'Mausblick nicht verfügbar. Ziehen mit gedrückter Maustaste bleibt möglich.',paused:'Bewegung pausiert.',position:'Position',matched:'Artikel zugeordnet',coded:'Code ohne Artikelzuordnung',empty:'Ohne Code',
+      unknown:'Unbekannt',coverage:'Datenabdeckung prüfen',lookFailed:'Mausblick nicht verfügbar. Der Rundgang bleibt pausiert. Mausfreigabe erlauben und erneut versuchen.',paused:'Bewegung pausiert.',position:'Position',matched:'Artikel zugeordnet',coded:'Code ohne Artikelzuordnung',empty:'Ohne Code',
       demandLegend:'Auftragszeilen: blau = niedrig, orange = hoch · grau = unbekannt',previous:'A',current:'B',comparison:'Periodenvergleich der aktuell zugeordneten Artikel'},
-    en:{startHere:'Start here',windowReady:'Walk opened. Use Alt+Tab to switch windows.',windowFailed:'Could not connect the walk window. Restart the local server and use the same Edge profile; alternatively start here.',refresh:'Update data snapshot',refreshed:'Data snapshot updated. Resume to continue the walk.',closeWindow:'Close walk',windowIntro:'Adjust movement and field of view, choose a starting point, then start the walk in its own window.',start:'Start walk',setup:'Prepare walk',menu:'Walk menu',menuHint:'Tab: open menu · M: toggle menu · Resume: continue walk',setupHint:'Adjust movement and field of view, choose a starting point on the minimap, then start the fullscreen walk.',motionSettings:'Movement',viewSettings:'View & display',navigationSettings:'Start position & locations',windowed:'Start in window',backToSetup:'Back to setup',interact:'Interact',noTarget:'No reachable location under the crosshair (max. 6 m).',articleDetails:'Articles at location',articleOutside:'Open article view (leave walk)',backToWalk:'Back to walk',closeDetails:'Close details',chooseArticle:'Select article',overview:'Metrics',master:'Master data',periods:'Period comparison',orders:'Orders',customers:'Customers',sources:'Source files',allData:'All validated data · current article assignment',masterName:'Article name',currentLocation:'Current location',unit:'Unit of measure',pack:'Quantity per selling unit',vat:'VAT rate',evidence:'Source evidence',noComparison:'No period comparison has been calculated.',mode:'Movement',walk:'Walk',fly:'Free flight (no collision)',jump:'Jump',crouch:'Crouch',standing:'Standing',crouched:'Crouched',standBlocked:'Standing blocked',heightView:'View height',flightHint:'Free flight without collision · WASD: follow view · Space: ascend · C: descend · Mouse: look · E: interact · Tab: menu · Esc: pause',walkHint:'WASD: walk · Space: jump · Hold C: crouch · Mouse: look · E: interact · Tab: menu · Esc: pause',fov:'Field of view (vertical)',fovReset:'Reset field of view',fovFailed:'Field of view could not be saved. The saved value was restored.',dragResume:'Resume without mouse look',fullscreen:'Enter fullscreen',exitFullscreen:'Exit fullscreen',resume:'Resume mouse look',pause:'Pause / interact',controls:'Controls',toggleMap:'Minimap',fullscreenFailed:'Fullscreen is unavailable. Try again or explicitly start in the window.',immersiveHint:'WASD: walk · Mouse: look · Click: select location · Tab: menu · Esc: pause',title:'Warehouse walk',intro:'Explore the warehouse at eye level and inspect modeled locations.',search:'Find location code',find:'Find',go:'Stand in front of location',reset:'Start position',look:'Enable mouse look',info:'Show/hide details',
+    en:{startHere:'Start here',windowReady:'Walk opened. Use Alt+Tab to switch windows.',windowFailed:'Could not connect the walk window. Restart the local server and use the same Edge profile; alternatively start here.',refresh:'Update data snapshot',refreshed:'Data snapshot updated. Resume to continue the walk.',closeWindow:'Close walk',windowIntro:'Adjust movement and field of view, choose a starting point, then start the walk in its own window.',start:'Start walk',setup:'Prepare walk',menu:'Walk menu',menuHint:'Tab: open menu · M: toggle menu · Resume: continue walk',setupHint:'Adjust movement and field of view, choose a starting point on the minimap, then start the fullscreen walk.',motionSettings:'Movement',viewSettings:'View & display',navigationSettings:'Start position & locations',windowed:'Start in window',backToSetup:'Back to setup',interact:'Interact',noTarget:'No reachable location under the crosshair (max. 6 m).',articleDetails:'Articles at location',articleOutside:'Open article view (leave walk)',backToWalk:'Back to walk',closeDetails:'Close details',chooseArticle:'Select article',overview:'Metrics',master:'Master data',periods:'Period comparison',orders:'Orders',customers:'Customers',sources:'Source files',allData:'All validated data · current article assignment',masterName:'Article name',currentLocation:'Current location',unit:'Unit of measure',pack:'Quantity per selling unit',vat:'VAT rate',evidence:'Source evidence',noComparison:'No period comparison has been calculated.',mode:'Movement',walk:'Walk',fly:'Free flight (no collision)',jump:'Jump',crouch:'Crouch',standing:'Standing',crouched:'Crouched',standBlocked:'Standing blocked',heightView:'View height',flightHint:'Free flight without collision · WASD: follow view · Space: ascend · C: descend · Mouse: look · E: interact · Tab: menu · Esc: pause',walkHint:'WASD: walk · Space: jump · Hold C: crouch · Mouse: look · E: interact · Tab: menu · Esc: pause',fov:'Field of view (vertical)',fovReset:'Reset field of view',fovFailed:'Field of view could not be saved. The saved value was restored.',fullscreen:'Enter fullscreen',exitFullscreen:'Exit fullscreen',resume:'Resume mouse look',pause:'Pause / interact',controls:'Controls',toggleMap:'Minimap',fullscreenFailed:'Fullscreen is unavailable. Try again or explicitly start in the window.',immersiveHint:'WASD: walk · Mouse: look · Click: select location · Tab: menu · Esc: pause',title:'Warehouse walk',intro:'Explore the warehouse at eye level and inspect modeled locations.',search:'Find location code',find:'Find',go:'Stand in front of location',reset:'Start position',look:'Enable mouse look',info:'Show/hide details',
       eye:'Eye height (mm)',speed:'Speed (m/s)',slow:'Slow',normal:'Normal',fast:'Fast',map:'Minimap · click a start position',view:'Warehouse at eye level',
-      hint:'Click the view to use movement keys. Drag to look around. Esc pauses. Choose a free starting point on the minimap.',
       colors:'Colors',assignments:'Assignments',usage:'Usage',demand:'Demand',select:'Click a location or search its exact code.',noCode:'No code',none:'No current article assignment.',
       basis:'Current article assignment is not evidence of stock. Demand describes the currently assigned articles across all validated data, not historical location visits.',
       lines:'Order lines',quantity:'Quantity',days:'Active days',article:'Open article',notFound:'No location has this exact code.',blocked:'No free standing position is available here.',
       unavailable:'WebGL2 is unavailable. Search, minimap and location details remain available.',noLayout:'No warehouse modeled yet. First create a rack in the warehouse editor.',
       unassigned:'Unassigned',picking:'Picking',reserve:'Reserve',bay:'Bay',level:'Level',ground:'Ground (level 0)',place:'Location',size:'Width × depth',height:'Height above floor',
-      unknown:'Unknown',coverage:'Check data coverage',lookFailed:'Mouse look is unavailable. Drag with the mouse button to look around.',paused:'Movement paused.',position:'Position',matched:'Article assigned',coded:'Code without article assignment',empty:'No code',
+      unknown:'Unknown',coverage:'Check data coverage',lookFailed:'Mouse look is unavailable. The walk remains paused. Allow mouse capture and try again.',paused:'Movement paused.',position:'Position',matched:'Article assigned',coded:'Code without article assignment',empty:'No code',
       demandLegend:'Order lines: blue = low, orange = high · gray = unknown',previous:'A',current:'B',comparison:'Period comparison of currently assigned articles'}
   };
   function esc(value){return String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
@@ -77,7 +75,7 @@
     let motion=walk.createMotion(),standingEye=1.7,walkSpeed=1.4,flySpeed=5,crouchToggle=false,jumpQueued=false,simulationRunning=false;
     const keys=new Set();
     let savingFov=false,workspaceRevision=0;
-    let immersiveRequest=0,immersivePaused=true,showControls=false,mapVisible=true,fullscreenPending=false,mouseLookUnavailable=false;
+    let immersiveRequest=0,immersivePaused=true,showControls=false,mapVisible=true,fullscreenPending=false;
     let mouseRequest=0,inlineFallback=false,fallbackOffered=false;
     const renderer=window.OpenSlottingWarehouseWalkRenderer.create(canvas,walk,{
       lost:function(){if(disposed)return;pauseImmersive();message=text().unavailable;labelTime=-Infinity;
@@ -186,8 +184,7 @@
     async function resumeMovement(){
       if(!immersivePaused){pauseImmersive();return;}
       if(!fullscreen()&&!inlineFallback)return;
-      if(mouseLookUnavailable){canvas.focus({preventScroll:true});immersivePaused=false;simulationRunning=true;showControls=false;syncImmersive();}
-      else await mouseLook();
+      await mouseLook();
     }
     function syncMotionControls(preserveNumber){
       const mode=root.querySelector('[data-walk-mode]'),eye=root.querySelector('[data-walk-eye]');
@@ -235,7 +232,7 @@
       if(start)start.disabled=fullscreenPending||savingFov||!options.startWindow&&!root.requestFullscreen||!renderer||!renderer.available()||!info||!info.layout.objects.length;
       const fallback=root.querySelector('[data-walk-action="windowed"]');
       if(fallback){fallback.hidden=!fallbackOffered;fallback.disabled=savingFov||!renderer||!renderer.available()||!info||!info.layout.objects.length;}
-      const resume=root.querySelector('[data-walk-action="resume"]');if(resume)resume.textContent=locked||fullscreen()&&!immersivePaused?text().pause:mouseLookUnavailable?text().dragResume:text().resume;
+      const resume=root.querySelector('[data-walk-action="resume"]');if(resume)resume.textContent=locked||fullscreen()&&!immersivePaused?text().pause:text().resume;
       const controls=root.querySelector('[data-walk-action="controls"]');if(controls)controls.setAttribute('aria-expanded',String(showControls));
       const mapToggle=root.querySelector('[data-walk-action="map"]');if(mapToggle)mapToggle.setAttribute('aria-pressed',String(mapVisible));
       syncMotionControls();
@@ -259,10 +256,10 @@
     }
     function mouseLookFailed(token){
       if(token!==immersiveRequest||!visible())return;
-      mouseLookUnavailable=true;immersivePaused=true;showControls=true;tell(text().lookFailed);syncImmersive();
+      stop();immersivePaused=true;showControls=true;tell(text().lookFailed);syncImmersive();
     }
     function requestMouseLook(token){
-      mouseRequest=token;mouseLookUnavailable=false;
+      mouseRequest=token;
       try {
         canvas.focus({preventScroll:true});
         return Promise.resolve(canvas.requestPointerLock()).then(function(){
@@ -436,7 +433,7 @@
       request=null;if(!visible()){stop();return;}const delta=lastTime?Math.min(.05,(time-lastTime)/1000):.016;lastTime=time;
       const forward=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0);
       const side=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0);
-      if(simulationRunning&&!interactionSlotId)walk.stepMotion(scene,camera,motion,{forward,side,vertical:(keys.has('Space')?1:0)-(keys.has('KeyC')?1:0),
+      if(simulationRunning&&document.pointerLockElement===canvas&&!interactionSlotId)walk.stepMotion(scene,camera,motion,{forward,side,vertical:(keys.has('Space')?1:0)-(keys.has('KeyC')?1:0),
         crouch:crouchToggle||keys.has('KeyC'),jump:jumpQueued},delta,speed,standingEye);
       jumpQueued=false;paint(time);if(simulationRunning&&(keys.size||motion.mode==='walk'&&!motion.grounded))schedule();else lastTime=0;
     }
@@ -446,7 +443,7 @@
       restoreBackground();
       const id=options.getWorkspaceId(),changed=id!==workspaceId;workspaceId=id;stop();
       if(changed||!savingFov)camera.fov=savedFov();
-      if(changed){workspaceRevision++;leaveImmersive();fallbackOffered=false;mouseLookUnavailable=false;mapVisible=true;selectedId=null;search='';message='';camera.eye=standingEye=1.7;motion=walk.createMotion();walkSpeed=speed=1.4;flySpeed=5;crouchToggle=false;colorMode='assignments';details=true;}
+      if(changed){workspaceRevision++;leaveImmersive();fallbackOffered=false;mapVisible=true;selectedId=null;search='';message='';camera.eye=standingEye=1.7;motion=walk.createMotion();walkSpeed=speed=1.4;flySpeed=5;crouchToggle=false;colorMode='assignments';details=true;}
       if(changed&&options.initialView&&['assignments','usage','demand'].includes(options.initialView.colorMode))colorMode=options.initialView.colorMode;
       refresh();if(changed||motion.mode==='walk'&&!walk.canOccupy(scene,camera,motion.feet,camera.eye-motion.feet))resetPosition();const t=text();
       if(changed&&options.initialView)applyInitialView(options.initialView);
@@ -504,7 +501,7 @@
       else if(action==='interaction-close'){closeInteraction(false);openMenu(true);}
       else if(action==='find')find();else if(action==='go')standAtSelection();else if(action==='reset'){stop();resetPosition();syncMotionControls();}
       else if((action==='jump'||action==='crouch')&&motion.mode==='walk'&&renderer&&renderer.available()){
-        if(immersivePaused||!fullscreen()&&!inlineFallback){tell(text().paused);return;}
+        if(immersivePaused||document.pointerLockElement!==canvas||!fullscreen()&&!inlineFallback){tell(text().paused);return;}
         if(action==='jump')jumpQueued=true;else crouchToggle=!crouchToggle;
         simulationRunning=true;canvas.focus({preventScroll:true});syncMotionControls();schedule();
       }
@@ -515,7 +512,7 @@
         try{await options.refreshSnapshot();tell(text().refreshed);}catch(_){tell(text().windowFailed);}}
       else if(action==='fullscreen')await startWalk();
       else if(action==='windowed'&&!savingFov&&fallbackOffered&&renderer&&renderer.available()&&info.layout.objects.length){
-        inlineFallback=true;mouseLookUnavailable=true;immersivePaused=true;await resumeMovement();
+        inlineFallback=true;immersivePaused=true;await resumeMovement();
       }
       else if(action==='setup')leaveImmersive();
       else if(action==='exit-fullscreen'){if(options.closeWindow)options.closeWindow();else leaveImmersive();}
@@ -535,7 +532,7 @@
         if(!immersivePaused){event.preventDefault();openMenu(true);return;}
         trapMenuFocus(event);return;
       }
-      if(event.target!==canvas||event.ctrlKey||event.altKey||event.metaKey||!renderer||!renderer.available()||immersivePaused||!fullscreen()&&!inlineFallback)return;
+      if(document.pointerLockElement!==canvas||event.target!==canvas||event.ctrlKey||event.altKey||event.metaKey||!renderer||!renderer.available()||immersivePaused||!fullscreen()&&!inlineFallback)return;
       if(event.code==='KeyE'){event.preventDefault();if(!event.repeat)interact();return;}
       if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','KeyC'].includes(event.code)){
         event.preventDefault();if(event.code==='Space'&&!event.repeat&&!keys.has('Space')&&motion.mode==='walk')jumpQueued=true;
@@ -557,11 +554,12 @@
       syncImmersive();
     });
     canvas.addEventListener('blur',stop);
-    canvas.addEventListener('pointerdown',function(event){if(interactionSlotId||fullscreen()&&immersivePaused||event.button!==0||!renderer||!renderer.available())return;event.preventDefault();canvas.focus({preventScroll:true});simulationRunning=!immersivePaused;schedule();drag={x:event.clientX,y:event.clientY,startX:event.clientX,startY:event.clientY,moved:false};canvas.setPointerCapture(event.pointerId);});
+    canvas.addEventListener('pointerdown',function(event){if(interactionSlotId||fullscreen()&&immersivePaused||event.button!==0||!renderer||!renderer.available())return;event.preventDefault();canvas.focus({preventScroll:true});simulationRunning=!immersivePaused;schedule();drag={startX:event.clientX,startY:event.clientY,moved:false};canvas.setPointerCapture(event.pointerId);});
     canvas.addEventListener('pointermove',function(event){if(!visible()||interactionSlotId||fullscreen()&&immersivePaused)return;
       const locked=document.pointerLockElement===canvas;if(!locked&&!drag)return;
-      const dx=locked?event.movementX:event.clientX-drag.x,dy=locked?event.movementY:event.clientY-drag.y;
-      if(drag){if(Math.abs(event.clientX-drag.startX)+Math.abs(event.clientY-drag.startY)>4)drag.moved=true;drag.x=event.clientX;drag.y=event.clientY;}
+      const dx=event.movementX,dy=event.movementY;
+      if(drag){if(Math.abs(event.clientX-drag.startX)+Math.abs(event.clientY-drag.startY)>4)drag.moved=true;}
+      if(!locked)return;
       camera.yaw=(camera.yaw-dx*.004)%(Math.PI*2);camera.pitch=Math.max(-1.35,Math.min(1.35,camera.pitch+dy*.004));schedule();
     });
     canvas.addEventListener('pointerup',function(event){const locked=document.pointerLockElement===canvas;if(!interactionSlotId&&!locked&&drag&&!drag.moved){const rect=canvas.getBoundingClientRect(),direction=walk.ray(camera,(event.clientX-rect.left)/rect.width*2-1,1-(event.clientY-rect.top)/rect.height*2,rect.width/rect.height),hit=walk.raycast(scene,origin(),direction);

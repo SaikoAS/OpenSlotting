@@ -367,7 +367,8 @@ test('fullscreen denial offers an explicit window fallback; missing geometry and
   assert.equal(h.nodes.get('[data-walk-action="windowed"]').hidden,false);
   h.denyLock=true;
   await h.action('windowed');assert.equal(h.root.classList.contains('is-walk-windowed'),true);
-  assert.equal(h.root.classList.contains('is-walk-paused'),false);assert.equal(h.document.pointerLockElement,null);
+  assert.equal(h.root.classList.contains('is-walk-paused'),true);assert.equal(h.document.pointerLockElement,null);
+  h.denyLock=false;await h.action('windowed');assert.equal(h.document.pointerLockElement,h.canvas);
   await h.action('setup');assert.equal(h.root.classList.contains('is-walk-windowed'),false);
   const empty=harness(model.createLayout(),true,true);assert.equal(empty.nodes.get('[data-walk-action="fullscreen"]').disabled,true);
   await empty.action('fullscreen');assert.deepEqual(empty.calls,[]);
@@ -377,15 +378,34 @@ test('fullscreen denial offers an explicit window fallback; missing geometry and
   assert.equal(saving.nodes.get('[data-walk-action="fullscreen"]').disabled,false);
 });
 
-test('fullscreen and pointer-lock denials preserve usable navigation with an explicit drag fallback',async()=>{
+test('mouse-look denial always stays paused; every Resume retries capture instead of enabling drag controls',async()=>{
   const denied=harness(layout(),true,true);denied.denyFullscreen=true;await denied.action('fullscreen');
   assert.notEqual(denied.document.fullscreenElement,denied.root);assert.match(denied.nodes.get('[data-walk-message]').textContent,/Fullscreen is unavailable/);
-  const h=harness(layout(),true,true);h.denyLock=true;await h.action('fullscreen');
-  assert.equal(h.document.fullscreenElement,h.root);assert.equal(h.root.classList.contains('is-walk-paused'),true);
-  assert.match(h.nodes.get('[data-walk-immersive-message]').textContent,/Mouse look is unavailable/);
-  assert.match(h.nodes.get('[data-walk-action="resume"]').textContent,/without mouse look/);
-  await h.action('resume');assert.equal(h.root.classList.contains('is-walk-paused'),false);h.tick(100);h.key('KeyW');h.tick(116);assert.equal(h.frames.size,1);
-  await h.action('resume');assert.equal(h.root.classList.contains('is-walk-paused'),true);
+  for(const options of [{},{standalone:true}]){
+    const h=harness(layout(),true,true,options);h.denyLock=true;
+    await h.action(options.standalone?'resume':'fullscreen');h.tick(100);const pose={...h.camera};
+    assert.equal(h.root.classList.contains('is-walk-paused'),true);
+    assert.match(h.nodes.get('[data-walk-immersive-message]').textContent,/walk remains paused/);
+    assert.equal(h.nodes.get('[data-walk-action="resume"]').textContent,'Resume mouse look');
+    for(let i=0;i<2;i++){
+      const attempts=h.calls.filter(call=>call==='pointerlock').length;
+      await h.action('resume');h.key('KeyW');h.tick(116+i*16);
+      assert.equal(h.calls.filter(call=>call==='pointerlock').length,attempts+1);
+      assert.equal(h.root.classList.contains('is-walk-paused'),true);assert.equal(h.document.pointerLockElement,undefined);
+      assert.deepEqual(h.camera,pose);
+    }
+    h.denyLock=false;await h.action('resume');assert.equal(h.document.pointerLockElement,h.canvas);
+    assert.equal(h.root.classList.contains('is-walk-paused'),false);
+  }
+});
+
+test('unlocked preview drags cannot rotate the view; active mouse look uses relative mouse movement',async()=>{
+  const h=harness(layout(),true,true);h.tick(100);const pose={...h.camera};
+  h.canvas.events.pointerdown({button:0,clientX:10,clientY:10,pointerId:1,preventDefault(){}});
+  h.canvas.events.pointermove({clientX:110,clientY:110,movementX:100,movementY:100});h.tick(116);
+  assert.deepEqual(h.camera,pose);
+  await h.action('fullscreen');h.canvas.events.pointermove({movementX:100,movementY:20});h.tick(132);
+  assert.notEqual(h.camera.yaw,pose.yaw);assert.notEqual(h.camera.pitch,pose.pitch);
 });
 
 test('page leave cancels pending fullscreen and workspace changes release late pointer grants',async()=>{
@@ -485,7 +505,8 @@ test('return from details handles denied mouse lock and cancels late grants afte
   const value=layout(),h=harness(value,true,true);await h.action('fullscreen');h.aim(value.locations[0].id);h.key('KeyE');
   h.denyLock=true;await h.action('interaction-return');assert.equal(h.nodes.get('.wh-walk-interaction').hidden,true);
   assert.equal(h.root.classList.contains('is-walk-paused'),true);assert.match(h.nodes.get('[data-walk-immersive-message]').textContent,/Mouse look is unavailable/);
-  await h.action('resume');assert.equal(h.root.classList.contains('is-walk-paused'),false);
+  await h.action('resume');assert.equal(h.root.classList.contains('is-walk-paused'),true);
+  h.denyLock=false;await h.action('resume');assert.equal(h.document.pointerLockElement,h.canvas);
   const late=harness(value,true,true);await late.action('fullscreen');late.aim(value.locations[0].id);late.key('KeyE');
   late.delayLock=true;const pending=late.action('interaction-return');
   await new Promise(resolve=>setImmediate(resolve));late.active(false);late.grantLock();await pending;
@@ -493,7 +514,7 @@ test('return from details handles denied mouse lock and cancels late grants afte
 });
 
 test('controller jump lands after key release, ignores held-space repeats and crouches with key or button',async()=>{
-  const value=layout(),before=structuredClone(value),h=harness(value);await h.action('windowed');h.tick(100);const worlds=h.worlds;
+  const value=layout(),before=structuredClone(value),h=harness(value,true,true);await h.action('fullscreen');h.tick(100);const worlds=h.worlds;
   h.key('Space');h.tick(116);assert.ok(h.camera.eye>1.7);
   for(let i=2;i<80;i++){h.key('Space');h.tick(100+i*16);}assert.equal(h.camera.eye,1.7,'holding jump never jumps again');
   h.release('Space');h.tick(1400);assert.equal(h.frames.size,0);
@@ -501,12 +522,12 @@ test('controller jump lands after key release, ignores held-space repeats and cr
   await h.action('crouch');h.tick(1448);assert.equal(h.camera.eye,1.02);
   await h.action('crouch');h.tick(1464);assert.equal(h.camera.eye,1.7);
   await h.action('jump');h.tick(1480);assert.ok(h.camera.eye>1.7);
-  h.blur();assert.equal(h.frames.size,0);const paused=h.camera.eye;h.tick(1500);assert.equal(h.camera.eye,paused);
+  h.blur();h.tick(1496);assert.equal(h.frames.size,0);const paused=h.camera.eye;h.tick(1500);assert.equal(h.camera.eye,paused);
   assert.equal(h.worlds,worlds);assert.deepEqual(value,before);
 });
 
 test('controller retains separate detailed speeds per mode and safely returns flight to a free floor position',async()=>{
-  const value=layout(),before=structuredClone(value),h=harness(value);await h.action('windowed');h.tick(100);
+  const value=layout(),before=structuredClone(value),h=harness(value,true,true);await h.action('fullscreen');h.tick(100);
   await h.change('speed',3.7);assert.equal(h.nodes.get('[data-walk-speed-range]').value,'3.7');
   assert.match(h.nodes.get('[data-walk-speed-value]').textContent,/13.3 km\/h/);
   await h.change('mode','fly');assert.equal(h.nodes.get('[data-walk-speed]').value,'5');
@@ -593,10 +614,10 @@ test('read-only controller searches exact codes, exposes assignment metrics and 
 });
 
 test('movement is focus-scoped, stops on blur/page leave, and camera frames do not rebuild geometry',async()=>{
-  const value=layout(),before=structuredClone(value),h=harness(value);await h.action('windowed');h.tick(100);
+  const value=layout(),before=structuredClone(value),h=harness(value,true,true);await h.action('fullscreen');h.tick(100);
   const worlds=h.worlds;h.key('KeyW',{hasAttribute:()=>false});assert.equal(h.frames.size,0);
   h.key('KeyW');h.tick(116);assert.equal(h.frames.size,1);assert.equal(h.worlds,worlds);
-  h.blur();assert.equal(h.frames.size,0);h.key('KeyD');h.active(false);assert.equal(h.frames.size,0);
+  h.blur();h.tick(124);assert.equal(h.frames.size,0);h.key('KeyD');h.active(false);assert.equal(h.frames.size,0);
   h.visible=false;h.tick(140);assert.equal(h.frames.size,0);assert.deepEqual(value,before);
   h.gpu=false;h.gpuCallbacks.lost();assert.match(h.nodes.get('[data-walk-message]').textContent,/WebGL2/);
   assert.equal(h.nodes.get('[data-walk-action="fullscreen"]').disabled,true);
