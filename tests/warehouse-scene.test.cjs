@@ -43,3 +43,17 @@ test('physical decks remain gray and scopes remain pickable without configured l
   assert.equal(boxes.filter((box) => box.slotRef && box.slotRef.slotId).length, 0);
   assert.deepEqual(layout, before);
 });
+
+test('access-side paint can show every rotated rack without changing physical or location geometry',()=>{
+  const objects=[model.createRack('pallet-rack',{bayCount:2,levelCount:2}),model.createRack('shelf-rack',{bayCount:1,levelCount:2}),model.createArea('wall')];
+  objects[0].rotation=37;objects[1].rotation=90;objects[1].x=10000;
+  const value=model.normalizeLayout({...model.createLayout(),objects}),before=structuredClone(value);
+  const plain=scene.buildBoxes(model,value),marked=scene.buildBoxes(model,value,null,{showOrientation:true});
+  assert.deepEqual(marked.filter(b=>b.kind!=='orientation'),plain);assert.deepEqual(value,before);
+  const paint=marked.filter(b=>b.kind==='orientation');assert.equal(paint.length,8);assert.ok(paint.every(b=>b.color==='#ffd78a'));
+  for(const rack of value.objects.filter(o=>model.RACK_TYPES.includes(o.type))){
+    const stripe=paint.find(b=>b.object.id===rack.id),size=model.objectFootprint(rack);
+    assert.equal(stripe.width,size.width);assert.equal(stripe.z,size.depth+5);assert.equal(stripe.object.rotation,rack.rotation);
+  }
+  assert.equal(scene.buildBoxes(model,value,null,{orientationObjectId:value.objects[0].id}).filter(b=>b.kind==='orientation').length,4);
+});

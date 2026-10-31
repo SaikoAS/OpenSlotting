@@ -135,7 +135,7 @@
         const base=JSON.parse(directBase),next=window.OpenSlottingWalkEditor.proposeDirect(model,base,draft.field,draft.value);
         draft.impact=model.layoutImpact(base,next,options.getRegistry());
         draft.collisions=model.findCollisions(next).length;
-        const boxes=window.OpenSlottingWarehouseScene.buildBoxes(model,next,info.matches,{colorMode:colorMode==='usage'?'usage':'structure'});
+        const boxes=window.OpenSlottingWarehouseScene.buildBoxes(model,next,info.matches,{colorMode:colorMode==='usage'?'usage':'structure',showOrientation:true});
         const colors=new Map(Array.from(scene.positions,([id,item])=>[id,item.box.color]));
         boxes.forEach(box=>{if(box.kind==='location'&&colors.has(box.slotRef.slotId))box.color=colors.get(box.slotRef.slotId);});
         previewWorld=walk.createWorld(boxes);
@@ -440,6 +440,7 @@
       const edit=root.querySelector('[data-walk-action="edit-layout"]');if(edit)edit.hidden=workMode!=='editor'||!canEdit();
       ['recipes','objects'].forEach(action=>{const button=root.querySelector('[data-walk-action="'+action+'"]');if(button)button.hidden=workMode!=='editor'||!canEdit();});
       const roleLabel=root.querySelector('[data-walk-work-label]');if(roleLabel)roleLabel.textContent=editText()[workMode];
+      const frontKey=root.querySelector('[data-walk-front-key]');if(frontKey){frontKey.hidden=!info||!info.layout.objects.some(object=>model.RACK_TYPES.includes(object.type));frontKey.textContent=options.getLanguage()==='de'?'↗ Gold = Bedienseite / Regalfront':'↗ Gold = access side / rack front';}
       const controls=root.querySelector('[data-walk-action="controls"]');if(controls)controls.setAttribute('aria-expanded',String(showControls));
       const mapToggle=root.querySelector('[data-walk-action="map"]');if(mapToggle)mapToggle.setAttribute('aria-pressed',String(mapVisible));
       syncMotionControls();
@@ -548,7 +549,7 @@
       info={layout:layout,slots:slots,slotsById:new Map(slots.map(s=>[s.slotId,s])),matches:matches,articles:byArticle,comparison:comparison,
         masters:new Map((registry||[]).map(a=>[a.article_id,a])),customFields:options.getCustomFields?options.getCustomFields():[],
         compared:new Map((comparison&&comparison.articles||[]).map(a=>[a.article_id,a]))};
-      const boxes=window.OpenSlottingWarehouseScene.buildBoxes(model,layout,matches,{colorMode:colorMode==='usage'?'usage':'structure'});
+      const boxes=window.OpenSlottingWarehouseScene.buildBoxes(model,layout,matches,{colorMode:colorMode==='usage'?'usage':'structure',showOrientation:true});
       const demand=new Map();let max=0;
       matches.bySlot.forEach(function(assigned,id){
         const rows=assigned.map(a=>byArticle.get(a.articleId));
@@ -685,7 +686,7 @@
         (options.refreshSnapshot?'<button type="button" data-walk-action="refresh-window">'+esc(t.refresh)+'</button>':'')+'</fieldset></div>'+
         '<footer class="wh-walk-menu-actions"><button type="button" data-walk-action="resume">'+esc(t.resume)+'</button><button type="button" data-walk-action="exit-fullscreen">'+esc(options.standalone?t.closeWindow:t.exitFullscreen)+'</button><p>'+esc(t.menuHint)+'</p><p role="status" data-walk-immersive-message></p></footer></section>'+
         '<div class="wh-walk-body"><div class="wh-walk-viewport"><div class="wh-walk-labels"></div><div class="wh-walk-handles" data-walk-handles hidden></div><div class="wh-walk-direct-status" data-walk-direct-status hidden></div><div class="wh-walk-map-wrap"><small>'+esc(t.map)+'</small></div><span class="wh-walk-crosshair" aria-hidden="true">+</span><span class="wh-walk-interact-hint" data-walk-interact-hint hidden></span></div><aside class="wh-walk-inspector wh-card"></aside></div></div>'+
-        '<div class="wh-walk-immersive-controls" role="group" aria-label="'+esc(t.controls)+'"><span data-walk-work-label></span><button type="button" data-walk-action="controls" aria-expanded="false">'+esc(t.menu)+'</button><small>'+esc(motion.mode==='fly'?t.flightHint:t.walkHint)+'</small><small data-walk-hud-position></small></div>'+
+        '<div class="wh-walk-immersive-controls" role="group" aria-label="'+esc(t.controls)+'"><span data-walk-work-label></span><span class="wh-walk-front-key" data-walk-front-key hidden></span><button type="button" data-walk-action="controls" aria-expanded="false">'+esc(t.menu)+'</button><small>'+esc(motion.mode==='fly'?t.flightHint:t.walkHint)+'</small><small data-walk-hud-position></small></div>'+
         '<div class="wh-walk-footer"><p id="warehouse-walk-hint">'+esc(motion.mode==='fly'?t.flightHint:t.walkHint)+' · '+esc(t.menuHint)+'</p><output data-walk-position></output><p class="wh-legend">'+esc(colorMode==='demand'?t.demandLegend:colorMode==='usage'?[t.unassigned,t.picking,t.reserve].join(' · '):[t.matched,t.coded,t.empty].join(' · '))+'</p><p role="status" aria-live="polite" data-walk-message></p></div>'+
         '<div class="wh-walk-interaction" role="dialog" aria-modal="true" aria-labelledby="warehouse-walk-interaction-title" tabindex="-1" hidden></div>';
       root.insertAdjacentHTML('beforeend','<section class="wh-walk-object-list" data-walk-objects aria-label="'+esc(editText().list)+'" hidden><header><strong>'+esc(editText().list)+'</strong><small data-walk-object-count></small></header><label data-walk-object-controls hidden>'+esc(editText().search)+'<input type="search" data-walk-object-search maxlength="120" value="'+esc(objectSearch)+'"></label><div class="wh-walk-object-items" data-walk-object-items></div><small data-walk-object-hint>'+esc(options.getLanguage()==='de'?'B: Rezepte'+String.fromCharCode(10)+'Tab: Objekte im Men\u00fc ausw\u00e4hlen':'B: Recipes'+String.fromCharCode(10)+'Tab: select objects in menu')+'</small><footer data-walk-object-controls hidden><button type="button" data-walk-action="resume">'+esc(editText().resume)+'</button><button type="button" data-walk-action="objects-close">'+esc(editText().back)+'</button></footer></section>');

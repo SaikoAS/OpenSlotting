@@ -34,7 +34,7 @@
         });
       });
       if (!model.RACK_TYPES.includes(object.type)) return;
-      if (options && options.orientationObjectId === object.id) {
+      if (options && (options.showOrientation === true || options.orientationObjectId === object.id)) {
         const footprint = model.objectFootprint(object), width = footprint.width, depth = footprint.depth, color = '#ffd78a';
         boxes.push({ object: object, x: 0, y: 12, z: depth + 5, width: width, height: 12, depth: 25, kind: 'orientation', color: color });
         boxes.push({ object: object, x: width / 2 - 9, y: 12, z: depth, width: 18, height: 12, depth: 600, kind: 'orientation', color: color });

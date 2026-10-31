@@ -43,6 +43,7 @@
 .wh-walk-root:is(:fullscreen, .is-walk-window).is-interacting .wh-walk-menu { visibility: hidden; }
 .wh-walk-interact-hint { position: absolute; top: calc(50% + 28px); left: 50%; transform: translateX(-50%); max-width: 80%; padding: 7px 12px; border: 1px solid #8bcbbb; border-radius: 7px; color: #e5fff7; background: #122a2bee; font-size: .8rem; text-align: center; pointer-events: none; }
 .wh-walk-interact-hint[hidden] { display: none; }
+.wh-walk-front-key { color: #ffd78a; font-size: .72rem; }
 .wh-walk-handles { position: absolute; inset: 0; z-index: 3; overflow: hidden; pointer-events: none; }
 .wh-walk-handle { position: absolute; display: flex; align-items: center; justify-content: center; width: 240px; height: 30px; padding: 3px 7px; box-sizing: border-box; transform: translate(-50%, -50%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid #78b7af; border-radius: 5px; color: #e8fff8; background: #10272cf2; font-size: 12px; }
 .wh-walk-handle.is-target { border: 2px solid #73ffd1; background: #215548; }

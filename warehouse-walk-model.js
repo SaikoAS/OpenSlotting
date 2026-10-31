@@ -31,6 +31,8 @@
       const points = [[0,0],[item.width,0],[item.width,item.depth],[0,item.depth]].map(function (p) { return world(item,item.x+p[0],0,item.z+p[1]); });
       item.bounds = { minX:Math.min.apply(null,points.map(p=>p.x)),maxX:Math.max.apply(null,points.map(p=>p.x)),
         minZ:Math.min.apply(null,points.map(p=>p.z)),maxZ:Math.max.apply(null,points.map(p=>p.z)) };
+      // Access-side paint is visual only; it must not change navigation bounds or picking.
+      if(item.box.kind==='orientation')return;
       bounds.minX=Math.min(bounds.minX,item.bounds.minX); bounds.maxX=Math.max(bounds.maxX,item.bounds.maxX);
       bounds.minZ=Math.min(bounds.minZ,item.bounds.minZ); bounds.maxZ=Math.max(bounds.maxZ,item.bounds.maxZ);
       if (item.slotId) positions.set(item.slotId,item);
@@ -44,7 +46,7 @@
         const key=x+':'+z; if(!grid.has(key)) grid.set(key,[]); grid.get(key).push(item);
       }
     });
-    if (!entries.length) Object.assign(bounds,{minX:-5,maxX:5,minZ:-5,maxZ:5});
+    if (!Number.isFinite(bounds.minX)) Object.assign(bounds,{minX:-5,maxX:5,minZ:-5,maxZ:5});
     bounds.minX-=4; bounds.maxX+=4; bounds.minZ-=4; bounds.maxZ+=4;
     return { entries:entries, grid:grid, large:large, decorations:decorations, positions:positions, bounds:bounds };
   }

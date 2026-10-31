@@ -775,7 +775,7 @@ test('left click binds one object until right release and only its projected fie
 });
 test('direct mouse-look editing previews coalesced geometry, accepts numbers, saves once and keeps binding and pose',async()=>{
   const h=await directHarness(),before=structuredClone(h.value),field=h.choose('bay-width');
-  const uploads=h.worlds,pose={...h.camera};h.wheel(-100,true);assert.equal(h.worlds,uploads+1);
+  const uploads=h.worlds,pose={...h.camera};h.wheel(-100,true);assert.equal(h.worlds,uploads+1);assert.equal(h.world.entries.filter(i=>i.box.kind==='orientation').length,4);assert.match(h.nodes.get('[data-walk-front-key]').textContent,/Gold = access side/);
   assert.equal(h.value.objects[0].bays[0].width,field.value);assert.equal(h.saved.length,0);
   h.number(field.value+100);assert.equal(h.value.objects[0].bays[0].width,field.value);
   assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Affected locations/);
@@ -860,4 +860,17 @@ test('a save completed while paused refreshes the retained binding before the ne
   await h.action('resume');h.frame();h.choose('bay-width');assert.match(h.nodes.get('[data-walk-handles]').innerHTML,new RegExp((f.value+50)+' mm'));
   h.wheel(-100);h.key('Enter');await settle();h.frame();assert.equal(h.saved.length,2);assert.equal(h.value.objects[0].bays[0].width,f.value+100);
   assert.equal(h.document.pointerLockElement,h.canvas);assert.doesNotMatch(h.nodes.get('[data-walk-direct-status]').innerHTML,/Snapshot changed/);
+});
+
+test('gold access-side paint is rendered without affecting bounds, collision grids, rays or aim overlays',()=>{
+  const value=layout(),plain=walk.createWorld(scene.buildBoxes(model,value)),marked=walk.createWorld(scene.buildBoxes(model,value,null,{showOrientation:true}));
+  assert.deepEqual(marked.bounds,plain.bounds);assert.deepEqual([...marked.grid.keys()],[...plain.grid.keys()]);
+  assert.equal(marked.large.length,plain.large.length);assert.equal(marked.decorations.length,plain.decorations.length);
+  assert.deepEqual([...marked.positions.keys()],[...plain.positions.keys()]);
+  const front=model.rackFront(value.objects[0]),origin={x:front.center.x/1000,y:1.7,z:front.center.z/1000+.3};
+  assert.equal(walk.canStand(marked,origin,1.7),walk.canStand(plain,origin,1.7));
+  assert.deepEqual(walk.raycast(marked,origin,{x:0,y:-1,z:0},false,6,true),walk.raycast(plain,origin,{x:0,y:-1,z:0},false,6,true));
+  const mesh=renderer.buildMeshes(marked,walk);assert.equal(mesh.routes.length,4*6*6);
+  for(let i=0;i<mesh.routes.length;i+=6){assert.ok(Math.abs(mesh.routes[i+3]-1)<1e-6);assert.ok(Math.abs(mesh.routes[i+4]-215/255)<1e-6);assert.ok(Math.abs(mesh.routes[i+5]-138/255)<1e-6);}
+  assert.equal(renderer.buildAimMeshes(marked.entries.filter(i=>i.box.kind==='orientation'),walk).lines.length,0);
 });

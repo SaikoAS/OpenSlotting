@@ -40,6 +40,8 @@ Inspector undo/redo covers its retained edits; accepted transactions also enter 
 - Location labels appear nearby when they are in view and not hidden behind physical parts; clicking a label or visible location area opens its details. Labels are limited to 24 nearby candidates, checked for overlap and physical occlusion. Hide the details panel for more viewing space.
 - The shared rack convention is retained: viewed from the access side, bay/location indices increase from left to right, including rotated racks and ground locations.
 
+A gold line marks each rack front; the gold arrow points out of the rack toward its access aisle. The walk displays this in both work modes and previews, with a gold legend. These marks do not represent obstacles or selectable objects and do not change walking bounds.
+
 ## Direct editing with captured mouse look
 
 In Editor, **left click** binds the reachable object under the crosshair. The mint highlight remains until **right click** releases it, including while looking away or opening the pause menu. While bound, the crosshair only targets this object's parameter fields; nearby objects and normal location labels cannot steal selection. E is an alternative to left click. Evaluation also accepts left click for its existing read-only article dialog.

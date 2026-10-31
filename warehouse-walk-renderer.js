@@ -42,7 +42,7 @@
         ring.forEach((p,i)=>{vertex(lines,p,rgb(item.box.color,1));vertex(lines,ring[(i+1)%4],rgb(item.box.color,1));});
         return;
       }
-      if(!item.obstacle) {triangle(routes,FACES[0].map(i=>corners[i]),rgb(item.box.color,.85));return;}
+      if(!item.obstacle) {triangle(routes,FACES[0].map(i=>corners[i]),rgb(item.box.color,item.box.kind==='orientation'?1:.85));return;}
       FACES.forEach((face,index)=>triangle(opaque,face.map(i=>corners[i]),rgb(item.box.color,[1,.8,.68,.87,.74,.6][index])));
       EDGES.forEach(edge=>edge.forEach(i=>vertex(lines,corners[i],rgb('#263b49',1))));
     });
