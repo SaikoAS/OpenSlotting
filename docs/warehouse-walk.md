@@ -46,7 +46,7 @@ A gold line marks each rack front; the gold arrow points out of the rack toward 
 
 In Editor, **left click** binds the reachable object under the crosshair. The mint highlight remains until **right click** releases it, including while looking away or opening the pause menu. A changed open preview requires explicit discard confirmation before release. While bound, the crosshair only targets this object's parameter fields; nearby objects and normal location labels cannot steal selection. Evaluation also accepts left click for its existing read-only article dialog.
 
-The direct catalog is grouped into **1 Structure / Struktur**, **2 Zones / Zonen** and **3 Locations / Lagerplätze**. Aim at the projected section controls or use 1/2/3 while no value is active. Section switches retain the object preview. The catalog covers the existing stored editable properties:
+After binding an object, only **1 Structure / Struktur**, **2 Zones / Zonen** and **3 Locations / Lagerplätze** are shown. No section is preselected and parameter values stay hidden until a section is explicitly chosen. Aim at the projected section controls and left click, or use 1/2/3 while no value is active. Only the selected section's fields are displayed. Section switches retain the object preview; pause/resume retains the selected section, while releasing and rebinding starts at section selection again. The catalog covers the existing stored editable properties:
 
 | Section | Direct controls |
 | --- | --- |

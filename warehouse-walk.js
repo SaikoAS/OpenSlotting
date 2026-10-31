@@ -76,7 +76,7 @@
     let aimedObjectId=null;
     let boundObjectId=null,directBase=null,directFields=[],directDraft=null,directTarget=null,directNotice='';
     let directFieldActive=false;
-    let directSection='structure',directMenuLocal=null,applyDirectPending=false;
+    let directSection=null,directMenuLocal=null,applyDirectPending=false;
     let directFocusKey=null,directHoverFields=[];
     let discardDirectAction=null;
     let directEpoch=0,directBusy=false,directStale=false,directDirty=false,previewWorld=null,previewApplied=false,aimPreview=false;
@@ -99,7 +99,7 @@
     function clearDirect(release){
       directEpoch++;directDraft=null;directFieldActive=false;directTarget=null;directDirty=false;previewWorld=null;discardDirectAction=null;applyDirectPending=false;directFocusKey=null;directHoverFields=[];
       if(previewApplied&&renderer&&scene)renderer.setWorld(scene);previewApplied=false;
-      if(release){boundObjectId=null;directBase=null;directFields=[];directNotice='';directMenuLocal=null;directSection='structure';}
+      if(release){boundObjectId=null;directBase=null;directFields=[];directNotice='';directMenuLocal=null;directSection=null;}
       else if(boundObjectId&&info)directFields=window.OpenSlottingWalkEditor.directFields(model,info.layout,boundObjectId);
       schedule();
     }
@@ -269,7 +269,7 @@
         const point=model.localPoint(object,directMenuLocal.x*1000,directMenuLocal.z*1000);
         controls=controls.concat(['structure','zones','locations'].map((section,i)=>({key:'@section-'+section,action:'section',sectionValue:section,
           de:(i+1)+' · '+['Struktur','Zonen','Lagerplätze'][i],en:(i+1)+' · '+['Structure','Zones','Locations'][i],
-          point:{x:point.x/1000,y:directMenuLocal.y+.3+i*.3,z:point.z/1000}})));
+          point:{x:point.x/1000,y:directMenuLocal.y+.9-i*.3,z:point.z/1000}})));
       }
       if(directDraft&&!directFieldActive&&hasDirectChanges()){
         const anchor=(directFields.find(field=>field.key===directDraft.field.key)||directDraft.field).point,t=stageWords();
@@ -321,7 +321,7 @@
         return '<span class="wh-walk-handle'+(field===directTarget?' is-target':'')+(active?' is-active':'')+(field.action?' is-action':'')+'" data-direct-field="'+esc(field.key)+'" aria-disabled="'+Boolean(field.locked)+'" style="left:'+item.x+'px;top:'+item.y+'px"><span>'+esc(field[options.getLanguage()==='de'?'de':'en'])+'</span>'+(field.action?'':'<b>'+esc(directFormat(field,pending?directDraft.value:field.value,pending?directDraft.input:undefined))+(field.locked?' 🔒':'')+'</b>')+'</span>';
       }).join('');
       const t=directWords(),object=info.layout.objects.find(item=>item.id===boundObjectId),draft=directDraft;
-      let detail=directBusy?t.saving:directStale?t.stale:directNotice;
+      let detail=directBusy?t.saving:directStale?t.stale:!directSection?(options.getLanguage()==='de'?'Bereich auswählen: Struktur, Zonen oder Lagerplätze.':'Choose a section: Structure, Zones or Locations.'):directNotice;
       if(draft&&!directBusy&&!directStale){
         const stages=stageWords();
         detail=(directFieldActive?stages.value:stages.object)+' · '+draft.field[options.getLanguage()==='de'?'de':'en']+': '+directFormat(draft.field,draft.value,draft.input)+' · '+(directFieldActive?directFieldHelp(draft.field):stages.help);
@@ -336,9 +336,9 @@
       if(!directFieldActive&&directHoverFields.length>1)detail+=(options.getLanguage()==='de'?' · Mausrad: überlappende Felder wählen':' · Wheel: choose overlapping fields')+' ('+(directHoverFields.findIndex(field=>directTarget&&field.key===directTarget.key)+1)+'/'+directHoverFields.length+')';
       status.classList.toggle('is-confirming',Boolean(discardDirectAction||applyDirectPending));
       status.classList.toggle('is-invalid',Boolean(draft&&(draft.error||draft.saveError||draft.blocked)||directStale));
-      status.dataset.editorStage=discardDirectAction?'discard':applyDirectPending?'apply-confirm':directFieldActive?'value':'object';
-      status.dataset.editorSection=directSection;
-      status.innerHTML='<strong>'+esc(object&&object.name)+' · '+esc(discardDirectAction?discard.question:directFieldActive?stageWords().value:draft?stageWords().object:t.release)+'</strong><span>'+esc(detail||t.field)+'</span>';
+      status.dataset.editorStage=discardDirectAction?'discard':applyDirectPending?'apply-confirm':directFieldActive?'value':directSection?'object':'section';
+      status.dataset.editorSection=directSection||'';
+      status.innerHTML='<strong>'+esc(object&&object.name)+' · '+esc(discardDirectAction?discard.question:directFieldActive?stageWords().value:draft?stageWords().object:!directSection?(options.getLanguage()==='de'?'Bereich auswählen':'Choose section'):t.release)+'</strong><span>'+esc(detail||t.field)+'</span>';
     }
     async function saveDirect(approved){
       if(!directDraft||directBusy||directStale)return;prepareDirect();
@@ -495,7 +495,7 @@
         if(boundObjectId){
           if(discardDirectAction&&!immersivePaused){prompt.hidden=false;prompt.textContent=discardWords().question+' '+discardWords().keys;return;}
           if(applyDirectPending&&!immersivePaused){prompt.hidden=false;prompt.textContent=applyDirectQuestion()+(options.getLanguage()==='de'?' Linksklick / Enter: bestätigen · Rechtsklick: zurück':' Left click / Enter: confirm · Right click: back');return;}
-          prompt.hidden=!directTarget||directFieldActive;prompt.textContent=directTarget?(directTarget.action?(options.getLanguage()==='de'?'Linksklick':'Left click')+' · '+directTarget[options.getLanguage()==='de'?'de':'en']:directTarget.locked?directUnavailable(directTarget):directWords().field):'';return;
+          prompt.hidden=!directTarget||directFieldActive||!directSection;prompt.textContent=directTarget?(directTarget.action?(options.getLanguage()==='de'?'Linksklick':'Left click')+' · '+directTarget[options.getLanguage()==='de'?'de':'en']:directTarget.locked?directUnavailable(directTarget):directWords().field):'';return;
         }
         prompt.hidden=!hit&&!directStale;prompt.textContent=directStale?directWords().stale:hit?(directEnabled()?directWords().bind+' · ':(options.getLanguage()==='de'?'Linksklick':'Left click')+' · '+editText().aim+': ')+hit.item.box.object.name:'';return;
       }

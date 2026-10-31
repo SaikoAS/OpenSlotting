@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Start each walk Editor object interaction with Structure/Zones/Locations selection. Show parameter fields only after a section is chosen, retain that section across pause and reset it on rebinding.
+
 - Complete captured-mouse walk controls for object pose/names/locks, rack structure, zones, location counts/placement/codes and existing route/junction values. Add typed text, switches, choices and section/overlap selection; retain staged atomic saves and confirm removals or changed codes through the existing local editor path.
 
 - Remove E as a walk interaction shortcut. Use left click for Evaluation and every Editor selection stage, update DE/EN prompts and movement hints, and keep Enter/right-click preview actions explicit.
