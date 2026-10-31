@@ -15,7 +15,7 @@ test('direct fields identify rotated bays, level clearances and ground/upper loc
   assert.equal(fields.filter(item=>item.kind==='level-height').length,4);
   assert.equal(fields.filter(item=>item.kind==='location-width').length,value.locations.length);
   assert.ok(fields.every(item=>Object.values(item.point).every(Number.isFinite)));
-  const bay=field(value,'bay-width'),rack=value.objects[0],point=model.localPoint(rack,rack.uprights[0].width+rack.bays[0].width/2,rack.bays[0].depth+100);
+  const bay=field(value,'bay-width'),rack=value.objects[0],point=model.localPoint(rack,rack.uprights[0].width+rack.bays[0].width/2,rack.bays[0].depth+180);
   assert.equal(bay.point.x,point.x/1000);assert.equal(bay.point.z,point.z/1000);
   assert.ok(fields.some(item=>item.kind==='location-width'&&item.point.y===.18));assert.deepEqual(value,before);
 });
@@ -114,4 +114,30 @@ test('position and rotation changes move grouped objects together while retainin
   const moved=edit(grouped,'object-x',grouped.objects[0].x+500);assert.equal(moved.objects[1].x,grouped.objects[1].x+500);assert.equal(moved.objects[1].z,grouped.objects[1].z);
   const renamed=edit(grouped,'group-name','Renamed assembly');assert.equal(renamed.groups[0].name,'Renamed assembly');assert.deepEqual(renamed.locations,grouped.locations);
   const entry= require('../warehouse-walk-model.js').createWorld(require('../warehouse-scene.js').buildBoxes(model,grouped)).entries[0],walk=require('../warehouse-walk-model.js'),point={x:12.4,y:1.7,z:8.2},local=walk.local(entry,point),world=walk.world(entry,local.x,local.y,local.z);assert.ok(Math.abs(world.x-point.x)<1e-8&&Math.abs(world.z-point.z)<1e-8);
+});
+
+test('structure navigation exposes no values before bay or level selection and scopes fields by stable IDs',()=>{
+  const value=fixture(),rack=value.objects[0],menu=(selection)=>direct.structureMenu(model,value,rack.id,selection);
+  const start=menu();assert.equal(start.selection.view,'bays');assert.ok(start.controls.every(c=>c.action==='structure'));assert.equal(start.controls.length,rack.bays.length+1);
+  const bay=menu(start.controls.find(c=>c.next.bayId===rack.bays[1].id).next);assert.equal(bay.selection.view,'bay');assert.ok(bay.controls.some(f=>f.kind==='bay-width'));assert.ok(!bay.controls.some(f=>f.levelId||f.kind==='object-name'));
+  const allowed=new Set([rack.uprights[1].id,rack.uprights[2].id]);assert.ok(bay.controls.filter(f=>f.uprightId).every(f=>allowed.has(f.uprightId)));
+  const levels=menu(bay.controls.find(c=>c.action==='structure').next);assert.equal(levels.selection.view,'levels');assert.ok(levels.controls.every(c=>c.action==='structure'));
+  const selected=menu(levels.controls.find(c=>c.next.levelId===rack.bays[1].levels[1].id).next);assert.ok(selected.controls.length>=4);assert.ok(selected.controls.every(f=>f.bayId===rack.bays[1].id&&f.levelId===rack.bays[1].levels[1].id));
+  const global=menu(start.controls.find(c=>c.next.view==='rack').next);assert.ok(global.controls.some(f=>f.kind==='object-x'));assert.ok(global.controls.every(f=>!f.bayId&&!f.uprightId));
+});
+
+test('structure scope selection recovers after removed scopes and supports ground and nonrack objects',()=>{
+  const value=fixture(),rack=value.objects[0];assert.equal(direct.structureMenu(model,value,rack.id,{view:'level',bayId:'missing',levelId:'missing'}).selection.view,'bays');
+  const ground=direct.structureMenu(model,value,rack.id,{view:'level',bayId:rack.bays[0].id,levelId:rack.bays[0].ground.id});assert.deepEqual(ground.controls.map(f=>f.kind),['ground-enabled']);
+  const disabled=edit(value,'ground-enabled',false);assert.equal(direct.structureMenu(model,disabled,rack.id,ground.selection).selection.view,'levels');
+  const wall=model.createRecipe('wall'),walls=model.normalizeLayout({...model.createLayout(),objects:[wall]}),menu=direct.structureMenu(model,walls,wall.id);assert.equal(menu.selection,null);assert.ok(menu.controls.some(f=>f.kind==='object-width'));
+});
+
+test('technical measurements use physical dimensions and rotate with the rack without changing saved geometry',()=>{
+  const value=fixture(),before=structuredClone(value),fields=direct.directFields(model,value,value.objects[0].id),length=m=>Math.hypot(m.to.x-m.from.x,m.to.y-m.from.y,m.to.z-m.from.z)*1000;
+  for(const kind of ['bay-width','rack-depth','level-height','level-thickness','level-deckThickness','upright-width','upright-height']){
+    const f=fields.find(f=>f.kind===kind);assert.ok(f.measure,kind);assert.ok(Math.abs(length(f.measure)-f.value)<1e-7,kind);assert.ok(Object.values(f.measure).filter(v=>v&&typeof v==='object').every(p=>Object.values(p).every(Number.isFinite)));
+  }
+  assert.ok(fields.find(f=>f.kind==='level-thickness').measure.leader);assert.deepEqual(value,before);
+  const f=fields.find(f=>f.kind==='bay-width'),resized=direct.proposeDirect(model,value,f,f.value+150),after=direct.directFields(model,resized,value.objects[0].id).find(n=>n.key===f.key);assert.ok(Math.abs(length(after.measure)-(f.value+150))<1e-7);assert.notDeepEqual(f.measure.b,after.measure.b);
 });

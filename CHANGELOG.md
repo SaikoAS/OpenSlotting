@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Add bay-first Structure navigation and a separate level chooser in the walk Editor. Scope values to the selected bay/level, retain entire-rack controls, and draw geometry-based dimension arrows, leaders and aligned labels with matching hit areas. Preserve staged previews and right-click backtracking.
+
 - Make the walk object menu a separate navigation level: hide section choices after selection, return with right click while retaining previews, and release/discard only from the object menu. Scope 1/2/3 shortcuts to that menu and retain captured mouse look.
 
 - Start each walk Editor object interaction with Structure/Zones/Locations selection. Show parameter fields only after a section is chosen, retain that section across pause and reset it on rebinding.

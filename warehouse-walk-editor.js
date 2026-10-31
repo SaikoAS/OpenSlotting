@@ -92,7 +92,61 @@
       add('upright-height',stand.id,stand.height,200,20000,x+stand.width/2,1000,stand.depth+100,'Ständer '+(i+1)+' · Höhe','Upright '+(i+1)+' · Height',{uprightId:stand.id});
       x+=stand.width+(object.bays[i]?object.bays[i].width:0);
     });
+    // Measurement endpoints refer to actual local geometry; annotations never enter the scene.
+    function point(x,y,z){const p=model.localPoint(object,x,z);return {x:p.x/1000,y:y/1000,z:p.z/1000};}
+    function measure(field,from,to,offset,labelOffset){
+      const a=from.map((n,i)=>n+offset[i]),b=to.map((n,i)=>n+offset[i]),mid=a.map((n,i)=>(n+b[i])/2+(labelOffset?labelOffset[i]:0));
+      field.measure={from:point(...from),to:point(...to),a:point(...a),b:point(...b),leader:Boolean(labelOffset)};field.point=point(...mid);
+    }
+    const fieldIndex=new Map(fields.map(f=>[f.key,f]));
+    let start=0;
+    object.bays.forEach((bay,i)=>{
+      start+=object.uprights[i].width;const left=start,right=start+bay.width,z=bay.depth,byKind=kind=>fieldIndex.get(kind+':'+bay.id);
+      const width=byKind('bay-width');width.shortDe='Fachbreite';width.shortEn='Bay width';measure(width,[left,150,z],[right,150,z],[0,450,180]);
+      let bottom=0;
+      bay.levels.forEach(level=>{
+        const top=bottom+level.clearHeight,find=kind=>fieldIndex.get(kind+':'+level.id),height=find('level-height'),beam=find('level-thickness'),deck=find('level-deckThickness');
+        height.shortDe='Höhe bis Traverse';height.shortEn='Height to beam';measure(height,[left,bottom,z],[left,top,z],[220,0,180]);
+        beam.shortDe='Traversenhöhe';beam.shortEn='Beam height';measure(beam,[left,top,z],[left,top+level.thickness,z],[500,0,180],[0,250,0]);
+        deck.shortDe='Fachbodendicke';deck.shortEn='Deck thickness';measure(deck,[right,top+level.thickness,z],[right,top+level.thickness+level.deckThickness,z],[-450,0,180],[0,550,0]);
+        bottom=top+level.thickness;
+      });start=right;
+    });
+    start=0;object.uprights.forEach((stand,i)=>{
+      const width=fieldIndex.get('upright-width:'+stand.id),height=fieldIndex.get('upright-height:'+stand.id);
+      measure(width,[start,500,stand.depth],[start+stand.width,500,stand.depth],[0,200,180],[i===0?-300:300,200,0]);
+      measure(height,[start,0,stand.depth],[start,stand.height,stand.depth],[i===0?-250:stand.width+250,0,180]);
+      start+=stand.width+(object.bays[i]?object.bays[i].width:0);
+    });
+    const depth=fieldIndex.get('rack-depth:'+object.id);measure(depth,[0,300,0],[0,300,object.bays[0].depth],[-300,0,0]);
     return fields;
+  }
+  function structureMenu(model,layout,objectId,selection,catalog){
+    const object=layout.objects.find(o=>o.id===objectId),fields=(catalog||directFields(model,layout,objectId)).filter(f=>f.section==='structure'||f.sections&&f.sections.includes('structure'));
+    if(!object||!model.RACK_TYPES.includes(object.type))return {selection:null,controls:fields,de:'Struktur',en:'Structure'};
+    let state=Object.assign({view:'bays',bayId:null,levelId:null},selection);
+    const bay=object.bays.find(b=>b.id===state.bayId);
+    if(!['bays','rack','bay','levels','level'].includes(state.view)||['bay','levels','level'].includes(state.view)&&!bay)state={view:'bays',bayId:null,levelId:null};
+    if(state.view==='level'&&!bay.levels.some(l=>l.id===state.levelId)&&!(bay.ground.enabled&&bay.ground.id===state.levelId))state={view:'levels',bayId:bay.id,levelId:null};
+    const point=(x,y,z)=>{const p=model.localPoint(object,x,z);return {x:p.x/1000,y:y/1000,z:p.z/1000};};
+    const action=(key,de,en,p,next)=>({key:'@structure-'+key,action:'structure',de,en,point:p,next});
+    const bayIndex=bay?object.bays.indexOf(bay):-1,start=bay?object.bays.slice(0,bayIndex).reduce((x,b,i)=>x+object.uprights[i].width+b.width,0)+object.uprights[bayIndex].width:0;
+    let controls=[],de='Fach auswählen',en='Choose bay';
+    if(state.view==='bays'){
+      let x=0;controls=object.bays.map((b,i)=>{x+=object.uprights[i].width;const p=point(x+b.width/2,900,b.depth+180);x+=b.width;return action('bay-'+b.id,'Fach '+(i+1),'Bay '+(i+1),p,{view:'bay',bayId:b.id,levelId:null});});
+      controls.push(action('rack','Gesamtes Regal','Entire rack',point(object.uprights[0].width+object.bays[0].width/2,1700,object.bays[0].depth+180),{view:'rack',bayId:null,levelId:null}));
+    }else if(state.view==='rack'){
+      controls=fields.filter(f=>!f.bayId&&!f.uprightId);de='Gesamtes Regal';en='Entire rack';
+    }else if(state.view==='bay'){
+      controls=fields.filter(f=>f.bayId===bay.id&&!f.levelId||[object.uprights[bayIndex].id,object.uprights[bayIndex+1].id].includes(f.uprightId));
+      controls.push(action('levels-'+bay.id,'Ebene auswählen','Choose level',point(start+bay.width/2,1750,bay.depth+180),{view:'levels',bayId:bay.id,levelId:null}));de='Fach '+(bayIndex+1);en='Bay '+(bayIndex+1);
+    }else if(state.view==='levels'){
+      let y=0;const scopes=(bay.ground.enabled?[{id:bay.ground.id,ground:true,clearHeight:0,thickness:0}]:[]).concat(bay.levels);
+      controls=scopes.map(level=>{y+=level.clearHeight+level.thickness;const i=bay.levels.indexOf(level),de=level.ground?'Bodenebene':'Ebene '+(i+1),en=level.ground?'Ground level':'Level '+(i+1);return action('level-'+level.id,de,en,point(start+bay.width/2,y+250,bay.depth+180),{view:'level',bayId:bay.id,levelId:level.id});});de='Fach '+(bayIndex+1)+' · Ebene auswählen';en='Bay '+(bayIndex+1)+' · Choose level';
+    }else{
+      const i=bay.levels.findIndex(l=>l.id===state.levelId);controls=fields.filter(f=>f.levelId===state.levelId||i===-1&&f.kind==='ground-enabled'&&f.bayId===bay.id);de='Fach '+(bayIndex+1)+' · '+(i===-1?'Bodenebene':'Ebene '+(i+1));en='Bay '+(bayIndex+1)+' · '+(i===-1?'Ground level':'Level '+(i+1));
+    }
+    return {selection:state,controls,de,en};
   }
   function formatDirect(field,value,language){
     if(value===null)return '—';
@@ -281,5 +335,5 @@
       close:function(){close(false,true);},isOpen:()=>open
     };
   }
-  return {create:create,directFields:directFields,proposeDirect:proposeDirect,formatDirect:formatDirect};
+  return {create:create,directFields:directFields,proposeDirect:proposeDirect,formatDirect:formatDirect,structureMenu:structureMenu};
 }));

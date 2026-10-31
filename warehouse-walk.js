@@ -76,7 +76,7 @@
     let aimedObjectId=null;
     let boundObjectId=null,directBase=null,directFields=[],directDraft=null,directTarget=null,directNotice='';
     let directFieldActive=false;
-    let directSection=null,directMenuLocal=null,applyDirectPending=false;
+    let directSection=null,directStructure=null,directMenuLocal=null,applyDirectPending=false;
     let directFocusKey=null,directHoverFields=[];
     let discardDirectAction=null;
     let directEpoch=0,directBusy=false,directStale=false,directDirty=false,previewWorld=null,previewApplied=false,aimPreview=false;
@@ -99,7 +99,7 @@
     function clearDirect(release){
       directEpoch++;directDraft=null;directFieldActive=false;directTarget=null;directDirty=false;previewWorld=null;discardDirectAction=null;applyDirectPending=false;directFocusKey=null;directHoverFields=[];
       if(previewApplied&&renderer&&scene)renderer.setWorld(scene);previewApplied=false;
-      if(release){boundObjectId=null;directBase=null;directFields=[];directNotice='';directMenuLocal=null;directSection=null;}
+      if(release){boundObjectId=null;directBase=null;directFields=[];directNotice='';directMenuLocal=null;directSection=null;directStructure=null;}
       else if(boundObjectId&&info)directFields=window.OpenSlottingWalkEditor.directFields(model,info.layout,boundObjectId);
       schedule();
     }
@@ -123,8 +123,15 @@
     function releaseDirect(){
       if(discardDirectAction||applyDirectPending){keepDirectDraft();return;}
       if(directFieldActive){finishDirectField();return;}
+      if(directSection==='structure'){
+        const menu=structureState(),state=menu.selection;
+        if(state&&state.view!=='bays'){
+          const parent={level:'levels',levels:'bay',bay:'bays',rack:'bays'}[state.view];
+          directStructure={view:parent,bayId:parent==='bays'?null:state.bayId,levelId:null};directTarget=null;directFocusKey=null;schedule();return;
+        }
+      }
       if(directSection){
-        directSection=null;directTarget=null;directFocusKey=null;
+        directStructure=null;directSection=null;directTarget=null;directFocusKey=null;
         const owner=(directDraft&&directDraft.candidate||info.layout).objects.find(o=>o.id===boundObjectId)||info.layout.objects.find(o=>o.id===boundObjectId);
         if(owner){
           const direction=walk.ray(camera,0,0,canvas.clientWidth/Math.max(1,canvas.clientHeight)),hit=walk.raycast(previewWorld||scene,origin(),direction,true,6),distance=Math.max(.1,Math.min(2,hit?hit.distance-.2:2));
@@ -162,6 +169,9 @@
       if(directFieldActive){finishDirectField();return;}
       paintDirect();
       if(directBusy||!directTarget||directTarget.locked)return;
+      if(directTarget.action==='structure'){
+        directStructure=Object.assign({},directTarget.next);directTarget=null;directFocusKey=null;schedule();return;
+      }
       if(directTarget.action==='section'){switchDirectSection(directTarget.sectionValue);return;}
       if(directTarget.action==='discard'){requestDirectDiscard();return;}
       if(directStale)return;
@@ -178,7 +188,23 @@
     }
     function switchDirectSection(value){
       if(directBusy||directSection||directFieldActive||applyDirectPending||discardDirectAction||!boundObjectId||!['structure','zones','locations'].includes(value))return;
-      directSection=value;directTarget=null;directFocusKey=null;schedule();
+      directSection=value;directStructure=null;directTarget=null;directFocusKey=null;schedule();
+    }
+    function structureState(){
+      return window.OpenSlottingWalkEditor.structureMenu(model,directDraft&&directDraft.candidate||info.layout,boundObjectId,directStructure,directFields);
+    }
+    function navigationLabel(){
+      if(directSection==='structure'){const m=structureState();return m[options.getLanguage()==='de'?'de':'en'];}
+      return options.getLanguage()==='de'?({zones:'Zonen',locations:'Lagerplätze'})[directSection]:({zones:'Zones',locations:'Locations'})[directSection];
+    }
+    function navigationBack(){
+      if(directSection==='structure'){
+        const state=structureState().selection,view=state&&state.view;
+        if(view==='level')return options.getLanguage()==='de'?'Rechtsklick: Ebenenauswahl':'Right click: level selection';
+        if(view==='levels')return options.getLanguage()==='de'?'Rechtsklick: Fachwerte':'Right click: bay values';
+        if(view==='bay'||view==='rack')return options.getLanguage()==='de'?'Rechtsklick: Fachauswahl':'Right click: bay selection';
+      }
+      return options.getLanguage()==='de'?'Rechtsklick: Objektmenü':'Right click: object menu';
     }
     function directFormat(field,value,input){
       if(field.type==='number'&&input!==undefined){return input===''&&field.nullable?'—':input+(field.unit?' '+field.unit:'');}
@@ -265,6 +291,21 @@
       draft.changed=draft.candidate?JSON.stringify(draft.candidate)!==directBase:JSON.stringify(draft.startLayout)!==directBase||draft.value!==draft.field.value;
       if(renderer){renderer.setWorld(previewWorld||scene);previewApplied=Boolean(previewWorld);}
     }
+    function controlHit(item,width,height){
+      const angle=(item.angle||0)*Math.PI/180,dx=width/2-item.x,dy=height/2-item.y;
+      return Math.abs(dx*Math.cos(angle)+dy*Math.sin(angle))<=(item.field&&item.field.measure?90:120)&&Math.abs(-dx*Math.sin(angle)+dy*Math.cos(angle))<=15;
+    }
+    function measureSvg(item,width,height){
+      const m=item.field.measure;if(!m)return '';
+      const projected=[m.from,m.a,m.b,m.to,item.field.point].map(p=>walk.project(camera,p,width,height));if(projected.some(p=>!p))return '';
+      const [from,a,b,to,label]=projected,length=Math.hypot(b.x-a.x,b.y-a.y);if(length<2)return '';
+      const ux=(b.x-a.x)/length,uy=(b.y-a.y)/length,nx=-uy,ny=ux,line=(p,q)=>'<path d="M '+p.x+' '+p.y+' L '+q.x+' '+q.y+'"/>';
+      let html=line(from,a)+line(a,b)+line(b,to);
+      [a,b].forEach(p=>{html+=line({x:p.x+nx*6,y:p.y+ny*6},{x:p.x-nx*6,y:p.y-ny*6});});
+      html+='<path class="wh-walk-dimension-arrows" d="M '+a.x+' '+a.y+' l '+(ux*7+nx*3)+' '+(uy*7+ny*3)+' l '+(-nx*6)+' '+(-ny*6)+' Z M '+b.x+' '+b.y+' l '+(-ux*7+nx*3)+' '+(-uy*7+ny*3)+' l '+(-nx*6)+' '+(-ny*6)+' Z"/>';
+      if(m.leader)html+=line({x:(a.x+b.x)/2,y:(a.y+b.y)/2},label);
+      return '<g class="'+(directFieldActive&&directDraft&&directDraft.field.key===item.field.key?'is-active':directTarget===item.field?'is-target':'')+'" data-measure-key="'+esc(item.field.key)+'">'+html+'</g>';
+    }
     function visibleDirectFields(){
       if(!boundObjectId||!scene)return [];
       const width=canvas.clientWidth,height=canvas.clientHeight,world=previewWorld||scene,occupied=[],result=[];
@@ -274,6 +315,7 @@
         if(element&&!element.hidden&&element.getClientRects&&element.getClientRects().length){const r=element.getBoundingClientRect();blocked.push({left:r.left-canvasRect.left,right:r.right-canvasRect.left,top:r.top-canvasRect.top,bottom:r.bottom-canvasRect.top});}
       });
       let controls=directFields.filter(field=>field.section===directSection||field.sections&&field.sections.includes(directSection));
+      if(directSection==='structure'){const menu=structureState();directStructure=menu.selection;controls=menu.controls;}
       const object=(directDraft&&directDraft.candidate||info.layout).objects.find(item=>item.id===boundObjectId)||info.layout.objects.find(item=>item.id===boundObjectId);
       if(!directSection&&directMenuLocal&&object){
         const point=model.localPoint(object,directMenuLocal.x*1000,directMenuLocal.z*1000);
@@ -288,23 +330,28 @@
           {key:'@discard',action:'discard',de:t.discard,en:t.discard,locked:directBusy,point:{...anchor,y:anchor.y+.7}}
         ]);
       }
-      const candidates=controls.map(field=>({field:field,p:walk.project(camera,field.point,width,height),distance:Math.hypot(field.point.x-camera.x,field.point.y-camera.eye,field.point.z-camera.z)}))
-        .filter(item=>item.p&&item.distance>.001&&item.distance<=6).sort((a,b)=>Number(b.field.action==='section')-Number(a.field.action==='section')||Number(directFieldActive&&b.field.key===(directDraft&&directDraft.field.key))-Number(directFieldActive&&a.field.key===(directDraft&&directDraft.field.key))||
+      const candidates=controls.map(field=>{
+        const p=walk.project(camera,field.point,width,height);let angle=0;
+        if(field.measure&&!field.measure.leader){const a=walk.project(camera,field.measure.a,width,height),b=walk.project(camera,field.measure.b,width,height);if(a&&b){angle=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;if(angle>90)angle-=180;if(angle< -90)angle+=180;}}
+        const radians=angle*Math.PI/180,halfWidth=field.measure?90:120;
+        return {field,p,angle,halfX:Math.abs(Math.cos(radians))*halfWidth+Math.abs(Math.sin(radians))*15,halfY:Math.abs(Math.sin(radians))*halfWidth+Math.abs(Math.cos(radians))*15,distance:Math.hypot(field.point.x-camera.x,field.point.y-camera.eye,field.point.z-camera.z)};
+      })
+        .filter(item=>item.p&&item.distance>.001&&item.distance<=6).sort((a,b)=>Number(Boolean(b.field.action&&b.field.action!=='apply'&&b.field.action!=='discard'))-Number(Boolean(a.field.action&&a.field.action!=='apply'&&a.field.action!=='discard'))||Number(directFieldActive&&b.field.key===(directDraft&&directDraft.field.key))-Number(directFieldActive&&a.field.key===(directDraft&&directDraft.field.key))||
           Math.hypot(a.p.x-width/2,a.p.y-height/2)-Math.hypot(b.p.x-width/2,b.p.y-height/2)||a.distance-b.distance);
       function eligible(item){
-        const p=item.p,field=item.field;if(p.x<125||p.x>width-125||p.y<90||p.y>height-120)return false;
-        if(blocked.some(r=>p.x+120>r.left&&p.x-120<r.right&&p.y+15>r.top&&p.y-15<r.bottom))return false;
+        const p=item.p,field=item.field;if(p.x<item.halfX+5||p.x>width-item.halfX-5||p.y<Math.max(90,item.halfY+5)||p.y>height-Math.max(120,item.halfY+5))return false;
+        if(blocked.some(r=>p.x+item.halfX>r.left&&p.x-item.halfX<r.right&&p.y+item.halfY>r.top&&p.y-item.halfY<r.bottom))return false;
         const direction={x:(field.point.x-camera.x)/item.distance,y:(field.point.y-camera.eye)/item.distance,z:(field.point.z-camera.z)/item.distance};
         const hit=walk.raycast(world,origin(),direction,true,item.distance);return !hit||hit.distance>=item.distance-.07;
       }
-      directHoverFields=candidates.filter(item=>Math.abs(item.p.x-width/2)<=120&&Math.abs(item.p.y-height/2)<=15&&eligible(item)).map(item=>item.field);
+      directHoverFields=candidates.filter(item=>controlHit({field:item.field,x:item.p.x,y:item.p.y,angle:item.angle},width,height)&&eligible(item)).map(item=>item.field);
       if(!directHoverFields.some(field=>field.key===directFocusKey))directFocusKey=null;
       if(directFocusKey&&!directFieldActive)candidates.sort((a,b)=>Number(b.field.key===directFocusKey)-Number(a.field.key===directFocusKey));
       for(const item of candidates){
         if(result.length>=24)break;
         const field=item.field,p=item.p;if(!eligible(item))continue;
-        if(occupied.some(q=>Math.abs(q.x-p.x)<244&&Math.abs(q.y-p.y)<34))continue;
-        occupied.push(p);result.push({field:field,x:p.x,y:p.y});
+        if(occupied.some(q=>Math.abs(q.x-p.x)<q.halfX+item.halfX+4&&Math.abs(q.y-p.y)<q.halfY+item.halfY+4))continue;
+        occupied.push({x:p.x,y:p.y,halfX:item.halfX,halfY:item.halfY});result.push({field:field,x:p.x,y:p.y,angle:item.angle});
       }
       return result;
     }
@@ -324,17 +371,17 @@
       overlay.hidden=!running;status.hidden=!running;
       if(!running){overlay.innerHTML='';directHoverFields=[];return;}
       const fields=visibleDirectFields(),width=canvas.clientWidth,height=canvas.clientHeight;
-      const aimed=fields.find(item=>Math.abs(item.x-width/2)<=120&&Math.abs(item.y-height/2)<=15);
+      const aimed=fields.find(item=>controlHit(item,width,height));
       directTarget=aimed&&aimed.field||null;
-      overlay.innerHTML=fields.map(function(item){
+      overlay.innerHTML='<svg class="wh-walk-measures" viewBox="0 0 '+width+' '+height+'" aria-hidden="true">'+fields.map(item=>measureSvg(item,width,height)).join('')+'</svg>'+fields.map(function(item){
         const field=item.field,pending=directDraft&&directDraft.field.key===field.key,active=directFieldActive&&pending;
-        return '<span class="wh-walk-handle'+(field===directTarget?' is-target':'')+(active?' is-active':'')+(field.action?' is-action':'')+'" data-direct-field="'+esc(field.key)+'" aria-disabled="'+Boolean(field.locked)+'" style="left:'+item.x+'px;top:'+item.y+'px"><span>'+esc(field[options.getLanguage()==='de'?'de':'en'])+'</span>'+(field.action?'':'<b>'+esc(directFormat(field,pending?directDraft.value:field.value,pending?directDraft.input:undefined))+(field.locked?' 🔒':'')+'</b>')+'</span>';
+        return '<span class="wh-walk-handle'+(field===directTarget?' is-target':'')+(active?' is-active':'')+(field.action?' is-action':'')+(field.measure?' is-measure':'')+'" data-direct-field="'+esc(field.key)+'" aria-disabled="'+Boolean(field.locked)+'" style="left:'+item.x+'px;top:'+item.y+'px;transform:translate(-50%,-50%) rotate('+(item.angle||0)+'deg)"><span title="'+esc(field[options.getLanguage()==='de'?'de':'en'])+'">'+esc(field[options.getLanguage()==='de'?'shortDe':'shortEn']||field[options.getLanguage()==='de'?'de':'en'])+'</span>'+(field.action?'':'<b>'+esc(directFormat(field,pending?directDraft.value:field.value,pending?directDraft.input:undefined))+(field.locked?' 🔒':'')+'</b>')+'</span>';
       }).join('');
       const t=directWords(),object=info.layout.objects.find(item=>item.id===boundObjectId),draft=directDraft;
-      let detail=directBusy?t.saving:directStale?t.stale:!directSection?(options.getLanguage()==='de'?'Objektmenü: Struktur, Zonen oder Lagerplätze auswählen.':'Object menu: choose Structure, Zones or Locations.'):directNotice;
+      let detail=directBusy?t.saving:directStale?t.stale:!directSection?(options.getLanguage()==='de'?'Objektmenü: Struktur, Zonen oder Lagerplätze auswählen.':'Object menu: choose Structure, Zones or Locations.'):directNotice||(options.getLanguage()==='de'?'Auswahl anvisieren und links klicken.':'Aim at a control and left click.');
       if(draft&&!directBusy&&!directStale){
         const stages=stageWords();
-        detail=!directSection?(options.getLanguage()==='de'?'Objektmenü · Offene Vorschau':'Object menu · Open preview'):(directFieldActive?stages.value:stages.object)+' · '+draft.field[options.getLanguage()==='de'?'de':'en']+': '+directFormat(draft.field,draft.value,draft.input)+' · '+(directFieldActive?directFieldHelp(draft.field):stages.help);
+        detail=(!directSection||directSection==='structure'&&['bays','levels'].includes(structureState().selection?.view))?(!directSection?(options.getLanguage()==='de'?'Objektmenü':'Object menu'):navigationLabel())+(options.getLanguage()==='de'?' · Offene Vorschau':' · Open preview'):(directFieldActive?stages.value:stages.object)+' · '+draft.field[options.getLanguage()==='de'?'de':'en']+': '+directFormat(draft.field,draft.value,draft.input)+' · '+(directFieldActive?directFieldHelp(draft.field):stages.help.split(' · ').slice(0,-1).join(' · '));
         if(draft.error)detail+=' · '+t.invalid+' '+draft.error;
         else if(draft.impact)detail+=' · '+t.impact+': '+draft.impact.locations+' / '+draft.impact.codes+' / '+draft.impact.articles+' · '+t.collisions+': '+draft.collisions;
         if(draft.saveError||draft.blocked)detail+=' · '+(draft.saveError||draft.blocked);
@@ -342,13 +389,15 @@
       }
       if(discardDirectAction)detail=discard.question+' · '+(draft?directFormat(draft.field,draft.value,draft.input)+' · ':'')+discard.keys;
       if(applyDirectPending)detail=applyDirectQuestion()+(options.getLanguage()==='de'?' Linksklick / Enter: bestätigen · Rechtsklick: weiter bearbeiten':' Left click / Enter: confirm · Right click: keep editing');
-      if(!directFieldActive&&!discardDirectAction&&!applyDirectPending)detail+=!directSection?(options.getLanguage()==='de'?' · 1 Struktur · 2 Zonen · 3 Lagerplätze · Rechtsklick: lösen':' · 1 Structure · 2 Zones · 3 Locations · Right click: release'):(options.getLanguage()==='de'?' · Rechtsklick: Objektmenü':' · Right click: object menu');
+      if(!directFieldActive&&!discardDirectAction&&!applyDirectPending)detail+=!directSection?(options.getLanguage()==='de'?' · 1 Struktur · 2 Zonen · 3 Lagerplätze · Rechtsklick: lösen':' · 1 Structure · 2 Zones · 3 Locations · Right click: release'):' · '+navigationBack();
       if(!directFieldActive&&directHoverFields.length>1)detail+=(options.getLanguage()==='de'?' · Mausrad: überlappende Felder wählen':' · Wheel: choose overlapping fields')+' ('+(directHoverFields.findIndex(field=>directTarget&&field.key===directTarget.key)+1)+'/'+directHoverFields.length+')';
       status.classList.toggle('is-confirming',Boolean(discardDirectAction||applyDirectPending));
       status.classList.toggle('is-invalid',Boolean(draft&&(draft.error||draft.saveError||draft.blocked)||directStale));
-      status.dataset.editorStage=discardDirectAction?'discard':applyDirectPending?'apply-confirm':directFieldActive?'value':directSection?'object':'section';
+      const structure=directSection==='structure'&&structureState().selection;
+      status.dataset.editorStage=discardDirectAction?'discard':applyDirectPending?'apply-confirm':directFieldActive?'value':structure&&structure.view==='bays'?'bay-select':structure&&structure.view==='levels'?'level-select':directSection?'object':'section';
+      status.dataset.editorStructure=structure?structure.view:'';status.dataset.editorBay=structure&&structure.bayId||'';status.dataset.editorLevel=structure&&structure.levelId||'';
       status.dataset.editorSection=directSection||'';
-      status.innerHTML='<strong>'+esc(object&&object.name)+' · '+esc(discardDirectAction?discard.question:directFieldActive?stageWords().value:!directSection?(options.getLanguage()==='de'?'Objektmenü':'Object menu'):draft?stageWords().object:(options.getLanguage()==='de'?({structure:'Struktur',zones:'Zonen',locations:'Lagerplätze'})[directSection]:({structure:'Structure',zones:'Zones',locations:'Locations'})[directSection]))+'</strong><span>'+esc(detail||t.field)+'</span>';
+      status.innerHTML='<strong>'+esc(object&&object.name)+' · '+esc(discardDirectAction?discard.question:directFieldActive?stageWords().value:!directSection?(options.getLanguage()==='de'?'Objektmenü':'Object menu'):navigationLabel()+(draft?' · '+stageWords().object:''))+'</strong><span>'+esc(detail||t.field)+'</span>';
     }
     async function saveDirect(approved){
       if(!directDraft||directBusy||directStale)return;prepareDirect();
@@ -505,7 +554,7 @@
         if(boundObjectId){
           if(discardDirectAction&&!immersivePaused){prompt.hidden=false;prompt.textContent=discardWords().question+' '+discardWords().keys;return;}
           if(applyDirectPending&&!immersivePaused){prompt.hidden=false;prompt.textContent=applyDirectQuestion()+(options.getLanguage()==='de'?' Linksklick / Enter: bestätigen · Rechtsklick: zurück':' Left click / Enter: confirm · Right click: back');return;}
-          prompt.hidden=!directTarget||directFieldActive||!directSection;prompt.textContent=directTarget?(directTarget.action?(options.getLanguage()==='de'?'Linksklick':'Left click')+' · '+directTarget[options.getLanguage()==='de'?'de':'en']:directTarget.locked?directUnavailable(directTarget):directWords().field):'';return;
+          prompt.hidden=!directTarget||directFieldActive||!directSection||Boolean(directTarget.measure);prompt.textContent=directTarget?(directTarget.action?(options.getLanguage()==='de'?'Linksklick':'Left click')+' · '+directTarget[options.getLanguage()==='de'?'de':'en']:directTarget.locked?directUnavailable(directTarget):directWords().field):'';return;
         }
         prompt.hidden=!hit&&!directStale;prompt.textContent=directStale?directWords().stale:hit?(directEnabled()?directWords().bind+' · ':(options.getLanguage()==='de'?'Linksklick':'Left click')+' · '+editText().aim+': ')+hit.item.box.object.name:'';return;
       }
