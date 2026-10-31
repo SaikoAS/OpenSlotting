@@ -53,8 +53,9 @@
 .wh-walk-handle[aria-disabled="true"] { opacity: .55; }
 .wh-walk-handle span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .wh-walk-handle b { flex: none; margin-left: 8px; }
-.wh-walk-direct-status { position: absolute; z-index: 4; bottom: 16px; left: 50%; transform: translateX(-50%); display: grid; gap: 6px; width: min(660px, calc(100% - 560px)); max-height: 140px; padding: 10px 14px; box-sizing: border-box; border: 1px solid #73ffd1; border-radius: 7px; color: #e6fff5; background: #12272ff5; font-size: .8rem; pointer-events: none; }
+.wh-walk-direct-status { position: absolute; z-index: 4; bottom: 16px; left: 50%; transform: translateX(-50%); display: grid; gap: 6px; width: min(660px, calc(100% - 560px)); max-height: 220px; overflow-wrap: anywhere; padding: 10px 14px; box-sizing: border-box; border: 1px solid #73ffd1; border-radius: 7px; color: #e6fff5; background: #12272ff5; font-size: .8rem; pointer-events: none; }
 .wh-walk-direct-status span { font-size: .75rem; line-height: 1.5; }
+.wh-walk-direct-status { max-height: 220px; overflow-wrap: anywhere; }
 .wh-walk-direct-status.is-invalid { border-color: #ef9c82; color: #ffd0bc; }
 .wh-walk-direct-status.is-confirming { border-color: #ffd78a; background: #3b301cf5; color: #ffe4b2; }
 .wh-walk-discard { flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: 8px; padding: 10px; border: 1px solid #ffd78a; border-radius: 6px; }

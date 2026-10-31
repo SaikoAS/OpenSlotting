@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Complete captured-mouse walk controls for object pose/names/locks, rack structure, zones, location counts/placement/codes and existing route/junction values. Add typed text, switches, choices and section/overlap selection; retain staged atomic saves and confirm removals or changed codes through the existing local editor path.
+
 - Remove E as a walk interaction shortcut. Use left click for Evaluation and every Editor selection stage, update DE/EN prompts and movement hints, and keep Enter/right-click preview actions explicit.
 
 - Use explicit value-editing and object-preview stages in the walk. Left click/Enter/right click first leave the active value without saving or releasing the object. Collect successive values, then use a separate Apply changes control or object-level Enter to save. Require confirmation before discarding, retain drafts across pause/focus loss, and offer captured-mouse plus paused-menu Discard/Keep controls.

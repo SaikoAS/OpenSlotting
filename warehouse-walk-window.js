@@ -25,8 +25,8 @@
       if(!controller){
         controller=window.OpenSlottingWarehouseWalk.create({root:root,model:model,standalone:true,initialView:value.view,
           editorAvailable:value.editorAvailable===true,openEditor:scope=>editor.open(scope),openRecipes:()=>editor.openRecipes(),
-          saveLayout:async(next,base)=>{
-            const result=await client.editLayout(next,base);
+          saveLayout:async(next,base,toggleLockId)=>{
+            const result=await client.editLayout(next,base,{toggleLockId});
             if(!window.OpenSlottingWalkWindowSession.validSnapshot(result.data))throw new Error('edit-failed');
             receive(result.data,true,true);
           },

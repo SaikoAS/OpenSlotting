@@ -40,14 +40,78 @@ test('direct edits reject overlap, out-of-bounds locations, insufficient frame c
   assert.throws(()=>direct.proposeDirect(model,value,{...width,key:'bad'},200),/Unlock/);
   for(const input of [NaN,Infinity,500.5,-1])assert.throws(()=>direct.proposeDirect(model,value,width,input));
   const locked=structuredClone(value);locked.objects[0].locked=true;
-  assert.ok(direct.directFields(model,locked,locked.objects[0].id).every(f=>f.locked));
+  assert.ok(direct.directFields(model,locked,locked.objects[0].id).filter(f=>f.kind!=='object-lock').every(f=>f.locked));
   assert.throws(()=>direct.proposeDirect(model,locked,width,width.value-50),/Unlock/);
 });
-test('simple objects expose validated dimensions while junctions and drawn routes retain their inspector',()=>{
+test('simple objects expose validated dimensions and drawn routes expose only independent coordinates',()=>{
   const wall=model.createRecipe('wall'),value=model.normalizeLayout({...model.createLayout(),objects:[wall]}),fields=direct.directFields(model,value,wall.id);
-  assert.deepEqual(fields.map(f=>f.kind),['object-width','object-height','object-depth']);
-  const next=direct.proposeDirect(model,value,fields[0],wall.width+100);assert.equal(next.objects[0].width,wall.width+100);
+  assert.ok(['object-name','object-x','object-z','object-rotation','object-lock','object-width','object-height','object-depth'].every(kind=>fields.some(f=>f.kind===kind)));
+  const next=direct.proposeDirect(model,value,fields.find(f=>f.kind==='object-width'),wall.width+100);assert.equal(next.objects[0].width,wall.width+100);
   assert.deepEqual(direct.directFields(model,value,'unknown'),[]);
   const route=model.createRoute([{x:0,z:0},{x:4000,z:0}],2000,'Synthetic route');
-  assert.deepEqual(direct.directFields(model,model.normalizeLayout({...model.createLayout(),objects:[route]}),route.id),[]);
+  const routeFields=direct.directFields(model,model.normalizeLayout({...model.createLayout(),objects:[route]}),route.id);assert.ok(routeFields.some(f=>f.kind==='route-point-x'));assert.ok(!routeFields.some(f=>f.kind==='object-width'));
+});
+
+function get(value,kind,predicate=()=>true){const f=direct.directFields(model,value,value.objects[0].id).find(f=>f.kind===kind&&predicate(f));assert.ok(f,kind);return f;}
+function edit(value,kind,valueAfter,predicate){return direct.proposeDirect(model,value,get(value,kind,predicate),valueAfter);}
+test('complete rack catalog exposes remaining pose, frame, deck, count and text properties with shared constraints',()=>{
+  const value=fixture(),before=structuredClone(value);
+  const kinds=['object-name','object-x','object-z','object-rotation','object-lock','rack-bays','bay-levels','level-thickness','level-deck','level-deckThickness','upright-width','upright-height','ground-enabled','zone-usage','zone-count','location-code','zone-prefix','rack-prefix'];
+  const fields=direct.directFields(model,value,value.objects[0].id);assert.ok(kinds.every(kind=>fields.some(f=>f.kind===kind)));assert.equal(new Set(fields.map(f=>f.key)).size,fields.length);
+  for(const kind of ['object-x','object-z','object-rotation','level-thickness','level-deckThickness','upright-width','upright-height']){
+    const f=get(value,kind),next=direct.proposeDirect(model,value,f,f.value+10);assert.equal(get(next,kind).value,f.value+10);assert.deepEqual(next.locations.map(s=>[s.id,s.code]),value.locations.map(s=>[s.id,s.code]));
+  }
+  const withoutDeck=edit(value,'level-deck',false);assert.equal(withoutDeck.objects[0].bays[0].levels[0].deck,false);assert.deepEqual(value,before);
+  assert.throws(()=>edit(value,'upright-height',200),/upright/);assert.throws(()=>edit(value,'rack-bays',31),/range/);
+});
+test('structural count previews preserve retained IDs/codes and only explicitly remove scopes',()=>{
+  const value=fixture(),old=value.objects[0],larger=edit(value,'rack-bays',3),smaller=edit(value,'rack-bays',1);
+  assert.equal(larger.objects[0].bays.length,3);assert.deepEqual(larger.objects[0].bays.slice(0,2),old.bays);assert.deepEqual(larger.locations,value.locations);
+  assert.ok(larger.zones.some(z=>!value.zones.some(old=>old.id===z.id)&&z.usage==='unassigned'));
+  assert.equal(smaller.objects[0].bays.length,1);assert.ok(smaller.locations.length<value.locations.length);
+  for(const slot of smaller.locations)assert.equal(value.locations.find(s=>s.id===slot.id).code,slot.code);
+  const one=edit(value,'bay-levels',1);assert.equal(one.objects[0].bays[0].levels.length,1);assert.equal(one.objects[0].bays[1].levels.length,2);
+  const disabled=edit(value,'ground-enabled',false);assert.equal(disabled.objects[0].bays[0].ground.enabled,false);assert.equal(disabled.locations.length,value.locations.length-3);
+  const enabled=edit(disabled,'ground-enabled',true);const ground=enabled.objects[0].bays[0].ground.id;assert.equal(enabled.zones.find(z=>z.levelId===ground).usage,'unassigned');
+});
+test('zone controls distinguish one scope, a bay and the entire rack, then allow explicit location counts',()=>{
+  const value=fixture(),one=edit(value,'zone-usage','reserve');assert.equal(one.zones.filter(z=>z.usage==='reserve').length,1);
+  const bay=edit(value,'zone-bay-usage','reserve');assert.equal(bay.zones.filter(z=>z.usage==='reserve').length,3);
+  const rack=edit(value,'zone-rack-usage','reserve');assert.ok(rack.zones.every(z=>z.usage==='reserve'));
+  const count=get(value,'zone-count'),reduced=direct.proposeDirect(model,value,count,2);assert.equal(model.zoneLocations(reduced,count.zoneId).length,2);
+  assert.deepEqual(model.zoneLocations(reduced,count.zoneId).map(s=>[s.id,s.code]),model.zoneLocations(value,count.zoneId).slice(0,2).map(s=>[s.id,s.code]));
+  const unassigned=edit(value,'zone-usage','unassigned');assert.equal(get(unassigned,'zone-count').locked,true);
+  assert.throws(()=>edit(value,'zone-usage','invalid-option'),/available option/);
+});
+test('location add/duplicate/remove preview operations respect space, capacity and existing codes',()=>{
+  const value=fixture(),f=get(value,'location-width'),small=direct.proposeDirect(model,value,f,100),zoneId=value.locations.find(s=>s.id===f.slotId).zoneId;
+  const added=edit(small,'location-add',true,f=>f.zoneId===zoneId);assert.equal(added.locations.length,value.locations.length+1);assert.ok(added.locations.find(s=>!value.locations.some(old=>old.id===s.id)).code==='');
+  const duplicate=edit(small,'location-duplicate',true,f=>f.slotId===get(value,'location-width').slotId);assert.equal(duplicate.locations.length,value.locations.length+1);
+  const removed=edit(value,'location-remove',true);assert.equal(removed.locations.length,value.locations.length-1);
+  for(const slot of removed.locations)assert.equal(value.locations.find(s=>s.id===slot.id).code,slot.code);
+  const full=model.resizeZoneLocations(value,zoneId,10);assert.equal(get(full,'location-add',f=>f.zoneId===zoneId).locked,true);
+});
+test('text values and code generation preserve uniqueness and unchanged IDs',()=>{
+  const value=fixture(),renamed=edit(value,'object-name','Synthetic new name');assert.equal(renamed.objects[0].name,'Synthetic new name');
+  const f=get(value,'location-code'),coded=direct.proposeDirect(model,value,f,'SYN-NEW');assert.equal(coded.locations.find(s=>s.id===f.slotId).code,'SYN-NEW');
+  assert.throws(()=>direct.proposeDirect(model,value,f,value.locations.find(s=>s.id!==f.slotId).code),/unique/);assert.throws(()=>edit(value,'object-name',''),/Name/);
+  const blanks=structuredClone(value);blanks.locations.forEach(s=>s.code='');const generated=edit(blanks,'rack-prefix','SYN');assert.ok(generated.locations.every(s=>s.code.startsWith('SYN-')));assert.deepEqual(generated.locations.map(s=>s.id),value.locations.map(s=>s.id));
+  assert.equal(direct.formatDirect(get(value,'object-rotation'),37,'de'),'37 °');assert.equal(direct.formatDirect(get(value,'ground-enabled'),false,'de'),'Aus');assert.equal(direct.formatDirect(get(value,'zone-usage'),'picking','de'),'Kommissionierung');
+});
+test('lock changes use the dedicated toggle contract and preserve all geometry',()=>{
+  const value=fixture(),locked=edit(value,'object-lock',true);assert.equal(locked.objects[0].locked,true);assert.equal(model.lockedEditConflict(value,locked,value.objects[0].id),null);assert.equal(model.lockedEditConflict(value,locked),value.objects[0].id);
+  assert.equal(get(locked,'object-lock').locked,false);assert.equal(get(locked,'bay-width').locked,true);const unlocked=edit(locked,'object-lock',false);assert.deepEqual(unlocked,value);
+});
+test('door, junction, route requirement and waypoint values use the same catalog and validation',()=>{
+  const make=o=>model.normalizeLayout({...model.createLayout(),objects:[o]});
+  const door=make(model.createRecipe('door'));assert.equal(edit(door,'object-open',true).objects[0].open,true);assert.equal(edit(door,'object-elevation',100).objects[0].elevation,100);
+  const junction=make(model.createRecipe('wall-tee')),arm=get(junction,'junction-arm');assert.equal(get(direct.proposeDirect(model,junction,arm,arm.value+100),'junction-arm').value,arm.value+100);assert.ok(!direct.directFields(model,junction,junction.objects[0].id).some(f=>f.kind==='object-width'));
+  const route=make(model.createRoute([{x:0,z:0},{x:4000,z:0}],2000,'Synthetic route'));assert.equal(edit(route,'route-requiredHeight',3000).objects[0].route.requiredHeight,3000);assert.equal(edit(route,'route-requiredHeight',null).objects[0].route.requiredHeight,null);
+  assert.equal(edit(route,'route-point-x',100).objects[0].route.path[0].x,100);assert.equal(direct.formatDirect(get(route,'route-requiredHeight'),null,'en'),'—');
+});
+test('position and rotation changes move grouped objects together while retaining scope identities',()=>{
+  const value=fixture();value.objects.push(model.createRecipe('wall',{x:30000,z:5000}));const grouped=model.groupObjects(model.normalizeLayout(value),value.objects.map(o=>o.id),'Synthetic group');
+  const moved=edit(grouped,'object-x',grouped.objects[0].x+500);assert.equal(moved.objects[1].x,grouped.objects[1].x+500);assert.equal(moved.objects[1].z,grouped.objects[1].z);
+  const renamed=edit(grouped,'group-name','Renamed assembly');assert.equal(renamed.groups[0].name,'Renamed assembly');assert.deepEqual(renamed.locations,grouped.locations);
+  const entry= require('../warehouse-walk-model.js').createWorld(require('../warehouse-scene.js').buildBoxes(model,grouped)).entries[0],walk=require('../warehouse-walk-model.js'),point={x:12.4,y:1.7,z:8.2},local=walk.local(entry,point),world=walk.world(entry,local.x,local.y,local.z);assert.ok(Math.abs(world.x-point.x)<1e-8&&Math.abs(world.z-point.z)<1e-8);
 });

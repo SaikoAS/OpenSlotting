@@ -747,7 +747,7 @@ test('movement is focus-scoped, stops on blur/page leave, and camera frames do n
 async function directHarness(settings={}){
   const value=settings.value||layout(),saved=[];
   const h=harness(value,true,true,{standalone:true,editorAvailable:true,openEditor:settings.openEditor||function(){throw Error('Direct interaction must not open the modal');},
-    saveLayout:async(next,base)=>{saved.push({next:structuredClone(next),base});const workspace=h.workspace;if(settings.save)await settings.save(next,base);if(h.workspace===workspace)h.value=structuredClone(next);}});
+    saveLayout:async(next,base,toggleLockId)=>{saved.push({next:structuredClone(next),base,toggleLockId});const workspace=h.workspace;if(settings.save)await settings.save(next,base);if(h.workspace===workspace)h.value=structuredClone(next);}});
   h.saved=saved;h.apply=()=>{h.key('Enter');h.key('Enter');};let time=100;
   h.frame=()=>h.tick(time+=16);
   h.click=button=>{h.canvas.events.pointerdown({button,preventDefault(){}});h.frame();};
@@ -758,7 +758,8 @@ async function directHarness(settings={}){
     h.canvas.events.pointermove({movementX:(c.yaw-yaw)/.004,movementY:(pitch-c.pitch)/.004});h.frame();
   };
   h.field=kind=>directEditor.directFields(model,h.value,h.value.objects[0].id).find(f=>f.kind===kind);
-  h.choose=kind=>{const f=h.field(kind);h.look(f.point);assert.match(h.nodes.get('[data-walk-interact-hint]').textContent,f.locked?/Object locked/:/Edit value/);h.click(0);return f;};
+  h.target=()=>{const html=h.nodes.get('[data-walk-handles]').innerHTML;return (html.match(/class="[^"]*is-target[^"]*" data-direct-field="([^"]+)"/)||[])[1];};
+  h.choose=kind=>{const f=h.field(kind);assert.ok(f,kind);h.key('Digit'+({structure:1,zones:2,locations:3}[f.section]));h.frame();h.look(f.point);for(let i=0;i<100&&h.target()!==f.key;i++)h.wheel(-100);assert.equal(h.target(),f.key,kind);assert.match(h.nodes.get('[data-walk-interact-hint]').textContent,f.locked?/Object locked/:/Edit value/);h.click(0);return f;};
   h.number=value=>{for(const char of String(value))h.event({code:'Digit'+char,key:char});h.frame();};
   await h.change('work-mode','editor');await h.action('resume');h.frame();
   h.aim(value.locations[0].id);h.click(0);assert.equal(h.document.pointerLockElement,h.canvas);
@@ -935,4 +936,67 @@ test('E cannot bind, edit, leave values or confirm discard, and the walk adverti
   h.click(2);h.key('KeyE');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'discard');assert.equal(h.aimedObject,object);assert.equal(h.document.pointerLockElement,h.canvas);
   const evaluation=harness(layout(),true,true,{standalone:true});await evaluation.action('resume');evaluation.aim(evaluation.value.locations[0].id);evaluation.tick(100);evaluation.key('KeyE');
   assert.equal(evaluation.nodes.get('.wh-walk-interaction').hidden,true);assert.match(evaluation.nodes.get('[data-walk-interact-hint]').textContent,/^Left click/);evaluation.left();assert.equal(evaluation.nodes.get('.wh-walk-interaction').hidden,false);
+});
+
+test('typed name fields consume movement and menu letters without leaving mouse look or saving',async()=>{
+  const h=await directHarness(),before=structuredClone(h.value);h.choose('object-name');const camera={...h.camera};
+  for(const char of 'B M E WASD C <tag>')h.event({code:char===' '?'Space':/^[A-Z]$/.test(char)?'Key'+char:'Unidentified',key:char});
+  h.key('ArrowLeft');h.frame();assert.equal(h.document.pointerLockElement,h.canvas);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'value');
+  assert.equal(h.camera.x,camera.x);assert.equal(h.camera.z,camera.z);assert.equal(h.camera.eye,camera.eye);
+  assert.match(h.nodes.get('[data-walk-handles]').innerHTML,/&lt;tag&gt;/);assert.doesNotMatch(h.nodes.get('[data-walk-handles]').innerHTML,/<tag>/);
+  h.canvas.events.paste({preventDefault(){},clipboardData:{getData:()=>'-paste'}});h.click(0);assert.deepEqual(h.value,before);assert.equal(h.saved.length,0);
+  h.key('Enter');await settle();h.frame();assert.equal(h.value.objects[0].name,'B M E WASD C <tag>-paste');assert.equal(h.saved.length,1);
+});
+
+test('section selection and typed counts distinguish hotkeys from numeric field input',async()=>{
+  const h=await directHarness();h.key('Digit2');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'zones');
+  h.choose('rack-bays');h.number(3);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'structure');
+  h.click(0);assert.equal(h.value.objects[0].bays.length,2);h.key('Enter');await settle();h.frame();assert.equal(h.value.objects[0].bays.length,3);
+  const added=h.value.objects[0].bays[2];assert.ok(h.value.zones.filter(z=>z.bayId===added.id).every(z=>z.usage==='unassigned'));
+  h.key('Digit3');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'locations');
+});
+
+test('booleans and choices produce staged previews while retaining captured mouse look',async()=>{
+  const h=await directHarness();h.choose('level-deck');h.wheel(-100);h.click(0);assert.equal(h.value.objects[0].bays[0].levels[0].deck,true);
+  h.key('Enter');await settle();h.frame();assert.equal(h.value.objects[0].bays[0].levels[0].deck,false);
+  const usage=h.choose('zone-usage');h.event({code:'ArrowUp',key:'ArrowUp'});h.click(0);h.key('Enter');await settle();h.frame();assert.equal(h.value.zones.find(z=>z.id===usage.zoneId).usage,'reserve');assert.equal(h.document.pointerLockElement,h.canvas);
+});
+
+test('lock changes save with their dedicated metadata and cannot be combined with geometry changes',async()=>{
+  const h=await directHarness();h.choose('object-lock');h.wheel(-100);h.click(0);
+  const width=h.field('bay-width');h.look(width.point);h.click(0);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');
+  h.key('Enter');await settle();h.frame();assert.equal(h.value.objects[0].locked,true);assert.equal(h.saved[0].toggleLockId,h.value.objects[0].id);
+  h.choose('object-lock');h.wheel(-100);h.click(0);h.key('Enter');await settle();h.frame();assert.equal(h.value.objects[0].locked,false);assert.equal(h.saved[1].toggleLockId,h.value.objects[0].id);
+  h.choose('bay-width');h.wheel(-100);h.click(0);const lock=h.field('object-lock');h.look(lock.point);for(let i=0;i<100&&h.target()!==lock.key;i++)h.wheel(-100);h.click(0);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/lock change separately/);assert.equal(h.saved.length,2);
+});
+
+test('removing ground locations requires a second explicit confirmation and can be canceled',async()=>{
+  const h=await directHarness(),before=structuredClone(h.value);h.choose('ground-enabled');h.wheel(-100);h.click(0);h.key('Enter');h.frame();
+  assert.equal(h.saved.length,0);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'apply-confirm');assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/3 locations/);
+  h.event({code:'Enter',repeat:true});assert.equal(h.saved.length,0);h.click(2);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');assert.deepEqual(h.value,before);
+  h.key('Enter');h.click(0);await settle();h.frame();assert.equal(h.saved.length,1);assert.equal(h.value.objects[0].bays[0].ground.enabled,false);assert.equal(h.value.locations.length,before.locations.length-3);
+});
+
+test('paused destructive confirmation uses Apply and Keep editing without mutating committed data',async()=>{
+  const h=await directHarness();h.choose('ground-enabled');h.wheel(-100);h.click(0);h.key('Enter');h.key('Escape');h.frame();
+  assert.equal(h.nodes.get('[data-walk-discard]').hidden,false);assert.match(h.nodes.get('[data-walk-discard]').innerHTML,/apply-confirm/);
+  await h.action('discard-keep');assert.equal(h.saved.length,0);await h.action('resume');h.frame();h.key('Enter');h.key('Escape');await h.action('apply-confirm');await settle();assert.equal(h.saved.length,1);
+});
+
+test('code changes update assignment previews but require confirmation before committing changed codes',async()=>{
+  const h=await directHarness(),originalField=h.field;h.field=kind=>kind==='location-code'?directEditor.directFields(model,h.value,h.value.objects[0].id).find(f=>f.kind===kind&&f.value==='0001'):originalField(kind);const codeField=h.choose('location-code'),oldColor=h.world.positions.get(codeField.slotId).box.color;h.number('NEW');assert.notEqual(h.world.positions.get(codeField.slotId).box.color,oldColor);h.click(0);h.key('Enter');h.frame();assert.equal(h.saved.length,0);
+  assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'apply-confirm');assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/codes: 1/);
+  h.key('Enter');await settle();h.frame();assert.equal(h.value.locations.find(s=>s.id===h.saved[0].next.locations.find(s=>s.code==='NEW').id).code,'NEW');
+});
+
+test('overlapping field selection cycles without changing values until a field is activated',async()=>{
+  const h=await directHarness(),before=structuredClone(h.value);for(const f of directEditor.directFields(model,h.value,h.value.objects[0].id).filter(f=>f.section==='structure')){h.look(f.point);if(/Wheel: choose overlapping/.test(h.nodes.get('[data-walk-direct-status]').innerHTML))break;}const seen=new Set([h.target()]);
+  for(let i=0;i<30;i++){h.wheel(-100);seen.add(h.target());assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');}
+  assert.ok(seen.size>1);assert.deepEqual(h.value,before);assert.equal(h.saved.length,0);assert.equal(h.document.pointerLockElement,h.canvas);
+});
+
+test('object removal remains bound through confirmation and clears the binding only after the write',async()=>{
+  const h=await directHarness();h.choose('object-remove');h.wheel(-100);h.click(0);h.key('Enter');h.frame();assert.equal(h.saved.length,0);
+  assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'apply-confirm');h.click(2);assert.equal(h.value.objects.length,1);
+  h.key('Enter');h.key('Enter');await settle();h.frame();assert.equal(h.saved.length,1);assert.equal(h.value.objects.length,0);assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);
 });

@@ -205,7 +205,7 @@
       pitch:Math.max(-1.3,Math.min(1.3,Math.atan2(eyeHeight-target.y,Math.hypot(target.x-position.x,target.z-position.z))))};
   }
   return {MIN_FOV:MIN_FOV,MAX_FOV:MAX_FOV,DEFAULT_FOV:DEFAULT_FOV,fieldOfView:fieldOfView,
-    createWorld:createWorld,world:world,canStand:canStand,canOccupy:canOccupy,freePosition:freePosition,move:move,
+    createWorld:createWorld,world:world,local:local,canStand:canStand,canOccupy:canOccupy,freePosition:freePosition,move:move,
     createMotion:createMotion,movementSpeed:movementSpeed,stepMotion:stepMotion,basis:basis,ray:ray,
     raycast:raycast,project:project,matrix:matrix,approach:approach,RADIUS:RADIUS,FAR:FAR};
 }));
