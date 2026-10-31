@@ -759,7 +759,7 @@ async function directHarness(settings={}){
   };
   h.field=kind=>directEditor.directFields(model,h.value,h.value.objects[0].id).find(f=>f.kind===kind);
   h.target=()=>{const html=h.nodes.get('[data-walk-handles]').innerHTML;return (html.match(/class="[^"]*is-target[^"]*" data-direct-field="([^"]+)"/)||[])[1];};
-  h.choose=kind=>{const f=h.field(kind);assert.ok(f,kind);h.key('Digit'+({structure:1,zones:2,locations:3}[f.section]));h.frame();h.look(f.point);for(let i=0;i<100&&h.target()!==f.key;i++)h.wheel(-100);assert.equal(h.target(),f.key,kind);assert.match(h.nodes.get('[data-walk-interact-hint]').textContent,f.locked?/Object locked/:/Edit value/);h.click(0);return f;};
+  h.choose=kind=>{const f=h.field(kind);assert.ok(f,kind);if(h.nodes.get('[data-walk-direct-status]').dataset.editorSection!==f.section){if(h.nodes.get('[data-walk-direct-status]').dataset.editorSection)h.click(2);h.key('Digit'+({structure:1,zones:2,locations:3}[f.section]));h.frame();}h.look(f.point);for(let i=0;i<100&&h.target()!==f.key;i++)h.wheel(-100);assert.equal(h.target(),f.key,kind);assert.match(h.nodes.get('[data-walk-interact-hint]').textContent,f.locked?/Object locked/:/Edit value/);h.click(0);return f;};
   h.number=value=>{for(const char of String(value))h.event({code:'Digit'+char,key:char});h.frame();};
   await h.change('work-mode','editor');await h.action('resume');h.frame();
   h.aim(value.locations[0].id);h.click(0);assert.equal(h.document.pointerLockElement,h.canvas);
@@ -773,7 +773,7 @@ test('left click binds one object until right release and only its projected fie
   h.aimHit={item:h.world.entries.find(item=>item.box.object.id===rack2.id),distance:2};
   h.look({x:20,y:1,z:20});h.click(0);assert.equal(h.aimedObject,id);assert.equal(h.saved.length,0);
   assert.equal(h.nodes.get('.wh-walk-labels').hidden,true);
-  h.click(2);assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);
+  h.click(2);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'section');h.click(2);assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);
   assert.equal(h.document.pointerLockElement,h.canvas);assert.equal(h.aimedObject,rack2.id);
 });
 test('direct mouse-look editing previews coalesced geometry, accepts numbers, saves once and keeps binding and pose',async()=>{
@@ -791,7 +791,7 @@ test('direct mouse-look editing previews coalesced geometry, accepts numbers, sa
 });
 test('right release requires confirmation, pause retains previews and locked objects never acquire an editable draft',async()=>{
   const h=await directHarness(),before=structuredClone(h.value);h.choose('bay-width');h.wheel(-100);h.click(2);
-  h.click(2);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);assert.equal(h.nodes.get('[data-walk-direct-status]').classList.contains('is-confirming'),true);
+  h.click(2);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'section');h.click(2);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);assert.equal(h.nodes.get('[data-walk-direct-status]').classList.contains('is-confirming'),true);
   assert.equal(h.document.pointerLockElement,h.canvas);h.click(0);assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);assert.deepEqual(h.value,before);
   h.aim(before.locations[0].id);h.click(0);h.choose('bay-width');h.wheel(-100);h.key('Escape');await h.action('resume');h.frame();
   assert.equal(h.document.pointerLockElement,h.canvas);assert.equal(h.aimedObject,before.objects[0].id);
@@ -802,7 +802,7 @@ test('right release requires confirmation, pause retains previews and locked obj
 test('invalid placement and stale snapshot cannot save, and failed saves retain an editable draft without releasing mouse look',async()=>{
   const h=await directHarness();h.choose('location-width');h.wheel(-100);h.key('Enter');await settle();
   assert.equal(h.saved.length,0);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Invalid value/);
-  h.click(2);h.click(0);h.aim(h.value.locations[0].id);h.click(0);h.choose('bay-width');h.wheel(-100);
+  h.click(2);h.click(2);h.click(0);h.aim(h.value.locations[0].id);h.click(0);h.choose('bay-width');h.wheel(-100);
   h.value=structuredClone(h.value);h.value.objects[0].name='Changed elsewhere';h.apply();h.frame();await settle();
   assert.equal(h.saved.length,0);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Snapshot changed/);
   const failed=await directHarness({save:async()=>{throw Error('quota');}}),old=structuredClone(failed.value);
@@ -813,11 +813,11 @@ test('invalid placement and stale snapshot cannot save, and failed saves retain 
 });
 test('pending and uncertain direct writes never auto-retry or resurrect a released binding',async()=>{
   let finish;const gate=new Promise(resolve=>finish=resolve),h=await directHarness({save:()=>gate});
-  h.choose('bay-width');h.wheel(-100);h.key('Enter');h.key('Enter');h.click(2);
+  h.choose('bay-width');h.wheel(-100);h.key('Enter');h.key('Enter');h.click(2);h.click(2);
   assert.equal(h.saved.length,1);finish();await settle();h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);
   const late=await directHarness({save:async()=>{throw Error('edit-timeout');}});
   late.choose('bay-width');late.wheel(-100);late.apply();await settle();late.frame();late.key('Enter');assert.equal(late.saved.length,1);
-  late.click(2);late.click(0);assert.equal(late.nodes.get('[data-walk-direct-status]').hidden,true);
+  late.click(2);late.click(2);late.click(0);assert.equal(late.nodes.get('[data-walk-direct-status]').hidden,true);
   assert.match(late.nodes.get('[data-walk-interact-hint]').textContent,/Snapshot changed/);
   late.render();await late.action('resume');late.frame();late.aim(late.value.locations[0].id);late.click(0);assert.equal(late.nodes.get('[data-walk-direct-status]').hidden,true);
   late.editor.acceptSnapshot();late.render();await late.action('resume');late.frame();late.aim(late.value.locations[0].id);late.click(0);assert.equal(late.nodes.get('[data-walk-direct-status]').hidden,false);
@@ -834,7 +834,7 @@ test('direct controls ignore browser shortcuts, keep mouse look and walking, and
 test('direct field targets clear when looking away and workspace disposal rejects late save feedback',async()=>{
   const h=await directHarness(),field=h.field('bay-width');
   h.look({x:field.point.x+20,y:field.point.y,z:field.point.z+20});h.click(0);h.wheel(-100);h.key('Enter');assert.equal(h.saved.length,0);
-  const original=h.value.objects[0].id;h.click(2);assert.notEqual(h.nodes.get('[data-walk-direct-status]').hidden,false);
+  const original=h.value.objects[0].id;h.click(2);h.click(2);assert.notEqual(h.nodes.get('[data-walk-direct-status]').hidden,false);
   let finish;const gate=new Promise(resolve=>finish=resolve),late=await directHarness({save:()=>gate});late.choose('bay-width');late.wheel(-100);late.apply();
   const next=layout();late.workspace='two';late.value=next;late.render();late.frame();finish();await settle();late.frame();
   assert.equal(late.nodes.get('[data-walk-direct-status]').hidden,true);assert.deepEqual(late.value,next);
@@ -881,10 +881,10 @@ test('gold access-side paint is rendered without affecting bounds, collision gri
 });
 
 test('discard confirmation can be canceled without changing the draft, and Enter confirms without saving',async()=>{
-  const h=await directHarness(),before=structuredClone(h.value);const f=h.choose('bay-width');h.wheel(-100);h.click(2);h.click(2);
+  const h=await directHarness(),before=structuredClone(h.value);const f=h.choose('bay-width');h.wheel(-100);h.click(2);h.click(2);h.click(2);
   assert.match(h.nodes.get('[data-walk-interact-hint]').textContent,/Discard the open preview/);
   h.wheel(-100);h.number(9999);h.click(2);assert.equal(h.nodes.get('[data-walk-direct-status]').classList.contains('is-confirming'),false);
-  assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,new RegExp((f.value+50)+' mm'));
+  assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Open preview/);
   h.click(2);h.event({code:'Enter',key:'Enter',repeat:true});assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,false);
   h.key('Enter');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);assert.equal(h.document.pointerLockElement,h.canvas);
 });
@@ -930,11 +930,11 @@ test('invalid later values block object-level save while preserving earlier prev
 test('E cannot bind, edit, leave values or confirm discard, and the walk advertises only mouse interaction',async()=>{
   const h=await directHarness(),object=h.value.objects[0].id;
   assert.doesNotMatch(h.root.innerHTML,/\/ E:|E: interact/);
-  h.click(2);h.key('KeyE');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);h.click(0);h.key('Digit1');h.frame();
+  h.click(2);h.click(2);h.key('KeyE');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);h.click(0);h.key('Digit1');h.frame();
   const field=h.field('bay-width');h.look(field.point);h.key('KeyE');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');
   h.click(0);h.wheel(-100);h.key('KeyE');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'value');assert.equal(h.saved.length,0);
   h.click(0);h.key('KeyE');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');assert.equal(h.saved.length,0);
-  h.click(2);h.key('KeyE');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'discard');assert.equal(h.aimedObject,object);assert.equal(h.document.pointerLockElement,h.canvas);
+  h.click(2);h.click(2);h.key('KeyE');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'discard');assert.equal(h.aimedObject,object);assert.equal(h.document.pointerLockElement,h.canvas);
   const evaluation=harness(layout(),true,true,{standalone:true});await evaluation.action('resume');evaluation.aim(evaluation.value.locations[0].id);evaluation.tick(100);evaluation.key('KeyE');
   assert.equal(evaluation.nodes.get('.wh-walk-interaction').hidden,true);assert.match(evaluation.nodes.get('[data-walk-interact-hint]').textContent,/^Left click/);evaluation.left();assert.equal(evaluation.nodes.get('.wh-walk-interaction').hidden,false);
 });
@@ -950,11 +950,11 @@ test('typed name fields consume movement and menu letters without leaving mouse 
 });
 
 test('section selection and typed counts distinguish hotkeys from numeric field input',async()=>{
-  const h=await directHarness();h.key('Digit2');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'zones');
+  const h=await directHarness();h.click(2);h.key('Digit2');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'zones');
   h.choose('rack-bays');h.number(3);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'structure');
   h.click(0);assert.equal(h.value.objects[0].bays.length,2);h.key('Enter');await settle();h.frame();assert.equal(h.value.objects[0].bays.length,3);
   const added=h.value.objects[0].bays[2];assert.ok(h.value.zones.filter(z=>z.bayId===added.id).every(z=>z.usage==='unassigned'));
-  h.key('Digit3');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'locations');
+  h.click(2);h.key('Digit3');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'locations');
 });
 
 test('booleans and choices produce staged previews while retaining captured mouse look',async()=>{
@@ -1004,12 +1004,12 @@ test('object removal remains bound through confirmation and clears the binding o
 
 test('binding starts with section choices only and values remain hidden until explicit selection',async()=>{
   const h=await directHarness({chooseSection:false}),before=structuredClone(h.value),status=h.nodes.get('[data-walk-direct-status]'),handles=h.nodes.get('[data-walk-handles]');
-  assert.equal(status.dataset.editorStage,'section');assert.equal(status.dataset.editorSection,'');assert.match(status.innerHTML,/Choose section/);
+  assert.equal(status.dataset.editorStage,'section');assert.equal(status.dataset.editorSection,'');assert.match(status.innerHTML,/Object menu/);
   assert.ok(handles.innerHTML.includes('@section-'));assert.doesNotMatch(handles.innerHTML,/data-direct-field="(?!@section-)/);
   h.look(h.field('bay-width').point);h.click(0);h.wheel(-100);h.key('Enter');assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);
   assert.doesNotMatch(handles.innerHTML,/data-direct-field="(?!@section-)/);
   h.key('Digit2');h.frame();assert.equal(status.dataset.editorSection,'zones');assert.match(handles.innerHTML,/zone-usage:/);assert.doesNotMatch(handles.innerHTML,/bay-width:|location-width:/);
-  h.key('Digit3');h.frame();assert.equal(status.dataset.editorSection,'locations');assert.match(handles.innerHTML,/location-/);assert.doesNotMatch(handles.innerHTML,/zone-usage:|bay-width:/);
+  h.click(2);h.key('Digit3');h.frame();assert.equal(status.dataset.editorSection,'locations');assert.match(handles.innerHTML,/location-/);assert.doesNotMatch(handles.innerHTML,/zone-usage:|bay-width:/);
 });
 
 test('projected section controls select by left click, pause retains the section and rebinding asks again',async()=>{
@@ -1019,6 +1019,29 @@ test('projected section controls select by left click, pause retains the section
   h.look({x:c.x+ray.x*2,y:c.eye+ray.y*2,z:c.z+ray.z*2});assert.equal(h.target(),'@section-zones');h.click(0);
   assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'zones');assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');assert.equal(h.saved.length,0);
   h.key('Escape');await h.action('resume');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'zones');
-  h.click(2);h.click(0);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'section');assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'');
+  h.click(2);h.click(2);h.click(0);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'section');assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'');
   assert.doesNotMatch(h.nodes.get('[data-walk-handles]').innerHTML,/data-direct-field="(?!@section-)/);assert.equal(h.document.pointerLockElement,h.canvas);
+});
+
+test('the object menu is a navigation level, hidden in sections and restored by one right click',async()=>{
+  const h=await directHarness({chooseSection:false}),status=h.nodes.get('[data-walk-direct-status]'),handles=h.nodes.get('[data-walk-handles]'),id=h.value.objects[0].id;
+  assert.match(handles.innerHTML,/@section-structure/);h.key('Digit1');h.frame();assert.equal(status.dataset.editorSection,'structure');assert.doesNotMatch(handles.innerHTML,/@section-/);
+  h.key('Digit2');h.frame();assert.equal(status.dataset.editorSection,'structure');assert.doesNotMatch(status.innerHTML,/1 Structure/);
+  h.click(2);assert.equal(status.dataset.editorStage,'section');assert.match(status.innerHTML,/Object menu/);assert.match(handles.innerHTML,/@section-zones/);assert.doesNotMatch(handles.innerHTML,/bay-width:/);assert.equal(h.aimedObject,id);assert.equal(h.saved.length,0);
+  h.key('Digit2');h.frame();assert.doesNotMatch(handles.innerHTML,/@section-/);h.click(2);h.click(2);assert.equal(status.hidden,true);assert.equal(h.document.pointerLockElement,h.canvas);
+});
+
+test('right backtracking retains multi-section previews and only menu-level release asks to discard',async()=>{
+  const h=await directHarness(),before=structuredClone(h.value),f=h.choose('bay-width'),status=h.nodes.get('[data-walk-direct-status]'),handles=h.nodes.get('[data-walk-handles]');
+  h.wheel(-100);h.click(2);assert.equal(status.dataset.editorStage,'object');assert.doesNotMatch(handles.innerHTML,/@section-/);
+  h.click(2);assert.equal(status.dataset.editorStage,'section');assert.match(status.innerHTML,/Open preview/);assert.equal(status.classList.contains('is-confirming'),false);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);
+  const usage=h.choose('zone-usage');h.wheel(-100);h.click(2);h.click(2);assert.equal(status.dataset.editorStage,'section');
+  h.click(2);assert.equal(status.dataset.editorStage,'discard');h.click(2);assert.equal(status.dataset.editorStage,'section');assert.match(handles.innerHTML,/@section-structure/);assert.equal(h.saved.length,0);
+  h.key('Enter');await settle();h.frame();assert.equal(h.saved.length,1);assert.equal(h.value.objects[0].bays[0].width,f.value+50);assert.equal(h.value.zones.find(z=>z.id===usage.zoneId).usage,'reserve');assert.equal(status.dataset.editorStage,'section');assert.equal(h.document.pointerLockElement,h.canvas);
+});
+
+test('invalid values survive navigation back to the object menu and can be corrected after reentering their section',async()=>{
+  const h=await directHarness(),status=h.nodes.get('[data-walk-direct-status]');h.choose('location-width');h.wheel(-100);h.click(2);h.click(2);
+  assert.equal(status.dataset.editorStage,'section');assert.match(status.innerHTML,/Invalid value/);h.key('Enter');assert.equal(h.saved.length,0);
+  h.choose('location-width');h.wheel(100);h.click(2);h.click(2);h.click(2);assert.equal(status.hidden,true);assert.equal(h.saved.length,0);
 });

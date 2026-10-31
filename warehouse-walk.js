@@ -94,8 +94,8 @@
       ?{bind:'Linksklick · Objekt binden',field:'Linksklick · Wert bearbeiten',release:'Rechtsklick: lösen',locked:'Objekt gesperrt. Unter Struktur den Sperrstatus ändern und separat übernehmen.',none:'Für diesen Objekttyp das Bearbeitungsmenü verwenden.',help:'Mausrad: ändern · Shift: fein · Zahl eingeben · Linksklick / Enter / Rechtsklick: Wert abwählen',preview:'Vorschau',saved:'Änderung gespeichert.',saving:'Wird gespeichert …',invalid:'Ungültiger Wert oder Geometrie. Vorschau nicht übernehmbar.',stale:'Datenstand unklar oder geändert. Im Menü den Datenstand aktualisieren.',failed:'Speichern fehlgeschlagen. Entwurf bleibt erhalten.',impact:'Betroffene Stellplätze / Codes / Artikel',collisions:'Kollisionen',occupied:'Änderung würde den Betrachter einschließen. Erst eine freie Position wählen.'}
       :{bind:'Left click · Bind object',field:'Left click · Edit value',release:'Right click: release',locked:'Object locked. Change the lock under Structure and apply it separately.',none:'Use the editing menu for this object type.',help:'Wheel: adjust · Shift: fine · Type a number · Left click / Enter / Right click: leave value',preview:'Preview',saved:'Change saved.',saving:'Saving …',invalid:'Invalid value or geometry. Cannot apply preview.',stale:'Snapshot changed or save uncertain. Refresh the data snapshot in the menu.',failed:'Save failed. Draft retained.',impact:'Affected locations / codes / articles',collisions:'Collisions',occupied:'This change would enclose the observer. Move to a free position first.'};}
     function stageWords(){return options.getLanguage()==='de'
-      ?{value:'Wert bearbeiten',object:'Objektvorschau',back:'Linksklick / Enter / Rechtsklick: Wert abwählen',apply:'Änderungen übernehmen',discard:'Vorschau verwerfen',help:'Wert anvisieren oder Übernehmen wählen · Enter: übernehmen · Rechtsklick: lösen'}
-      :{value:'Edit value',object:'Object preview',back:'Left click / Enter / Right click: leave value',apply:'Apply changes',discard:'Discard preview',help:'Aim at a value or Apply changes · Enter: apply · Right click: release'};}
+      ?{value:'Wert bearbeiten',object:'Objektvorschau',back:'Linksklick / Enter / Rechtsklick: Wert abwählen',apply:'Änderungen übernehmen',discard:'Vorschau verwerfen',help:'Wert anvisieren oder Übernehmen wählen · Enter: übernehmen · Rechtsklick: Objektmenü'}
+      :{value:'Edit value',object:'Object preview',back:'Left click / Enter / Right click: leave value',apply:'Apply changes',discard:'Discard preview',help:'Aim at a value or Apply changes · Enter: apply · Right click: object menu'};}
     function clearDirect(release){
       directEpoch++;directDraft=null;directFieldActive=false;directTarget=null;directDirty=false;previewWorld=null;discardDirectAction=null;applyDirectPending=false;directFocusKey=null;directHoverFields=[];
       if(previewApplied&&renderer&&scene)renderer.setWorld(scene);previewApplied=false;
@@ -123,6 +123,16 @@
     function releaseDirect(){
       if(discardDirectAction||applyDirectPending){keepDirectDraft();return;}
       if(directFieldActive){finishDirectField();return;}
+      if(directSection){
+        directSection=null;directTarget=null;directFocusKey=null;
+        const owner=(directDraft&&directDraft.candidate||info.layout).objects.find(o=>o.id===boundObjectId)||info.layout.objects.find(o=>o.id===boundObjectId);
+        if(owner){
+          const direction=walk.ray(camera,0,0,canvas.clientWidth/Math.max(1,canvas.clientHeight)),hit=walk.raycast(previewWorld||scene,origin(),direction,true,6),distance=Math.max(.1,Math.min(2,hit?hit.distance-.2:2));
+          const point={x:camera.x+direction.x*distance,y:camera.eye+direction.y*distance,z:camera.z+direction.z*distance},angle=owner.rotation*Math.PI/180;
+          directMenuLocal=walk.local({originX:owner.x/1000,originZ:owner.z/1000,cos:Math.cos(angle),sin:Math.sin(angle)},point);directMenuLocal.y=Math.max(.05,point.y-.6);
+        }
+        schedule();return;
+      }
       if(!requestDirectDiscard()){clearDirect(true);paintDirect();paintInteractionHint();}
     }
     function hasDirectChanges(){
@@ -167,7 +177,7 @@
       directNotice='';schedule();
     }
     function switchDirectSection(value){
-      if(directFieldActive||applyDirectPending||discardDirectAction||!boundObjectId||!['structure','zones','locations'].includes(value))return;
+      if(directBusy||directSection||directFieldActive||applyDirectPending||discardDirectAction||!boundObjectId||!['structure','zones','locations'].includes(value))return;
       directSection=value;directTarget=null;directFocusKey=null;schedule();
     }
     function directFormat(field,value,input){
@@ -264,8 +274,8 @@
         if(element&&!element.hidden&&element.getClientRects&&element.getClientRects().length){const r=element.getBoundingClientRect();blocked.push({left:r.left-canvasRect.left,right:r.right-canvasRect.left,top:r.top-canvasRect.top,bottom:r.bottom-canvasRect.top});}
       });
       let controls=directFields.filter(field=>field.section===directSection||field.sections&&field.sections.includes(directSection));
-      const object=(directDraft&&directDraft.candidate||info.layout).objects.find(item=>item.id===boundObjectId);
-      if(directMenuLocal&&object){
+      const object=(directDraft&&directDraft.candidate||info.layout).objects.find(item=>item.id===boundObjectId)||info.layout.objects.find(item=>item.id===boundObjectId);
+      if(!directSection&&directMenuLocal&&object){
         const point=model.localPoint(object,directMenuLocal.x*1000,directMenuLocal.z*1000);
         controls=controls.concat(['structure','zones','locations'].map((section,i)=>({key:'@section-'+section,action:'section',sectionValue:section,
           de:(i+1)+' · '+['Struktur','Zonen','Lagerplätze'][i],en:(i+1)+' · '+['Structure','Zones','Locations'][i],
@@ -279,7 +289,7 @@
         ]);
       }
       const candidates=controls.map(field=>({field:field,p:walk.project(camera,field.point,width,height),distance:Math.hypot(field.point.x-camera.x,field.point.y-camera.eye,field.point.z-camera.z)}))
-        .filter(item=>item.p&&item.distance>.001&&item.distance<=6).sort((a,b)=>Number(directFieldActive&&b.field.key===(directDraft&&directDraft.field.key))-Number(directFieldActive&&a.field.key===(directDraft&&directDraft.field.key))||
+        .filter(item=>item.p&&item.distance>.001&&item.distance<=6).sort((a,b)=>Number(b.field.action==='section')-Number(a.field.action==='section')||Number(directFieldActive&&b.field.key===(directDraft&&directDraft.field.key))-Number(directFieldActive&&a.field.key===(directDraft&&directDraft.field.key))||
           Math.hypot(a.p.x-width/2,a.p.y-height/2)-Math.hypot(b.p.x-width/2,b.p.y-height/2)||a.distance-b.distance);
       function eligible(item){
         const p=item.p,field=item.field;if(p.x<125||p.x>width-125||p.y<90||p.y>height-120)return false;
@@ -321,10 +331,10 @@
         return '<span class="wh-walk-handle'+(field===directTarget?' is-target':'')+(active?' is-active':'')+(field.action?' is-action':'')+'" data-direct-field="'+esc(field.key)+'" aria-disabled="'+Boolean(field.locked)+'" style="left:'+item.x+'px;top:'+item.y+'px"><span>'+esc(field[options.getLanguage()==='de'?'de':'en'])+'</span>'+(field.action?'':'<b>'+esc(directFormat(field,pending?directDraft.value:field.value,pending?directDraft.input:undefined))+(field.locked?' 🔒':'')+'</b>')+'</span>';
       }).join('');
       const t=directWords(),object=info.layout.objects.find(item=>item.id===boundObjectId),draft=directDraft;
-      let detail=directBusy?t.saving:directStale?t.stale:!directSection?(options.getLanguage()==='de'?'Bereich auswählen: Struktur, Zonen oder Lagerplätze.':'Choose a section: Structure, Zones or Locations.'):directNotice;
+      let detail=directBusy?t.saving:directStale?t.stale:!directSection?(options.getLanguage()==='de'?'Objektmenü: Struktur, Zonen oder Lagerplätze auswählen.':'Object menu: choose Structure, Zones or Locations.'):directNotice;
       if(draft&&!directBusy&&!directStale){
         const stages=stageWords();
-        detail=(directFieldActive?stages.value:stages.object)+' · '+draft.field[options.getLanguage()==='de'?'de':'en']+': '+directFormat(draft.field,draft.value,draft.input)+' · '+(directFieldActive?directFieldHelp(draft.field):stages.help);
+        detail=!directSection?(options.getLanguage()==='de'?'Objektmenü · Offene Vorschau':'Object menu · Open preview'):(directFieldActive?stages.value:stages.object)+' · '+draft.field[options.getLanguage()==='de'?'de':'en']+': '+directFormat(draft.field,draft.value,draft.input)+' · '+(directFieldActive?directFieldHelp(draft.field):stages.help);
         if(draft.error)detail+=' · '+t.invalid+' '+draft.error;
         else if(draft.impact)detail+=' · '+t.impact+': '+draft.impact.locations+' / '+draft.impact.codes+' / '+draft.impact.articles+' · '+t.collisions+': '+draft.collisions;
         if(draft.saveError||draft.blocked)detail+=' · '+(draft.saveError||draft.blocked);
@@ -332,13 +342,13 @@
       }
       if(discardDirectAction)detail=discard.question+' · '+(draft?directFormat(draft.field,draft.value,draft.input)+' · ':'')+discard.keys;
       if(applyDirectPending)detail=applyDirectQuestion()+(options.getLanguage()==='de'?' Linksklick / Enter: bestätigen · Rechtsklick: weiter bearbeiten':' Left click / Enter: confirm · Right click: keep editing');
-      detail+=(options.getLanguage()==='de'?' · 1 Struktur · 2 Zonen · 3 Lagerplätze':' · 1 Structure · 2 Zones · 3 Locations');
+      if(!directFieldActive&&!discardDirectAction&&!applyDirectPending)detail+=!directSection?(options.getLanguage()==='de'?' · 1 Struktur · 2 Zonen · 3 Lagerplätze · Rechtsklick: lösen':' · 1 Structure · 2 Zones · 3 Locations · Right click: release'):(options.getLanguage()==='de'?' · Rechtsklick: Objektmenü':' · Right click: object menu');
       if(!directFieldActive&&directHoverFields.length>1)detail+=(options.getLanguage()==='de'?' · Mausrad: überlappende Felder wählen':' · Wheel: choose overlapping fields')+' ('+(directHoverFields.findIndex(field=>directTarget&&field.key===directTarget.key)+1)+'/'+directHoverFields.length+')';
       status.classList.toggle('is-confirming',Boolean(discardDirectAction||applyDirectPending));
       status.classList.toggle('is-invalid',Boolean(draft&&(draft.error||draft.saveError||draft.blocked)||directStale));
       status.dataset.editorStage=discardDirectAction?'discard':applyDirectPending?'apply-confirm':directFieldActive?'value':directSection?'object':'section';
       status.dataset.editorSection=directSection||'';
-      status.innerHTML='<strong>'+esc(object&&object.name)+' · '+esc(discardDirectAction?discard.question:directFieldActive?stageWords().value:draft?stageWords().object:!directSection?(options.getLanguage()==='de'?'Bereich auswählen':'Choose section'):t.release)+'</strong><span>'+esc(detail||t.field)+'</span>';
+      status.innerHTML='<strong>'+esc(object&&object.name)+' · '+esc(discardDirectAction?discard.question:directFieldActive?stageWords().value:!directSection?(options.getLanguage()==='de'?'Objektmenü':'Object menu'):draft?stageWords().object:(options.getLanguage()==='de'?({structure:'Struktur',zones:'Zonen',locations:'Lagerplätze'})[directSection]:({structure:'Structure',zones:'Zones',locations:'Locations'})[directSection]))+'</strong><span>'+esc(detail||t.field)+'</span>';
     }
     async function saveDirect(approved){
       if(!directDraft||directBusy||directStale)return;prepareDirect();
@@ -947,7 +957,7 @@
           queueDirect(draft.field.type==='text'?draft.input:draft.input===''?(draft.field.nullable?null:NaN):Number(draft.input.replace(',','.')));return;
         }
       }
-      if(boundObjectId&&!directFieldActive&&!discardDirectAction&&!applyDirectPending&&['Digit1','Digit2','Digit3'].includes(event.code)){event.preventDefault();if(!event.repeat)switchDirectSection(['structure','zones','locations'][Number(event.code.slice(-1))-1]);return;}
+      if(boundObjectId&&!directSection&&!directFieldActive&&!discardDirectAction&&!applyDirectPending&&['Digit1','Digit2','Digit3'].includes(event.code)){event.preventDefault();if(!event.repeat)switchDirectSection(['structure','zones','locations'][Number(event.code.slice(-1))-1]);return;}
       if(directFieldActive&&directDraft&&directDraft.field.type==='text'&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.code)){event.preventDefault();return;}
       if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','KeyC'].includes(event.code)){
         event.preventDefault();if(event.code==='Space'&&!event.repeat&&!keys.has('Space')&&motion.mode==='walk')jumpQueued=true;
