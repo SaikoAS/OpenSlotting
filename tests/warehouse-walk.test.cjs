@@ -181,6 +181,20 @@ test('shared scene produces finite static meshes without changing any warehouse 
   assert.equal(world.positions.size,value.locations.length);
 });
 
+test('aim meshes follow rotated physical parts and floor surfaces while ignoring logical markers',()=>{
+  const value={id:'aimed',type:'wall',x:12000,z:7000,rotation:37};
+  const world=walk.createWorld([box({object:value}),box({object:value,kind:'location',slotRef:{slotId:'logical'}}),
+    box({object:value,kind:'orientation'}),box({object:value,kind:'ground-scope'})]);
+  const before=structuredClone(value),mesh=renderer.buildAimMeshes(world.entries,walk);
+  assert.equal(mesh.fill.length,36*6);assert.equal(mesh.lines.length,24*6);
+  assert.ok(mesh.fill.every(Number.isFinite));assert.ok(mesh.lines.every(Number.isFinite));
+  const entry=world.entries[0],first=walk.world(entry,entry.x,entry.y+entry.height,entry.z);
+  assert.ok(Math.abs(mesh.fill[0]-first.x)<.0001);assert.ok(Math.abs(mesh.fill[2]-first.z)<.0001);
+  assert.deepEqual(value,before);
+  const floor=walk.createWorld([box({object:{...value,type:'aisle'},height:10})]);
+  const area=renderer.buildAimMeshes(floor.entries,walk);assert.equal(area.fill.length,6*6);assert.equal(area.lines.length,8*6);
+});
+
 test('GPU geometry is uploaded once and camera frames only change uniforms',()=>{
   let uploads=0,matrices=0;const events={},constants=new Map();
   const gl=new Proxy({bufferData(){uploads++;},uniformMatrix4fv(_location,_transpose,value){assert.ok(value.every(Number.isFinite));matrices++;},
@@ -198,6 +212,23 @@ test('GPU geometry is uploaded once and camera frames only change uniforms',()=>
   events.webglcontextrestored();assert.equal(engine.available(),true);assert.ok(uploads>count+1);
 });
 
+test('aim uploads affect only two overlay buffers on target changes and preserve depth testing through restoration',()=>{
+  const events={},constants=new Map(),uploads=[],depthMasks=[],disabled=[];
+  const gl=new Proxy({bufferData(_target,data){uploads.push(data.length);},depthMask(value){depthMasks.push(value);},disable(value){disabled.push(value);},
+    getShaderParameter:()=>true,getProgramParameter:()=>true,getAttribLocation:()=>0,getUniformLocation:()=>({})},
+    {get(target,key){if(key in target)return target[key];if(/^[A-Z_0-9]+$/.test(key)){if(!constants.has(key))constants.set(key,constants.size+1);return constants.get(key);}return ()=>({});}});
+  const canvas={getContext:()=>gl,addEventListener(type,cb){events[type]=cb;},isConnected:true,clientWidth:800,clientHeight:600};
+  const context=vm.createContext({window:{devicePixelRatio:1}});vm.runInContext(fs.readFileSync(path.join(__dirname,'..','warehouse-walk-renderer.js'),'utf8'),context);
+  const engine=context.OpenSlottingWarehouseWalkRenderer.create(canvas,walk),value=layout(),world=walk.createWorld(scene.buildBoxes(model,value));
+  engine.setWorld(world);const initial=uploads.length;
+  engine.aimObject(value.objects[0].id);assert.equal(uploads.length,initial+2);assert.ok(uploads.at(-1)>0);
+  for(let i=0;i<15;i++){engine.aimObject(value.objects[0].id);engine.render({x:0,z:4,eye:1.7,yaw:i*.01,pitch:0});}
+  assert.equal(uploads.length,initial+2);assert.deepEqual(depthMasks.slice(-2),[false,true]);assert.equal(disabled.includes(gl.DEPTH_TEST),false);
+  events.webglcontextlost({preventDefault(){}});events.webglcontextrestored();assert.ok(uploads.at(-1)>0);
+  engine.aimObject(null);assert.deepEqual(uploads.slice(-2),[0,0]);
+  engine.aimObject(value.objects[0].id);engine.setWorld(walk.createWorld([]));assert.deepEqual(uploads.slice(-2),[0,0]);
+});
+
 function harness(value,available=true,native=false,options={}){
   const listeners={},windowListeners={},documentListeners={},nodes=new Map(),canvases=[],frames=new Map();let sequence=0;
   function node(){const classes=new Set();const n={innerHTML:'',textContent:'',dataset:{},style:{},hidden:false,disabled:false,isConnected:true,clientWidth:900,clientHeight:600,events:{},
@@ -205,10 +236,10 @@ function harness(value,available=true,native=false,options={}){
     insertAdjacentHTML(_position,html){this.innerHTML+=html;},replaceChildren(){this.innerHTML='';},getBoundingClientRect(){return {left:0,top:0,width:900,height:600};},getContext(){return null;},
     addEventListener(type,callback){this.events[type]=callback;},setPointerCapture(){}};return n;}
   const root=node();root.querySelector=selector=>{if(!nodes.has(selector))nodes.set(selector,node());return nodes.get(selector);};root.addEventListener=(type,cb)=>listeners[type]=cb;
-  const h={visible:true,gpu:available,value:value,root,nodes,frames,rendered:0,worlds:0,preferences:{fov:60},fovSaves:[],calls:[],documentListeners};
+  const h={visible:true,gpu:available,value:value,root,nodes,frames,rendered:0,worlds:0,preferences:{fov:60},fovSaves:[],calls:[],aimUpdates:[],documentListeners};
   const context=vm.createContext({document:{hidden:false,createElement(type){const n=node();if(type==='canvas')canvases.push(n);return n;},addEventListener(t,cb){documentListeners[t]=cb;}},
     window:{OpenSlottingWarehouseScene:scene,OpenSlottingWarehouseWalkModel:{...walk,raycast(...args){return !args[3]&&h.aimHit!==undefined?h.aimHit:walk.raycast(...args);}},
-      OpenSlottingWarehouseWalkRenderer:{create(_canvas,_walk,callbacks){h.gpuCallbacks=callbacks;return available?{available:()=>h.gpu,setWorld(world){h.worlds++;h.world=world;},selection(){},render(camera){h.rendered++;h.camera={...camera};}}:null;}},
+      OpenSlottingWarehouseWalkRenderer:{create(_canvas,_walk,callbacks){h.gpuCallbacks=callbacks;return available?{available:()=>h.gpu,setWorld(world){h.worlds++;h.world=world;},selection(){},aimObject(id){h.aimedObject=id;h.aimUpdates.push(id);},render(camera){h.rendered++;h.camera={...camera};}}:null;}},
       requestAnimationFrame(cb){const id=++sequence;frames.set(id,cb);return id;},cancelAnimationFrame(id){frames.delete(id);},addEventListener(t,cb){windowListeners[t]=cb;}}
   });
   h.document=context.document;
@@ -279,6 +310,21 @@ test('walk work modes separate read-only article interaction from scoped physica
   await h.change('work-mode','analysis');await h.action('edit-layout');assert.equal(opened.length,1);
   await h.action('resume');h.key('KeyE');assert.equal(h.nodes.get('.wh-walk-interaction').hidden,false);
   h.tick(132);assert.deepEqual(h.camera,pose);assert.deepEqual(value,before);
+});
+
+test('Editor aim highlight uses the reachable E target, stays separate from selection and clears on pause, range and mode changes',async()=>{
+  const value=layout(),before=structuredClone(value),h=harness(value,true,true,{standalone:true,editorAvailable:true,openEditor(){}});
+  const aim=(id,distance)=>{h.aim(id,distance);h.canvas.events.pointermove({movementX:0,movementY:0});};
+  await h.change('work-mode','editor');await h.action('resume');aim(value.locations[0].id);h.tick(100);
+  assert.equal(h.aimedObject,value.objects[0].id);const updates=h.aimUpdates.length,worlds=h.worlds;
+  aim(value.locations[1].id);h.tick(116);assert.equal(h.aimUpdates.length,updates);assert.equal(h.worlds,worlds);
+  aim(null);h.tick(132);assert.equal(h.aimedObject,null);
+  aim(value.locations[0].id,7);h.tick(148);assert.equal(h.aimedObject,null);
+  aim(value.locations[0].id);h.tick(164);assert.equal(h.aimedObject,value.objects[0].id);
+  h.editor.markObject(null);assert.equal(h.aimedObject,value.objects[0].id);
+  h.key('Escape');assert.equal(h.aimedObject,null);h.tick(180);
+  await h.action('resume');h.tick(196);assert.equal(h.aimedObject,value.objects[0].id);
+  await h.change('work-mode','analysis');assert.equal(h.aimedObject,null);assert.deepEqual(value,before);
 });
 
 test('editor rays include physical objects and floor areas without making decorative areas walking obstacles',()=>{

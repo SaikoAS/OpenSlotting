@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Highlight the reachable object under the walk Editor crosshair with a mint contour, subtle surface tint and matching object-list marker. Match the E target, clear on pause/look-away/mode changes, keep occlusion and selection separate, and update only target overlay buffers.
+
 - Separate walk Editor recipes into a B-key menu with category/search cards and explicit insertion through the existing save/wizard path. Show a compact object list beside mouse look, with paused search/selection, selected-object highlighting and room for the minimap. Give properties their full dialog width and retain expandable layout checks, focus/mouse capture boundaries and read-only Evaluation.
 - Add Evaluation and Editor work modes to the warehouse walk. Use E for article evaluation or scoped object editing, reuse the existing Structure/Zones/Locations inspector without a second renderer, and support local layout construction/changes through the main editor's validated save path. Preserve locks, confirmations, undo and IDs/codes; reject stale layout bases and overlapping writes, keep source data browser-local, and retain captured-mouse-only navigation.
 - Require captured mouse look for every walk movement mode. Keep capture denials paused with an explicit retry, remove unlocked/drag-look controls, and retain location selection in the stationary preview.
