@@ -4,7 +4,7 @@
 }(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   const TEXT={
-    de:{startHere:'Hier starten',windowReady:'Rundgang geöffnet. Das Fenster kann mit Alt+Tab gewechselt werden.',windowFailed:'Rundgangfenster konnte nicht verbunden werden. Lokalen Server neu starten und dasselbe Edge-Profil verwenden; alternativ hier starten.',refresh:'Datenstand aktualisieren',refreshed:'Datenstand aktualisiert. Weiter setzt den Rundgang fort.',closeWindow:'Rundgang schließen',windowIntro:'Bewegung und Sichtfeld einstellen, einen Startpunkt wählen und den Rundgang im eigenen Fenster starten.',start:'Rundgang starten',setup:'Rundgang vorbereiten',menu:'Rundgangmenü',menuHint:'Tab: Menü öffnen · M: Menü öffnen/schließen · Weiter: Rundgang fortsetzen',setupHint:'Bewegung und Sichtfeld einstellen, einen Startpunkt auf der Minikarte wählen und den Rundgang im Vollbild starten.',motionSettings:'Bewegung',viewSettings:'Sicht & Darstellung',navigationSettings:'Startpunkt & Stellplätze',windowed:'Im Fenster starten',backToSetup:'Zur Vorbereitung',interact:'Interagieren',noTarget:'Kein erreichbarer Stellplatz im Fadenkreuz (max. 6 m).',articleDetails:'Artikel am Stellplatz',articleOutside:'Artikelansicht öffnen (Rundgang verlassen)',backToWalk:'Zurück zum Rundgang',closeDetails:'Details schließen',chooseArticle:'Artikel auswählen',overview:'Kennzahlen',master:'Stammdaten',periods:'Periodenvergleich',orders:'Aufträge',customers:'Kunden',sources:'Quelldateien',allData:'Alle geprüften Daten · aktuelle Artikelzuordnung',masterName:'Artikelbezeichnung',currentLocation:'Aktueller Stellplatz',unit:'Mengeneinheit',pack:'Menge pro Verkaufseinheit',vat:'Steuersatz',evidence:'Quellnachweise',noComparison:'Noch kein Periodenvergleich berechnet.',mode:'Bewegung',walk:'Gehen',fly:'Freiflug (ohne Kollision)',jump:'Springen',crouch:'Ducken',standing:'Stehend',crouched:'Geduckt',standBlocked:'Aufrichten blockiert',heightView:'Sichthöhe',flightHint:'Freiflug ohne Kollision · WASD: in Blickrichtung · Leertaste: steigen · C: sinken · Maus: umsehen · E: interagieren · Tab: Menü · Esc: pausieren',walkHint:'WASD: gehen · Leertaste: springen · C halten: ducken · Maus: umsehen · E: interagieren · Tab: Menü · Esc: pausieren',fov:'Sichtfeld (vertikal)',fovReset:'Sichtfeld zurücksetzen',fovFailed:'Sichtfeld konnte nicht gespeichert werden. Der gespeicherte Wert wurde wiederhergestellt.',fullscreen:'Vollbild starten',exitFullscreen:'Vollbild verlassen',resume:'Weiter mit Mausblick',pause:'Pause / Bedienen',controls:'Bedienelemente',toggleMap:'Minikarte',fullscreenFailed:'Vollbild konnte nicht gestartet werden. Erneut versuchen oder ausdrücklich im Fenster starten.',immersiveHint:'WASD: gehen · Maus: umsehen · Klick: Stellplatz wählen · Tab: Menü · Esc: pausieren',title:'Lager-Rundgang',intro:'Lager aus Augenhöhe erkunden und modellierte Stellplätze auswerten.',search:'Stellplatzcode suchen',find:'Finden',go:'Vor Stellplatz stellen',reset:'Startposition',look:'Mausblick aktivieren',info:'Details ein-/ausblenden',
+    de:{startHere:'Hier starten',windowReady:'Rundgang geöffnet. Das Fenster kann mit Alt+Tab gewechselt werden.',windowFailed:'Rundgangfenster konnte nicht verbunden werden. Lokalen Server neu starten und dasselbe Edge-Profil verwenden; alternativ hier starten.',refresh:'Datenstand aktualisieren',refreshed:'Datenstand aktualisiert. Weiter setzt den Rundgang fort.',closeWindow:'Rundgang schließen',windowIntro:'Bewegung und Sichtfeld einstellen, einen Startpunkt wählen und den Rundgang im eigenen Fenster starten.',start:'Rundgang starten',setup:'Rundgang vorbereiten',menu:'Rundgangmenü',menuHint:'Tab: Menü öffnen · M: Menü öffnen/schließen · Weiter: Rundgang fortsetzen',setupHint:'Bewegung und Sichtfeld einstellen, einen Startpunkt auf der Minikarte wählen und den Rundgang im Vollbild starten.',motionSettings:'Bewegung',viewSettings:'Sicht & Darstellung',navigationSettings:'Startpunkt & Stellplätze',windowed:'Im Fenster starten',backToSetup:'Zur Vorbereitung',interact:'Interagieren',noTarget:'Kein erreichbarer Stellplatz im Fadenkreuz (max. 6 m).',articleDetails:'Artikel am Stellplatz',articleOutside:'Artikelansicht öffnen (Rundgang verlassen)',backToWalk:'Zurück zum Rundgang',closeDetails:'Details schließen',chooseArticle:'Artikel auswählen',overview:'Kennzahlen',master:'Stammdaten',periods:'Periodenvergleich',orders:'Aufträge',customers:'Kunden',sources:'Quelldateien',allData:'Alle geprüften Daten · aktuelle Artikelzuordnung',masterName:'Artikelbezeichnung',currentLocation:'Aktueller Stellplatz',unit:'Mengeneinheit',pack:'Menge pro Verkaufseinheit',vat:'Steuersatz',evidence:'Quellnachweise',noComparison:'Noch kein Periodenvergleich berechnet.',mode:'Bewegung',walk:'Gehen',fly:'Freiflug (ohne Kollision)',jump:'Springen',crouch:'Ducken',standing:'Stehend',crouched:'Geduckt',standBlocked:'Aufrichten blockiert',heightView:'Sichthöhe',flightHint:'Freiflug ohne Kollision · WASD: in Blickrichtung · Leertaste: steigen · C: sinken · Maus: umsehen · Linksklick / E: interagieren · Tab: Menü · Esc: pausieren',walkHint:'WASD: gehen · Leertaste: springen · C halten: ducken · Maus: umsehen · Linksklick / E: interagieren · Tab: Menü · Esc: pausieren',fov:'Sichtfeld (vertikal)',fovReset:'Sichtfeld zurücksetzen',fovFailed:'Sichtfeld konnte nicht gespeichert werden. Der gespeicherte Wert wurde wiederhergestellt.',fullscreen:'Vollbild starten',exitFullscreen:'Vollbild verlassen',resume:'Weiter mit Mausblick',pause:'Pause / Bedienen',controls:'Bedienelemente',toggleMap:'Minikarte',fullscreenFailed:'Vollbild konnte nicht gestartet werden. Erneut versuchen oder ausdrücklich im Fenster starten.',immersiveHint:'WASD: gehen · Maus: umsehen · Klick: Stellplatz wählen · Tab: Menü · Esc: pausieren',title:'Lager-Rundgang',intro:'Lager aus Augenhöhe erkunden und modellierte Stellplätze auswerten.',search:'Stellplatzcode suchen',find:'Finden',go:'Vor Stellplatz stellen',reset:'Startposition',look:'Mausblick aktivieren',info:'Details ein-/ausblenden',
       eye:'Augenhöhe (mm)',speed:'Geschwindigkeit (m/s)',slow:'Langsam',normal:'Normal',fast:'Schnell',map:'Minikarte · Startposition anklicken',view:'Lager aus Augenhöhe',
       colors:'Farben',assignments:'Zuordnung',usage:'Nutzung',demand:'Nachfrage',select:'Stellplatz anklicken oder exakten Code suchen.',noCode:'Ohne Code',none:'Keine aktuelle Artikelzuordnung.',
       basis:'Aktuelle Artikelzuordnung ist kein Bestandsnachweis. Nachfrage bezieht sich auf die aktuell zugeordneten Artikel in den gesamten geprüften Daten, nicht auf historische Stellplatzbesuche.',
@@ -13,7 +13,7 @@
       unassigned:'Nicht zugewiesen',picking:'Kommissionierung',reserve:'Reserve',bay:'Fach',level:'Ebene',ground:'Boden (Ebene 0)',place:'Stellplatz',size:'Breite × Tiefe',height:'Höhe über Boden',
       unknown:'Unbekannt',coverage:'Datenabdeckung prüfen',lookFailed:'Mausblick nicht verfügbar. Der Rundgang bleibt pausiert. Mausfreigabe erlauben und erneut versuchen.',paused:'Bewegung pausiert.',position:'Position',matched:'Artikel zugeordnet',coded:'Code ohne Artikelzuordnung',empty:'Ohne Code',
       demandLegend:'Auftragszeilen: blau = niedrig, orange = hoch · grau = unbekannt',previous:'A',current:'B',comparison:'Periodenvergleich der aktuell zugeordneten Artikel'},
-    en:{startHere:'Start here',windowReady:'Walk opened. Use Alt+Tab to switch windows.',windowFailed:'Could not connect the walk window. Restart the local server and use the same Edge profile; alternatively start here.',refresh:'Update data snapshot',refreshed:'Data snapshot updated. Resume to continue the walk.',closeWindow:'Close walk',windowIntro:'Adjust movement and field of view, choose a starting point, then start the walk in its own window.',start:'Start walk',setup:'Prepare walk',menu:'Walk menu',menuHint:'Tab: open menu · M: toggle menu · Resume: continue walk',setupHint:'Adjust movement and field of view, choose a starting point on the minimap, then start the fullscreen walk.',motionSettings:'Movement',viewSettings:'View & display',navigationSettings:'Start position & locations',windowed:'Start in window',backToSetup:'Back to setup',interact:'Interact',noTarget:'No reachable location under the crosshair (max. 6 m).',articleDetails:'Articles at location',articleOutside:'Open article view (leave walk)',backToWalk:'Back to walk',closeDetails:'Close details',chooseArticle:'Select article',overview:'Metrics',master:'Master data',periods:'Period comparison',orders:'Orders',customers:'Customers',sources:'Source files',allData:'All validated data · current article assignment',masterName:'Article name',currentLocation:'Current location',unit:'Unit of measure',pack:'Quantity per selling unit',vat:'VAT rate',evidence:'Source evidence',noComparison:'No period comparison has been calculated.',mode:'Movement',walk:'Walk',fly:'Free flight (no collision)',jump:'Jump',crouch:'Crouch',standing:'Standing',crouched:'Crouched',standBlocked:'Standing blocked',heightView:'View height',flightHint:'Free flight without collision · WASD: follow view · Space: ascend · C: descend · Mouse: look · E: interact · Tab: menu · Esc: pause',walkHint:'WASD: walk · Space: jump · Hold C: crouch · Mouse: look · E: interact · Tab: menu · Esc: pause',fov:'Field of view (vertical)',fovReset:'Reset field of view',fovFailed:'Field of view could not be saved. The saved value was restored.',fullscreen:'Enter fullscreen',exitFullscreen:'Exit fullscreen',resume:'Resume mouse look',pause:'Pause / interact',controls:'Controls',toggleMap:'Minimap',fullscreenFailed:'Fullscreen is unavailable. Try again or explicitly start in the window.',immersiveHint:'WASD: walk · Mouse: look · Click: select location · Tab: menu · Esc: pause',title:'Warehouse walk',intro:'Explore the warehouse at eye level and inspect modeled locations.',search:'Find location code',find:'Find',go:'Stand in front of location',reset:'Start position',look:'Enable mouse look',info:'Show/hide details',
+    en:{startHere:'Start here',windowReady:'Walk opened. Use Alt+Tab to switch windows.',windowFailed:'Could not connect the walk window. Restart the local server and use the same Edge profile; alternatively start here.',refresh:'Update data snapshot',refreshed:'Data snapshot updated. Resume to continue the walk.',closeWindow:'Close walk',windowIntro:'Adjust movement and field of view, choose a starting point, then start the walk in its own window.',start:'Start walk',setup:'Prepare walk',menu:'Walk menu',menuHint:'Tab: open menu · M: toggle menu · Resume: continue walk',setupHint:'Adjust movement and field of view, choose a starting point on the minimap, then start the fullscreen walk.',motionSettings:'Movement',viewSettings:'View & display',navigationSettings:'Start position & locations',windowed:'Start in window',backToSetup:'Back to setup',interact:'Interact',noTarget:'No reachable location under the crosshair (max. 6 m).',articleDetails:'Articles at location',articleOutside:'Open article view (leave walk)',backToWalk:'Back to walk',closeDetails:'Close details',chooseArticle:'Select article',overview:'Metrics',master:'Master data',periods:'Period comparison',orders:'Orders',customers:'Customers',sources:'Source files',allData:'All validated data · current article assignment',masterName:'Article name',currentLocation:'Current location',unit:'Unit of measure',pack:'Quantity per selling unit',vat:'VAT rate',evidence:'Source evidence',noComparison:'No period comparison has been calculated.',mode:'Movement',walk:'Walk',fly:'Free flight (no collision)',jump:'Jump',crouch:'Crouch',standing:'Standing',crouched:'Crouched',standBlocked:'Standing blocked',heightView:'View height',flightHint:'Free flight without collision · WASD: follow view · Space: ascend · C: descend · Mouse: look · Left click / E: interact · Tab: menu · Esc: pause',walkHint:'WASD: walk · Space: jump · Hold C: crouch · Mouse: look · Left click / E: interact · Tab: menu · Esc: pause',fov:'Field of view (vertical)',fovReset:'Reset field of view',fovFailed:'Field of view could not be saved. The saved value was restored.',fullscreen:'Enter fullscreen',exitFullscreen:'Exit fullscreen',resume:'Resume mouse look',pause:'Pause / interact',controls:'Controls',toggleMap:'Minimap',fullscreenFailed:'Fullscreen is unavailable. Try again or explicitly start in the window.',immersiveHint:'WASD: walk · Mouse: look · Click: select location · Tab: menu · Esc: pause',title:'Warehouse walk',intro:'Explore the warehouse at eye level and inspect modeled locations.',search:'Find location code',find:'Find',go:'Stand in front of location',reset:'Start position',look:'Enable mouse look',info:'Show/hide details',
       eye:'Eye height (mm)',speed:'Speed (m/s)',slow:'Slow',normal:'Normal',fast:'Fast',map:'Minimap · click a start position',view:'Warehouse at eye level',
       colors:'Colors',assignments:'Assignments',usage:'Usage',demand:'Demand',select:'Click a location or search its exact code.',noCode:'No code',none:'No current article assignment.',
       basis:'Current article assignment is not evidence of stock. Demand describes the currently assigned articles across all validated data, not historical location visits.',
@@ -74,18 +74,152 @@
     let workMode='analysis',switchingWorkMode=false;
     let objectsOpen=false,objectSearch='',selectedObjectId=null;
     let aimedObjectId=null;
+    let boundObjectId=null,directBase=null,directFields=[],directDraft=null,directTarget=null,directNotice='';
+    let directEpoch=0,directBusy=false,directStale=false,directDirty=false,previewWorld=null,previewApplied=false,aimPreview=false;
     function showAim(id){
-      if(aimedObjectId===id)return;
+      const preview=Boolean(directDraft&&directDraft.candidate);
+      if(aimedObjectId===id&&aimPreview===preview)return;aimPreview=preview;
       aimedObjectId=id;
-      if(renderer&&renderer.aimObject)renderer.aimObject(id);
+      if(renderer&&renderer.aimObject)renderer.aimObject(id,preview);
       root.querySelectorAll('[data-walk-object]').forEach(button=>button.classList.toggle('is-aimed',button.dataset.walkObject===id));
       schedule();
     }
     function canEdit(){return options.editorAvailable===true&&Boolean(options.openEditor);}
+    function directEnabled(){return canEdit()&&Boolean(options.saveLayout&&window.OpenSlottingWalkEditor&&window.OpenSlottingWalkEditor.directFields);}
+    function directWords(){return options.getLanguage()==='de'
+      ?{bind:'Linksklick · Objekt binden',field:'Linksklick · Wert bearbeiten',release:'Rechtsklick: lösen',locked:'Objekt gesperrt. Zum Entsperren das Rundgangmenü öffnen.',none:'Für diesen Objekttyp das Bearbeitungsmenü verwenden.',help:'Mausrad: ändern · Shift: fein · Zahl eingeben · Enter: übernehmen',preview:'Vorschau',saved:'Änderung gespeichert.',saving:'Wird gespeichert …',invalid:'Ungültiger Wert oder Geometrie. Vorschau nicht übernehmbar.',stale:'Datenstand unklar oder geändert. Im Menü den Datenstand aktualisieren.',failed:'Speichern fehlgeschlagen. Entwurf bleibt erhalten.',impact:'Betroffene Stellplätze / Codes / Artikel',collisions:'Kollisionen',occupied:'Änderung würde den Betrachter einschließen. Erst eine freie Position wählen.'}
+      :{bind:'Left click · Bind object',field:'Left click · Edit value',release:'Right click: release',locked:'Object locked. Open the walk menu to unlock it.',none:'Use the editing menu for this object type.',help:'Wheel: adjust · Shift: fine · Type a number · Enter: apply',preview:'Preview',saved:'Change saved.',saving:'Saving …',invalid:'Invalid value or geometry. Cannot apply preview.',stale:'Snapshot changed or save uncertain. Refresh the data snapshot in the menu.',failed:'Save failed. Draft retained.',impact:'Affected locations / codes / articles',collisions:'Collisions',occupied:'This change would enclose the observer. Move to a free position first.'};}
+    function clearDirect(release){
+      directEpoch++;directDraft=null;directTarget=null;directDirty=false;previewWorld=null;
+      if(previewApplied&&renderer&&scene)renderer.setWorld(scene);previewApplied=false;
+      if(release){boundObjectId=null;directBase=null;directFields=[];directNotice='';}
+      else if(boundObjectId&&info)directFields=window.OpenSlottingWalkEditor.directFields(model,info.layout,boundObjectId);
+      schedule();
+    }
+    function bindDirect(){
+      if(directBusy||directStale)return;
+      const hit=editTarget();if(!hit)return;
+      clearDirect(true);boundObjectId=hit.item.box.object.id;directBase=JSON.stringify(options.getLayout());
+      directFields=window.OpenSlottingWalkEditor.directFields(model,info.layout,boundObjectId);markObject(boundObjectId);
+      const object=info.layout.objects.find(item=>item.id===boundObjectId);
+      directNotice=object.locked?directWords().locked:directFields.length?'':directWords().none;schedule();
+    }
+    function directClick(){
+      if(!boundObjectId){bindDirect();return;}
+      paintDirect();
+      if(directBusy||directStale||!directTarget||directTarget.locked||directDraft)return;
+      const field=directTarget;
+      directDraft={field:field,value:field.value,input:String(field.value),typing:false,error:'',candidate:null,impact:null,collisions:0};
+      directNotice='';schedule();
+    }
+    function queueDirect(value){
+      if(!directDraft||directBusy||directStale)return;
+      directDraft.value=value;directDirty=true;schedule();
+    }
+    function directError(error,field){
+      const message=error&&error.message||directWords().invalid;if(options.getLanguage()!=='de')return message;
+      if(/permitted range/.test(message))return 'Ganze Millimeter zwischen '+field.min+' und '+field.max+' eingeben.';
+      if(/overlap/i.test(message))return 'Stellplätze dürfen sich nicht überschneiden.';
+      if(/usable level bounds/.test(message))return 'Der Stellplatz liegt außerhalb des Fachs.';
+      if(/adjacent upright/.test(message))return 'Die Ebenen überschreiten die Höhe eines angrenzenden Ständers.';
+      if(/Unlock/.test(message))return 'Zuerst alle betroffenen Objekte entsperren.';
+      if(/Classify/.test(message))return 'Die Ebene zuerst unter Zonen einer Nutzung zuweisen.';
+      if(/share one row/.test(message))return 'Stellplätze müssen nebeneinander liegen und die volle Fachtiefe nutzen.';
+      return message;
+    }
+    function prepareDirect(){
+      if(!directDirty||!directDraft)return;directDirty=false;
+      const draft=directDraft;draft.candidate=null;draft.error='';draft.saveError='';draft.blocked='';draft.impact=null;previewWorld=null;
+      try{
+        if(JSON.stringify(options.getLayout())!==directBase){directStale=true;throw new Error(directWords().stale);}
+        const base=JSON.parse(directBase),next=window.OpenSlottingWalkEditor.proposeDirect(model,base,draft.field,draft.value);
+        draft.impact=model.layoutImpact(base,next,options.getRegistry());
+        draft.collisions=model.findCollisions(next).length;
+        const boxes=window.OpenSlottingWarehouseScene.buildBoxes(model,next,info.matches,{colorMode:colorMode==='usage'?'usage':'structure'});
+        const colors=new Map(Array.from(scene.positions,([id,item])=>[id,item.box.color]));
+        boxes.forEach(box=>{if(box.kind==='location'&&colors.has(box.slotRef.slotId))box.color=colors.get(box.slotRef.slotId);});
+        previewWorld=walk.createWorld(boxes);
+        draft.candidate=next;
+        directFields=window.OpenSlottingWalkEditor.directFields(model,next,boundObjectId);
+      }catch(error){draft.error=directError(error,draft.field);}
+      if(!draft.candidate)directFields=window.OpenSlottingWalkEditor.directFields(model,info.layout,boundObjectId);
+      if(renderer){renderer.setWorld(previewWorld||scene);previewApplied=Boolean(previewWorld);}
+    }
+    function visibleDirectFields(){
+      if(!boundObjectId||!scene)return [];
+      const width=canvas.clientWidth,height=canvas.clientHeight,world=previewWorld||scene,occupied=[],result=[];
+      const canvasRect=canvas.getBoundingClientRect(),blocked=[];
+      ['[data-walk-objects]','.wh-walk-map-wrap','.wh-walk-immersive-controls','[data-walk-direct-status]'].forEach(selector=>{
+        const element=root.querySelector(selector);
+        if(element&&!element.hidden&&element.getClientRects&&element.getClientRects().length){const r=element.getBoundingClientRect();blocked.push({left:r.left-canvasRect.left,right:r.right-canvasRect.left,top:r.top-canvasRect.top,bottom:r.bottom-canvasRect.top});}
+      });
+      const candidates=directFields.map(field=>({field:field,p:walk.project(camera,field.point,width,height),distance:Math.hypot(field.point.x-camera.x,field.point.y-camera.eye,field.point.z-camera.z)}))
+        .filter(item=>item.p&&item.distance>.001&&item.distance<=6).sort((a,b)=>Number(b.field.key===(directDraft&&directDraft.field.key))-Number(a.field.key===(directDraft&&directDraft.field.key))||
+          Math.hypot(a.p.x-width/2,a.p.y-height/2)-Math.hypot(b.p.x-width/2,b.p.y-height/2)||a.distance-b.distance);
+      for(const item of candidates){
+        if(result.length>=24)break;
+        const field=item.field,p=item.p;if(p.x<125||p.x>width-125||p.y<90||p.y>height-120)continue;
+        if(blocked.some(r=>p.x+120>r.left&&p.x-120<r.right&&p.y+15>r.top&&p.y-15<r.bottom))continue;
+        const direction={x:(field.point.x-camera.x)/item.distance,y:(field.point.y-camera.eye)/item.distance,z:(field.point.z-camera.z)/item.distance};
+        const hit=walk.raycast(world,origin(),direction,true,item.distance);
+        if(hit&&hit.distance<item.distance-.07)continue;
+        if(occupied.some(q=>Math.abs(q.x-p.x)<244&&Math.abs(q.y-p.y)<34))continue;
+        occupied.push(p);result.push({field:field,x:p.x,y:p.y});
+      }
+      return result;
+    }
+    function paintDirect(){
+      const overlay=root.querySelector('[data-walk-handles]'),status=root.querySelector('[data-walk-direct-status]');
+      directTarget=null;if(!overlay||!status)return;
+      const running=boundObjectId&&workMode==='editor'&&!immersivePaused&&document.pointerLockElement===canvas;
+      overlay.hidden=!running;status.hidden=!running;
+      if(!running){overlay.innerHTML='';return;}
+      const fields=visibleDirectFields(),width=canvas.clientWidth,height=canvas.clientHeight;
+      const aimed=fields.find(item=>Math.abs(item.x-width/2)<=120&&Math.abs(item.y-height/2)<=15);
+      directTarget=aimed&&aimed.field||null;
+      overlay.innerHTML=fields.map(function(item){
+        const field=item.field,active=directDraft&&directDraft.field.key===field.key;
+        return '<span class="wh-walk-handle'+(field===directTarget?' is-target':'')+(active?' is-active':'')+'" data-direct-field="'+esc(field.key)+'" style="left:'+item.x+'px;top:'+item.y+'px"><span>'+esc(field[options.getLanguage()==='de'?'de':'en'])+'</span><b>'+esc(active?directDraft.input:field.value)+' mm'+(field.locked?' 🔒':'')+'</b></span>';
+      }).join('');
+      const t=directWords(),object=info.layout.objects.find(item=>item.id===boundObjectId),draft=directDraft;
+      let detail=directBusy?t.saving:directStale?t.stale:directNotice;
+      if(draft&&!directBusy&&!directStale){
+        detail=t.preview+' · '+draft.field[options.getLanguage()==='de'?'de':'en']+': '+draft.input+' mm · '+t.help;
+        if(draft.error)detail+=' · '+t.invalid+' '+draft.error;
+        else if(draft.impact)detail+=' · '+t.impact+': '+draft.impact.locations+' / '+draft.impact.codes+' / '+draft.impact.articles+' · '+t.collisions+': '+draft.collisions;
+        if(draft.saveError||draft.blocked)detail+=' · '+(draft.saveError||draft.blocked);
+      }
+      status.classList.toggle('is-invalid',Boolean(draft&&(draft.error||draft.saveError||draft.blocked)||directStale));
+      status.innerHTML='<strong>'+esc(object&&object.name)+' · '+esc(t.release)+'</strong><span>'+esc(detail||t.field)+'</span>';
+    }
+    async function saveDirect(){
+      if(!directDraft||directBusy||directStale)return;prepareDirect();
+      const draft=directDraft;if(draft.error)return;
+      if(draft.value===draft.field.value){clearDirect(false);return;}
+      if(!draft.candidate)return;
+      if(JSON.stringify(options.getLayout())!==directBase){directStale=true;directNotice=directWords().stale;schedule();return;}
+      if(motion.mode==='walk'&&!walk.canOccupy(previewWorld,camera,motion.feet,camera.eye-motion.feet)){draft.blocked=directWords().occupied;schedule();return;}
+      draft.blocked='';draft.saveError='';
+      const epoch=directEpoch,revision=workspaceRevision,id=options.getWorkspaceId(),base=directBase;
+      directBusy=true;schedule();
+      try{
+        await options.saveLayout(draft.candidate,base);
+        if(disposed||workspaceRevision!==revision||options.getWorkspaceId()!==id)return;
+        previewWorld=null;previewApplied=false;refresh();
+        // A pause can discard the draft while its already-submitted write finishes.
+        // Refresh the retained binding too, without reviving a released object.
+        if(boundObjectId){directDraft=null;directDirty=false;directBase=JSON.stringify(options.getLayout());directFields=window.OpenSlottingWalkEditor.directFields(model,info.layout,boundObjectId);directNotice=directWords().saved;}
+      }catch(error){
+        if(disposed||workspaceRevision!==revision||options.getWorkspaceId()!==id)return;
+        if(['edit-conflict','edit-timeout','session-ended'].includes(error.message))directStale=true;
+        directNotice=directStale?directWords().stale:directWords().failed;
+        if(epoch===directEpoch)draft.saveError=directNotice;
+      }finally{if(!disposed&&workspaceRevision===revision&&options.getWorkspaceId()===id){directBusy=false;schedule();}}
+    }
     function editText(){return options.getLanguage()==='de'
       ?{mode:'Rundgang-Modus',analysis:'Auswertung',editor:'Editor',open:'Objekt bearbeiten',recipes:'Rezepte (B)',objects:'Objekte auswählen',list:'Objekte',search:'Objekt suchen',back:'Zurück zum Menü',resume:'Weiter mit Mausblick',empty:'Keine passenden Objekte.',aim:'Bearbeiten',noTarget:'Kein erreichbares Lagerobjekt im Fadenkreuz (max. 6 m).'}
       :{mode:'Walk mode',analysis:'Evaluation',editor:'Editor',open:'Edit object',recipes:'Recipes (B)',objects:'Select objects',list:'Objects',search:'Search objects',back:'Back to menu',resume:'Resume mouse look',empty:'No matching objects.',aim:'Edit',noTarget:'No reachable warehouse object under the crosshair (max. 6 m).'};}
-    function setWorkMode(value){workMode=value==='editor'&&canEdit()?'editor':'analysis';pauseImmersive();
+    function setWorkMode(value){clearDirect(true);workMode=value==='editor'&&canEdit()?'editor':'analysis';pauseImmersive();
       if(info&&!info.layout.objects.length)tell(workMode==='editor'?'':text().noLayout);syncImmersive();}
     function markObject(id){
       selectedObjectId=info&&info.layout.objects.some(object=>object.id===id)?id:null;
@@ -196,6 +330,7 @@
       return hit&&hit.item.slotId&&hit.distance<=6?hit.item.slotId:null;
     }
     function interact(){
+      if(workMode==='editor'&&directEnabled()){directClick();return;}
       if(workMode==='editor'){const hit=editTarget();if(hit)openEdit(editScope(hit));else tell(editText().noTarget);return;}
       const id=interactionTarget();if(id)openInteraction(id);else tell(text().noTarget);
     }
@@ -203,8 +338,9 @@
       const prompt=root.querySelector('[data-walk-interact-hint]');if(!prompt){showAim(null);return;}
       if(workMode==='editor'){
         const hit=fullscreen()&&!immersivePaused&&!interactionSlotId&&document.pointerLockElement===canvas?editTarget():null;
-        showAim(hit?hit.item.box.object.id:null);
-        prompt.hidden=!hit;prompt.textContent=hit?'E · '+editText().aim+': '+hit.item.box.object.name:'';return;
+        showAim(boundObjectId||(hit?hit.item.box.object.id:null));
+        if(boundObjectId){prompt.hidden=!directTarget||Boolean(directDraft);prompt.textContent=directTarget?(directTarget.locked?directWords().locked:directWords().field):'';return;}
+        prompt.hidden=!hit&&!directStale;prompt.textContent=directStale?directWords().stale:hit?(directEnabled()?directWords().bind+' · ':'E · '+editText().aim+': ')+hit.item.box.object.name:'';return;
       }
       showAim(null);
       const id=fullscreen()&&!immersivePaused&&!interactionSlotId?interactionTarget():null,slot=id&&info.slotsById.get(id);
@@ -310,7 +446,7 @@
       paintInteractionHint();
       labelTime=-Infinity;if(repaint!==false)schedule();
     }
-    function pauseImmersive(){stop();objectsOpen=false;immersiveRequest++;immersivePaused=true;showControls=fullscreen()&&!interactionSlotId;releaseMouse();syncImmersive(false);}
+    function pauseImmersive(){if(directDraft)clearDirect(false);stop();objectsOpen=false;immersiveRequest++;immersivePaused=true;showControls=fullscreen()&&!interactionSlotId;releaseMouse();syncImmersive(false);}
     function openMenu(focus){
       pauseImmersive();showControls=true;syncImmersive();
       if(focus){const button=root.querySelector('[data-walk-action="resume"]');if(button)button.focus({preventScroll:true});}
@@ -394,7 +530,7 @@
       if(scene.positions.has(value.selectedId))selectedId=value.selectedId;
       if(renderer)renderer.selection(selectedId);
     }
-    function setActive(value){active=Boolean(value);if(!active)leaveImmersive();else schedule();}
+    function setActive(value){active=Boolean(value);if(!active){clearDirect(true);leaveImmersive();}else schedule();}
     function tell(value){message=value;const output=root.querySelector('[data-walk-message]');if(output){
       const fallback=!renderer||!renderer.available()?text().unavailable:'';
       output.textContent=fallback+(fallback&&value&&value!==fallback?' · ':'')+(value===fallback?'':value);
@@ -481,6 +617,8 @@
       const item=scene.positions.get(selectedId);if(item){const v=walk.world(item,item.x+item.width/2,0,item.z+item.depth/2),q=mapPoint(v.x,v.z);ctx.strokeStyle='#79f2de';ctx.strokeRect(q.x-4,q.y-4,8,8);}
     }
     function paintLabels(time){
+      const regular=root.querySelector('.wh-walk-labels');if(regular)regular.hidden=Boolean(boundObjectId);
+      if(boundObjectId)return;
       const width=canvas.clientWidth,height=canvas.clientHeight;
       if(time-labelTime>180){
         labelTime=time;
@@ -503,7 +641,7 @@
       });
     }
     function paint(time){
-      paintInteractionHint();
+      prepareDirect();paintDirect();paintInteractionHint();
       if(!scene)return;if(renderer&&renderer.available()){renderer.render(camera);paintLabels(time);}
       paintMap();const position=(motion.mode==='fly'?text().fly:motion.crouched?text().crouched+(motion.standBlocked?' · '+text().standBlocked:''):text().standing)+' · '+text().position+': X '+camera.x.toFixed(1)+' m · Z '+camera.z.toFixed(1)+' m · '+text().heightView+': '+camera.eye.toFixed(2)+' m';
       ['[data-walk-position]','[data-walk-hud-position]'].forEach(selector=>{const output=root.querySelector(selector);if(output)output.textContent=position;});
@@ -518,9 +656,10 @@
     }
     function schedule(){if(visible()&&request===null)request=window.requestAnimationFrame(tick);}
     function render(){
-      if(disposed)return;
+      if(disposed)return;clearDirect(true);if(!options.standalone)directStale=false;
       restoreBackground();
       const id=options.getWorkspaceId(),changed=id!==workspaceId;workspaceId=id;stop();
+      if(changed){directBusy=false;directStale=false;}
       if(changed||!savingFov)camera.fov=savedFov();
       if(changed){workspaceRevision++;leaveImmersive();fallbackOffered=false;mapVisible=true;selectedId=null;search='';message='';camera.eye=standingEye=1.7;motion=walk.createMotion();walkSpeed=speed=1.4;flySpeed=5;crouchToggle=false;colorMode='assignments';details=true;}
       if(changed&&options.initialView&&['assignments','usage','demand'].includes(options.initialView.colorMode))colorMode=options.initialView.colorMode;
@@ -545,7 +684,7 @@
         '<fieldset><legend>'+esc(t.navigationSettings)+'</legend><label>'+esc(t.search)+'<input type="search" data-walk-search maxlength="80" value="'+esc(search)+'"></label><button type="button" data-walk-action="find">'+esc(t.find)+'</button><button type="button" data-walk-action="reset">'+esc(t.reset)+'</button>'+
         (options.refreshSnapshot?'<button type="button" data-walk-action="refresh-window">'+esc(t.refresh)+'</button>':'')+'</fieldset></div>'+
         '<footer class="wh-walk-menu-actions"><button type="button" data-walk-action="resume">'+esc(t.resume)+'</button><button type="button" data-walk-action="exit-fullscreen">'+esc(options.standalone?t.closeWindow:t.exitFullscreen)+'</button><p>'+esc(t.menuHint)+'</p><p role="status" data-walk-immersive-message></p></footer></section>'+
-        '<div class="wh-walk-body"><div class="wh-walk-viewport"><div class="wh-walk-labels"></div><div class="wh-walk-map-wrap"><small>'+esc(t.map)+'</small></div><span class="wh-walk-crosshair" aria-hidden="true">+</span><span class="wh-walk-interact-hint" data-walk-interact-hint hidden></span></div><aside class="wh-walk-inspector wh-card"></aside></div></div>'+
+        '<div class="wh-walk-body"><div class="wh-walk-viewport"><div class="wh-walk-labels"></div><div class="wh-walk-handles" data-walk-handles hidden></div><div class="wh-walk-direct-status" data-walk-direct-status hidden></div><div class="wh-walk-map-wrap"><small>'+esc(t.map)+'</small></div><span class="wh-walk-crosshair" aria-hidden="true">+</span><span class="wh-walk-interact-hint" data-walk-interact-hint hidden></span></div><aside class="wh-walk-inspector wh-card"></aside></div></div>'+
         '<div class="wh-walk-immersive-controls" role="group" aria-label="'+esc(t.controls)+'"><span data-walk-work-label></span><button type="button" data-walk-action="controls" aria-expanded="false">'+esc(t.menu)+'</button><small>'+esc(motion.mode==='fly'?t.flightHint:t.walkHint)+'</small><small data-walk-hud-position></small></div>'+
         '<div class="wh-walk-footer"><p id="warehouse-walk-hint">'+esc(motion.mode==='fly'?t.flightHint:t.walkHint)+' · '+esc(t.menuHint)+'</p><output data-walk-position></output><p class="wh-legend">'+esc(colorMode==='demand'?t.demandLegend:colorMode==='usage'?[t.unassigned,t.picking,t.reserve].join(' · '):[t.matched,t.coded,t.empty].join(' · '))+'</p><p role="status" aria-live="polite" data-walk-message></p></div>'+
         '<div class="wh-walk-interaction" role="dialog" aria-modal="true" aria-labelledby="warehouse-walk-interaction-title" tabindex="-1" hidden></div>';
@@ -630,6 +769,16 @@
         trapMenuFocus(event);return;
       }
       if(document.pointerLockElement!==canvas||event.target!==canvas||event.ctrlKey||event.altKey||event.metaKey||!renderer||!renderer.available()||immersivePaused||!fullscreen()&&!inlineFallback)return;
+      if(directDraft&&!directBusy&&!directStale){
+        if(event.code==='Enter'||event.code==='NumpadEnter'){event.preventDefault();if(!event.repeat)saveDirect();return;}
+        if(/^[0-9.,-]$/.test(event.key)||event.code==='Backspace'||event.code==='Delete'){
+          event.preventDefault();const draft=directDraft;
+          if(event.code==='Backspace')draft.input=draft.typing?draft.input.slice(0,-1):'';
+          else if(event.code==='Delete')draft.input='';
+          else draft.input=(draft.typing?draft.input:'')+event.key;
+          draft.input=draft.input.slice(0,8);draft.typing=true;queueDirect(draft.input===''?NaN:Number(draft.input.replace(',','.')));return;
+        }
+      }
       if(event.code==='KeyE'){event.preventDefault();if(!event.repeat)interact();return;}
       if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','KeyC'].includes(event.code)){
         event.preventDefault();if(event.code==='Space'&&!event.repeat&&!keys.has('Space')&&motion.mode==='walk')jumpQueued=true;
@@ -651,7 +800,20 @@
       syncImmersive();
     });
     canvas.addEventListener('blur',stop);
-    canvas.addEventListener('pointerdown',function(event){if(interactionSlotId||fullscreen()&&immersivePaused||event.button!==0||!renderer||!renderer.available())return;event.preventDefault();canvas.focus({preventScroll:true});simulationRunning=!immersivePaused;schedule();drag={startX:event.clientX,startY:event.clientY,moved:false};canvas.setPointerCapture(event.pointerId);});
+    canvas.addEventListener('contextmenu',event=>{if(visible()&&workMode==='editor'&&fullscreen())event.preventDefault();});
+    canvas.addEventListener('wheel',function(event){
+      if(document.pointerLockElement!==canvas||immersivePaused||!boundObjectId||!directDraft||directBusy||directStale||event.ctrlKey||event.metaKey||event.altKey||!event.deltaY)return;
+      event.preventDefault();const step=event.shiftKey?1:directDraft.field.kind.startsWith('location-')?10:50;
+      const value=(Number.isFinite(directDraft.value)?directDraft.value:directDraft.field.value)+(event.deltaY<0?step:-step);
+      directDraft.input=String(value);directDraft.typing=false;queueDirect(value);
+    },{passive:false});
+    canvas.addEventListener('pointerdown',function(event){
+      if(document.pointerLockElement===canvas&&!immersivePaused&&visible()&&workMode==='editor'&&directEnabled()){
+        if(event.button===2){event.preventDefault();clearDirect(true);paintDirect();paintInteractionHint();return;}
+        if(event.button===0){event.preventDefault();directClick();schedule();return;}
+      }
+      if(document.pointerLockElement===canvas&&!immersivePaused&&visible()&&workMode==='analysis'&&event.button===0){event.preventDefault();interact();return;}
+if(interactionSlotId||fullscreen()&&immersivePaused||event.button!==0||!renderer||!renderer.available())return;event.preventDefault();canvas.focus({preventScroll:true});simulationRunning=!immersivePaused;schedule();drag={startX:event.clientX,startY:event.clientY,moved:false};canvas.setPointerCapture(event.pointerId);});
     canvas.addEventListener('pointermove',function(event){if(!visible()||interactionSlotId||fullscreen()&&immersivePaused)return;
       const locked=document.pointerLockElement===canvas;if(!locked&&!drag)return;
       const dx=event.movementX,dy=event.movementY;
@@ -670,12 +832,13 @@
     window.addEventListener('resize',()=>{labelTime=-Infinity;schedule();});
     if(window.ResizeObserver)new window.ResizeObserver(()=>{labelTime=-Infinity;schedule();}).observe(root);
     function destroy(){
-      if(disposed)return;active=false;leaveImmersive();stop();disposed=true;workspaceRevision++;
+      if(disposed)return;active=false;clearDirect(true);leaveImmersive();stop();disposed=true;workspaceRevision++;
       if(renderer){if(renderer.aimObject)renderer.aimObject(null);renderer.setWorld(walk.createWorld([]));}scene=null;info=null;labels=[];selectedId=null;selectedObjectId=null;aimedObjectId=null;objectSearch='';objectsOpen=false;search='';message='';
       restoreBackground();root.replaceChildren();
       ['is-walk-window','is-walk-paused','walk-controls-open','is-interacting','is-walk-windowed'].forEach(key=>root.classList.toggle(key,false));
     }
     return {render:render,setActive:setActive,pause:function(){openMenu(true);},resume:resumeMovement,setWorkMode:setWorkMode,insertionPoint:insertionPoint,markObject:markObject,notify:tell,destroy:destroy,
+      acceptSnapshot:function(){directStale=false;},
       refreshPreferences:function(){if(!savingFov&&!disposed)previewFov(savedFov());}};
   }
   return {create:create,interactionHtml:interactionHtml};

@@ -3,6 +3,77 @@
 }(typeof globalThis!=='undefined'?globalThis:this,function(){
   'use strict';
   function esc(value){return String(value==null?'':value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+  // Direct controls are transient projections, never stored warehouse metadata.
+  function directFields(model,layout,objectId){
+    const object=layout.objects.find(item=>item.id===objectId);if(!object)return [];
+    const fields=[],index=model.createScopeIndex(layout);
+    function add(kind,id,value,min,max,x,y,z,de,en,extra){
+      const point=model.localPoint(object,x,z);
+      fields.push(Object.assign({key:kind+':'+id,kind:kind,objectId:objectId,value:value,min:min,max:max,
+        point:{x:point.x/1000,y:y/1000,z:point.z/1000},de:de,en:en,locked:object.locked===true},extra));
+    }
+    if(!model.RACK_TYPES.includes(object.type)){
+      // Junction arms and drawn routes use the detailed inspector, not misleading bounding-box dimensions.
+      if(object.junction||object.route&&object.route.path)return [];
+      add('object-width',object.id,object.width,100,50000,object.width/2,Math.min(700,object.height/2),object.depth+100,'Breite','Width');
+      add('object-height',object.id,object.height,1,15000,object.width/2,object.height+120,object.depth+100,'Höhe','Height');
+      add('object-depth',object.id,object.depth,10,50000,-100,Math.min(1100,object.height/2),object.depth/2,'Tiefe','Depth');
+      return fields;
+    }
+    add('rack-depth',object.id,model.rackDepth(object)||object.bays[0].depth,200,3000,-120,950,object.bays[0].depth/2,'Regaltiefe','Rack depth');
+    let x=0;
+    object.bays.forEach(function(bay,bayIndex){
+      x+=object.uprights[bayIndex].width;
+      add('bay-width',bay.id,bay.width,300,6000,x+bay.width/2,Math.min(650,bay.levels[0].clearHeight*.45),bay.depth+100,
+        'Fach '+(bayIndex+1)+' · Breite','Bay '+(bayIndex+1)+' · Width',{bayId:bay.id});
+      let y=0;
+      const levels=bay.ground.enabled?[{...bay.ground,ground:true,clearHeight:0,thickness:0}].concat(bay.levels):bay.levels;
+      levels.forEach(function(level){
+        y+=level.clearHeight;
+        const levelIndex=level.ground?-1:bay.levels.findIndex(item=>item.id===level.id);
+        const label='Fach '+(bayIndex+1)+' · Ebene '+(levelIndex+1),english='Bay '+(bayIndex+1)+' · Level '+(levelIndex+1);
+        if(!level.ground)add('level-height',level.id,level.clearHeight,100,8000,x+bay.width/2,y+level.thickness+120,bay.depth+100,
+          label+' · lichte Höhe',english+' · Clear height',{bayId:bay.id,levelId:level.id});
+        const zone=index.zonesByLevel.get(level.id);
+        (zone&&index.locationsByZone.get(zone.id)||[]).forEach(function(slot){
+          const area=slot.placement,slotLabel=slot.code||label+' · Platz '+(slot.positionIndex+1),slotEn=slot.code||english+' · Place '+(slot.positionIndex+1);
+          const surface=y+level.thickness+(level.deck?level.deckThickness:0);
+          add('location-width',slot.id,area.width,1,bay.width-area.x,x+area.x+area.width/2,surface+180,bay.depth+110,
+            slotLabel+' · Breite',slotEn+' · Width',{slotId:slot.id});
+          add('location-x',slot.id,area.x,0,bay.width-area.width,x+area.x+area.width/2,surface+330,bay.depth+110,
+            slotLabel+' · Position',slotEn+' · Position',{slotId:slot.id});
+        });
+        y+=level.thickness;
+      });
+      x+=bay.width;
+    });
+    return fields;
+  }
+  function proposeDirect(model,layout,field,value){
+    // Resolve the descriptor again: stale or forged controls cannot address another scope.
+    const actual=directFields(model,layout,field.objectId).find(item=>item.key===field.key);
+    if(!actual||actual.locked)throw new Error('Unlock the object before editing it.');
+    if(!Number.isInteger(value)||value<actual.min||value>actual.max)throw new Error('Value outside the permitted range.');
+    let next=JSON.parse(JSON.stringify(layout));
+    const object=next.objects.find(item=>item.id===actual.objectId);
+    if(actual.slotId){
+      const slot=next.locations.find(item=>item.id===actual.slotId);
+      next=model.setLocationPlacement(next,slot.id,Object.assign({},slot.placement,{[actual.kind==='location-x'?'x':'width']:value}));
+    }else{
+      if(actual.kind==='rack-depth')Object.assign(object,model.setRackDepth(object,value));
+      else if(actual.kind==='bay-width')object.bays.find(item=>item.id===actual.bayId).width=value;
+      else if(actual.kind==='level-height')object.bays.find(item=>item.id===actual.bayId).levels.find(item=>item.id===actual.levelId).clearHeight=value;
+      else object[actual.kind.slice(7)]=value;
+      model.applyAssemblyChanges(layout,next);
+      next=model.reconcileLayout(next,layout);
+    }
+    if(model.lockedEditConflict(layout,next))throw new Error('Unlock all affected objects before editing.');
+    const retained=new Map(next.locations.map(slot=>[slot.id,slot.code]));
+    if(next.locations.length!==layout.locations.length||layout.locations.some(slot=>retained.get(slot.id)!==slot.code))throw new Error('This direct edit would remove or replace locations.');
+    return next;
+  }
+
   function create(options){
     const panel=document.createElement('section');panel.className='wh-walk-edit-overlay';panel.hidden=true;
     panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-labelledby','walk-edit-title');
@@ -134,5 +205,5 @@
       close:function(){close(false,true);},isOpen:()=>open
     };
   }
-  return {create:create};
+  return {create:create,directFields:directFields,proposeDirect:proposeDirect};
 }));

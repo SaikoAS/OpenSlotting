@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Add captured-mouse direct editing in the warehouse walk: left click binds an object and targets its dimension/location controls; wheel, fine steps and numeric entry preview changes, Enter saves through the existing validated path, and right click discards/releases. Preserve selection, location IDs/codes, occlusion, undo, local-only persistence and stale-write guards.
+
 - Highlight the reachable object under the walk Editor crosshair with a mint contour, subtle surface tint and matching object-list marker. Match the E target, clear on pause/look-away/mode changes, keep occlusion and selection separate, and update only target overlay buffers.
 
 - Separate walk Editor recipes into a B-key menu with category/search cards and explicit insertion through the existing save/wizard path. Show a compact object list beside mouse look, with paused search/selection, selected-object highlighting and room for the minimap. Give properties their full dialog width and retain expandable layout checks, focus/mouse capture boundaries and read-only Evaluation.

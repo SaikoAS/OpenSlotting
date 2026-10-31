@@ -25,6 +25,11 @@
       if(!controller){
         controller=window.OpenSlottingWarehouseWalk.create({root:root,model:model,standalone:true,initialView:value.view,
           editorAvailable:value.editorAvailable===true,openEditor:scope=>editor.open(scope),openRecipes:()=>editor.openRecipes(),
+          saveLayout:async(next,base)=>{
+            const result=await client.editLayout(next,base);
+            if(!window.OpenSlottingWalkWindowSession.validSnapshot(result.data))throw new Error('edit-failed');
+            receive(result.data,true,true);
+          },
           setWorkMode:async mode=>{await client.setWorkMode(mode);if(data)data.view=Object.assign({},data.view,{workMode:mode});},
           getWorkspaceId:()=>data&&data.workspaceId,getLanguage:()=>language,
           getLayout:()=>data?data.layout:model.createLayout(),getRegistry:()=>data?data.registry:[],
@@ -43,7 +48,7 @@
             receive(result.data,true,true);
           }
         });
-      }else if(refresh)controller.pause();
+      }else if(refresh){controller.acceptSnapshot();if(!ownEdit)controller.pause();}
       if(ownEdit)return;
       if(refresh&&editor)editor.refresh();
       controller.render();controller.pause();

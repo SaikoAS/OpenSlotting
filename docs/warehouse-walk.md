@@ -6,16 +6,16 @@ The **Walk / Rundgang** menu opens a preparation screen and a separate first-per
 
 Choose **Walk mode / Rundgang-Modus** before starting or in the paused walk menu. Changing modes pauses movement and retains the observer pose. Reusing an already open walk window focuses that session with its current mode/settings; change its mode in its menu or close it before starting a new session. Modes are transient, not stored in backups.
 
-| Mode | E under the crosshair | Available actions |
+| Mode | Left click / E under the crosshair | Available actions |
 | --- | --- | --- |
 | Evaluation / Auswertung | Inspect a reachable location's current articles. | Metrics, master data and available A/B comparison; no geometry writes. |
-| Editor | Edit the nearest reachable physical object, location or floor area within 6 m. | Existing Structure, Zones and Locations properties; move/rotate/name/dimensions, rack configuration, floor locations, codes and placement, add/duplicate/delete, locks and undo/redo. |
+| Editor | Bind the nearest reachable object within 6 m, then activate its direct parameter fields. | Existing Structure, Zones and Locations properties; move/rotate/name/dimensions, rack configuration, floor locations, codes and placement, add/duplicate/delete, locks and undo/redo. |
 
 In Editor, **B** opens a dedicated **Recipes / Rezepte** menu, including in an empty warehouse. Search by name or choose a category, select a recipe card, then explicitly Add. Racks open the existing configuration wizard; other recipes insert their standard geometry through the existing validated save path. Opening or selecting a recipe alone does not modify the workspace. Outside text fields, B closes the recipe menu and resumes through mouse capture; Esc/Close returns to the paused walk. Key repeat does not reopen the menu or type into a newly focused search field. B is inactive in Evaluation.
 
 The Editor object list stays on the left during mouse look, with names/types, lock indicators and the selected object's highlight. It is passive while movement is captured. Use **Tab → Select objects / Objekte auswählen** to pause and operate the list with the mouse or keyboard. Search filters names/types; choosing a row opens that object's properties without moving it or the observer. Search/actions are hidden during movement and the list leaves room for the minimap. Evaluation hides the list.
 
-E on a rack carries the targeted bay/level/location into the property inspector where available. **Edit object / Objekt bearbeiten** opens the selected object's properties from the menu or preparation screen. Opening it pauses movement, releases mouse capture and confines focus. The inspector devotes its width to properties; its old add-recipe/object sidebar is hidden. Layout findings remain available in an expandable section. The warehouse stays visible behind the dialog. The inspector and recipe wizard reuse `warehouse-editor.js` without allocating another 3D renderer; location placement retains its existing schematic editor.
+In mouse look, left click/E binds the object and operates its direct fields. **Edit object / Objekt bearbeiten** opens the selected object's properties from the menu or preparation screen. Opening it pauses movement, releases mouse capture and confines focus. The inspector devotes its width to properties; its old add-recipe/object sidebar is hidden. Layout findings remain available in an expandable section. The warehouse stays visible behind the dialog. The inspector and recipe wizard reuse `warehouse-editor.js` without allocating another 3D renderer; location placement retains its existing schematic editor.
 
 New objects start with their footprint centered about three meters ahead of the observer on a 100 mm grid. Their initial access-side rotation faces the observer, snapped to 90 degrees. Position, dimensions and rotation remain editable; the existing layout findings report modeled collisions.
 
@@ -39,6 +39,20 @@ Inspector undo/redo covers its retained edits; accepted transactions also enter 
 - Search an exact location code (outer whitespace is ignored; leading zeros and case are retained). Search selects the location without changing the observer's position. **Stand in front of location / Vor Stellplatz stellen** offers an explicit jump to a free point on that rack's access side and looks toward the selected location. If the bounded search cannot find space on that side, the existing position is retained and a message explains the failure.
 - Location labels appear nearby when they are in view and not hidden behind physical parts; clicking a label or visible location area opens its details. Labels are limited to 24 nearby candidates, checked for overlap and physical occlusion. Hide the details panel for more viewing space.
 - The shared rack convention is retained: viewed from the access side, bay/location indices increase from left to right, including rotated racks and ground locations.
+
+## Direct editing with captured mouse look
+
+In Editor, **left click** binds the reachable object under the crosshair. The mint highlight remains until **right click** releases it, including while looking away or opening the pause menu. While bound, the crosshair only targets this object's parameter fields; nearby objects and normal location labels cannot steal selection. E is an alternative to left click. Evaluation also accepts left click for its existing read-only article dialog.
+
+Rack fields identify bay width, each level's **clear height**, common rack depth, and modeled ground/upper location width and horizontal position. Ordinary walls, doors and rectangular floor areas also expose their basic dimensions. Junction arms and drawn routes retain the detailed inspector. Locked fields remain read-only. Fields follow the object's rotation and preview geometry, are limited to 24 non-overlapping nearby labels, and cannot be activated beyond 6 m or through modeled physical parts. Labels covered by the object list, minimap, HUD or status panel are omitted.
+
+Aim at a field and left click to activate it. **Wheel** adjusts dimensions by 50 mm and location width/position by 10 mm; **Shift+wheel** uses 1 mm steps. Digits replace the displayed value, Backspace/Delete correct it, and **Enter** explicitly applies it through the main editor's existing validated, undoable save path. An unchanged Enter ends field editing without a write. Ctrl/Alt/Meta wheel shortcuts are not intercepted. Camera look and WASD stay available; no form focus or pointer-lock release is required.
+
+A valid unsaved candidate is shown in amber, retaining current location colors. The status panel shows affected location/code/article counts and the total modeled collision count before Enter. Invalid dimensions, overlaps, frame-height violations, locks and out-of-bounds locations block saving. Existing IDs/codes must remain present. A candidate that would enclose the walking observer is not applied; move clear and press Enter again. Preview geometry is provisional; walking collision checks continue against the committed scene until a successful save.
+
+**Right click** discards an uncommitted draft and releases the object without leaving mouse look. Opening a menu, losing capture/focus or hiding the page discards the draft and pauses normally, retaining the object binding; rebuilding/refreshed data, a work-mode/workspace change or session end clears the binding. The existing menu inspector and B recipe catalog remain available for larger changes. A write already submitted with Enter cannot be canceled by right click; its confirmation can update the committed scene but cannot resurrect a released binding. Writes are serialized. Stale bases and uncertain save timeouts require an explicit snapshot refresh and are never retried automatically.
+
+All preview/field data stays transient in the browser. No new stored schema, external service, dependency or operational-data transfer to Python is introduced.
 
 ## Separate walk window and mouse look
 

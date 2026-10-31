@@ -43,6 +43,17 @@
 .wh-walk-root:is(:fullscreen, .is-walk-window).is-interacting .wh-walk-menu { visibility: hidden; }
 .wh-walk-interact-hint { position: absolute; top: calc(50% + 28px); left: 50%; transform: translateX(-50%); max-width: 80%; padding: 7px 12px; border: 1px solid #8bcbbb; border-radius: 7px; color: #e5fff7; background: #122a2bee; font-size: .8rem; text-align: center; pointer-events: none; }
 .wh-walk-interact-hint[hidden] { display: none; }
+.wh-walk-handles { position: absolute; inset: 0; z-index: 3; overflow: hidden; pointer-events: none; }
+.wh-walk-handle { position: absolute; display: flex; align-items: center; justify-content: center; width: 240px; height: 30px; padding: 3px 7px; box-sizing: border-box; transform: translate(-50%, -50%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid #78b7af; border-radius: 5px; color: #e8fff8; background: #10272cf2; font-size: 12px; }
+.wh-walk-handle.is-target { border: 2px solid #73ffd1; background: #215548; }
+.wh-walk-handle.is-active { border-color: #ffd78a; color: #ffe1ab; background: #49391ff2; }
+.wh-walk-handle span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.wh-walk-handle b { flex: none; margin-left: 8px; }
+.wh-walk-direct-status { position: absolute; z-index: 4; bottom: 16px; left: 50%; transform: translateX(-50%); display: grid; gap: 6px; width: min(660px, calc(100% - 560px)); max-height: 140px; padding: 10px 14px; box-sizing: border-box; border: 1px solid #73ffd1; border-radius: 7px; color: #e6fff5; background: #12272ff5; font-size: .8rem; pointer-events: none; }
+.wh-walk-direct-status span { font-size: .75rem; line-height: 1.5; }
+.wh-walk-direct-status.is-invalid { border-color: #ef9c82; color: #ffd0bc; }
+.wh-walk-handles[hidden], .wh-walk-direct-status[hidden] { display: none; }
+@media (max-width: 1000px) { .wh-walk-direct-status { left: auto; right: 12px; transform: none; width: calc(100% - 300px); } }
 .wh-walk-interaction { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: clamp(8px, 3vw, 36px); background: #071017bd; backdrop-filter: blur(4px); }
 .wh-walk-interaction[hidden] { display: none; }
 .wh-walk-interaction-card { width: min(1080px, 100%); max-height: 100%; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; border: 1px solid #567c78; border-radius: 16px; color: #dcece9; background: #141e27; box-shadow: 0 20px 80px #0009; overflow-wrap: anywhere; }

@@ -8879,6 +8879,7 @@
     getPreferences: function () { return state.walkPreferences; }, savePreferences: saveWarehouseWalkPreferences,
     startWindow: function (view) { return warehouseWalkWindow.start(view); },
     editorAvailable: true, openEditor: function(scope){walkEditorOverlay.open(scope);},openRecipes:function(){walkEditorOverlay.openRecipes();},
+    saveLayout: applyWalkLayout,
     getLayout: function () { return state.warehouseLayout; },
     getRegistry: function () { return state.articleRegistry; },
     getArticles: function () { return state.analysis ? state.analysis.articles : []; },

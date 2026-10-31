@@ -10,9 +10,10 @@
   function boxCorners(item,walk){return [[0,0,0],[item.width,0,0],[item.width,0,item.depth],[0,0,item.depth],
     [0,item.height,0],[item.width,item.height,0],[item.width,item.height,item.depth],[0,item.height,item.depth]]
     .map(p=>walk.world(item,item.x+p[0],item.y+p[1],item.z+p[2]));}
-  function buildAimMeshes(entries,walk){
+  function buildAimMeshes(entries,walk,tint){
     const fill=[],lines=[];
-    function vertex(target,point){target.push(point.x,point.y,point.z,AIM_COLOR[0],AIM_COLOR[1],AIM_COLOR[2]);}
+    const color=tint||AIM_COLOR;
+    function vertex(target,point){target.push(point.x,point.y,point.z,color[0],color[1],color[2]);}
     entries.forEach(function(item){
       if(['location','ground-scope','orientation'].includes(item.box.kind))return;
       const corners=boxCorners(item,walk),faces=item.obstacle?FACES:[FACES[0]];
@@ -58,7 +59,7 @@
   function create(canvas,walk,callbacks) {
     let gl;try {gl=canvas.getContext('webgl2',{depth:true,antialias:true,alpha:false});} catch(_){return null;}
     if(!gl) return null;
-    let program,position,color,matrix,eye,opacity,buffers={},lost=false,scene=null,selectedId=null,aimedId=null,objects=new Map();
+    let program,position,color,matrix,eye,opacity,buffers={},lost=false,scene=null,selectedId=null,aimedId=null,preview=false,objects=new Map();
     function shader(type,source) {
       const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);
       if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)) {const error=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(error);} return s;
@@ -95,10 +96,10 @@
     }
     function uploadAim(){
       if(lost||!scene)return;
-      const mesh=buildAimMeshes(objects.get(aimedId)||[],walk);
+      const mesh=buildAimMeshes(objects.get(aimedId)||[],walk,preview?[1,.84,.54]:null);
       upload('aimFill',mesh.fill,true);upload('aimLines',mesh.lines,true);
     }
-    function aimObject(id){if(aimedId===id)return;aimedId=id;uploadAim();}
+    function aimObject(id,draft){if(aimedId===id&&preview===Boolean(draft))return;aimedId=id;preview=Boolean(draft);uploadAim();}
     function draw(key,mode) {
       const b=buffers[key];if(!b||!b.count) return;
       gl.bindBuffer(gl.ARRAY_BUFFER,b.buffer);gl.enableVertexAttribArray(position);gl.vertexAttribPointer(position,3,gl.FLOAT,false,24,0);
