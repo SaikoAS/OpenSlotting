@@ -282,6 +282,7 @@ function harness(value,available=true,native=false,options={}){
   h.input=(name,value)=>listeners.input({target:{value:String(value),hasAttribute:key=>key==='data-walk-'+name}});
   h.release=code=>windowListeners.keyup({code});
   h.tick=time=>{const pending=[...frames.values()];frames.clear();pending.forEach(cb=>cb(time));};
+  h.left=()=>h.canvas.events.pointerdown({button:0,preventDefault(){}});
   h.key=(code,target=canvases[0])=>listeners.keydown({code,key:code,target,preventDefault(){}});
   h.event=event=>listeners.keydown({target:canvases[0],preventDefault(){},...event});
   h.blur=()=>windowListeners.blur();h.render();return h;
@@ -306,14 +307,14 @@ test('walk work modes separate read-only article interaction from scoped physica
   h.tick(100);const pose={...h.camera};await h.change('work-mode','editor');assert.deepEqual(modes,['editor']);
   await h.action('resume');h.aim(value.locations[0].id);h.tick(116);
   assert.match(h.nodes.get('[data-walk-interact-hint]').textContent,/Edit:/);
-  h.key('KeyE');assert.equal(opened.length,1);assert.equal(opened[0].objectId,value.objects[0].id);
+  h.left();assert.equal(opened.length,1);assert.equal(opened[0].objectId,value.objects[0].id);
   assert.equal(h.document.pointerLockElement,null);assert.equal(h.nodes.get('.wh-walk-interaction').hidden,true);
   await h.change('work-mode','analysis');await h.action('edit-layout');assert.equal(opened.length,1);
-  await h.action('resume');h.key('KeyE');assert.equal(h.nodes.get('.wh-walk-interaction').hidden,false);
+  await h.action('resume');h.left();assert.equal(h.nodes.get('.wh-walk-interaction').hidden,false);
   h.tick(132);assert.deepEqual(h.camera,pose);assert.deepEqual(value,before);
 });
 
-test('Editor aim highlight uses the reachable E target, stays separate from selection and clears on pause, range and mode changes',async()=>{
+test('Editor aim highlight uses the reachable click target, stays separate from selection and clears on pause, range and mode changes',async()=>{
   const value=layout(),before=structuredClone(value),h=harness(value,true,true,{standalone:true,editorAvailable:true,openEditor(){}});
   const aim=(id,distance)=>{h.aim(id,distance);h.canvas.events.pointermove({movementX:0,movementY:0});};
   await h.change('work-mode','editor');await h.action('resume');aim(value.locations[0].id);h.tick(100);
@@ -542,11 +543,11 @@ test('walk cleanup releases only its own fullscreen and pointer lock',()=>{
   h.active(false);assert.equal(h.document.fullscreenElement,external);assert.equal(h.document.pointerLockElement,external);
 });
 
-test('E opens mouse-controlled fullscreen details, pauses movement and returns without rebuilding or changing the pose',async()=>{
+test('left click opens mouse-controlled fullscreen details, pauses movement and returns without rebuilding or changing the pose',async()=>{
   const value=layout(),before=structuredClone(value),h=harness(value,true,true);await h.action('fullscreen');h.tick(100);
   h.aim(value.locations[0].id);h.key('KeyW');h.tick(116);const pose={...h.camera},worlds=h.worlds;
   const dialog=h.nodes.get('.wh-walk-interaction'),background={inert:false},alreadyInert={inert:true};h.root.children=[background,alreadyInert,dialog];
-  h.key('KeyE');h.tick(132);
+  h.left();h.tick(132);
   assert.equal(h.document.fullscreenElement,h.root);assert.equal(h.document.pointerLockElement,null);
   assert.equal(dialog.hidden,false);assert.equal(background.inert,true);assert.equal(h.root.classList.contains('is-walk-paused'),true);
   assert.match(dialog.innerHTML,/SKU/);assert.match(dialog.innerHTML,/Metrics/);assert.match(dialog.innerHTML,/Back to walk/);
@@ -558,21 +559,21 @@ test('E opens mouse-controlled fullscreen details, pauses movement and returns w
   assert.deepEqual(h.camera,pose);assert.equal(h.worlds,worlds);assert.deepEqual(value,before);
 });
 
-test('E requires a reachable aim instead of stale selection and ignores text inputs and repeats',async()=>{
+test('left click requires a reachable aim instead of stale selection and E never interacts',async()=>{
   const value=layout(),h=harness(value,true,true);h.search('0001');await h.action('find');await h.action('fullscreen');
-  h.aim(null);h.key('KeyE');assert.equal(h.nodes.get('.wh-walk-interaction').hidden,true);
+  h.aim(null);h.left();assert.equal(h.nodes.get('.wh-walk-interaction').hidden,true);
   assert.match(h.nodes.get('[data-walk-message]').textContent,/6 m/);
-  h.aim(value.locations[0].id,7);h.key('KeyE');assert.equal(h.nodes.get('.wh-walk-interaction').hidden,true);
+  h.aim(value.locations[0].id,7);h.left();assert.equal(h.nodes.get('.wh-walk-interaction').hidden,true);
   h.aim(value.locations[0].id);h.key('KeyE',{hasAttribute:()=>false});assert.equal(h.nodes.get('.wh-walk-interaction').hidden,true);
   h.event({code:'KeyE',key:'e',repeat:true});assert.equal(h.nodes.get('.wh-walk-interaction').hidden,true);
-  h.key('KeyE');assert.equal(h.nodes.get('.wh-walk-interaction').hidden,false);
+  h.left();assert.equal(h.nodes.get('.wh-walk-interaction').hidden,false);
 });
 
 test('interaction prompt appears only for a reachable location, names its code and clears stale text immediately on pause',async()=>{
   const value=layout(),h=harness(value,true,true);h.aim(null);await h.action('fullscreen');h.tick(100);
   const prompt=h.nodes.get('[data-walk-interact-hint]');assert.equal(prompt.hidden,true);assert.equal(prompt.textContent,'');
   h.aim(value.locations[0].id);h.key('KeyW');h.tick(116);
-  assert.equal(prompt.hidden,false);assert.equal(prompt.textContent,'E · Interact: 0001');
+  assert.equal(prompt.hidden,false);assert.equal(prompt.textContent,'Left click · Interact: 0001');
   h.aim(value.locations[0].id,7);h.tick(132);assert.equal(prompt.hidden,true);assert.equal(prompt.textContent,'');
   h.aim(value.locations[0].id);h.tick(148);assert.equal(prompt.hidden,false);
   h.aim(null);h.tick(164);assert.equal(prompt.hidden,true);assert.equal(prompt.textContent,'');
@@ -583,7 +584,7 @@ test('uncoded interaction prompts identify the rack, bay, level and position inc
   const value=layout();value.locations[0].code='';value.objects[0].name='Synthetic rack';
   const h=harness(value,true,true);h.language='de';h.render();h.aim(value.locations[0].id);await h.action('fullscreen');h.tick(100);
   const prompt=h.nodes.get('[data-walk-interact-hint]');
-  assert.match(prompt.textContent,/E · Interagieren: Synthetic rack · Fach 1 · Ebene 1 · Stellplatz 1/);
+  assert.match(prompt.textContent,/Linksklick · Interagieren: Synthetic rack · Fach 1 · Ebene 1 · Stellplatz 1/);
   const ground=model.listLocations(value).find(s=>s.ground);h.aim(ground.slotId);h.key('KeyW');h.tick(116);
   assert.match(prompt.textContent,/Synthetic rack · Fach 1 · Boden \(Ebene 0\) · Stellplatz 1/);
   assert.equal(prompt.hidden,false);
@@ -595,14 +596,14 @@ test('article choice and detail tabs stay inside fullscreen and never rescan or 
     {article_id:'002',master_data:{location:'0001',article_name:'Synthetic two',unit_of_measure:'kg'}}];
   h.articles=[{article_id:'001',total_quantity:5n,order_line_count:2},{article_id:'002',total_quantity:8n,order_line_count:3}];
   h.comparison={settings:{periodA:{name:'Synthetic A'},periodB:{name:'Synthetic B'}},articles:[{article_id:'002',period_a:{order_line_count:0,total_quantity:0n,active_days:0},period_b:{order_line_count:3,total_quantity:8n,active_days:1}}]};
-  h.render();await h.action('fullscreen');h.aim(value.locations[0].id);h.key('KeyE');const worlds=h.worlds;
+  h.render();await h.action('fullscreen');h.aim(value.locations[0].id);h.left();const worlds=h.worlds;
   await h.change('interaction-article','002');h.tab('master');assert.match(h.nodes.get('.wh-walk-interaction').innerHTML,/<strong>kg<\/strong>/);
   h.tab('periods');assert.match(h.nodes.get('.wh-walk-interaction').innerHTML,/Synthetic A/);assert.match(h.nodes.get('.wh-walk-interaction').innerHTML,/<strong>0<\/strong>/);
   assert.equal(h.document.fullscreenElement,h.root);assert.equal(h.document.pointerLockElement,null);assert.equal(h.worlds,worlds);
 });
 
 test('details trap keyboard focus, Escape closes while paused and fullscreen search also opens the dialog',async()=>{
-  const value=layout(),h=harness(value,true,true);await h.action('fullscreen');h.aim(value.locations[0].id);h.key('KeyE');
+  const value=layout(),h=harness(value,true,true);await h.action('fullscreen');h.aim(value.locations[0].id);h.left();
   const dialog=h.nodes.get('.wh-walk-interaction'),first=h.nodes.get('[data-walk-action="interaction-return"]'),last=h.root.querySelector('[data-walk-action="interaction-close"]');
   dialog.querySelectorAll=()=>[first,last];let prevented=0;first.focus();
   h.event({key:'Tab',shiftKey:true,preventDefault(){prevented++;}});assert.equal(h.document.activeElement,last);
@@ -613,20 +614,20 @@ test('details trap keyboard focus, Escape closes while paused and fullscreen sea
 });
 
 test('empty locations, missing articles, deleted locations and workspace changes clear interaction safely',async()=>{
-  const value=layout(),h=harness(value,true,true);await h.action('fullscreen');h.aim(value.locations[1].id);h.key('KeyE');
+  const value=layout(),h=harness(value,true,true);await h.action('fullscreen');h.aim(value.locations[1].id);h.left();
   assert.match(h.nodes.get('.wh-walk-interaction').innerHTML,/No current article assignment/);
   h.workspace='two';h.render();assert.equal(h.nodes.get('.wh-walk-interaction').hidden,true);assert.equal(h.document.fullscreenElement,null);
-  await h.action('fullscreen');h.aim(value.locations[0].id);h.key('KeyE');h.value=model.createLayout();h.render();
+  await h.action('fullscreen');h.aim(value.locations[0].id);h.left();h.value=model.createLayout();h.render();
   assert.equal(h.nodes.get('.wh-walk-interaction').hidden,true);assert.equal(h.root.classList.contains('is-interacting'),false);
 });
 
 test('return from details handles denied mouse lock and cancels late grants after navigation',async()=>{
-  const value=layout(),h=harness(value,true,true);await h.action('fullscreen');h.aim(value.locations[0].id);h.key('KeyE');
+  const value=layout(),h=harness(value,true,true);await h.action('fullscreen');h.aim(value.locations[0].id);h.left();
   h.denyLock=true;await h.action('interaction-return');assert.equal(h.nodes.get('.wh-walk-interaction').hidden,true);
   assert.equal(h.root.classList.contains('is-walk-paused'),true);assert.match(h.nodes.get('[data-walk-immersive-message]').textContent,/Mouse look is unavailable/);
   await h.action('resume');assert.equal(h.root.classList.contains('is-walk-paused'),true);
   h.denyLock=false;await h.action('resume');assert.equal(h.document.pointerLockElement,h.canvas);
-  const late=harness(value,true,true);await late.action('fullscreen');late.aim(value.locations[0].id);late.key('KeyE');
+  const late=harness(value,true,true);await late.action('fullscreen');late.aim(value.locations[0].id);late.left();
   late.delayLock=true;const pending=late.action('interaction-return');
   await new Promise(resolve=>setImmediate(resolve));late.active(false);late.grantLock();await pending;
   assert.equal(late.document.pointerLockElement,null);assert.equal(late.document.fullscreenElement,null);
@@ -922,4 +923,16 @@ test('invalid later values block object-level save while preserving earlier prev
   assert.equal(h.world.entries.find(i=>i.box.object.id===h.value.objects[0].id).box.object.bays[0].width,width.value+50);
   h.choose('location-width');h.wheel(100);h.click(0);h.key('Enter');await settle();h.frame();assert.equal(h.saved.length,1);
   assert.equal(h.value.objects[0].bays[0].width,width.value+50);assert.equal(h.value.locations.find(s=>s.id===location.slotId).placement.width,location.value);
+});
+
+test('E cannot bind, edit, leave values or confirm discard, and the walk advertises only mouse interaction',async()=>{
+  const h=await directHarness(),object=h.value.objects[0].id;
+  assert.doesNotMatch(h.root.innerHTML,/\/ E:|E: interact/);
+  h.click(2);h.key('KeyE');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);h.click(0);
+  const field=h.field('bay-width');h.look(field.point);h.key('KeyE');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');
+  h.click(0);h.wheel(-100);h.key('KeyE');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'value');assert.equal(h.saved.length,0);
+  h.click(0);h.key('KeyE');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');assert.equal(h.saved.length,0);
+  h.click(2);h.key('KeyE');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'discard');assert.equal(h.aimedObject,object);assert.equal(h.document.pointerLockElement,h.canvas);
+  const evaluation=harness(layout(),true,true,{standalone:true});await evaluation.action('resume');evaluation.aim(evaluation.value.locations[0].id);evaluation.tick(100);evaluation.key('KeyE');
+  assert.equal(evaluation.nodes.get('.wh-walk-interaction').hidden,true);assert.match(evaluation.nodes.get('[data-walk-interact-hint]').textContent,/^Left click/);evaluation.left();assert.equal(evaluation.nodes.get('.wh-walk-interaction').hidden,false);
 });

@@ -6,7 +6,7 @@ The **Walk / Rundgang** menu opens a preparation screen and a separate first-per
 
 Choose **Walk mode / Rundgang-Modus** before starting or in the paused walk menu. Changing modes pauses movement and retains the observer pose. Reusing an already open walk window focuses that session with its current mode/settings; change its mode in its menu or close it before starting a new session. Modes are transient, not stored in backups.
 
-| Mode | Left click / E under the crosshair | Available actions |
+| Mode | Left click under the crosshair | Available actions |
 | --- | --- | --- |
 | Evaluation / Auswertung | Inspect a reachable location's current articles. | Metrics, master data and available A/B comparison; no geometry writes. |
 | Editor | Bind the nearest reachable object within 6 m, then activate its direct parameter fields. | Existing Structure, Zones and Locations properties; move/rotate/name/dimensions, rack configuration, floor locations, codes and placement, add/duplicate/delete, locks and undo/redo. |
@@ -15,7 +15,7 @@ In Editor, **B** opens a dedicated **Recipes / Rezepte** menu, including in an e
 
 The Editor object list stays on the left during mouse look, with names/types, lock indicators and the selected object's highlight. It is passive while movement is captured. Use **Tab → Select objects / Objekte auswählen** to pause and operate the list with the mouse or keyboard. Search filters names/types; choosing a row opens that object's properties without moving it or the observer. Search/actions are hidden during movement and the list leaves room for the minimap. Evaluation hides the list.
 
-In mouse look, left click/E binds the object and operates its direct fields. **Edit object / Objekt bearbeiten** opens the selected object's properties from the menu or preparation screen. Opening it pauses movement, releases mouse capture and confines focus. The inspector devotes its width to properties; its old add-recipe/object sidebar is hidden. Layout findings remain available in an expandable section. The warehouse stays visible behind the dialog. The inspector and recipe wizard reuse `warehouse-editor.js` without allocating another 3D renderer; location placement retains its existing schematic editor.
+In mouse look, left click binds the object and operates its direct fields. **Edit object / Objekt bearbeiten** opens the selected object's properties from the menu or preparation screen. Opening it pauses movement, releases mouse capture and confines focus. The inspector devotes its width to properties; its old add-recipe/object sidebar is hidden. Layout findings remain available in an expandable section. The warehouse stays visible behind the dialog. The inspector and recipe wizard reuse `warehouse-editor.js` without allocating another 3D renderer; location placement retains its existing schematic editor.
 
 New objects start with their footprint centered about three meters ahead of the observer on a 100 mm grid. Their initial access-side rotation faces the observer, snapped to 90 degrees. Position, dimensions and rotation remain editable; the existing layout findings report modeled collisions.
 
@@ -44,7 +44,7 @@ A gold line marks each rack front; the gold arrow points out of the rack toward 
 
 ## Direct editing with captured mouse look
 
-In Editor, **left click** binds the reachable object under the crosshair. The mint highlight remains until **right click** releases it, including while looking away or opening the pause menu. A changed open preview requires explicit discard confirmation before release. While bound, the crosshair only targets this object's parameter fields; nearby objects and normal location labels cannot steal selection. E is an alternative to left click. Evaluation also accepts left click for its existing read-only article dialog.
+In Editor, **left click** binds the reachable object under the crosshair. The mint highlight remains until **right click** releases it, including while looking away or opening the pause menu. A changed open preview requires explicit discard confirmation before release. While bound, the crosshair only targets this object's parameter fields; nearby objects and normal location labels cannot steal selection. Evaluation also accepts left click for its existing read-only article dialog.
 
 Rack fields identify bay width, each level's **clear height**, common rack depth, and modeled ground/upper location width and horizontal position. Ordinary walls, doors and rectangular floor areas also expose their basic dimensions. Junction arms and drawn routes retain the detailed inspector. Locked fields remain read-only. Fields follow the object's rotation and preview geometry, are limited to 24 non-overlapping nearby labels, and cannot be activated beyond 6 m or through modeled physical parts. Labels covered by the object list, minimap, HUD or status panel are omitted.
 
@@ -80,7 +80,7 @@ Python receives only an opaque session ID through the guarded `/walk-window` rou
 
 ## Interacting with locations
 
-Aim at a visible location surface within **6 m**. The crosshair prompt shows **E · Interact / E · Interagieren** and its exact code only when reachable. Otherwise it is hidden; uncoded targets identify rack, bay, level/ground and position. Press E to open a centered, scrollable article dialog inside the walk window. Physical parts occlude the ray; an old selection never substitutes for the aimed location. Rendering and selection use the same FOV. E is ignored in text fields, while paused, and while the dialog is already open.
+Aim at a visible location surface within **6 m**. The crosshair prompt shows **Left click · Interact / Linksklick · Interagieren** and its exact code only when reachable. Otherwise it is hidden; uncoded targets identify rack, bay, level/ground and position. Left click to open a centered, scrollable article dialog inside the walk window. Physical parts occlude the ray; an old selection never substitutes for the aimed location. Rendering and selection use the same FOV. The E key is not bound to interaction. Mouse interaction is scoped to captured movement; ordinary text inputs retain their keyboard behavior.
 
 Opening the dialog pauses walking/flying, clears held movement inputs and releases owned mouse look. Background controls become inert and Tab/Shift+Tab stay inside the dialog. The mouse operates the article selector and **Metrics / Kennzahlen**, **Master data / Stammdaten**, and **Period comparison / Periodenvergleich** sections. Multiple currently assigned articles can be inspected separately; quantities from different articles/units are not summed. Cards reuse already calculated quantity, line, order, customer, active-day and source-file counts across all validated data. Missing metrics remain unknown and known zero remains zero. Master custom values require article-master provenance, and up to twenty retained source references can be expanded. No import-row aggregation runs during interaction or movement.
 

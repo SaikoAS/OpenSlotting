@@ -10,16 +10,18 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Remove E as a walk interaction shortcut. Use left click for Evaluation and every Editor selection stage, update DE/EN prompts and movement hints, and keep Enter/right-click preview actions explicit.
+
 - Use explicit value-editing and object-preview stages in the walk. Left click/Enter/right click first leave the active value without saving or releasing the object. Collect successive values, then use a separate Apply changes control or object-level Enter to save. Require confirmation before discarding, retain drafts across pause/focus loss, and offer captured-mouse plus paused-menu Discard/Keep controls.
 
 - Show gold access-side lines and outward arrows for all racks in the warehouse walk, including rotated racks and dimension previews. Reuse shared editor geometry and keep these visual markers out of navigation bounds, collision/picking indexes and aim tints.
 
 - Add captured-mouse direct editing in the warehouse walk: left click binds an object and targets its dimension/location controls; wheel, fine steps and numeric entry preview changes, explicit object-level Apply/Enter saves through the existing validated path, and staged right-click release protects changed drafts with confirmation. Preserve selection, location IDs/codes, occlusion, undo, local-only persistence and stale-write guards.
 
-- Highlight the reachable object under the walk Editor crosshair with a mint contour, subtle surface tint and matching object-list marker. Match the E target, clear on pause/look-away/mode changes, keep occlusion and selection separate, and update only target overlay buffers.
+- Highlight the reachable object under the walk Editor crosshair with a mint contour, subtle surface tint and matching object-list marker. Match the left-click target, clear on pause/look-away/mode changes, keep occlusion and selection separate, and update only target overlay buffers.
 
 - Separate walk Editor recipes into a B-key menu with category/search cards and explicit insertion through the existing save/wizard path. Show a compact object list beside mouse look, with paused search/selection, selected-object highlighting and room for the minimap. Give properties their full dialog width and retain expandable layout checks, focus/mouse capture boundaries and read-only Evaluation.
-- Add Evaluation and Editor work modes to the warehouse walk. Use E for article evaluation or scoped object editing, reuse the existing Structure/Zones/Locations inspector without a second renderer, and support local layout construction/changes through the main editor's validated save path. Preserve locks, confirmations, undo and IDs/codes; reject stale layout bases and overlapping writes, keep source data browser-local, and retain captured-mouse-only navigation.
+- Add Evaluation and Editor work modes to the warehouse walk. Use left click for article evaluation or scoped object editing, reuse the existing Structure/Zones/Locations inspector without a second renderer, and support local layout construction/changes through the main editor's validated save path. Preserve locks, confirmations, undo and IDs/codes; reject stale layout bases and overlapping writes, keep source data browser-local, and retain captured-mouse-only navigation.
 - Require captured mouse look for every walk movement mode. Keep capture denials paused with an explicit retry, remove unlocked/drag-look controls, and retain location selection in the stationary preview.
 - Start the warehouse walk in a separate maximized Edge app window with a pause/resume menu. Keep preparation in the main app, transfer only a read-only matched-article/layout snapshot through a same-origin browser session, support explicit refresh and parent-owned FOV persistence, and dispose data on workspace/session changes. Restrict launch to an authenticated, rate-limited loopback route with fixed arguments and no business-data transfer to Python; retain an explicit inline fallback.
 - Make the warehouse walk start from a stationary preparation screen with movement/FOV settings and an explicit fullscreen launch. Unify mouse-look pause/resume with a focus-contained menu, preserve the pose through menus, request pointer lock before fullscreen, and keep denied/late browser grants safe with an explicit window fallback.
@@ -78,8 +80,8 @@ entry remains historical development work, not an additional published release.
 - Add a native fullscreen warehouse walk with reduced controls, mouse-look entry, pause/resume, crosshair selection and owned fullscreen/pointer cleanup.
 - Add a workspace-local vertical FOV slider (45–100 degrees, default/reset 60) with live preview, consistent location selection, fullscreen controls and backup support.
 - Add walking/free-flight movement modes, precise 0.1–20 m/s speed controls with km/h display, jump/gravity/physical landing and clearance-aware crouching. Keep movement settings and poses transient, with mode-specific controls and fullscreen height feedback.
-- Add E-based location interaction with a bounded, occlusion-aware aim prompt and an in-fullscreen article dialog: mouse controls, per-article metrics/master data/comparison, focus containment and explicit return to movement without changing the pose.
-- Show the E interaction prompt only for a reachable location; name its exact code or rack/bay/level/position and clear it when the target is lost or movement is paused.
+- Add left-click location interaction with a bounded, occlusion-aware aim prompt and an in-fullscreen article dialog: mouse controls, per-article metrics/master data/comparison, focus containment and explicit return to movement without changing the pose.
+- Show the left-click interaction prompt only for a reachable location; name its exact code or rack/bay/level/position and clear it when the target is lost or movement is paused.
 
 
 - Preserve the selected location while rendering destructive previews; reconcile removed selections only after a successful save. Cancelling a passage preview or rejecting/failing its save retains the original ground location breadcrumb, highlight and focus.
