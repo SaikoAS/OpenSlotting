@@ -75,6 +75,7 @@
     let objectsOpen=false,objectSearch='',selectedObjectId=null;
     let aimedObjectId=null;
     let boundObjectId=null,directBase=null,directFields=[],directDraft=null,directTarget=null,directNotice='';
+    let discardDirectAction=null;
     let directEpoch=0,directBusy=false,directStale=false,directDirty=false,previewWorld=null,previewApplied=false,aimPreview=false;
     function showAim(id){
       const preview=Boolean(directDraft&&directDraft.candidate);
@@ -87,14 +88,34 @@
     function canEdit(){return options.editorAvailable===true&&Boolean(options.openEditor);}
     function directEnabled(){return canEdit()&&Boolean(options.saveLayout&&window.OpenSlottingWalkEditor&&window.OpenSlottingWalkEditor.directFields);}
     function directWords(){return options.getLanguage()==='de'
-      ?{bind:'Linksklick · Objekt binden',field:'Linksklick · Wert bearbeiten',release:'Rechtsklick: lösen',locked:'Objekt gesperrt. Zum Entsperren das Rundgangmenü öffnen.',none:'Für diesen Objekttyp das Bearbeitungsmenü verwenden.',help:'Mausrad: ändern · Shift: fein · Zahl eingeben · Enter: übernehmen',preview:'Vorschau',saved:'Änderung gespeichert.',saving:'Wird gespeichert …',invalid:'Ungültiger Wert oder Geometrie. Vorschau nicht übernehmbar.',stale:'Datenstand unklar oder geändert. Im Menü den Datenstand aktualisieren.',failed:'Speichern fehlgeschlagen. Entwurf bleibt erhalten.',impact:'Betroffene Stellplätze / Codes / Artikel',collisions:'Kollisionen',occupied:'Änderung würde den Betrachter einschließen. Erst eine freie Position wählen.'}
-      :{bind:'Left click · Bind object',field:'Left click · Edit value',release:'Right click: release',locked:'Object locked. Open the walk menu to unlock it.',none:'Use the editing menu for this object type.',help:'Wheel: adjust · Shift: fine · Type a number · Enter: apply',preview:'Preview',saved:'Change saved.',saving:'Saving …',invalid:'Invalid value or geometry. Cannot apply preview.',stale:'Snapshot changed or save uncertain. Refresh the data snapshot in the menu.',failed:'Save failed. Draft retained.',impact:'Affected locations / codes / articles',collisions:'Collisions',occupied:'This change would enclose the observer. Move to a free position first.'};}
+      ?{bind:'Linksklick · Objekt binden',field:'Linksklick · Wert bearbeiten',release:'Rechtsklick: lösen',locked:'Objekt gesperrt. Zum Entsperren das Rundgangmenü öffnen.',none:'Für diesen Objekttyp das Bearbeitungsmenü verwenden.',help:'Mausrad: ändern · Shift: fein · Zahl eingeben · Linksklick / Enter: übernehmen',preview:'Vorschau',saved:'Änderung gespeichert.',saving:'Wird gespeichert …',invalid:'Ungültiger Wert oder Geometrie. Vorschau nicht übernehmbar.',stale:'Datenstand unklar oder geändert. Im Menü den Datenstand aktualisieren.',failed:'Speichern fehlgeschlagen. Entwurf bleibt erhalten.',impact:'Betroffene Stellplätze / Codes / Artikel',collisions:'Kollisionen',occupied:'Änderung würde den Betrachter einschließen. Erst eine freie Position wählen.'}
+      :{bind:'Left click · Bind object',field:'Left click · Edit value',release:'Right click: release',locked:'Object locked. Open the walk menu to unlock it.',none:'Use the editing menu for this object type.',help:'Wheel: adjust · Shift: fine · Type a number · Left click / Enter: apply',preview:'Preview',saved:'Change saved.',saving:'Saving …',invalid:'Invalid value or geometry. Cannot apply preview.',stale:'Snapshot changed or save uncertain. Refresh the data snapshot in the menu.',failed:'Save failed. Draft retained.',impact:'Affected locations / codes / articles',collisions:'Collisions',occupied:'This change would enclose the observer. Move to a free position first.'};}
     function clearDirect(release){
-      directEpoch++;directDraft=null;directTarget=null;directDirty=false;previewWorld=null;
+      directEpoch++;directDraft=null;directTarget=null;directDirty=false;previewWorld=null;discardDirectAction=null;
       if(previewApplied&&renderer&&scene)renderer.setWorld(scene);previewApplied=false;
       if(release){boundObjectId=null;directBase=null;directFields=[];directNotice='';}
       else if(boundObjectId&&info)directFields=window.OpenSlottingWalkEditor.directFields(model,info.layout,boundObjectId);
       schedule();
+    }
+    function discardWords(){return options.getLanguage()==='de'
+      ?{question:'Offene Vorschau verwerfen?',confirm:'Vorschau verwerfen',keep:'Weiter bearbeiten',keys:'Linksklick / Enter: verwerfen · Rechtsklick: weiter bearbeiten'}
+      :{question:'Discard the open preview?',confirm:'Discard preview',keep:'Keep editing',keys:'Left click / Enter: discard · Right click: keep editing'};}
+    function requestDirectDiscard(action){
+      if(!directBusy&&directDraft&&directDraft.value!==directDraft.field.value){
+        discardDirectAction=action||function(){};paintDirect();
+        if(immersivePaused){const keep=root.querySelector('[data-walk-action="discard-keep"]');if(keep)keep.focus();}
+        schedule();return true;
+      }
+      return false;
+    }
+    function confirmDirectDiscard(){
+      if(!discardDirectAction)return;const action=discardDirectAction;
+      clearDirect(true);paintDirect();paintInteractionHint();action();
+    }
+    function keepDirectDraft(){discardDirectAction=null;paintDirect();if(immersivePaused){const resume=root.querySelector('[data-walk-action="resume"]');if(resume)resume.focus();}schedule();}
+    function releaseDirect(){
+      if(discardDirectAction){keepDirectDraft();return;}
+      if(!requestDirectDiscard()){clearDirect(true);paintDirect();paintInteractionHint();}
     }
     function bindDirect(){
       if(directBusy||directStale)return;
@@ -105,7 +126,9 @@
       directNotice=object.locked?directWords().locked:directFields.length?'':directWords().none;schedule();
     }
     function directClick(){
+      if(discardDirectAction){confirmDirectDiscard();return;}
       if(!boundObjectId){bindDirect();return;}
+      if(directDraft){saveDirect();return;}
       paintDirect();
       if(directBusy||directStale||!directTarget||directTarget.locked||directDraft)return;
       const field=directTarget;
@@ -170,6 +193,14 @@
     }
     function paintDirect(){
       const overlay=root.querySelector('[data-walk-handles]'),status=root.querySelector('[data-walk-direct-status]');
+      const confirmation=root.querySelector('[data-walk-discard]'),discard=discardWords();
+      if(confirmation){
+        confirmation.hidden=!discardDirectAction||!immersivePaused;
+        if(confirmation.dataset.language!==options.getLanguage()){
+          confirmation.dataset.language=options.getLanguage();
+          confirmation.innerHTML='<strong>'+esc(discard.question)+'</strong><button type="button" data-walk-action="discard-confirm">'+esc(discard.confirm)+'</button><button type="button" data-walk-action="discard-keep">'+esc(discard.keep)+'</button>';
+        }
+      }
       directTarget=null;if(!overlay||!status)return;
       const running=boundObjectId&&workMode==='editor'&&!immersivePaused&&document.pointerLockElement===canvas;
       overlay.hidden=!running;status.hidden=!running;
@@ -189,8 +220,10 @@
         else if(draft.impact)detail+=' · '+t.impact+': '+draft.impact.locations+' / '+draft.impact.codes+' / '+draft.impact.articles+' · '+t.collisions+': '+draft.collisions;
         if(draft.saveError||draft.blocked)detail+=' · '+(draft.saveError||draft.blocked);
       }
+      if(discardDirectAction)detail=discard.question+' · '+(draft?draft.input+' mm · ':'')+discard.keys;
+      status.classList.toggle('is-confirming',Boolean(discardDirectAction));
       status.classList.toggle('is-invalid',Boolean(draft&&(draft.error||draft.saveError||draft.blocked)||directStale));
-      status.innerHTML='<strong>'+esc(object&&object.name)+' · '+esc(t.release)+'</strong><span>'+esc(detail||t.field)+'</span>';
+      status.innerHTML='<strong>'+esc(object&&object.name)+' · '+esc(discardDirectAction?discard.question:t.release)+'</strong><span>'+esc(detail||t.field)+'</span>';
     }
     async function saveDirect(){
       if(!directDraft||directBusy||directStale)return;prepareDirect();
@@ -206,8 +239,8 @@
         await options.saveLayout(draft.candidate,base);
         if(disposed||workspaceRevision!==revision||options.getWorkspaceId()!==id)return;
         previewWorld=null;previewApplied=false;refresh();
-        // A pause can discard the draft while its already-submitted write finishes.
-        // Refresh the retained binding too, without reviving a released object.
+        // Refresh a retained binding after its submitted write finishes,
+        // without reviving an object released while that write was pending.
         if(boundObjectId){directDraft=null;directDirty=false;directBase=JSON.stringify(options.getLayout());directFields=window.OpenSlottingWalkEditor.directFields(model,info.layout,boundObjectId);directNotice=directWords().saved;}
       }catch(error){
         if(disposed||workspaceRevision!==revision||options.getWorkspaceId()!==id)return;
@@ -225,8 +258,8 @@
       selectedObjectId=info&&info.layout.objects.some(object=>object.id===id)?id:null;
       root.querySelectorAll('[data-walk-object]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.walkObject===selectedObjectId)));
     }
-    function openEdit(scope){if(workMode==='editor'&&canEdit()){markObject(scope&&scope.objectId||selectedObjectId);pauseImmersive();options.openEditor(scope||(selectedObjectId?{objectId:selectedObjectId}:null));}}
-    function openRecipes(){if(workMode==='editor'&&canEdit()&&options.openRecipes){pauseImmersive();options.openRecipes();}}
+    function openEdit(scope){if(workMode==='editor'&&canEdit()){if(requestDirectDiscard(()=>openEdit(scope)))return;markObject(scope&&scope.objectId||selectedObjectId);pauseImmersive();options.openEditor(scope||(selectedObjectId?{objectId:selectedObjectId}:null));}}
+    function openRecipes(){if(workMode==='editor'&&canEdit()&&options.openRecipes){if(requestDirectDiscard(openRecipes))return;pauseImmersive();options.openRecipes();}}
     function renderObjects(){
       const items=root.querySelector('[data-walk-object-items]');if(!items||!info)return;
       const query=objectSearch.trim().toLocaleLowerCase(options.getLanguage()),objects=info.layout.objects.filter(object=>!query||(object.name+' '+object.type).toLocaleLowerCase(options.getLanguage()).includes(query));
@@ -339,7 +372,10 @@
       if(workMode==='editor'){
         const hit=fullscreen()&&!immersivePaused&&!interactionSlotId&&document.pointerLockElement===canvas?editTarget():null;
         showAim(boundObjectId||(hit?hit.item.box.object.id:null));
-        if(boundObjectId){prompt.hidden=!directTarget||Boolean(directDraft);prompt.textContent=directTarget?(directTarget.locked?directWords().locked:directWords().field):'';return;}
+        if(boundObjectId){
+          if(discardDirectAction&&!immersivePaused){prompt.hidden=false;prompt.textContent=discardWords().question+' '+discardWords().keys;return;}
+          prompt.hidden=!directTarget||Boolean(directDraft);prompt.textContent=directTarget?(directTarget.locked?directWords().locked:directWords().field):'';return;
+        }
         prompt.hidden=!hit&&!directStale;prompt.textContent=directStale?directWords().stale:hit?(directEnabled()?directWords().bind+' · ':'E · '+editText().aim+': ')+hit.item.box.object.name:'';return;
       }
       showAim(null);
@@ -447,7 +483,7 @@
       paintInteractionHint();
       labelTime=-Infinity;if(repaint!==false)schedule();
     }
-    function pauseImmersive(){if(directDraft)clearDirect(false);stop();objectsOpen=false;immersiveRequest++;immersivePaused=true;showControls=fullscreen()&&!interactionSlotId;releaseMouse();syncImmersive(false);}
+    function pauseImmersive(){stop();objectsOpen=false;immersiveRequest++;immersivePaused=true;showControls=fullscreen()&&!interactionSlotId;releaseMouse();syncImmersive(false);paintDirect();}
     function openMenu(focus){
       pauseImmersive();showControls=true;syncImmersive();
       if(focus){const button=root.querySelector('[data-walk-action="resume"]');if(button)button.focus({preventScroll:true});}
@@ -684,7 +720,7 @@
         '<button type="button" data-walk-action="map" aria-pressed="'+mapVisible+'">'+esc(t.toggleMap)+'</button><button type="button" data-walk-action="details" aria-expanded="'+details+'">'+esc(t.info)+'</button></fieldset>'+
         '<fieldset><legend>'+esc(t.navigationSettings)+'</legend><label>'+esc(t.search)+'<input type="search" data-walk-search maxlength="80" value="'+esc(search)+'"></label><button type="button" data-walk-action="find">'+esc(t.find)+'</button><button type="button" data-walk-action="reset">'+esc(t.reset)+'</button>'+
         (options.refreshSnapshot?'<button type="button" data-walk-action="refresh-window">'+esc(t.refresh)+'</button>':'')+'</fieldset></div>'+
-        '<footer class="wh-walk-menu-actions"><button type="button" data-walk-action="resume">'+esc(t.resume)+'</button><button type="button" data-walk-action="exit-fullscreen">'+esc(options.standalone?t.closeWindow:t.exitFullscreen)+'</button><p>'+esc(t.menuHint)+'</p><p role="status" data-walk-immersive-message></p></footer></section>'+
+        '<footer class="wh-walk-menu-actions"><div class="wh-walk-discard" data-walk-discard role="group" hidden></div><button type="button" data-walk-action="resume">'+esc(t.resume)+'</button><button type="button" data-walk-action="exit-fullscreen">'+esc(options.standalone?t.closeWindow:t.exitFullscreen)+'</button><p>'+esc(t.menuHint)+'</p><p role="status" data-walk-immersive-message></p></footer></section>'+
         '<div class="wh-walk-body"><div class="wh-walk-viewport"><div class="wh-walk-labels"></div><div class="wh-walk-handles" data-walk-handles hidden></div><div class="wh-walk-direct-status" data-walk-direct-status hidden></div><div class="wh-walk-map-wrap"><small>'+esc(t.map)+'</small></div><span class="wh-walk-crosshair" aria-hidden="true">+</span><span class="wh-walk-interact-hint" data-walk-interact-hint hidden></span></div><aside class="wh-walk-inspector wh-card"></aside></div></div>'+
         '<div class="wh-walk-immersive-controls" role="group" aria-label="'+esc(t.controls)+'"><span data-walk-work-label></span><span class="wh-walk-front-key" data-walk-front-key hidden></span><button type="button" data-walk-action="controls" aria-expanded="false">'+esc(t.menu)+'</button><small>'+esc(motion.mode==='fly'?t.flightHint:t.walkHint)+'</small><small data-walk-hud-position></small></div>'+
         '<div class="wh-walk-footer"><p id="warehouse-walk-hint">'+esc(motion.mode==='fly'?t.flightHint:t.walkHint)+' · '+esc(t.menuHint)+'</p><output data-walk-position></output><p class="wh-legend">'+esc(colorMode==='demand'?t.demandLegend:colorMode==='usage'?[t.unassigned,t.picking,t.reserve].join(' · '):[t.matched,t.coded,t.empty].join(' · '))+'</p><p role="status" aria-live="polite" data-walk-message></p></div>'+
@@ -704,21 +740,22 @@
       if(event.target.hasAttribute('data-walk-speed-range'))changeSpeed(event.target.value);
       if(event.target.hasAttribute('data-walk-speed')&&Number(event.target.value)>=.1&&Number(event.target.value)<=20)changeSpeed(event.target.value,true);
       if(event.target.hasAttribute('data-walk-fov')&&!savingFov)previewFov(event.target.value);});
+    async function changeWorkMode(value){
+      if(switchingWorkMode)return;if(requestDirectDiscard(()=>changeWorkMode(value))){syncImmersive();return;}pauseImmersive();switchingWorkMode=true;syncImmersive();
+      try{if(options.setWorkMode)await options.setWorkMode(value);setWorkMode(value);}
+      catch(_){tell(text().windowFailed);}finally{switchingWorkMode=false;syncImmersive();}
+    }
     root.addEventListener('change',async function(event){
-      if(event.target.hasAttribute('data-walk-work-mode')){
-        if(switchingWorkMode)return;const value=event.target.value;pauseImmersive();switchingWorkMode=true;syncImmersive();
-        try{if(options.setWorkMode)await options.setWorkMode(value);setWorkMode(value);}
-        catch(_){tell(text().windowFailed);}finally{switchingWorkMode=false;syncImmersive();}return;
-      }
+      if(event.target.hasAttribute('data-walk-work-mode')){await changeWorkMode(event.target.value);return;}
       if(event.target.hasAttribute('data-walk-interaction-article')){interactionArticleId=event.target.value;renderInteraction('[data-walk-interaction-article]');return;}
       if(event.target.hasAttribute('data-walk-fov')){await saveFov(event.target.value);return;}
       if(event.target.hasAttribute('data-walk-mode')){changeMode(event.target.value);return;}
       if(event.target.hasAttribute('data-walk-eye')){const value=Number(event.target.value)/1000;
         if(value>=1&&value<=2.2&&motion.mode==='walk'&&walk.canOccupy(scene,camera,motion.feet,value)){standingEye=value;camera.eye=motion.feet+value;motion.crouched=false;crouchToggle=false;syncMotionControls();schedule();}else {event.target.value=Math.round(standingEye*1000);tell(text().blocked);}}
       if(event.target.hasAttribute('data-walk-speed')||event.target.hasAttribute('data-walk-speed-range')){changeSpeed(event.target.value);syncMotionControls();}
-      if(event.target.hasAttribute('data-walk-colors')){colorMode=['assignments','usage','demand'].includes(event.target.value)?event.target.value:'assignments';render();}
+      if(event.target.hasAttribute('data-walk-colors')){const value=event.target.value;const apply=()=>{colorMode=['assignments','usage','demand'].includes(value)?value:'assignments';render();};if(requestDirectDiscard(apply))event.target.value=colorMode;else apply();}
     });
-    root.addEventListener('click',async function(event){
+    root.addEventListener('click',async function handleWalkClick(event){
       const object=event.target.closest('[data-walk-object]');if(object&&objectsOpen){openEdit({objectId:object.dataset.walkObject});return;}
       if(interactionSlotId&&!event.target.closest('.wh-walk-interaction'))return;
       const tab=event.target.closest('[data-walk-inspect-tab]');
@@ -727,6 +764,9 @@
       const article=event.target.closest('[data-walk-article]');if(article&&options.openArticle){stop();options.openArticle(article.dataset.walkArticle);return;}
       const button=event.target.closest('[data-walk-action]');if(!button)return;
       const action=button.dataset.walkAction;
+      if(action==='discard-confirm'){confirmDirectDiscard();return;}
+      if(action==='discard-keep'){keepDirectDraft();return;}
+      if(['refresh-window','exit-fullscreen','setup','fullscreen','windowed','coverage'].includes(action)&&requestDirectDiscard(()=>handleWalkClick(event)))return;
       if(action==='interaction-return'){closeInteraction(false);await resumeMovement();}
       else if(action==='interaction-close'){closeInteraction(false);openMenu(true);}
       else if(action==='find')find();else if(action==='go')standAtSelection();else if(action==='reset'){stop();resetPosition();syncMotionControls();}
@@ -770,7 +810,8 @@
         trapMenuFocus(event);return;
       }
       if(document.pointerLockElement!==canvas||event.target!==canvas||event.ctrlKey||event.altKey||event.metaKey||!renderer||!renderer.available()||immersivePaused||!fullscreen()&&!inlineFallback)return;
-      if(directDraft&&!directBusy&&!directStale){
+      if(discardDirectAction&&(event.code==='Enter'||event.code==='NumpadEnter')){event.preventDefault();if(!event.repeat)confirmDirectDiscard();return;}
+      if(directDraft&&!discardDirectAction&&!directBusy&&!directStale){
         if(event.code==='Enter'||event.code==='NumpadEnter'){event.preventDefault();if(!event.repeat)saveDirect();return;}
         if(/^[0-9.,-]$/.test(event.key)||event.code==='Backspace'||event.code==='Delete'){
           event.preventDefault();const draft=directDraft;
@@ -803,14 +844,14 @@
     canvas.addEventListener('blur',stop);
     canvas.addEventListener('contextmenu',event=>{if(visible()&&workMode==='editor'&&fullscreen())event.preventDefault();});
     canvas.addEventListener('wheel',function(event){
-      if(document.pointerLockElement!==canvas||immersivePaused||!boundObjectId||!directDraft||directBusy||directStale||event.ctrlKey||event.metaKey||event.altKey||!event.deltaY)return;
+      if(document.pointerLockElement!==canvas||immersivePaused||!boundObjectId||!directDraft||discardDirectAction||directBusy||directStale||event.ctrlKey||event.metaKey||event.altKey||!event.deltaY)return;
       event.preventDefault();const step=event.shiftKey?1:directDraft.field.kind.startsWith('location-')?10:50;
       const value=(Number.isFinite(directDraft.value)?directDraft.value:directDraft.field.value)+(event.deltaY<0?step:-step);
       directDraft.input=String(value);directDraft.typing=false;queueDirect(value);
     },{passive:false});
     canvas.addEventListener('pointerdown',function(event){
       if(document.pointerLockElement===canvas&&!immersivePaused&&visible()&&workMode==='editor'&&directEnabled()){
-        if(event.button===2){event.preventDefault();clearDirect(true);paintDirect();paintInteractionHint();return;}
+        if(event.button===2){event.preventDefault();releaseDirect();return;}
         if(event.button===0){event.preventDefault();directClick();schedule();return;}
       }
       if(document.pointerLockElement===canvas&&!immersivePaused&&visible()&&workMode==='analysis'&&event.button===0){event.preventDefault();interact();return;}

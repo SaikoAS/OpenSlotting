@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Require explicit confirmation before discarding a changed direct-walk preview. Support left click as well as Enter to apply, retain drafts across pause/focus loss, and offer captured-mouse confirmation plus paused-menu Discard/Keep controls before release or editing-context changes.
+
 - Show gold access-side lines and outward arrows for all racks in the warehouse walk, including rotated racks and dimension previews. Reuse shared editor geometry and keep these visual markers out of navigation bounds, collision/picking indexes and aim tints.
 
 - Add captured-mouse direct editing in the warehouse walk: left click binds an object and targets its dimension/location controls; wheel, fine steps and numeric entry preview changes, Enter saves through the existing validated path, and right click discards/releases. Preserve selection, location IDs/codes, occlusion, undo, local-only persistence and stale-write guards.

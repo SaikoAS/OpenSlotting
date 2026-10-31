@@ -745,7 +745,7 @@ test('movement is focus-scoped, stops on blur/page leave, and camera frames do n
 
 async function directHarness(settings={}){
   const value=settings.value||layout(),saved=[];
-  const h=harness(value,true,true,{standalone:true,editorAvailable:true,openEditor(){throw Error('Direct interaction must not open the modal');},
+  const h=harness(value,true,true,{standalone:true,editorAvailable:true,openEditor:settings.openEditor||function(){throw Error('Direct interaction must not open the modal');},
     saveLayout:async(next,base)=>{saved.push({next:structuredClone(next),base});const workspace=h.workspace;if(settings.save)await settings.save(next,base);if(h.workspace===workspace)h.value=structuredClone(next);}});
   h.saved=saved;let time=100;
   h.frame=()=>h.tick(time+=16);
@@ -786,18 +786,20 @@ test('direct mouse-look editing previews coalesced geometry, accepts numbers, sa
   assert.equal(h.aimedObject,before.objects[0].id);assert.deepEqual(h.value.locations.map(s=>[s.id,s.code]),before.locations.map(s=>[s.id,s.code]));
   assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Change saved/);
 });
-test('right release discards previews, pause clears drafts and locked objects never acquire an editable draft',async()=>{
+test('right release requires confirmation, pause retains previews and locked objects never acquire an editable draft',async()=>{
   const h=await directHarness(),before=structuredClone(h.value);h.choose('bay-width');h.wheel(-100);
-  h.click(2);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);
+  h.click(2);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);assert.equal(h.nodes.get('[data-walk-direct-status]').classList.contains('is-confirming'),true);
+  assert.equal(h.document.pointerLockElement,h.canvas);h.click(0);assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);assert.deepEqual(h.value,before);
   h.aim(before.locations[0].id);h.click(0);h.choose('bay-width');h.wheel(-100);h.key('Escape');await h.action('resume');h.frame();
   assert.equal(h.document.pointerLockElement,h.canvas);assert.equal(h.aimedObject,before.objects[0].id);
-  h.key('Enter');await settle();assert.equal(h.saved.length,0);
+  h.key('Enter');await settle();assert.equal(h.saved.length,1);
   const locked=layout();locked.objects[0].locked=true;const l=await directHarness({value:locked});l.choose('bay-width');l.wheel(-100);l.key('Enter');await settle();assert.equal(l.saved.length,0);
 });
+
 test('invalid placement and stale snapshot cannot save, and failed saves retain an editable draft without releasing mouse look',async()=>{
   const h=await directHarness();h.choose('location-width');h.wheel(-100);h.key('Enter');await settle();
   assert.equal(h.saved.length,0);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Invalid value/);
-  h.click(2);h.aim(h.value.locations[0].id);h.click(0);h.choose('bay-width');h.wheel(-100);
+  h.click(2);h.click(0);h.aim(h.value.locations[0].id);h.click(0);h.choose('bay-width');h.wheel(-100);
   h.value=structuredClone(h.value);h.value.objects[0].name='Changed elsewhere';h.key('Enter');h.frame();await settle();
   assert.equal(h.saved.length,0);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Snapshot changed/);
   const failed=await directHarness({save:async()=>{throw Error('quota');}}),old=structuredClone(failed.value);
@@ -873,4 +875,27 @@ test('gold access-side paint is rendered without affecting bounds, collision gri
   const mesh=renderer.buildMeshes(marked,walk);assert.equal(mesh.routes.length,4*6*6);
   for(let i=0;i<mesh.routes.length;i+=6){assert.ok(Math.abs(mesh.routes[i+3]-1)<1e-6);assert.ok(Math.abs(mesh.routes[i+4]-215/255)<1e-6);assert.ok(Math.abs(mesh.routes[i+5]-138/255)<1e-6);}
   assert.equal(renderer.buildAimMeshes(marked.entries.filter(i=>i.box.kind==='orientation'),walk).lines.length,0);
+});
+
+test('discard confirmation can be canceled without changing the draft, and Enter confirms without saving',async()=>{
+  const h=await directHarness(),before=structuredClone(h.value);const f=h.choose('bay-width');h.wheel(-100);h.click(2);
+  assert.match(h.nodes.get('[data-walk-interact-hint]').textContent,/Discard the open preview/);
+  h.wheel(-100);h.number(9999);h.click(2);assert.equal(h.nodes.get('[data-walk-direct-status]').classList.contains('is-confirming'),false);
+  assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,new RegExp((f.value+50)+' mm'));
+  h.click(2);h.event({code:'Enter',key:'Enter',repeat:true});assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,false);
+  h.key('Enter');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);assert.equal(h.document.pointerLockElement,h.canvas);
+});
+test('left click applies the active preview once, with the same validation and capture as Enter',async()=>{
+  let finish;const gate=new Promise(resolve=>finish=resolve),h=await directHarness({save:()=>gate}),f=h.choose('bay-width');
+  h.wheel(-100);h.click(0);h.click(0);assert.equal(h.saved.length,1);assert.equal(h.document.pointerLockElement,h.canvas);
+  finish();await settle();h.frame();assert.equal(h.value.objects[0].bays[0].width,f.value+50);
+  h.choose('location-width');h.wheel(-100);h.click(0);assert.equal(h.saved.length,1);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Invalid value/);
+});
+test('paused menus keep drafts and require explicit discard before changing work mode or opening the inspector',async()=>{
+  const h=await directHarness(),f=h.choose('bay-width');h.wheel(-100);h.key('Escape');h.frame();
+  assert.equal(h.document.pointerLockElement,null);await h.change('work-mode','analysis');assert.equal(h.nodes.get('[data-walk-discard]').hidden,false);
+  await h.action('discard-keep');await h.action('resume');h.frame();assert.equal(h.nodes.get('[data-walk-work-mode]').value,'editor');
+  assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,new RegExp((f.value+50)+' mm'));
+  h.key('Escape');await h.change('work-mode','analysis');await h.action('discard-confirm');await settle();h.frame();assert.equal(h.nodes.get('[data-walk-work-mode]').value,'analysis');assert.equal(h.saved.length,0);
+  let opened=0;const inspector=await directHarness({openEditor:()=>opened++});inspector.choose('bay-width');inspector.wheel(-100);inspector.key('Escape');await inspector.action('edit-layout');assert.equal(opened,0);await inspector.action('discard-keep');assert.equal(opened,0);await inspector.action('edit-layout');await inspector.action('discard-confirm');assert.equal(opened,1);
 });
