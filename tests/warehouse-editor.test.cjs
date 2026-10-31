@@ -84,6 +84,19 @@ test('walk inspector shares edit validation without allocating or painting anoth
   assert.equal(h.rendered.length,0);assert.equal(h.rendererCreates,0);assert.match(h.root.innerHTML,/data-action="undo"/);
 });
 
+test('recipe catalog exposes every supported recipe once and its public insertion keeps the existing save/wizard boundary',async()=>{
+  const h=harness(fresh(),[],model,false,true,{inspectorOnly:true});
+  const recipes=h.api.recipes().flatMap(group=>group.recipes);
+  assert.deepEqual(Array.from(recipes,recipe=>recipe.id).sort(),[...model.RECIPE_TYPES].sort());
+  assert.equal(new Set(recipes.map(recipe=>recipe.id)).size,recipes.length);
+  assert.ok(recipes.some(recipe=>recipe.id==='wall'&&recipe.name==='Wall'));
+  await h.api.addRecipe('wall');assert.equal(h.saves.length,1);assert.equal(h.layout.objects.length,2);
+  await h.api.addRecipe('pallet-rack');assert.equal(h.api.hasDraft(),true);assert.equal(h.saves.length,1);
+  await h.click({wizardAction:'cancel'});assert.equal(h.api.hasDraft(),false);assert.equal(h.layout.objects.length,2);
+  await assert.rejects(h.api.addRecipe('invalid-recipe'),/Unsupported recipe/);assert.equal(h.saves.length,1);
+  assert.equal(h.rendererCreates,0);
+});
+
 test('external walk edits reject stale layout bases and locked changes, save atomically and enter editor undo history',async()=>{
   const h=harness(fresh()),base=JSON.stringify(h.layout),next=structuredClone(h.layout);next.objects[0].x+=100;
   await assert.rejects(h.api.applyExternal(next,'stale'),/edit-conflict/);assert.equal(h.saves.length,0);

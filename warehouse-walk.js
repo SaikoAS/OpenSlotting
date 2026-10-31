@@ -72,13 +72,40 @@
     let active=false,disposed=false,request=null,lastTime=0,drag=null,labels=[],labelTime=-Infinity;
     let interactionSlotId=null,interactionArticleId=null,interactionTab='overview';
     let workMode='analysis',switchingWorkMode=false;
+    let objectsOpen=false,objectSearch='',selectedObjectId=null;
     function canEdit(){return options.editorAvailable===true&&Boolean(options.openEditor);}
     function editText(){return options.getLanguage()==='de'
-      ?{mode:'Rundgang-Modus',analysis:'Auswertung',editor:'Editor',open:'Lager bearbeiten / Objekt hinzufügen',aim:'Bearbeiten',noTarget:'Kein erreichbares Lagerobjekt im Fadenkreuz (max. 6 m).'}
-      :{mode:'Walk mode',analysis:'Evaluation',editor:'Editor',open:'Edit warehouse / add object',aim:'Edit',noTarget:'No reachable warehouse object under the crosshair (max. 6 m).'};}
+      ?{mode:'Rundgang-Modus',analysis:'Auswertung',editor:'Editor',open:'Objekt bearbeiten',recipes:'Rezepte (B)',objects:'Objekte auswählen',list:'Objekte',search:'Objekt suchen',back:'Zurück zum Menü',resume:'Weiter mit Mausblick',empty:'Keine passenden Objekte.',aim:'Bearbeiten',noTarget:'Kein erreichbares Lagerobjekt im Fadenkreuz (max. 6 m).'}
+      :{mode:'Walk mode',analysis:'Evaluation',editor:'Editor',open:'Edit object',recipes:'Recipes (B)',objects:'Select objects',list:'Objects',search:'Search objects',back:'Back to menu',resume:'Resume mouse look',empty:'No matching objects.',aim:'Edit',noTarget:'No reachable warehouse object under the crosshair (max. 6 m).'};}
     function setWorkMode(value){workMode=value==='editor'&&canEdit()?'editor':'analysis';pauseImmersive();
       if(info&&!info.layout.objects.length)tell(workMode==='editor'?'':text().noLayout);syncImmersive();}
-    function openEdit(scope){if(workMode==='editor'&&canEdit()){pauseImmersive();options.openEditor(scope);}}
+    function markObject(id){
+      selectedObjectId=info&&info.layout.objects.some(object=>object.id===id)?id:null;
+      root.querySelectorAll('[data-walk-object]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.walkObject===selectedObjectId)));
+    }
+    function openEdit(scope){if(workMode==='editor'&&canEdit()){markObject(scope&&scope.objectId||selectedObjectId);pauseImmersive();options.openEditor(scope||(selectedObjectId?{objectId:selectedObjectId}:null));}}
+    function openRecipes(){if(workMode==='editor'&&canEdit()&&options.openRecipes){pauseImmersive();options.openRecipes();}}
+    function renderObjects(){
+      const items=root.querySelector('[data-walk-object-items]');if(!items||!info)return;
+      const query=objectSearch.trim().toLocaleLowerCase(options.getLanguage()),objects=info.layout.objects.filter(object=>!query||(object.name+' '+object.type).toLocaleLowerCase(options.getLanguage()).includes(query));
+      const types=options.getLanguage()==='de'?{'pallet-rack':'Palettenregal','shelf-rack':'Fachbodenregal',wall:'Wand',gate:'Tor',door:'Tür','emergency-exit':'Notausgang',aisle:'Gang / Straße','goods-in':'Wareneingang','goods-out':'Warenausgang'}
+        :{'pallet-rack':'Pallet rack','shelf-rack':'Shelf rack',wall:'Wall',gate:'Gate',door:'Door','emergency-exit':'Emergency exit',aisle:'Aisle / road','goods-in':'Goods in','goods-out':'Goods out'};
+      items.innerHTML=objects.length?objects.map(object=>'<button type="button" data-walk-object="'+esc(object.id)+'" aria-pressed="'+(object.id===selectedObjectId)+'" title="'+esc(object.name)+'"><strong>'+esc(object.name)+'</strong><small>'+esc(types[object.type]||object.name)+(object.locked?' · 🔒':'')+'</small></button>').join(''):'<p>'+esc(editText().empty)+'</p>';
+      const count=root.querySelector('[data-walk-object-count]');if(count)count.textContent=objects.length+' / '+info.layout.objects.length;
+    }
+    function openObjects(){
+      if(workMode!=='editor'||!canEdit())return;
+      pauseImmersive();objectsOpen=true;showControls=false;syncImmersive();
+      const search=root.querySelector('[data-walk-object-search]');if(search)search.focus({preventScroll:true});
+    }
+    function trapObjectKeys(event){
+      if(event.key==='Escape'){event.preventDefault();openMenu(true);return;}
+      if(event.key!=='Tab')return;
+      const panel=root.querySelector('[data-walk-objects]'),controls=Array.from(panel.querySelectorAll('button,input,[tabindex]'))
+        .filter(control=>!control.disabled&&!control.hidden&&(!control.getClientRects||control.getClientRects().length));
+      const first=controls[0],last=controls[controls.length-1];
+      if(first&&(!controls.includes(document.activeElement)||event.shiftKey&&document.activeElement===first||!event.shiftKey&&document.activeElement===last)){event.preventDefault();(event.shiftKey?last:first).focus();}
+    }
     function editTarget(){
       if(!visible()||!scene||!renderer||!renderer.available())return null;
       return walk.raycast(scene,origin(),walk.ray(camera,0,0,canvas.clientWidth/Math.max(1,canvas.clientHeight)),false,6,true);
@@ -202,6 +229,7 @@
     }
     async function resumeMovement(){
       if(switchingWorkMode)return;
+      objectsOpen=false;
       if(!immersivePaused){pauseImmersive();return;}
       if(!fullscreen()&&!inlineFallback)return;
       await mouseLook();
@@ -237,15 +265,23 @@
       root.classList.toggle('is-walk-paused',immersivePaused);root.classList.toggle('walk-controls-open',showControls);
       root.classList.toggle('is-walk-windowed',inlineFallback);root.classList.toggle('is-walk-window',Boolean(options.standalone));
       root.classList.toggle('walk-map-hidden',!mapVisible);
+      root.classList.toggle('walk-objects-open',objectsOpen);
       const menu=root.querySelector('.wh-walk-menu');
       if(menu){
-        menu.hidden=fullscreen()&&(!showControls||Boolean(interactionSlotId));
+        menu.hidden=objectsOpen||fullscreen()&&(!showControls||Boolean(interactionSlotId));
         menu.setAttribute('role',fullscreen()?'dialog':'region');
         menu.setAttribute('aria-modal',String(fullscreen()&&showControls&&!interactionSlotId));
         const heading=root.querySelector('[data-walk-menu-title]');if(heading)heading.textContent=fullscreen()?text().menu:text().setup;
       }
-      const body=root.querySelector('.wh-walk-body');if(body)body.inert=fullscreen()&&immersivePaused;
-      const hud=root.querySelector('.wh-walk-immersive-controls');if(hud)hud.inert=fullscreen()&&showControls;
+      const body=root.querySelector('.wh-walk-body');if(body)body.inert=objectsOpen||fullscreen()&&immersivePaused;
+      const hud=root.querySelector('.wh-walk-immersive-controls');if(hud)hud.inert=objectsOpen||fullscreen()&&showControls;
+      const header=root.querySelector('.wh-header');if(header)header.inert=objectsOpen;
+      const objectPanel=root.querySelector('[data-walk-objects]');if(objectPanel){
+        objectPanel.hidden=workMode!=='editor'||!canEdit()||!fullscreen()&&!inlineFallback&&!objectsOpen;
+        objectPanel.inert=!objectsOpen;objectPanel.setAttribute('role',objectsOpen?'dialog':'region');objectPanel.setAttribute('aria-modal',String(objectsOpen));
+      }
+      root.querySelectorAll('[data-walk-object-controls]').forEach(control=>{control.hidden=!objectsOpen;});
+      const objectHint=root.querySelector('[data-walk-object-hint]');if(objectHint)objectHint.hidden=objectsOpen;
       const hint=root.querySelector('#warehouse-walk-hint');if(hint)hint.textContent=fullscreen()||inlineFallback
         ?(motion.mode==='fly'?text().flightHint:text().walkHint)+' · '+text().menuHint:options.startWindow?text().windowIntro:text().setupHint;
       const start=root.querySelector('[data-walk-action="fullscreen"]');
@@ -255,6 +291,7 @@
       const resume=root.querySelector('[data-walk-action="resume"]');if(resume)resume.textContent=locked||fullscreen()&&!immersivePaused?text().pause:text().resume;
       const role=root.querySelector('[data-walk-work-mode]');if(role){role.value=workMode;role.disabled=switchingWorkMode||savingFov;}
       const edit=root.querySelector('[data-walk-action="edit-layout"]');if(edit)edit.hidden=workMode!=='editor'||!canEdit();
+      ['recipes','objects'].forEach(action=>{const button=root.querySelector('[data-walk-action="'+action+'"]');if(button)button.hidden=workMode!=='editor'||!canEdit();});
       const roleLabel=root.querySelector('[data-walk-work-label]');if(roleLabel)roleLabel.textContent=editText()[workMode];
       const controls=root.querySelector('[data-walk-action="controls"]');if(controls)controls.setAttribute('aria-expanded',String(showControls));
       const mapToggle=root.querySelector('[data-walk-action="map"]');if(mapToggle)mapToggle.setAttribute('aria-pressed',String(mapVisible));
@@ -262,7 +299,7 @@
       paintInteractionHint();
       labelTime=-Infinity;if(repaint!==false)schedule();
     }
-    function pauseImmersive(){stop();immersiveRequest++;immersivePaused=true;showControls=fullscreen()&&!interactionSlotId;releaseMouse();syncImmersive(false);}
+    function pauseImmersive(){stop();objectsOpen=false;immersiveRequest++;immersivePaused=true;showControls=fullscreen()&&!interactionSlotId;releaseMouse();syncImmersive(false);}
     function openMenu(focus){
       pauseImmersive();showControls=true;syncImmersive();
       if(focus){const button=root.querySelector('[data-walk-action="resume"]');if(button)button.focus({preventScroll:true});}
@@ -477,14 +514,16 @@
       if(changed){workspaceRevision++;leaveImmersive();fallbackOffered=false;mapVisible=true;selectedId=null;search='';message='';camera.eye=standingEye=1.7;motion=walk.createMotion();walkSpeed=speed=1.4;flySpeed=5;crouchToggle=false;colorMode='assignments';details=true;}
       if(changed&&options.initialView&&['assignments','usage','demand'].includes(options.initialView.colorMode))colorMode=options.initialView.colorMode;
       if(changed)workMode=canEdit()&&options.initialView&&options.initialView.workMode==='editor'?'editor':'analysis';
+      if(changed){selectedObjectId=null;objectSearch='';objectsOpen=false;}
       refresh();if(changed||motion.mode==='walk'&&!walk.canOccupy(scene,camera,motion.feet,camera.eye-motion.feet))resetPosition();const t=text();
+      if(!info.layout.objects.some(object=>object.id===selectedObjectId))selectedObjectId=null;
       if(changed&&options.initialView)applyInitialView(options.initialView);
       if(options.standalone)showControls=immersivePaused&&!interactionSlotId;
       root.classList.add('wh-walk-root');
       root.innerHTML='<div class="wh-header"><div><p class="wh-eyebrow">OpenSlotting · 3D</p><h3>'+esc(t.title)+'</h3><p>'+esc(options.startWindow?t.windowIntro:t.setupHint)+'</p></div>'+
         '<div class="wh-walk-launch"><button type="button" data-walk-action="fullscreen">'+esc(t.start)+'</button><button type="button" data-walk-action="windowed" hidden>'+esc(options.startWindow?t.startHere:t.windowed)+'</button><button type="button" data-walk-action="setup">'+esc(t.backToSetup)+'</button></div></div>'+
         '<div class="wh-walk-main"><section class="wh-walk-menu" role="region" aria-labelledby="warehouse-walk-menu-title" tabindex="-1"><header class="wh-walk-menu-heading"><h4 id="warehouse-walk-menu-title" data-walk-menu-title>'+esc(t.setup)+'</h4></header>'+
-        '<div class="wh-walk-toolbar">'+(canEdit()?'<fieldset class="wh-walk-work-mode"><legend>'+esc(editText().mode)+'</legend><select data-walk-work-mode><option value="analysis">'+esc(editText().analysis)+'</option><option value="editor">'+esc(editText().editor)+'</option></select><button type="button" data-walk-action="edit-layout" hidden>'+esc(editText().open)+'</button></fieldset>':'')+'<fieldset><legend>'+esc(t.motionSettings)+'</legend>'+
+        '<div class="wh-walk-toolbar">'+(canEdit()?'<fieldset class="wh-walk-work-mode"><legend>'+esc(editText().mode)+'</legend><select data-walk-work-mode><option value="analysis">'+esc(editText().analysis)+'</option><option value="editor">'+esc(editText().editor)+'</option></select><button type="button" data-walk-action="recipes" hidden>'+esc(editText().recipes)+'</button><button type="button" data-walk-action="objects" hidden>'+esc(editText().objects)+'</button><button type="button" data-walk-action="edit-layout" hidden>'+esc(editText().open)+'</button></fieldset>':'')+'<fieldset><legend>'+esc(t.motionSettings)+'</legend>'+
         '<label>'+esc(t.mode)+'<select data-walk-mode><option value="walk"'+(motion.mode==='walk'?' selected':'')+'>'+esc(t.walk)+'</option><option value="fly"'+(motion.mode==='fly'?' selected':'')+'>'+esc(t.fly)+'</option></select></label>'+
         '<label class="wh-walk-speed">'+esc(t.speed)+'<span><input type="range" data-walk-speed-range aria-label="'+esc(t.speed)+'" min="0.1" max="20" step="0.1" value="'+speed+'"><input type="number" data-walk-speed aria-label="'+esc(t.speed)+'" min="0.1" max="20" step="0.1" value="'+speed+'"></span><output data-walk-speed-value></output></label>'+
         '<label>'+esc(t.eye)+'<input type="number" data-walk-eye min="1000" max="2200" step="50" value="'+Math.round(standingEye*1000)+'"></label>'+
@@ -499,16 +538,18 @@
         '<div class="wh-walk-immersive-controls" role="group" aria-label="'+esc(t.controls)+'"><span data-walk-work-label></span><button type="button" data-walk-action="controls" aria-expanded="false">'+esc(t.menu)+'</button><small>'+esc(motion.mode==='fly'?t.flightHint:t.walkHint)+'</small><small data-walk-hud-position></small></div>'+
         '<div class="wh-walk-footer"><p id="warehouse-walk-hint">'+esc(motion.mode==='fly'?t.flightHint:t.walkHint)+' · '+esc(t.menuHint)+'</p><output data-walk-position></output><p class="wh-legend">'+esc(colorMode==='demand'?t.demandLegend:colorMode==='usage'?[t.unassigned,t.picking,t.reserve].join(' · '):[t.matched,t.coded,t.empty].join(' · '))+'</p><p role="status" aria-live="polite" data-walk-message></p></div>'+
         '<div class="wh-walk-interaction" role="dialog" aria-modal="true" aria-labelledby="warehouse-walk-interaction-title" tabindex="-1" hidden></div>';
+      root.insertAdjacentHTML('beforeend','<section class="wh-walk-object-list" data-walk-objects aria-label="'+esc(editText().list)+'" hidden><header><strong>'+esc(editText().list)+'</strong><small data-walk-object-count></small></header><label data-walk-object-controls hidden>'+esc(editText().search)+'<input type="search" data-walk-object-search maxlength="120" value="'+esc(objectSearch)+'"></label><div class="wh-walk-object-items" data-walk-object-items></div><small data-walk-object-hint>'+esc(options.getLanguage()==='de'?'B: Rezepte'+String.fromCharCode(10)+'Tab: Objekte im Men\u00fc ausw\u00e4hlen':'B: Recipes'+String.fromCharCode(10)+'Tab: select objects in menu')+'</small><footer data-walk-object-controls hidden><button type="button" data-walk-action="resume">'+esc(editText().resume)+'</button><button type="button" data-walk-action="objects-close">'+esc(editText().back)+'</button></footer></section>');
       root.querySelector('.wh-walk-viewport').prepend(canvas);root.querySelector('.wh-walk-map-wrap').appendChild(map);
       canvas.setAttribute('aria-label',t.view);canvas.setAttribute('aria-describedby','warehouse-walk-hint');map.setAttribute('aria-label',t.map);map.setAttribute('role','img');
       if(!renderer||!renderer.available())message=t.unavailable;else if((!info.layout.objects.length&&workMode!=='editor'))message=t.noLayout;
       else if(!options.startWindow&&!root.requestFullscreen)message=t.fullscreenFailed;
       fallbackOffered=fallbackOffered||!options.startWindow&&!root.requestFullscreen;
       const fullButton=root.querySelector('[data-walk-action="fullscreen"]');if(fullButton)fullButton.disabled=!root.requestFullscreen||!renderer||!renderer.available();
-      updatePanel();syncFovControls();syncMotionControls();active=options.isVisible();renderInteraction();syncImmersive();paint(0);schedule();
+      renderObjects();updatePanel();syncFovControls();syncMotionControls();active=options.isVisible();renderInteraction();syncImmersive();paint(0);schedule();
     }
     function find(){const slot=info.slots.find(s=>search.trim()&&s.code===search.trim());if(!slot){tell(text().notFound);return;}select(slot.slotId);}
     root.addEventListener('input',event=>{if(event.target.hasAttribute('data-walk-search'))search=event.target.value;
+      if(event.target.hasAttribute('data-walk-object-search')){objectSearch=event.target.value;renderObjects();}
       if(event.target.hasAttribute('data-walk-speed-range'))changeSpeed(event.target.value);
       if(event.target.hasAttribute('data-walk-speed')&&Number(event.target.value)>=.1&&Number(event.target.value)<=20)changeSpeed(event.target.value,true);
       if(event.target.hasAttribute('data-walk-fov')&&!savingFov)previewFov(event.target.value);});
@@ -527,6 +568,7 @@
       if(event.target.hasAttribute('data-walk-colors')){colorMode=['assignments','usage','demand'].includes(event.target.value)?event.target.value:'assignments';render();}
     });
     root.addEventListener('click',async function(event){
+      const object=event.target.closest('[data-walk-object]');if(object&&objectsOpen){openEdit({objectId:object.dataset.walkObject});return;}
       if(interactionSlotId&&!event.target.closest('.wh-walk-interaction'))return;
       const tab=event.target.closest('[data-walk-inspect-tab]');
       if(tab&&interactionSlotId){interactionTab=['overview','master','periods'].includes(tab.dataset.walkInspectTab)?tab.dataset.walkInspectTab:'overview';renderInteraction('[data-walk-inspect-tab="'+interactionTab+'"]');return;}
@@ -549,6 +591,9 @@
         try{await options.refreshSnapshot();tell(text().refreshed);}catch(_){tell(text().windowFailed);}}
       else if(action==='fullscreen')await startWalk();
       else if(action==='edit-layout')openEdit(null);
+      else if(action==='recipes')openRecipes();
+      else if(action==='objects')openObjects();
+      else if(action==='objects-close')openMenu(true);
       else if(action==='windowed'&&!savingFov&&fallbackOffered&&renderer&&renderer.available()&&(info.layout.objects.length||workMode==='editor')){
         inlineFallback=true;immersivePaused=true;await resumeMovement();
       }
@@ -563,6 +608,9 @@
       if(event.key==='Enter'&&event.target.hasAttribute('data-walk-search')){event.preventDefault();find();return;}
       if(event.key==='Escape'){openMenu(fullscreen());tell(text().paused);return;}
       const editable=event.target&&event.target.hasAttribute&&['data-walk-search','data-walk-speed','data-walk-speed-range','data-walk-fov','data-walk-mode','data-walk-eye','data-walk-colors','data-walk-work-mode'].some(key=>event.target.hasAttribute(key));
+      const typing=editable||event.target&&(['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName)||event.target.isContentEditable);
+      if(event.code==='KeyB'&&visible()&&workMode==='editor'&&!typing&&!event.ctrlKey&&!event.altKey&&!event.metaKey){event.preventDefault();if(!event.repeat)openRecipes();return;}
+      if(objectsOpen){trapObjectKeys(event);return;}
       if(fullscreen()&&event.code==='KeyM'&&!editable&&!event.ctrlKey&&!event.altKey&&!event.metaKey){
         event.preventDefault();if(!event.repeat){if(showControls)resumeMovement();else openMenu(true);}return;
       }
@@ -612,11 +660,11 @@
     if(window.ResizeObserver)new window.ResizeObserver(()=>{labelTime=-Infinity;schedule();}).observe(root);
     function destroy(){
       if(disposed)return;active=false;leaveImmersive();stop();disposed=true;workspaceRevision++;
-      if(renderer)renderer.setWorld(walk.createWorld([]));scene=null;info=null;labels=[];selectedId=null;search='';message='';
+      if(renderer)renderer.setWorld(walk.createWorld([]));scene=null;info=null;labels=[];selectedId=null;selectedObjectId=null;objectSearch='';objectsOpen=false;search='';message='';
       restoreBackground();root.replaceChildren();
       ['is-walk-window','is-walk-paused','walk-controls-open','is-interacting','is-walk-windowed'].forEach(key=>root.classList.toggle(key,false));
     }
-    return {render:render,setActive:setActive,pause:function(){openMenu(true);},resume:resumeMovement,setWorkMode:setWorkMode,insertionPoint:insertionPoint,notify:tell,destroy:destroy,
+    return {render:render,setActive:setActive,pause:function(){openMenu(true);},resume:resumeMovement,setWorkMode:setWorkMode,insertionPoint:insertionPoint,markObject:markObject,notify:tell,destroy:destroy,
       refreshPreferences:function(){if(!savingFov&&!disposed)previewFov(savedFov());}};
   }
   return {create:create,interactionHtml:interactionHtml};

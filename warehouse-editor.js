@@ -1245,7 +1245,7 @@
       return html + scopeProgress(object, level, t) + planningTools(object, t);
     }
 
-    function recipeOptions(t) {
+    function recipeCatalog(t) {
       const supported = model.RECIPE_TYPES;
       const groups = [
         { label: 'recipeRacks', types: model.RACK_TYPES },
@@ -1265,11 +1265,26 @@
       return groups.map(function (group) {
         const types = group.types.filter(function (type) { return supported.includes(type); }).slice()
           .sort(function (a, b) { return name(a).localeCompare(name(b), locale); });
-        if (!types.length) return '';
-        return '<optgroup label="' + esc(t[group.label]) + '">' + types.map(function (type) {
-          return '<option value="' + esc(type) + '"' + (type === recipeType ? ' selected' : '') + '>' + esc(name(type)) + '</option>';
-        }).join('') + '</optgroup>';
-      }).join('');
+        return { label: t[group.label], recipes: types.map(function(type){return {id:type,name:name(type)};}) };
+      }).filter(function(group){return group.recipes.length;});
+    }
+    function recipeOptions(t) {
+      return recipeCatalog(t).map(function(group){return '<optgroup label="'+esc(group.label)+'">'+group.recipes.map(function(recipe){
+        return '<option value="'+esc(recipe.id)+'"'+(recipe.id===recipeType?' selected':'')+'>'+esc(recipe.name)+'</option>';
+      }).join('')+'</optgroup>';}).join('');
+    }
+    async function addRecipe(type) {
+      if(saving||rackWizard||preview)return false;
+      if(!model.RECIPE_TYPES.includes(type))throw new Error('Unsupported recipe.');
+      syncHistoryScope();recipeType=type;
+      if(model.RACK_TYPES.includes(type)){openRackWizard(null,type);return true;}
+      const next=clone(layout()),split=type.lastIndexOf('-');
+      const name=TYPE_LABELS[type]?labels()[TYPE_LABELS[type]]:labels()[TYPE_LABELS[type.slice(0,split)]]+' · '+labels()[type.slice(split+1)];
+      const newObject=model.createRecipe(type,{name:name}),last=next.objects[next.objects.length-1];
+      newObject.x=last?last.x+1800:0;newObject.z=last?last.z+1200:0;
+      if(options.getInsertPosition)Object.assign(newObject,options.getInsertPosition(newObject));
+      next.objects.push(newObject);choice.slotId=null;if(camera.mode==='top')topView.ready=false;
+      return commit(next,null,newObject.id);
     }
 
     function render() {
@@ -1364,7 +1379,7 @@
         '<div class="wh-legend">' + colorLegend(warehouse, t) + '<span style="color:#ffd78a">↗ ' + esc(groundLabels().front) + '</span></div>' +
         '</div><aside class="wh-properties"' + (preview ? ' inert' : '') + '><div class="wh-card" tabindex="0" data-ui-key="properties" aria-label="' + esc(t.properties) + '"><div class="wh-properties-head"><h4>' + esc(t.properties) + '</h4>' +
         (object && mode === 'structure' ? '<button type="button" class="wh-delete" data-action="delete">' + esc(t.delete) + '</button>' : '') +
-        '</div>' + selectionNavigation(object, t) + (object ? '<div class="wh-object-actions"><button type="button" class="wh-lock-toggle" data-action="toggle-lock" aria-pressed="' +
+        '</div>' + (options.inspectorOnly&&collisionPanel?'<details class="wh-walk-layout-checks"><summary>'+esc(t.checks)+' · '+esc(collisionSummary)+'</summary>'+collisionPanel+'</details>':'') + selectionNavigation(object, t) + (object ? '<div class="wh-object-actions"><button type="button" class="wh-lock-toggle" data-action="toggle-lock" aria-pressed="' +
           Boolean(object.locked) + '">' + (object.locked ? '🔓 ' + esc(t.unlock) : '🔒 ' + esc(t.lock)) +
         '</button>' + (mode === 'structure' ? (model.RACK_TYPES.includes(object.type) ? '<button type="button" data-action="edit-rack">' +
           esc(t.wizardEditButton) + '</button>' : '') + '<button type="button" data-action="duplicate">' +
@@ -1404,6 +1419,7 @@
       if (options.inspectorOnly) {
         const placement = root.querySelector('.wh-location-editor');
         if (placement) root.appendChild(placement);
+        if(options.onRender)options.onRender({objectId:choice.objectId,draft:Boolean(rackWizard||preview),message:message,saving:saving});
         return;
       }
       paint(warehouse, collisionIds, collisions);
@@ -1943,19 +1959,7 @@
         render(); return;
       }
       if (action === 'add') {
-        const type = root.querySelector('#wh-recipe').value;
-        if (model.RACK_TYPES.includes(type)) { openRackWizard(null, type); return; }
-        const next = clone(layout());
-        const split = type.lastIndexOf('-');
-        const name = TYPE_LABELS[type] ? labels()[TYPE_LABELS[type]] : labels()[TYPE_LABELS[type.slice(0, split)]] + ' · ' + labels()[type.slice(split + 1)];
-        const newObject = model.createRecipe(type, { name: name });
-        const last = next.objects[next.objects.length - 1];
-        newObject.x = last ? last.x + 1800 : 0;
-        newObject.z = last ? last.z + 1200 : 0;
-        if (options.getInsertPosition) Object.assign(newObject, options.getInsertPosition(newObject));
-        next.objects.push(newObject); choice.slotId = null;
-        if (camera.mode === 'top') topView.ready = false;
-        commit(next, null, newObject.id); return;
+        await addRecipe(root.querySelector('#wh-recipe').value);return;
       }
       const object = selected();
       if (!object) return;
@@ -2218,7 +2222,7 @@
       });
       observer.observe(page, { attributes: true, attributeFilter: ['class', 'hidden', 'style'] });
     }
-    return { render: render,
+    return { render: render, recipes:function(){return recipeCatalog(labels());}, addRecipe:addRecipe,
       selectScope: function (scope) {
         syncHistoryScope();
         if (scope && layout().objects.some(function (item) { return item.id === scope.objectId; })) {

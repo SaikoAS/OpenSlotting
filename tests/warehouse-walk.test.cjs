@@ -202,7 +202,7 @@ function harness(value,available=true,native=false,options={}){
   const listeners={},windowListeners={},documentListeners={},nodes=new Map(),canvases=[],frames=new Map();let sequence=0;
   function node(){const classes=new Set();const n={innerHTML:'',textContent:'',dataset:{},style:{},hidden:false,disabled:false,isConnected:true,clientWidth:900,clientHeight:600,events:{},
     classList:{add:key=>classes.add(key),toggle(key,on){if(on)classes.add(key);else classes.delete(key);},contains:key=>classes.has(key)},attributes:{},setAttribute(key,value){this.attributes[key]=String(value);},getAttribute(key){return this.attributes[key]??null;},querySelectorAll(){return [];},appendChild(){},prepend(){},focus(){h.document.activeElement=this;},hasAttribute(){return false;},
-    replaceChildren(){this.innerHTML='';},getBoundingClientRect(){return {left:0,top:0,width:900,height:600};},getContext(){return null;},
+    insertAdjacentHTML(_position,html){this.innerHTML+=html;},replaceChildren(){this.innerHTML='';},getBoundingClientRect(){return {left:0,top:0,width:900,height:600};},getContext(){return null;},
     addEventListener(type,callback){this.events[type]=callback;},setPointerCapture(){}};return n;}
   const root=node();root.querySelector=selector=>{if(!nodes.has(selector))nodes.set(selector,node());return nodes.get(selector);};root.addEventListener=(type,cb)=>listeners[type]=cb;
   const h={visible:true,gpu:available,value:value,root,nodes,frames,rendered:0,worlds:0,preferences:{fov:60},fovSaves:[],calls:[],documentListeners};
@@ -241,6 +241,7 @@ function harness(value,available=true,native=false,options={}){
     })();
   };
   h.action=(action)=>listeners.click({target:{closest(selector){return selector==='[data-walk-action]'?{dataset:{walkAction:action}}:selector==='.wh-walk-interaction'&&action.startsWith('interaction-')?nodes.get('.wh-walk-interaction'):null;}}});
+  h.object=id=>listeners.click({target:{closest:selector=>selector==='[data-walk-object]'?{dataset:{walkObject:id}}:null}});
   h.tab=tab=>listeners.click({target:{closest(selector){return selector==='[data-walk-inspect-tab]'?{dataset:{walkInspectTab:tab}}:selector==='.wh-walk-interaction'?nodes.get('.wh-walk-interaction'):null;}}});
   h.aim=(slotId,distance=2)=>{h.aimHit=slotId?{item:h.world.positions.get(slotId),distance}:null;};
   h.search=code=>listeners.input({target:{value:code,hasAttribute:key=>key==='data-walk-search'}});
@@ -297,6 +298,35 @@ test('an empty warehouse can start in Editor mode and open construction while Ev
   await h.action('fullscreen');assert.equal(h.document.pointerLockElement,h.canvas);
   h.key('Escape');await h.action('edit-layout');assert.equal(opened,1);
   await h.change('work-mode','analysis');assert.equal(h.nodes.get('[data-walk-action="fullscreen"]').disabled,true);
+});
+
+test('B opens recipes only in Editor, pauses captured movement and ignores typing, repeats and shortcuts',async()=>{
+  let opened=0;const value=layout(),before=structuredClone(value);
+  const h=harness(value,true,true,{standalone:true,editorAvailable:true,openEditor(){},openRecipes:()=>opened++});
+  h.key('KeyB');assert.equal(opened,0);
+  await h.change('work-mode','editor');await h.action('resume');h.tick(100);const pose={...h.camera},worlds=h.worlds;
+  h.key('KeyB');assert.equal(opened,1);assert.equal(h.document.pointerLockElement,null);
+  assert.equal(h.root.classList.contains('is-walk-paused'),true);h.key('KeyW');h.tick(116);assert.deepEqual(h.camera,pose);
+  h.event({code:'KeyB',repeat:true});h.event({code:'KeyB',ctrlKey:true});
+  h.event({code:'KeyB',target:{tagName:'INPUT',hasAttribute:()=>false}});
+  h.event({code:'KeyB',target:{isContentEditable:true,hasAttribute:()=>false}});assert.equal(opened,1);
+  assert.equal(h.worlds,worlds);assert.deepEqual(value,before);
+  await h.change('work-mode','analysis');h.key('KeyB');assert.equal(opened,1);
+});
+
+test('Editor object list is passive in mouse look, searchable while paused and selects properties without moving objects or the camera',async()=>{
+  const value=layout();value.objects[0].name='Synthetic <rack>';const before=structuredClone(value),opened=[];
+  const h=harness(value,true,true,{standalone:true,editorAvailable:true,openEditor:scope=>opened.push(scope)});
+  await h.change('work-mode','editor');await h.action('resume');h.tick(100);const pose={...h.camera};
+  assert.equal(h.nodes.get('[data-walk-objects]').hidden,false);assert.equal(h.nodes.get('[data-walk-objects]').inert,true);
+  assert.match(h.nodes.get('[data-walk-object-items]').innerHTML,/Synthetic &lt;rack&gt;/);
+  await h.object(value.objects[0].id);assert.equal(opened.length,0);
+  await h.action('objects');assert.equal(h.document.pointerLockElement,null);
+  assert.equal(h.nodes.get('[data-walk-objects]').inert,false);assert.equal(h.nodes.get('.wh-walk-menu').hidden,true);
+  h.input('object-search','missing');assert.doesNotMatch(h.nodes.get('[data-walk-object-items]').innerHTML,/Synthetic/);
+  h.input('object-search','Synthetic');await h.object(value.objects[0].id);assert.equal(opened[0].objectId,value.objects[0].id);
+  h.tick(116);assert.deepEqual(h.camera,pose);assert.deepEqual(value,before);
+  await h.change('work-mode','analysis');assert.equal(h.nodes.get('[data-walk-objects]').hidden,true);
 });
 
 test('new walk objects start centered ahead of the observer on a 100 mm grid with a predictable access side',()=>{

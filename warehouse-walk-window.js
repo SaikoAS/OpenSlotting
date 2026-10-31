@@ -24,7 +24,7 @@
       document.title=language==='de'?'OpenSlotting · Lager-Rundgang':'OpenSlotting · Warehouse walk';
       if(!controller){
         controller=window.OpenSlottingWarehouseWalk.create({root:root,model:model,standalone:true,initialView:value.view,
-          editorAvailable:value.editorAvailable===true,openEditor:scope=>editor.open(scope),
+          editorAvailable:value.editorAvailable===true,openEditor:scope=>editor.open(scope),openRecipes:()=>editor.openRecipes(),
           setWorkMode:async mode=>{await client.setWorkMode(mode);if(data)data.view=Object.assign({},data.view,{workMode:mode});},
           getWorkspaceId:()=>data&&data.workspaceId,getLanguage:()=>language,
           getLayout:()=>data?data.layout:model.createLayout(),getRegistry:()=>data?data.registry:[],
