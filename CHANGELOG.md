@@ -10,11 +10,11 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
-- Require explicit confirmation before discarding a changed direct-walk preview. Support left click as well as Enter to apply, retain drafts across pause/focus loss, and offer captured-mouse confirmation plus paused-menu Discard/Keep controls before release or editing-context changes.
+- Use explicit value-editing and object-preview stages in the walk. Left click/Enter/right click first leave the active value without saving or releasing the object. Collect successive values, then use a separate Apply changes control or object-level Enter to save. Require confirmation before discarding, retain drafts across pause/focus loss, and offer captured-mouse plus paused-menu Discard/Keep controls.
 
 - Show gold access-side lines and outward arrows for all racks in the warehouse walk, including rotated racks and dimension previews. Reuse shared editor geometry and keep these visual markers out of navigation bounds, collision/picking indexes and aim tints.
 
-- Add captured-mouse direct editing in the warehouse walk: left click binds an object and targets its dimension/location controls; wheel, fine steps and numeric entry preview changes, Enter saves through the existing validated path, and right click discards/releases. Preserve selection, location IDs/codes, occlusion, undo, local-only persistence and stale-write guards.
+- Add captured-mouse direct editing in the warehouse walk: left click binds an object and targets its dimension/location controls; wheel, fine steps and numeric entry preview changes, explicit object-level Apply/Enter saves through the existing validated path, and staged right-click release protects changed drafts with confirmation. Preserve selection, location IDs/codes, occlusion, undo, local-only persistence and stale-write guards.
 
 - Highlight the reachable object under the walk Editor crosshair with a mint contour, subtle surface tint and matching object-list marker. Match the E target, clear on pause/look-away/mode changes, keep occlusion and selection separate, and update only target overlay buffers.
 

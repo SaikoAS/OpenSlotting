@@ -75,10 +75,11 @@
     let objectsOpen=false,objectSearch='',selectedObjectId=null;
     let aimedObjectId=null;
     let boundObjectId=null,directBase=null,directFields=[],directDraft=null,directTarget=null,directNotice='';
+    let directFieldActive=false;
     let discardDirectAction=null;
     let directEpoch=0,directBusy=false,directStale=false,directDirty=false,previewWorld=null,previewApplied=false,aimPreview=false;
     function showAim(id){
-      const preview=Boolean(directDraft&&directDraft.candidate);
+      const preview=Boolean(previewApplied&&hasDirectChanges());
       if(aimedObjectId===id&&aimPreview===preview)return;aimPreview=preview;
       aimedObjectId=id;
       if(renderer&&renderer.aimObject)renderer.aimObject(id,preview);
@@ -88,10 +89,13 @@
     function canEdit(){return options.editorAvailable===true&&Boolean(options.openEditor);}
     function directEnabled(){return canEdit()&&Boolean(options.saveLayout&&window.OpenSlottingWalkEditor&&window.OpenSlottingWalkEditor.directFields);}
     function directWords(){return options.getLanguage()==='de'
-      ?{bind:'Linksklick · Objekt binden',field:'Linksklick · Wert bearbeiten',release:'Rechtsklick: lösen',locked:'Objekt gesperrt. Zum Entsperren das Rundgangmenü öffnen.',none:'Für diesen Objekttyp das Bearbeitungsmenü verwenden.',help:'Mausrad: ändern · Shift: fein · Zahl eingeben · Linksklick / Enter: übernehmen',preview:'Vorschau',saved:'Änderung gespeichert.',saving:'Wird gespeichert …',invalid:'Ungültiger Wert oder Geometrie. Vorschau nicht übernehmbar.',stale:'Datenstand unklar oder geändert. Im Menü den Datenstand aktualisieren.',failed:'Speichern fehlgeschlagen. Entwurf bleibt erhalten.',impact:'Betroffene Stellplätze / Codes / Artikel',collisions:'Kollisionen',occupied:'Änderung würde den Betrachter einschließen. Erst eine freie Position wählen.'}
-      :{bind:'Left click · Bind object',field:'Left click · Edit value',release:'Right click: release',locked:'Object locked. Open the walk menu to unlock it.',none:'Use the editing menu for this object type.',help:'Wheel: adjust · Shift: fine · Type a number · Left click / Enter: apply',preview:'Preview',saved:'Change saved.',saving:'Saving …',invalid:'Invalid value or geometry. Cannot apply preview.',stale:'Snapshot changed or save uncertain. Refresh the data snapshot in the menu.',failed:'Save failed. Draft retained.',impact:'Affected locations / codes / articles',collisions:'Collisions',occupied:'This change would enclose the observer. Move to a free position first.'};}
+      ?{bind:'Linksklick · Objekt binden',field:'Linksklick · Wert bearbeiten',release:'Rechtsklick: lösen',locked:'Objekt gesperrt. Zum Entsperren das Rundgangmenü öffnen.',none:'Für diesen Objekttyp das Bearbeitungsmenü verwenden.',help:'Mausrad: ändern · Shift: fein · Zahl eingeben · Linksklick / Enter / Rechtsklick: Wert abwählen',preview:'Vorschau',saved:'Änderung gespeichert.',saving:'Wird gespeichert …',invalid:'Ungültiger Wert oder Geometrie. Vorschau nicht übernehmbar.',stale:'Datenstand unklar oder geändert. Im Menü den Datenstand aktualisieren.',failed:'Speichern fehlgeschlagen. Entwurf bleibt erhalten.',impact:'Betroffene Stellplätze / Codes / Artikel',collisions:'Kollisionen',occupied:'Änderung würde den Betrachter einschließen. Erst eine freie Position wählen.'}
+      :{bind:'Left click · Bind object',field:'Left click · Edit value',release:'Right click: release',locked:'Object locked. Open the walk menu to unlock it.',none:'Use the editing menu for this object type.',help:'Wheel: adjust · Shift: fine · Type a number · Left click / Enter / Right click: leave value',preview:'Preview',saved:'Change saved.',saving:'Saving …',invalid:'Invalid value or geometry. Cannot apply preview.',stale:'Snapshot changed or save uncertain. Refresh the data snapshot in the menu.',failed:'Save failed. Draft retained.',impact:'Affected locations / codes / articles',collisions:'Collisions',occupied:'This change would enclose the observer. Move to a free position first.'};}
+    function stageWords(){return options.getLanguage()==='de'
+      ?{value:'Wert bearbeiten',object:'Objektvorschau',back:'Linksklick / Enter / Rechtsklick: Wert abwählen',apply:'Änderungen übernehmen',discard:'Vorschau verwerfen',help:'Wert anvisieren oder Übernehmen wählen · Enter: übernehmen · Rechtsklick: lösen'}
+      :{value:'Edit value',object:'Object preview',back:'Left click / Enter / Right click: leave value',apply:'Apply changes',discard:'Discard preview',help:'Aim at a value or Apply changes · Enter: apply · Right click: release'};}
     function clearDirect(release){
-      directEpoch++;directDraft=null;directTarget=null;directDirty=false;previewWorld=null;discardDirectAction=null;
+      directEpoch++;directDraft=null;directFieldActive=false;directTarget=null;directDirty=false;previewWorld=null;discardDirectAction=null;
       if(previewApplied&&renderer&&scene)renderer.setWorld(scene);previewApplied=false;
       if(release){boundObjectId=null;directBase=null;directFields=[];directNotice='';}
       else if(boundObjectId&&info)directFields=window.OpenSlottingWalkEditor.directFields(model,info.layout,boundObjectId);
@@ -101,7 +105,7 @@
       ?{question:'Offene Vorschau verwerfen?',confirm:'Vorschau verwerfen',keep:'Weiter bearbeiten',keys:'Linksklick / Enter: verwerfen · Rechtsklick: weiter bearbeiten'}
       :{question:'Discard the open preview?',confirm:'Discard preview',keep:'Keep editing',keys:'Left click / Enter: discard · Right click: keep editing'};}
     function requestDirectDiscard(action){
-      if(!directBusy&&directDraft&&directDraft.value!==directDraft.field.value){
+      if(!directBusy&&hasDirectChanges()){
         discardDirectAction=action||function(){};paintDirect();
         if(immersivePaused){const keep=root.querySelector('[data-walk-action="discard-keep"]');if(keep)keep.focus();}
         schedule();return true;
@@ -115,7 +119,16 @@
     function keepDirectDraft(){discardDirectAction=null;paintDirect();if(immersivePaused){const resume=root.querySelector('[data-walk-action="resume"]');if(resume)resume.focus();}schedule();}
     function releaseDirect(){
       if(discardDirectAction){keepDirectDraft();return;}
+      if(directFieldActive){finishDirectField();return;}
       if(!requestDirectDiscard()){clearDirect(true);paintDirect();paintInteractionHint();}
+    }
+    function hasDirectChanges(){
+      return Boolean(directDraft&&(directDraft.changed||directDirty&&directDraft.value!==directDraft.field.value));
+    }
+    function finishDirectField(){
+      if(directBusy)return;prepareDirect();directFieldActive=false;
+      if(!hasDirectChanges())clearDirect(false);
+      schedule();
     }
     function bindDirect(){
       if(directBusy||directStale)return;
@@ -128,11 +141,18 @@
     function directClick(){
       if(discardDirectAction){confirmDirectDiscard();return;}
       if(!boundObjectId){bindDirect();return;}
-      if(directDraft){saveDirect();return;}
+      if(directFieldActive){finishDirectField();return;}
       paintDirect();
-      if(directBusy||directStale||!directTarget||directTarget.locked||directDraft)return;
+      if(directBusy||!directTarget||directTarget.locked)return;
+      if(directTarget.action==='discard'){requestDirectDiscard();return;}
+      if(directStale)return;
+      if(directTarget.action==='apply'){saveDirect();return;}
       const field=directTarget;
-      directDraft={field:field,value:field.value,input:String(field.value),typing:false,error:'',candidate:null,impact:null,collisions:0};
+      if(directDraft&&directDraft.field.key===field.key){directFieldActive=true;schedule();return;}
+      if(directDraft&&directDraft.error){directNotice=directWords().invalid;schedule();return;}
+      const working=directDraft&&directDraft.candidate||JSON.parse(directBase),previous=directDraft;
+      directDraft={field:field,value:field.value,input:String(field.value),typing:false,error:'',candidate:working,startLayout:working,changed:JSON.stringify(working)!==directBase,impact:previous&&previous.impact,collisions:previous&&previous.collisions||0};
+      directFieldActive=true;
       directNotice='';schedule();
     }
     function queueDirect(value){
@@ -150,22 +170,29 @@
       if(/share one row/.test(message))return 'Stellplätze müssen nebeneinander liegen und die volle Fachtiefe nutzen.';
       return message;
     }
+    function directWorld(layout){
+      const boxes=window.OpenSlottingWarehouseScene.buildBoxes(model,layout,info.matches,{colorMode:colorMode==='usage'?'usage':'structure',showOrientation:true});
+      const colors=new Map(Array.from(scene.positions,([id,item])=>[id,item.box.color]));
+      boxes.forEach(box=>{if(box.kind==='location'&&colors.has(box.slotRef.slotId))box.color=colors.get(box.slotRef.slotId);});
+      return walk.createWorld(boxes);
+    }
     function prepareDirect(){
       if(!directDirty||!directDraft)return;directDirty=false;
       const draft=directDraft;draft.candidate=null;draft.error='';draft.saveError='';draft.blocked='';draft.impact=null;previewWorld=null;
       try{
         if(JSON.stringify(options.getLayout())!==directBase){directStale=true;throw new Error(directWords().stale);}
-        const base=JSON.parse(directBase),next=window.OpenSlottingWalkEditor.proposeDirect(model,base,draft.field,draft.value);
+        const base=JSON.parse(directBase),next=window.OpenSlottingWalkEditor.proposeDirect(model,draft.startLayout,draft.field,draft.value);
         draft.impact=model.layoutImpact(base,next,options.getRegistry());
         draft.collisions=model.findCollisions(next).length;
-        const boxes=window.OpenSlottingWarehouseScene.buildBoxes(model,next,info.matches,{colorMode:colorMode==='usage'?'usage':'structure',showOrientation:true});
-        const colors=new Map(Array.from(scene.positions,([id,item])=>[id,item.box.color]));
-        boxes.forEach(box=>{if(box.kind==='location'&&colors.has(box.slotRef.slotId))box.color=colors.get(box.slotRef.slotId);});
-        previewWorld=walk.createWorld(boxes);
+        previewWorld=directWorld(next);
         draft.candidate=next;
         directFields=window.OpenSlottingWalkEditor.directFields(model,next,boundObjectId);
       }catch(error){draft.error=directError(error,draft.field);}
-      if(!draft.candidate)directFields=window.OpenSlottingWalkEditor.directFields(model,info.layout,boundObjectId);
+      if(!draft.candidate){
+        directFields=window.OpenSlottingWalkEditor.directFields(model,draft.startLayout,boundObjectId);
+        if(JSON.stringify(draft.startLayout)!==directBase)previewWorld=directWorld(draft.startLayout);
+      }
+      draft.changed=draft.candidate?JSON.stringify(draft.candidate)!==directBase:JSON.stringify(draft.startLayout)!==directBase||draft.value!==draft.field.value;
       if(renderer){renderer.setWorld(previewWorld||scene);previewApplied=Boolean(previewWorld);}
     }
     function visibleDirectFields(){
@@ -176,8 +203,16 @@
         const element=root.querySelector(selector);
         if(element&&!element.hidden&&element.getClientRects&&element.getClientRects().length){const r=element.getBoundingClientRect();blocked.push({left:r.left-canvasRect.left,right:r.right-canvasRect.left,top:r.top-canvasRect.top,bottom:r.bottom-canvasRect.top});}
       });
-      const candidates=directFields.map(field=>({field:field,p:walk.project(camera,field.point,width,height),distance:Math.hypot(field.point.x-camera.x,field.point.y-camera.eye,field.point.z-camera.z)}))
-        .filter(item=>item.p&&item.distance>.001&&item.distance<=6).sort((a,b)=>Number(b.field.key===(directDraft&&directDraft.field.key))-Number(a.field.key===(directDraft&&directDraft.field.key))||
+      let controls=directFields;
+      if(directDraft&&!directFieldActive&&hasDirectChanges()){
+        const anchor=(directFields.find(field=>field.key===directDraft.field.key)||directDraft.field).point,t=stageWords();
+        controls=controls.concat([
+          {key:'@apply',action:'apply',de:t.apply,en:t.apply,locked:Boolean(directDraft.error||directBusy||directStale),point:{...anchor,y:anchor.y+.4}},
+          {key:'@discard',action:'discard',de:t.discard,en:t.discard,locked:directBusy,point:{...anchor,y:anchor.y+.7}}
+        ]);
+      }
+      const candidates=controls.map(field=>({field:field,p:walk.project(camera,field.point,width,height),distance:Math.hypot(field.point.x-camera.x,field.point.y-camera.eye,field.point.z-camera.z)}))
+        .filter(item=>item.p&&item.distance>.001&&item.distance<=6).sort((a,b)=>Number(directFieldActive&&b.field.key===(directDraft&&directDraft.field.key))-Number(directFieldActive&&a.field.key===(directDraft&&directDraft.field.key))||
           Math.hypot(a.p.x-width/2,a.p.y-height/2)-Math.hypot(b.p.x-width/2,b.p.y-height/2)||a.distance-b.distance);
       for(const item of candidates){
         if(result.length>=24)break;
@@ -209,13 +244,14 @@
       const aimed=fields.find(item=>Math.abs(item.x-width/2)<=120&&Math.abs(item.y-height/2)<=15);
       directTarget=aimed&&aimed.field||null;
       overlay.innerHTML=fields.map(function(item){
-        const field=item.field,active=directDraft&&directDraft.field.key===field.key;
-        return '<span class="wh-walk-handle'+(field===directTarget?' is-target':'')+(active?' is-active':'')+'" data-direct-field="'+esc(field.key)+'" style="left:'+item.x+'px;top:'+item.y+'px"><span>'+esc(field[options.getLanguage()==='de'?'de':'en'])+'</span><b>'+esc(active?directDraft.input:field.value)+' mm'+(field.locked?' 🔒':'')+'</b></span>';
+        const field=item.field,pending=directDraft&&directDraft.field.key===field.key,active=directFieldActive&&pending;
+        return '<span class="wh-walk-handle'+(field===directTarget?' is-target':'')+(active?' is-active':'')+(field.action?' is-action':'')+'" data-direct-field="'+esc(field.key)+'" aria-disabled="'+Boolean(field.locked)+'" style="left:'+item.x+'px;top:'+item.y+'px"><span>'+esc(field[options.getLanguage()==='de'?'de':'en'])+'</span>'+(field.action?'':'<b>'+esc(pending?directDraft.input:field.value)+' mm'+(field.locked?' 🔒':'')+'</b>')+'</span>';
       }).join('');
       const t=directWords(),object=info.layout.objects.find(item=>item.id===boundObjectId),draft=directDraft;
       let detail=directBusy?t.saving:directStale?t.stale:directNotice;
       if(draft&&!directBusy&&!directStale){
-        detail=t.preview+' · '+draft.field[options.getLanguage()==='de'?'de':'en']+': '+draft.input+' mm · '+t.help;
+        const stages=stageWords();
+        detail=(directFieldActive?stages.value:stages.object)+' · '+draft.field[options.getLanguage()==='de'?'de':'en']+': '+draft.input+' mm · '+(directFieldActive?t.help:stages.help);
         if(draft.error)detail+=' · '+t.invalid+' '+draft.error;
         else if(draft.impact)detail+=' · '+t.impact+': '+draft.impact.locations+' / '+draft.impact.codes+' / '+draft.impact.articles+' · '+t.collisions+': '+draft.collisions;
         if(draft.saveError||draft.blocked)detail+=' · '+(draft.saveError||draft.blocked);
@@ -223,12 +259,14 @@
       if(discardDirectAction)detail=discard.question+' · '+(draft?draft.input+' mm · ':'')+discard.keys;
       status.classList.toggle('is-confirming',Boolean(discardDirectAction));
       status.classList.toggle('is-invalid',Boolean(draft&&(draft.error||draft.saveError||draft.blocked)||directStale));
-      status.innerHTML='<strong>'+esc(object&&object.name)+' · '+esc(discardDirectAction?discard.question:t.release)+'</strong><span>'+esc(detail||t.field)+'</span>';
+      status.dataset.editorStage=discardDirectAction?'discard':directFieldActive?'value':'object';
+      status.innerHTML='<strong>'+esc(object&&object.name)+' · '+esc(discardDirectAction?discard.question:directFieldActive?stageWords().value:draft?stageWords().object:t.release)+'</strong><span>'+esc(detail||t.field)+'</span>';
     }
     async function saveDirect(){
       if(!directDraft||directBusy||directStale)return;prepareDirect();
+      if(directFieldActive){finishDirectField();return;}
       const draft=directDraft;if(draft.error)return;
-      if(draft.value===draft.field.value){clearDirect(false);return;}
+      if(!hasDirectChanges()){clearDirect(false);return;}
       if(!draft.candidate)return;
       if(JSON.stringify(options.getLayout())!==directBase){directStale=true;directNotice=directWords().stale;schedule();return;}
       if(motion.mode==='walk'&&!walk.canOccupy(previewWorld,camera,motion.feet,camera.eye-motion.feet)){draft.blocked=directWords().occupied;schedule();return;}
@@ -241,7 +279,7 @@
         previewWorld=null;previewApplied=false;refresh();
         // Refresh a retained binding after its submitted write finishes,
         // without reviving an object released while that write was pending.
-        if(boundObjectId){directDraft=null;directDirty=false;directBase=JSON.stringify(options.getLayout());directFields=window.OpenSlottingWalkEditor.directFields(model,info.layout,boundObjectId);directNotice=directWords().saved;}
+        if(boundObjectId){directDraft=null;directFieldActive=false;directDirty=false;directBase=JSON.stringify(options.getLayout());directFields=window.OpenSlottingWalkEditor.directFields(model,info.layout,boundObjectId);directNotice=directWords().saved;}
       }catch(error){
         if(disposed||workspaceRevision!==revision||options.getWorkspaceId()!==id)return;
         if(['edit-conflict','edit-timeout','session-ended'].includes(error.message))directStale=true;
@@ -374,7 +412,7 @@
         showAim(boundObjectId||(hit?hit.item.box.object.id:null));
         if(boundObjectId){
           if(discardDirectAction&&!immersivePaused){prompt.hidden=false;prompt.textContent=discardWords().question+' '+discardWords().keys;return;}
-          prompt.hidden=!directTarget||Boolean(directDraft);prompt.textContent=directTarget?(directTarget.locked?directWords().locked:directWords().field):'';return;
+          prompt.hidden=!directTarget||directFieldActive;prompt.textContent=directTarget?(directTarget.action?(options.getLanguage()==='de'?'Linksklick':'Left click')+' · '+directTarget[options.getLanguage()==='de'?'de':'en']:directTarget.locked?directWords().locked:directWords().field):'';return;
         }
         prompt.hidden=!hit&&!directStale;prompt.textContent=directStale?directWords().stale:hit?(directEnabled()?directWords().bind+' · ':'E · '+editText().aim+': ')+hit.item.box.object.name:'';return;
       }
@@ -811,9 +849,9 @@
       }
       if(document.pointerLockElement!==canvas||event.target!==canvas||event.ctrlKey||event.altKey||event.metaKey||!renderer||!renderer.available()||immersivePaused||!fullscreen()&&!inlineFallback)return;
       if(discardDirectAction&&(event.code==='Enter'||event.code==='NumpadEnter')){event.preventDefault();if(!event.repeat)confirmDirectDiscard();return;}
-      if(directDraft&&!discardDirectAction&&!directBusy&&!directStale){
-        if(event.code==='Enter'||event.code==='NumpadEnter'){event.preventDefault();if(!event.repeat)saveDirect();return;}
-        if(/^[0-9.,-]$/.test(event.key)||event.code==='Backspace'||event.code==='Delete'){
+      if(directDraft&&!discardDirectAction&&!directBusy){
+        if(event.code==='Enter'||event.code==='NumpadEnter'){event.preventDefault();if(!event.repeat){if(directFieldActive)finishDirectField();else saveDirect();}return;}
+        if(!directStale&&directFieldActive&&(/^[0-9.,-]$/.test(event.key)||event.code==='Backspace'||event.code==='Delete')){
           event.preventDefault();const draft=directDraft;
           if(event.code==='Backspace')draft.input=draft.typing?draft.input.slice(0,-1):'';
           else if(event.code==='Delete')draft.input='';
@@ -844,7 +882,7 @@
     canvas.addEventListener('blur',stop);
     canvas.addEventListener('contextmenu',event=>{if(visible()&&workMode==='editor'&&fullscreen())event.preventDefault();});
     canvas.addEventListener('wheel',function(event){
-      if(document.pointerLockElement!==canvas||immersivePaused||!boundObjectId||!directDraft||discardDirectAction||directBusy||directStale||event.ctrlKey||event.metaKey||event.altKey||!event.deltaY)return;
+      if(document.pointerLockElement!==canvas||immersivePaused||!boundObjectId||!directDraft||!directFieldActive||discardDirectAction||directBusy||directStale||event.ctrlKey||event.metaKey||event.altKey||!event.deltaY)return;
       event.preventDefault();const step=event.shiftKey?1:directDraft.field.kind.startsWith('location-')?10:50;
       const value=(Number.isFinite(directDraft.value)?directDraft.value:directDraft.field.value)+(event.deltaY<0?step:-step);
       directDraft.input=String(value);directDraft.typing=false;queueDirect(value);

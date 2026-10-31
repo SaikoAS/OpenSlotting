@@ -747,7 +747,7 @@ async function directHarness(settings={}){
   const value=settings.value||layout(),saved=[];
   const h=harness(value,true,true,{standalone:true,editorAvailable:true,openEditor:settings.openEditor||function(){throw Error('Direct interaction must not open the modal');},
     saveLayout:async(next,base)=>{saved.push({next:structuredClone(next),base});const workspace=h.workspace;if(settings.save)await settings.save(next,base);if(h.workspace===workspace)h.value=structuredClone(next);}});
-  h.saved=saved;let time=100;
+  h.saved=saved;h.apply=()=>{h.key('Enter');h.key('Enter');};let time=100;
   h.frame=()=>h.tick(time+=16);
   h.click=button=>{h.canvas.events.pointerdown({button,preventDefault(){}});h.frame();};
   h.wheel=(deltaY,shiftKey=false)=>{h.canvas.events.wheel({deltaY,shiftKey,preventDefault(){}});h.frame();};
@@ -787,12 +787,12 @@ test('direct mouse-look editing previews coalesced geometry, accepts numbers, sa
   assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Change saved/);
 });
 test('right release requires confirmation, pause retains previews and locked objects never acquire an editable draft',async()=>{
-  const h=await directHarness(),before=structuredClone(h.value);h.choose('bay-width');h.wheel(-100);
+  const h=await directHarness(),before=structuredClone(h.value);h.choose('bay-width');h.wheel(-100);h.click(2);
   h.click(2);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);assert.equal(h.nodes.get('[data-walk-direct-status]').classList.contains('is-confirming'),true);
   assert.equal(h.document.pointerLockElement,h.canvas);h.click(0);assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);assert.deepEqual(h.value,before);
   h.aim(before.locations[0].id);h.click(0);h.choose('bay-width');h.wheel(-100);h.key('Escape');await h.action('resume');h.frame();
   assert.equal(h.document.pointerLockElement,h.canvas);assert.equal(h.aimedObject,before.objects[0].id);
-  h.key('Enter');await settle();assert.equal(h.saved.length,1);
+  h.apply();await settle();assert.equal(h.saved.length,1);
   const locked=layout();locked.objects[0].locked=true;const l=await directHarness({value:locked});l.choose('bay-width');l.wheel(-100);l.key('Enter');await settle();assert.equal(l.saved.length,0);
 });
 
@@ -800,20 +800,20 @@ test('invalid placement and stale snapshot cannot save, and failed saves retain 
   const h=await directHarness();h.choose('location-width');h.wheel(-100);h.key('Enter');await settle();
   assert.equal(h.saved.length,0);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Invalid value/);
   h.click(2);h.click(0);h.aim(h.value.locations[0].id);h.click(0);h.choose('bay-width');h.wheel(-100);
-  h.value=structuredClone(h.value);h.value.objects[0].name='Changed elsewhere';h.key('Enter');h.frame();await settle();
+  h.value=structuredClone(h.value);h.value.objects[0].name='Changed elsewhere';h.apply();h.frame();await settle();
   assert.equal(h.saved.length,0);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Snapshot changed/);
   const failed=await directHarness({save:async()=>{throw Error('quota');}}),old=structuredClone(failed.value);
-  failed.choose('bay-width');failed.wheel(-100);failed.key('Enter');await settle();failed.frame();
+  failed.choose('bay-width');failed.wheel(-100);failed.apply();await settle();failed.frame();
   assert.equal(failed.saved.length,1);assert.deepEqual(failed.value,old);assert.equal(failed.document.pointerLockElement,failed.canvas);
   assert.match(failed.nodes.get('[data-walk-direct-status]').innerHTML,/Draft retained/);
-  failed.wheel(-100);failed.key('Enter');await settle();assert.equal(failed.saved.length,2);
+  failed.choose('bay-width');failed.wheel(-100);failed.apply();await settle();assert.equal(failed.saved.length,2);
 });
 test('pending and uncertain direct writes never auto-retry or resurrect a released binding',async()=>{
   let finish;const gate=new Promise(resolve=>finish=resolve),h=await directHarness({save:()=>gate});
   h.choose('bay-width');h.wheel(-100);h.key('Enter');h.key('Enter');h.click(2);
   assert.equal(h.saved.length,1);finish();await settle();h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);
   const late=await directHarness({save:async()=>{throw Error('edit-timeout');}});
-  late.choose('bay-width');late.wheel(-100);late.key('Enter');await settle();late.frame();late.key('Enter');assert.equal(late.saved.length,1);
+  late.choose('bay-width');late.wheel(-100);late.apply();await settle();late.frame();late.key('Enter');assert.equal(late.saved.length,1);
   late.click(2);late.click(0);assert.equal(late.nodes.get('[data-walk-direct-status]').hidden,true);
   assert.match(late.nodes.get('[data-walk-interact-hint]').textContent,/Snapshot changed/);
   late.render();await late.action('resume');late.frame();late.aim(late.value.locations[0].id);late.click(0);assert.equal(late.nodes.get('[data-walk-direct-status]').hidden,true);
@@ -832,7 +832,7 @@ test('direct field targets clear when looking away and workspace disposal reject
   const h=await directHarness(),field=h.field('bay-width');
   h.look({x:field.point.x+20,y:field.point.y,z:field.point.z+20});h.click(0);h.wheel(-100);h.key('Enter');assert.equal(h.saved.length,0);
   const original=h.value.objects[0].id;h.click(2);assert.notEqual(h.nodes.get('[data-walk-direct-status]').hidden,false);
-  let finish;const gate=new Promise(resolve=>finish=resolve),late=await directHarness({save:()=>gate});late.choose('bay-width');late.wheel(-100);late.key('Enter');
+  let finish;const gate=new Promise(resolve=>finish=resolve),late=await directHarness({save:()=>gate});late.choose('bay-width');late.wheel(-100);late.apply();
   const next=layout();late.workspace='two';late.value=next;late.render();late.frame();finish();await settle();late.frame();
   assert.equal(late.nodes.get('[data-walk-direct-status]').hidden,true);assert.deepEqual(late.value,next);
   late.editor.destroy();assert.equal(late.aimedObject,null);assert.equal(late.document.pointerLockElement,null);assert.notEqual(original,next.objects[0].id);
@@ -853,14 +853,14 @@ test('direct handles cannot be activated through a wall or outside their six met
 test('fractional numeric input is rejected visibly instead of silently concatenating its digits',async()=>{
   const h=await directHarness();h.choose('bay-width');h.number('2800.5');h.key('Enter');await settle();
   assert.equal(h.saved.length,0);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/2800\.5/);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Invalid value/);
-  h.key('Delete');h.number('2800');h.key('Enter');await settle();h.frame();assert.equal(h.saved.length,1);assert.equal(h.value.objects[0].bays[0].width,2800);
+  h.choose('bay-width');h.key('Delete');h.number('2800');h.apply();await settle();h.frame();assert.equal(h.saved.length,1);assert.equal(h.value.objects[0].bays[0].width,2800);
 });
 
 test('a save completed while paused refreshes the retained binding before the next direct edit',async()=>{
   let finish;const gate=new Promise(resolve=>finish=resolve),h=await directHarness({save:()=>gate});
-  const f=h.choose('bay-width');h.wheel(-100);h.key('Enter');h.key('Escape');finish();await settle();
+  const f=h.choose('bay-width');h.wheel(-100);h.apply();h.key('Escape');finish();await settle();
   await h.action('resume');h.frame();h.choose('bay-width');assert.match(h.nodes.get('[data-walk-handles]').innerHTML,new RegExp((f.value+50)+' mm'));
-  h.wheel(-100);h.key('Enter');await settle();h.frame();assert.equal(h.saved.length,2);assert.equal(h.value.objects[0].bays[0].width,f.value+100);
+  h.wheel(-100);h.apply();await settle();h.frame();assert.equal(h.saved.length,2);assert.equal(h.value.objects[0].bays[0].width,f.value+100);
   assert.equal(h.document.pointerLockElement,h.canvas);assert.doesNotMatch(h.nodes.get('[data-walk-direct-status]').innerHTML,/Snapshot changed/);
 });
 
@@ -878,19 +878,25 @@ test('gold access-side paint is rendered without affecting bounds, collision gri
 });
 
 test('discard confirmation can be canceled without changing the draft, and Enter confirms without saving',async()=>{
-  const h=await directHarness(),before=structuredClone(h.value);const f=h.choose('bay-width');h.wheel(-100);h.click(2);
+  const h=await directHarness(),before=structuredClone(h.value);const f=h.choose('bay-width');h.wheel(-100);h.click(2);h.click(2);
   assert.match(h.nodes.get('[data-walk-interact-hint]').textContent,/Discard the open preview/);
   h.wheel(-100);h.number(9999);h.click(2);assert.equal(h.nodes.get('[data-walk-direct-status]').classList.contains('is-confirming'),false);
   assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,new RegExp((f.value+50)+' mm'));
   h.click(2);h.event({code:'Enter',key:'Enter',repeat:true});assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,false);
   h.key('Enter');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').hidden,true);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);assert.equal(h.document.pointerLockElement,h.canvas);
 });
-test('left click applies the active preview once, with the same validation and capture as Enter',async()=>{
+test('left click leaves the active value unsaved, and an explicit Apply action saves the object preview once',async()=>{
   let finish;const gate=new Promise(resolve=>finish=resolve),h=await directHarness({save:()=>gate}),f=h.choose('bay-width');
-  h.wheel(-100);h.click(0);h.click(0);assert.equal(h.saved.length,1);assert.equal(h.document.pointerLockElement,h.canvas);
+  h.wheel(-100);h.click(0);assert.equal(h.saved.length,0);assert.equal(h.aimedObject,h.value.objects[0].id);
+  assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Object preview/);assert.equal(h.nodes.get('[data-walk-handles]').innerHTML.includes('is-active'),false);
+  h.wheel(-100);h.number(9999);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,new RegExp((f.value+50)+' mm'));
+  h.click(0);assert.equal(h.saved.length,0);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Edit value/);h.click(0);
+  h.look({...f.point,y:f.point.y+.4});assert.match(h.nodes.get('[data-walk-interact-hint]').textContent,/Apply changes/);
+  h.click(0);h.click(0);assert.equal(h.saved.length,1);assert.equal(h.document.pointerLockElement,h.canvas);
   finish();await settle();h.frame();assert.equal(h.value.objects[0].bays[0].width,f.value+50);
-  h.choose('location-width');h.wheel(-100);h.click(0);assert.equal(h.saved.length,1);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Invalid value/);
+  h.choose('location-width');h.wheel(-100);h.click(0);h.key('Enter');assert.equal(h.saved.length,1);assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,/Invalid value/);
 });
+
 test('paused menus keep drafts and require explicit discard before changing work mode or opening the inspector',async()=>{
   const h=await directHarness(),f=h.choose('bay-width');h.wheel(-100);h.key('Escape');h.frame();
   assert.equal(h.document.pointerLockElement,null);await h.change('work-mode','analysis');assert.equal(h.nodes.get('[data-walk-discard]').hidden,false);
@@ -898,4 +904,22 @@ test('paused menus keep drafts and require explicit discard before changing work
   assert.match(h.nodes.get('[data-walk-direct-status]').innerHTML,new RegExp((f.value+50)+' mm'));
   h.key('Escape');await h.change('work-mode','analysis');await h.action('discard-confirm');await settle();h.frame();assert.equal(h.nodes.get('[data-walk-work-mode]').value,'analysis');assert.equal(h.saved.length,0);
   let opened=0;const inspector=await directHarness({openEditor:()=>opened++});inspector.choose('bay-width');inspector.wheel(-100);inspector.key('Escape');await inspector.action('edit-layout');assert.equal(opened,0);await inspector.action('discard-keep');assert.equal(opened,0);await inspector.action('edit-layout');await inspector.action('discard-confirm');assert.equal(opened,1);
+});
+
+test('object preview collects successive values into one explicit save without losing earlier edits',async()=>{
+  const h=await directHarness(),before=structuredClone(h.value),width=h.choose('bay-width');h.wheel(-100);h.click(0);
+  assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');
+  const height=h.choose('level-height');h.wheel(-100);h.click(0);assert.equal(h.saved.length,0);
+  assert.equal(h.world.entries.find(i=>i.box.object.id===before.objects[0].id).box.object.bays[0].width,width.value+50);
+  h.key('Enter');await settle();h.frame();assert.equal(h.saved.length,1);
+  assert.equal(h.value.objects[0].bays[0].width,width.value+50);assert.equal(h.value.objects[0].bays[0].levels[0].clearHeight,height.value+50);
+  assert.equal(h.saved[0].base,JSON.stringify(before));assert.deepEqual(h.value.locations.map(s=>[s.id,s.code]),before.locations.map(s=>[s.id,s.code]));
+  assert.equal(h.aimedObject,before.objects[0].id);assert.equal(h.document.pointerLockElement,h.canvas);
+});
+test('invalid later values block object-level save while preserving earlier preview changes for correction',async()=>{
+  const h=await directHarness(),width=h.choose('bay-width');h.wheel(-100);h.click(0);
+  const location=h.choose('location-width');h.wheel(-100);h.click(0);h.key('Enter');assert.equal(h.saved.length,0);
+  assert.equal(h.world.entries.find(i=>i.box.object.id===h.value.objects[0].id).box.object.bays[0].width,width.value+50);
+  h.choose('location-width');h.wheel(100);h.click(0);h.key('Enter');await settle();h.frame();assert.equal(h.saved.length,1);
+  assert.equal(h.value.objects[0].bays[0].width,width.value+50);assert.equal(h.value.locations.find(s=>s.id===location.slotId).placement.width,location.value);
 });
