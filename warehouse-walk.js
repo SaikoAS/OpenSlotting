@@ -91,11 +91,11 @@
     function canEdit(){return options.editorAvailable===true&&Boolean(options.openEditor);}
     function directEnabled(){return canEdit()&&Boolean(options.saveLayout&&window.OpenSlottingWalkEditor&&window.OpenSlottingWalkEditor.directFields);}
     function directWords(){return options.getLanguage()==='de'
-      ?{bind:'Linksklick · Objekt binden',field:'Linksklick · Wert bearbeiten',release:'Rechtsklick: lösen',locked:'Objekt gesperrt. Unter Struktur den Sperrstatus ändern und separat übernehmen.',none:'Für diesen Objekttyp das Bearbeitungsmenü verwenden.',help:'Mausrad: ändern · Shift: fein · Zahl eingeben · Linksklick / Enter / Rechtsklick: Wert abwählen',preview:'Vorschau',saved:'Änderung gespeichert.',saving:'Wird gespeichert …',invalid:'Ungültiger Wert oder Geometrie. Vorschau nicht übernehmbar.',stale:'Datenstand unklar oder geändert. Im Menü den Datenstand aktualisieren.',failed:'Speichern fehlgeschlagen. Entwurf bleibt erhalten.',impact:'Betroffene Stellplätze / Codes / Artikel',collisions:'Kollisionen',occupied:'Änderung würde den Betrachter einschließen. Erst eine freie Position wählen.'}
-      :{bind:'Left click · Bind object',field:'Left click · Edit value',release:'Right click: release',locked:'Object locked. Change the lock under Structure and apply it separately.',none:'Use the editing menu for this object type.',help:'Wheel: adjust · Shift: fine · Type a number · Left click / Enter / Right click: leave value',preview:'Preview',saved:'Change saved.',saving:'Saving …',invalid:'Invalid value or geometry. Cannot apply preview.',stale:'Snapshot changed or save uncertain. Refresh the data snapshot in the menu.',failed:'Save failed. Draft retained.',impact:'Affected locations / codes / articles',collisions:'Collisions',occupied:'This change would enclose the observer. Move to a free position first.'};}
+      ?{bind:'Linksklick · Objekt binden',field:'Linksklick · Wert bearbeiten',release:'Rechtsklick: lösen',locked:'Objekt gesperrt. Unter Struktur den Sperrstatus ändern und separat übernehmen.',none:'Für diesen Objekttyp das Bearbeitungsmenü verwenden.',help:'Mausrad: ändern · Shift: fein · Zahl eingeben · Linksklick / Enter: übernehmen · Rechtsklick: verwerfen / zurück',preview:'Vorschau',saved:'Änderung gespeichert.',saving:'Wird gespeichert …',invalid:'Ungültiger Wert oder Geometrie. Vorschau nicht übernehmbar.',stale:'Datenstand unklar oder geändert. Im Menü den Datenstand aktualisieren.',failed:'Speichern fehlgeschlagen. Entwurf bleibt erhalten.',impact:'Betroffene Stellplätze / Codes / Artikel',collisions:'Kollisionen',occupied:'Änderung würde den Betrachter einschließen. Erst eine freie Position wählen.'}
+      :{bind:'Left click · Bind object',field:'Left click · Edit value',release:'Right click: release',locked:'Object locked. Change the lock under Structure and apply it separately.',none:'Use the editing menu for this object type.',help:'Wheel: adjust · Shift: fine · Type a number · Left click / Enter: apply · Right click: discard / back',preview:'Preview',saved:'Change saved.',saving:'Saving …',invalid:'Invalid value or geometry. Cannot apply preview.',stale:'Snapshot changed or save uncertain. Refresh the data snapshot in the menu.',failed:'Save failed. Draft retained.',impact:'Affected locations / codes / articles',collisions:'Collisions',occupied:'This change would enclose the observer. Move to a free position first.'};}
     function stageWords(){return options.getLanguage()==='de'
-      ?{value:'Wert bearbeiten',object:'Objektvorschau',back:'Linksklick / Enter / Rechtsklick: Wert abwählen',apply:'Änderungen übernehmen',discard:'Vorschau verwerfen',help:'Wert anvisieren oder Übernehmen wählen · Enter: übernehmen · Rechtsklick: Objektmenü'}
-      :{value:'Edit value',object:'Object preview',back:'Left click / Enter / Right click: leave value',apply:'Apply changes',discard:'Discard preview',help:'Aim at a value or Apply changes · Enter: apply · Right click: object menu'};}
+      ?{value:'Wert bearbeiten',object:'Wertvorschau',back:'Linksklick / Enter: übernehmen · Rechtsklick: verwerfen / zurück',apply:'Änderung übernehmen',help:'Wert anvisieren und links klicken'}
+      :{value:'Edit value',object:'Value preview',back:'Left click / Enter: apply · Right click: discard / back',apply:'Apply change',help:'Aim at a value and left click'};}
     function clearDirect(release){
       directEpoch++;directDraft=null;directFieldActive=false;directTarget=null;directDirty=false;previewWorld=null;discardDirectAction=null;applyDirectPending=false;directFocusKey=null;directHoverFields=[];
       if(previewApplied&&renderer&&scene)renderer.setWorld(scene);previewApplied=false;
@@ -121,8 +121,9 @@
     }
     function keepDirectDraft(){discardDirectAction=null;applyDirectPending=false;paintDirect();if(immersivePaused){const resume=root.querySelector('[data-walk-action="resume"]');if(resume)resume.focus();}schedule();}
     function releaseDirect(){
-      if(discardDirectAction||applyDirectPending){keepDirectDraft();return;}
-      if(directFieldActive){finishDirectField();return;}
+      if(directBusy)return;
+      if(discardDirectAction){keepDirectDraft();return;}
+      if(directFieldActive||applyDirectPending){cancelDirectField();return;}
       if(directSection==='structure'){
         const menu=structureState(),state=menu.selection;
         if(state&&state.view!=='bays'){
@@ -145,11 +146,9 @@
     function hasDirectChanges(){
       return Boolean(directDraft&&(directDraft.changed||directDirty&&directDraft.value!==directDraft.field.value));
     }
-    function finishDirectField(){
-      if(directBusy)return;prepareDirect();directFieldActive=false;
-      directFocusKey=null;
-      if(!hasDirectChanges())clearDirect(false);
-      schedule();
+    function cancelDirectField(){
+      if(directBusy)return;const changed=hasDirectChanges();clearDirect(false);
+      directNotice=changed?(options.getLanguage()==='de'?'Änderung verworfen.':'Change discarded.'):'';schedule();
     }
     function bindDirect(){
       if(directBusy||directStale)return;
@@ -163,25 +162,21 @@
       directNotice=object.locked?directWords().locked:directFields.length?'':directWords().none;schedule();
     }
     function directClick(){
+      if(directBusy)return;
       if(discardDirectAction){confirmDirectDiscard();return;}
       if(applyDirectPending){saveDirect(true);return;}
       if(!boundObjectId){bindDirect();return;}
-      if(directFieldActive){finishDirectField();return;}
+      if(directFieldActive){saveDirect();return;}
       paintDirect();
       if(directBusy||!directTarget||directTarget.locked)return;
       if(directTarget.action==='structure'){
         directStructure=Object.assign({},directTarget.next);directTarget=null;directFocusKey=null;schedule();return;
       }
       if(directTarget.action==='section'){switchDirectSection(directTarget.sectionValue);return;}
-      if(directTarget.action==='discard'){requestDirectDiscard();return;}
       if(directStale)return;
-      if(directTarget.action==='apply'){saveDirect();return;}
       const field=directTarget;
-      if(directDraft&&directDraft.field.key===field.key){directFieldActive=true;if(field.type==='text')stop();schedule();return;}
-      if(directDraft&&directDraft.error){directNotice=directWords().invalid;schedule();return;}
-      if(hasDirectChanges()&&(field.kind==='object-lock'||directDraft.field.kind==='object-lock')){directNotice=options.getLanguage()==='de'?'Sperrstatus separat übernehmen oder verwerfen.':'Apply or discard the lock change separately.';schedule();return;}
-      const working=directDraft&&directDraft.candidate||JSON.parse(directBase),previous=directDraft;
-      directDraft={field:field,value:field.value,input:field.value===null?'':String(field.value),typing:false,error:'',candidate:working,startLayout:working,changed:JSON.stringify(working)!==directBase,impact:previous&&previous.impact,removals:previous&&previous.removals,collisions:previous&&previous.collisions||0};
+      const working=JSON.parse(directBase);
+      directDraft={field:field,value:field.value,input:field.value===null?'':String(field.value),typing:false,error:'',candidate:working,startLayout:working,changed:false,impact:null,removals:null,collisions:0};
       directFieldActive=true;
       if(field.type==='text')stop();
       directNotice='';schedule();
@@ -315,7 +310,7 @@
         if(element&&!element.hidden&&element.getClientRects&&element.getClientRects().length){const r=element.getBoundingClientRect();blocked.push({left:r.left-canvasRect.left,right:r.right-canvasRect.left,top:r.top-canvasRect.top,bottom:r.bottom-canvasRect.top});}
       });
       let controls=directFields.filter(field=>field.section===directSection||field.sections&&field.sections.includes(directSection));
-      if(directSection==='structure'){const menu=structureState();directStructure=menu.selection;controls=menu.controls;}
+      if(directSection==='structure'&&!directFieldActive){const menu=structureState();directStructure=menu.selection;controls=menu.controls;}
       const object=(directDraft&&directDraft.candidate||info.layout).objects.find(item=>item.id===boundObjectId)||info.layout.objects.find(item=>item.id===boundObjectId);
       if(!directSection&&directMenuLocal&&object){
         const point=model.localPoint(object,directMenuLocal.x*1000,directMenuLocal.z*1000);
@@ -323,13 +318,7 @@
           de:(i+1)+' · '+['Struktur','Zonen','Lagerplätze'][i],en:(i+1)+' · '+['Structure','Zones','Locations'][i],
           point:{x:point.x/1000,y:directMenuLocal.y+.9-i*.3,z:point.z/1000}})));
       }
-      if(directDraft&&!directFieldActive&&hasDirectChanges()){
-        const anchor=(directFields.find(field=>field.key===directDraft.field.key)||directDraft.field).point,t=stageWords();
-        controls=controls.concat([
-          {key:'@apply',action:'apply',de:t.apply,en:t.apply,locked:Boolean(directDraft.error||directBusy||directStale),point:{...anchor,y:anchor.y+.4}},
-          {key:'@discard',action:'discard',de:t.discard,en:t.discard,locked:directBusy,point:{...anchor,y:anchor.y+.7}}
-        ]);
-      }
+      if(directFieldActive&&directDraft)controls=[directFields.find(f=>f.key===directDraft.field.key)||directDraft.field];
       const candidates=controls.map(field=>{
         const p=walk.project(camera,field.point,width,height);let angle=0;
         if(field.measure&&!field.measure.leader){const a=walk.project(camera,field.measure.a,width,height),b=walk.project(camera,field.measure.b,width,height);if(a&&b){angle=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;if(angle>90)angle-=180;if(angle< -90)angle+=180;}}
@@ -381,14 +370,14 @@
       let detail=directBusy?t.saving:directStale?t.stale:!directSection?(options.getLanguage()==='de'?'Objektmenü: Struktur, Zonen oder Lagerplätze auswählen.':'Object menu: choose Structure, Zones or Locations.'):directNotice||(options.getLanguage()==='de'?'Auswahl anvisieren und links klicken.':'Aim at a control and left click.');
       if(draft&&!directBusy&&!directStale){
         const stages=stageWords();
-        detail=(!directSection||directSection==='structure'&&['bays','levels'].includes(structureState().selection?.view))?(!directSection?(options.getLanguage()==='de'?'Objektmenü':'Object menu'):navigationLabel())+(options.getLanguage()==='de'?' · Offene Vorschau':' · Open preview'):(directFieldActive?stages.value:stages.object)+' · '+draft.field[options.getLanguage()==='de'?'de':'en']+': '+directFormat(draft.field,draft.value,draft.input)+' · '+(directFieldActive?directFieldHelp(draft.field):stages.help.split(' · ').slice(0,-1).join(' · '));
+        detail=(!directSection||directSection==='structure'&&['bays','levels'].includes(structureState().selection?.view))?(!directSection?(options.getLanguage()==='de'?'Objektmenü':'Object menu'):navigationLabel())+(options.getLanguage()==='de'?' · Offene Vorschau':' · Open preview'):(directFieldActive?stages.value:stages.object)+' · '+draft.field[options.getLanguage()==='de'?'de':'en']+': '+directFormat(draft.field,draft.value,draft.input)+' · '+(directFieldActive?directFieldHelp(draft.field):stages.help);
         if(draft.error)detail+=' · '+t.invalid+' '+draft.error;
         else if(draft.impact)detail+=' · '+t.impact+': '+draft.impact.locations+' / '+draft.impact.codes+' / '+draft.impact.articles+' · '+t.collisions+': '+draft.collisions;
         if(draft.saveError||draft.blocked)detail+=' · '+(draft.saveError||draft.blocked);
         if(directNotice)detail+=' · '+directNotice;
       }
       if(discardDirectAction)detail=discard.question+' · '+(draft?directFormat(draft.field,draft.value,draft.input)+' · ':'')+discard.keys;
-      if(applyDirectPending)detail=applyDirectQuestion()+(options.getLanguage()==='de'?' Linksklick / Enter: bestätigen · Rechtsklick: weiter bearbeiten':' Left click / Enter: confirm · Right click: keep editing');
+      if(applyDirectPending)detail=applyDirectQuestion()+(options.getLanguage()==='de'?' Linksklick / Enter: bestätigen · Rechtsklick: verwerfen / zurück':' Left click / Enter: confirm · Right click: discard / back');
       if(!directFieldActive&&!discardDirectAction&&!applyDirectPending)detail+=!directSection?(options.getLanguage()==='de'?' · 1 Struktur · 2 Zonen · 3 Lagerplätze · Rechtsklick: lösen':' · 1 Structure · 2 Zones · 3 Locations · Right click: release'):' · '+navigationBack();
       if(!directFieldActive&&directHoverFields.length>1)detail+=(options.getLanguage()==='de'?' · Mausrad: überlappende Felder wählen':' · Wheel: choose overlapping fields')+' ('+(directHoverFields.findIndex(field=>directTarget&&field.key===directTarget.key)+1)+'/'+directHoverFields.length+')';
       status.classList.toggle('is-confirming',Boolean(discardDirectAction||applyDirectPending));
@@ -401,7 +390,6 @@
     }
     async function saveDirect(approved){
       if(!directDraft||directBusy||directStale)return;prepareDirect();
-      if(directFieldActive){finishDirectField();return;}
       const draft=directDraft;if(draft.error)return;
       if(!hasDirectChanges()){clearDirect(false);return;}
       if(!draft.candidate)return;
@@ -570,7 +558,7 @@
         showAim(boundObjectId||(hit?hit.item.box.object.id:null));
         if(boundObjectId){
           if(discardDirectAction&&!immersivePaused){prompt.hidden=false;prompt.textContent=discardWords().question+' '+discardWords().keys;return;}
-          if(applyDirectPending&&!immersivePaused){prompt.hidden=false;prompt.textContent=applyDirectQuestion()+(options.getLanguage()==='de'?' Linksklick / Enter: bestätigen · Rechtsklick: zurück':' Left click / Enter: confirm · Right click: back');return;}
+          if(applyDirectPending&&!immersivePaused){prompt.hidden=false;prompt.textContent=applyDirectQuestion()+(options.getLanguage()==='de'?' Linksklick / Enter: bestätigen · Rechtsklick: verwerfen / zurück':' Left click / Enter: confirm · Right click: discard / back');return;}
           prompt.hidden=!directTarget||directFieldActive||!directSection||Boolean(directTarget.measure);prompt.textContent=directTarget?(directTarget.action?(options.getLanguage()==='de'?'Linksklick':'Left click')+' · '+directTarget[options.getLanguage()==='de'?'de':'en']:directTarget.locked?directUnavailable(directTarget):directWords().field):'';return;
         }
         prompt.hidden=!hit&&!directStale;prompt.textContent=directStale?directWords().stale:hit?(directEnabled()?directWords().bind+' · ':(options.getLanguage()==='de'?'Linksklick':'Left click')+' · '+editText().aim+': ')+hit.item.box.object.name:'';return;
@@ -1014,7 +1002,7 @@
       if(discardDirectAction&&(event.code==='Enter'||event.code==='NumpadEnter')){event.preventDefault();if(!event.repeat)confirmDirectDiscard();return;}
       if(applyDirectPending&&(event.code==='Enter'||event.code==='NumpadEnter')){event.preventDefault();if(!event.repeat)saveDirect(true);return;}
       if(directDraft&&!discardDirectAction&&!applyDirectPending&&!directBusy){
-        if(event.code==='Enter'||event.code==='NumpadEnter'){event.preventDefault();if(!event.repeat){if(directFieldActive)finishDirectField();else saveDirect();}return;}
+        if(event.code==='Enter'||event.code==='NumpadEnter'){event.preventDefault();if(!event.repeat)saveDirect();return;}
         if(!directStale&&directFieldActive&&(directDraft.field.type==='boolean'||directDraft.field.type==='choice')&&['ArrowUp','ArrowDown'].includes(event.code)){event.preventDefault();adjustDirect(event.code==='ArrowUp'?1:-1,event.shiftKey);return;}
         if(!directStale&&directFieldActive&&((directDraft.field.type==='text'&&event.key&&Array.from(event.key).length===1)||directDraft.field.type==='number'&&/^[0-9.,-]$/.test(event.key)||event.code==='Backspace'||event.code==='Delete')){
           event.preventDefault();const draft=directDraft;

@@ -49,7 +49,6 @@
 .wh-walk-handle.is-target { border: 2px solid #73ffd1; background: #215548; }
 .wh-walk-handle.is-active { border-color: #ffd78a; color: #ffe1ab; background: #49391ff2; }
 .wh-walk-handle.is-action { border-color: #73ffd1; color: #e6fff5; background: #20463ef2; }
-.wh-walk-handle[data-direct-field="@discard"] { border-color: #ffd78a; background: #49391ff2; }
 .wh-walk-handle[aria-disabled="true"] { opacity: .55; }
 .wh-walk-handle span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .wh-walk-handle b { flex: none; margin-left: 8px; }

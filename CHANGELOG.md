@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Focus walk value editing on one parameter and its measurement. Apply and save with left click/Enter, discard and return with right click, and remove projected Apply/Discard actions. Keep destructive-change confirmation, validation, scope navigation and parent-owned persistence.
+
 - Improve the walk crosshair with opaque white marks and a black outline above editing labels. Add live shape, size, thickness, color and outline controls with a light/dark preview and reset; persist per workspace and in backups, using independent FOV/appearance patches through the parent window.
 
 - Add bay-first Structure navigation and a separate level chooser in the walk Editor. Scope values to the selected bay/level, retain entire-rack controls, and draw geometry-based dimension arrows, leaders and aligned labels with matching hit areas. Preserve staged previews and right-click backtracking.
