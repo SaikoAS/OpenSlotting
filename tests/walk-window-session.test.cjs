@@ -143,3 +143,17 @@ test('failed or timed-out writes leave the viewer snapshot untouched and never r
   release();await flush();assert.equal(writes,2);assert.equal(seen.length,1);
   await client.refresh();assert.equal(seen.at(-1).layout.objects[0].name,'Synthetic saved');
 });
+
+test('crosshair preferences cross the minimal session and independent patches preserve the other setting',async t=>{
+  const scope=environment(),source=fixture(),crosshair={shape:'circle',size:32,thickness:3,color:'#00ffcc',outline:true};source.preferences={fov:75,crosshair};let client;
+  const host=sessions.createHost({environment:scope,getWorkspaceId:()=>source.workspaceId,getSnapshot:()=>sessions.snapshot(source,null,model),
+    savePreferences:async patch=>{source.preferences={...source.preferences,...patch};return source.preferences;},launch:id=>{client=sessions.createClient({id,environment:scope,onSnapshot:data=>assert.deepEqual(data.preferences,{fov:75,crosshair})});}});t.after(()=>host.close());await host.start();
+  assert.deepEqual(await client.savePreferences({fov:90}),{fov:90,crosshair});assert.deepEqual(await client.savePreferences({crosshair:{...crosshair,shape:'dot'}}),{fov:90,crosshair:{...crosshair,shape:'dot'}});
+  for(const value of [{},{crosshair:{...crosshair,color:'url(https://invalid)'}},{crosshair:{...crosshair,size:1000}},{crosshair:{...crosshair,outline:'true'}}])await assert.rejects(client.savePreferences(value),/invalid-preferences/);
+});
+
+test('overlapping preference writes reject immediately instead of timing out',async t=>{
+  const scope=environment(),source=fixture();let client,release;
+  const host=sessions.createHost({environment:scope,getWorkspaceId:()=>source.workspaceId,getSnapshot:()=>sessions.snapshot(source,null,model),savePreferences:()=>new Promise(resolve=>release=resolve),launch:id=>{client=sessions.createClient({id,environment:scope,onSnapshot(){}});}});t.after(()=>host.close());await host.start();
+  const first=client.savePreferences({fov:75});await flush();await assert.rejects(client.savePreferences({fov:80}),/preferences-failed/);release();await first;
+});

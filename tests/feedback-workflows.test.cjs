@@ -218,3 +218,10 @@ test('FOV controller commits atomically, rejects failure, tolerates post-commit 
   const saving=late.save({fov:95});late.state.activeWorkspace={id:'two'};late.state.walkPreferences={fov:50};finish();
   await assert.rejects(saving,/workspace-changed/);assert.equal(late.state.walkPreferences.fov,50);
 });
+
+test('crosshair patches preserve FOV, survive backup/restore and remain workspace-local',async()=>{
+  const crosshair={shape:'circle',size:34,thickness:3,color:'#00ffcc',outline:true},record=workspace.createWorkspace('Synthetic crosshair',{walkPreferences:{fov:85,crosshair}});
+  const restored=workspace.parseBackup(workspace.stringifyBackup(record));assert.deepEqual(restored.walkPreferences,{fov:85,crosshair});assert.deepEqual(workspace.createWorkspace('Other').walkPreferences,{fov:60});
+  const h=walkPreferenceController(async options=>options.onCommitted());h.state.walkPreferences={fov:85,crosshair};await h.save({fov:70});assert.deepEqual(h.state.walkPreferences,{fov:70,crosshair});
+  const next={...crosshair,shape:'dot'};await h.save({crosshair:next});assert.deepEqual(h.state.walkPreferences,{fov:70,crosshair:next});
+});

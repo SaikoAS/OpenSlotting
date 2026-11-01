@@ -259,7 +259,7 @@ function harness(value,available=true,native=false,options={}){
     getArticles:()=>h.articles||[{article_id:'SKU',order_line_count:12,total_quantity:24,active_days:3}],getComparison:()=>h.comparison||null,getCustomFields:()=>h.customFields||[],getWorkspaceId:()=>h.workspace||'one',getLanguage:()=>h.language||'en',
     getPreferences:()=>h.preferences,savePreferences:async proposed=>{
       const workspace=h.workspace;if(h.failFov)throw new Error('Synthetic save failure');
-      if(h.fovGate)await h.fovGate;h.fovSaves.push({...proposed});if(h.workspace===workspace)h.preferences={...proposed};
+      if(h.fovGate)await h.fovGate;h.fovSaves.push({...proposed});if(h.workspace===workspace)h.preferences={...h.preferences,...proposed};
     },formatQuantity:value=>String(value),openArticle:id=>{h.openedArticle=id;h.active(false);},isVisible:()=>h.visible,...options});
   h.editor=editor;h.render=editor.render;h.active=editor.setActive;h.canvas=canvases[0];
   if(native)h.canvas.requestPointerLock=()=>{
@@ -277,6 +277,7 @@ function harness(value,available=true,native=false,options={}){
   h.tab=tab=>listeners.click({target:{closest(selector){return selector==='[data-walk-inspect-tab]'?{dataset:{walkInspectTab:tab}}:selector==='.wh-walk-interaction'?nodes.get('.wh-walk-interaction'):null;}}});
   h.aim=(slotId,distance=2)=>{h.aimHit=slotId?{item:h.world.positions.get(slotId),distance}:null;};
   h.search=code=>listeners.input({target:{value:code,hasAttribute:key=>key==='data-walk-search'}});
+  h.crosshair=(name,value,type='change')=>listeners[type]({target:{value:String(value),checked:value,getAttribute:key=>key==='data-walk-crosshair'?name:null,hasAttribute:key=>key==='data-walk-crosshair'}});
   h.fov=(value,type='input')=>listeners[type]({target:{value:String(value),hasAttribute:key=>key==='data-walk-fov'}});
   h.change=(name,value)=>listeners.change({target:{value:String(value),hasAttribute:key=>key==='data-walk-'+name}});
   h.input=(name,value)=>listeners.input({target:{value:String(value),hasAttribute:key=>key==='data-walk-'+name}});
@@ -1080,4 +1081,27 @@ test('technical dimension labels and SVG guides follow projected rotated geometr
   const value=layout();value.objects[0].rotation=30;const h=await directHarness({value:model.normalizeLayout(value)}),before=structuredClone(h.value),field=h.choose('bay-width'),html=h.nodes.get('[data-walk-handles]').innerHTML;
   assert.match(html,/wh-walk-measures/);assert.ok(html.includes('data-measure-key="'+field.key+'"'));assert.match(html,/rotate\(/);assert.ok(html.includes('Bay width'));assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'value');
   h.wheel(-100);h.click(2);assert.deepEqual(h.value,before);assert.equal(h.document.pointerLockElement,h.canvas);assert.equal(h.saved.length,0);
+});
+
+test('crosshair defaults improve contrast and portable normalization matches the viewer without admitting SVG/CSS injection',()=>{
+  const workspace=require('../workspace.js'),expected={shape:'cross',size:26,thickness:2,color:'#ffffff',outline:true};
+  assert.deepEqual(walk.crosshairPreferences(),expected);assert.deepEqual(workspace.normalizeWalkPreferences(),{fov:60});
+  for(const value of [null,[],{shape:'script',size:999,thickness:-5,color:'url(https://invalid)',outline:'false'},{shape:'circle',size:12,thickness:5,color:'#AABBCC',outline:false}])assert.deepEqual(workspace.normalizeWalkPreferences({crosshair:value}).crosshair,walk.crosshairPreferences(value));
+  const svg=walk.crosshairSvg({color:'" onload="bad()',shape:'<script>'});assert.match(svg,/stroke="#000000"/);assert.match(svg,/stroke="#ffffff"/);assert.match(svg,/vector-effect="non-scaling-stroke"/);assert.doesNotMatch(svg,/onload|script|https:/);
+});
+
+test('crosshair settings preview without a write, save only their patch and retain FOV and geometry',async()=>{
+  const h=harness(layout(),true,true,{standalone:true}),before=structuredClone(h.value),worlds=h.worlds;
+  h.crosshair('size',40,'input');assert.match(h.nodes.get('.wh-walk-crosshair').innerHTML,/width="40"/);assert.equal(h.fovSaves.length,0);
+  await h.crosshair('size',40);assert.equal(h.preferences.crosshair.size,40);assert.equal(h.preferences.fov,60);assert.deepEqual(Object.keys(h.fovSaves[0]),['crosshair']);
+  await h.fov(80,'change');assert.equal(h.preferences.fov,80);assert.equal(h.preferences.crosshair.size,40);
+  await h.crosshair('shape','circle');assert.match(h.nodes.get('.wh-walk-crosshair').innerHTML,/r="38"/);
+  await h.action('crosshair-reset');assert.deepEqual(h.preferences.crosshair,walk.crosshairPreferences());assert.equal(h.preferences.fov,80);assert.equal(h.worlds,worlds);assert.deepEqual(h.value,before);
+});
+
+test('failed and late crosshair saves restore the right workspace and never affect movement capture',async()=>{
+  const h=harness(layout(),true,true,{standalone:true});h.failFov=true;h.crosshair('color','#ff0000','input');await h.crosshair('color','#ff0000');assert.match(h.nodes.get('.wh-walk-crosshair').innerHTML,/stroke="#ffffff"/);assert.match(h.nodes.get('[data-walk-message]').textContent,/Could not save crosshair/);
+  let release;const late=harness(layout(),true,true,{standalone:true});late.fovGate=new Promise(resolve=>release=resolve);const saving=late.crosshair('size',48);
+  late.workspace='two';late.preferences={fov:75,crosshair:{shape:'dot',size:18,thickness:3,color:'#00ff00',outline:false}};late.render();release();await saving;assert.equal(late.preferences.crosshair.size,18);assert.match(late.nodes.get('.wh-walk-crosshair').innerHTML,/width="18"/);assert.doesNotMatch(late.nodes.get('.wh-walk-crosshair').innerHTML,/stroke="#000000"/);
+  await late.action('resume');assert.equal(late.document.pointerLockElement,late.canvas);assert.equal(late.camera.fov,75);
 });

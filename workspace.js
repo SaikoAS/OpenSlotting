@@ -87,9 +87,18 @@
     return name;
   }
 
-  function normalizeWalkPreferences(value) {
+  function normalizeCrosshairPreferences(value) {
+    const input=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
+    const number=(key,fallback,min,max)=>Number.isFinite(input[key])?Math.round(Math.min(max,Math.max(min,input[key]))):fallback;
+    return {shape:['cross','dot','circle'].includes(input.shape)?input.shape:'cross',size:number('size',26,12,48),thickness:number('thickness',2,1,5),color:typeof input.color==='string'&&/^#[0-9a-f]{6}$/i.test(input.color)?input.color.toLowerCase():'#ffffff',outline:typeof input.outline==='boolean'?input.outline:true};
+  }
+
+  function normalizeWalkPreferences(value,previous) {
     const input = isPlainObject(value) ? value : {};
-    return { fov: Number.isFinite(input.fov) ? Math.round(Math.min(100, Math.max(45, input.fov))) : 60 };
+    const base=isPlainObject(previous)?previous:{},fov=Object.prototype.hasOwnProperty.call(input,'fov')?input.fov:base.fov;
+    const result={ fov: Number.isFinite(fov) ? Math.round(Math.min(100, Math.max(45, fov))) : 60 };
+    if(Object.prototype.hasOwnProperty.call(input,'crosshair')||Object.prototype.hasOwnProperty.call(base,'crosshair'))result.crosshair=normalizeCrosshairPreferences(Object.prototype.hasOwnProperty.call(input,'crosshair')?input.crosshair:base.crosshair);
+    return result;
   }
 
   function normalizeTablePreferences(value) {
@@ -1652,6 +1661,7 @@
     validateCustomFieldMappingRange: validateCustomFieldMappingRange,
     createId: createId,
     normalizeWalkPreferences: normalizeWalkPreferences,
+    normalizeCrosshairPreferences: normalizeCrosshairPreferences,
     normalizeTablePreferences: normalizeTablePreferences,
     createWorkspace: createWorkspace,
     validateMappingRange: validateMappingRange,

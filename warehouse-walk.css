@@ -105,7 +105,7 @@
 .wh-walk-labels { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
 .wh-walk-labels button { position: absolute; max-width: 140px; padding: 3px 6px; transform: translate(-50%, -50%); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border: 1px solid #647c86; border-radius: 4px; background: #14242bed; color: #ddf4f0; font-size: .66rem; pointer-events: auto; cursor: pointer; }
 .wh-walk-labels [aria-pressed="true"] { border-color: #fff2a3; color: #fff2a3; }
-.wh-walk-crosshair { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #d8eeec; pointer-events: none; opacity: .6; }
+.wh-walk-crosshair { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 7; line-height: 0; pointer-events: none; opacity: 1; }
 .wh-walk-map-wrap { position: absolute; left: 10px; bottom: 10px; z-index: 2; max-width: 42%; padding: 6px; border: 1px solid #526771; border-radius: 7px; color: #d1e4e5; background: #132029ed; }
 .wh-walk-map-wrap small { display: block; max-width: 240px; margin-bottom: 4px; font-size: .65rem; }
 .wh-walk-map { display: block; width: 240px; max-width: 100%; height: auto; cursor: crosshair; }
@@ -218,3 +218,16 @@ html:has(.walk-window-document), .walk-window-document { width: 100%; height: 10
 .wh-walk-handle.is-measure { width: 180px; border-radius: 2px; background: #10272ce8; }
 .wh-walk-measures .is-active .wh-walk-dimension-arrows { fill: #ffd78a; }
 .wh-walk-measures .is-target .wh-walk-dimension-arrows { fill: #73ffd1; }
+
+.wh-walk-crosshair svg, .wh-walk-crosshair-preview svg { display: block; overflow: visible; }
+.wh-walk-crosshair-settings { display: block; min-width: 0; }
+.wh-walk-crosshair-settings summary { padding: 8px 0; color: #dff7f1; cursor: pointer; }
+.wh-walk-crosshair-settings > :not(summary) { margin-top: 8px; }
+.wh-walk-crosshair-preview { display: grid; place-items: center; height: 68px; border: 1px solid #56766f; border-radius: 5px; background: linear-gradient(90deg,#e2e8ed 50%,#111c25 50%); }
+.wh-walk-crosshair-settings label > span { display: flex; align-items: center; gap: 6px; }
+.wh-walk-crosshair-settings input[type="range"] { min-width: 0; flex: 1; accent-color: #75d3bc; }
+.wh-walk-crosshair-settings output { min-width: 38px; }
+.wh-walk-crosshair-settings input[type="color"] { min-height: 32px; width: 100%; padding: 2px; }
+.wh-walk-crosshair-settings .wh-walk-crosshair-check { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+.wh-walk-crosshair-check input { width: auto; }
+.wh-walk-crosshair-settings:not([open]) > :not(summary) { display: none; }

@@ -470,7 +470,7 @@
     const inertBefore=new Map();
     let motion=walk.createMotion(),standingEye=1.7,walkSpeed=1.4,flySpeed=5,crouchToggle=false,jumpQueued=false,simulationRunning=false;
     const keys=new Set();
-    let savingFov=false,workspaceRevision=0;
+    let savingFov=false,workspaceRevision=0,crosshair=walk.crosshairPreferences();
     let immersiveRequest=0,immersivePaused=true,showControls=false,mapVisible=true,fullscreenPending=false;
     let mouseRequest=0,inlineFallback=false,fallbackOffered=false;
     const renderer=window.OpenSlottingWarehouseWalkRenderer.create(canvas,walk,{
@@ -480,6 +480,23 @@
       restored:function(){if(disposed)return;message='';labelTime=-Infinity;
         updatePanel();syncImmersive();schedule();}
     });
+    function crosshairWords(){return options.getLanguage()==='de'
+      ?{title:'Fadenkreuz',shape:'Form',cross:'Kreuz mit Punkt',dot:'Punkt',circle:'Ring',size:'Größe (px)',thickness:'Strichstärke (px)',color:'Farbe',outline:'Schwarze Kontur',reset:'Fadenkreuz zurücksetzen',preview:'Vorschau auf hellem und dunklem Hintergrund',failed:'Fadenkreuz konnte nicht gespeichert werden. Der gespeicherte Wert wurde wiederhergestellt.'}
+      :{title:'Crosshair',shape:'Shape',cross:'Cross with dot',dot:'Dot',circle:'Ring',size:'Size (px)',thickness:'Line thickness (px)',color:'Color',outline:'Black outline',reset:'Reset crosshair',preview:'Preview on light and dark backgrounds',failed:'Could not save crosshair. The saved value was restored.'};}
+    function savedCrosshair(){return walk.crosshairPreferences(options.getPreferences&&options.getPreferences()?.crosshair);}
+    function crosshairControls(){const t=crosshairWords();return '<details class="wh-walk-crosshair-settings"><summary>'+esc(t.title)+'</summary><div class="wh-walk-crosshair-preview" data-walk-crosshair-preview role="img" aria-label="'+esc(t.preview)+'"></div><label>'+esc(t.shape)+'<select data-walk-crosshair="shape">'+['cross','dot','circle'].map(v=>'<option value="'+v+'">'+esc(t[v])+'</option>').join('')+'</select></label><label>'+esc(t.size)+'<span><input type="range" min="12" max="48" step="1" data-walk-crosshair="size"><output data-crosshair-value="size"></output></span></label><label>'+esc(t.thickness)+'<span><input type="range" min="1" max="5" step="1" data-walk-crosshair="thickness"><output data-crosshair-value="thickness"></output></span></label><label>'+esc(t.color)+'<input type="color" data-walk-crosshair="color"></label><label class="wh-walk-crosshair-check"><input type="checkbox" data-walk-crosshair="outline">'+esc(t.outline)+'</label><button type="button" data-walk-action="crosshair-reset">'+esc(t.reset)+'</button></details>';}
+    function syncCrosshair(){
+      const svg=walk.crosshairSvg(crosshair),mark=root.querySelector('.wh-walk-crosshair'),preview=root.querySelector('[data-walk-crosshair-preview]');if(mark)mark.innerHTML=svg;if(preview)preview.innerHTML=svg;
+      for(const name of ['shape','size','thickness','color','outline']){const control=root.querySelector('[data-walk-crosshair="'+name+'"]');if(control){if(name==='outline')control.checked=crosshair.outline;else control.value=String(crosshair[name]);control.disabled=savingFov||!options.savePreferences;}const output=root.querySelector('[data-crosshair-value="'+name+'"]');if(output)output.textContent=crosshair[name]+' px';}
+      const reset=root.querySelector('[data-walk-action="crosshair-reset"]');if(reset)reset.disabled=savingFov||!options.savePreferences;
+    }
+    function previewCrosshair(target){if(savingFov||!options.savePreferences)return;const name=target.getAttribute('data-walk-crosshair');if(!['shape','size','thickness','color','outline'].includes(name))return;crosshair=walk.crosshairPreferences({...crosshair,[name]:name==='outline'?target.checked:['size','thickness'].includes(name)?Number(target.value):target.value});syncCrosshair();}
+    async function saveCrosshair(value){
+      if(savingFov||!options.savePreferences)return;const revision=workspaceRevision,focused=document.activeElement,proposed=walk.crosshairPreferences(value);savingFov=true;crosshair=proposed;syncCrosshair();syncFovControls();
+      try{await options.savePreferences({crosshair:proposed});if(revision===workspaceRevision){crosshair=savedCrosshair();tell('');}}
+      catch(_){if(revision===workspaceRevision){crosshair=savedCrosshair();tell(crosshairWords().failed);}}
+      finally{savingFov=false;syncCrosshair();syncFovControls();if(revision===workspaceRevision&&visible()&&focused?.isConnected&&(!document.activeElement||document.activeElement===document.body||document.activeElement===focused))focused.focus({preventScroll:true});}
+    }
     function savedFov(){const prefs=options.getPreferences?options.getPreferences():null;return walk.fieldOfView({fov:prefs&&prefs.fov});}
     function syncFovControls(){
       const input=root.querySelector('[data-walk-fov]'),output=root.querySelector('[data-walk-fov-value]'),reset=root.querySelector('[data-walk-action="fov-reset"]');
@@ -495,13 +512,13 @@
       const focused=document.activeElement;
       const focusSelector=focused===root.querySelector('[data-walk-fov]')?'[data-walk-fov]':
         focused===root.querySelector('[data-walk-action="fov-reset"]')?'[data-walk-action="fov-reset"]':null;
-      savingFov=true;previewFov(proposed);
+      savingFov=true;syncCrosshair();previewFov(proposed);
       try {
         await options.savePreferences({fov:proposed});
         if(revision===workspaceRevision){camera.fov=savedFov();message='';tell('');}
       } catch(_){if(revision===workspaceRevision){camera.fov=savedFov();tell(text().fovFailed);}}
       finally{
-        savingFov=false;syncFovControls();labelTime=-Infinity;schedule();
+        savingFov=false;syncCrosshair();syncFovControls();labelTime=-Infinity;schedule();
         if(focusSelector&&revision===workspaceRevision&&visible()&&
           (!document.activeElement||document.activeElement===document.body||document.activeElement===focused)){
           const control=root.querySelector(focusSelector);if(control)control.focus({preventScroll:true});
@@ -582,7 +599,7 @@
     function trapMenuFocus(event){
       if(!showControls||interactionSlotId)return;
       const menu=root.querySelector('.wh-walk-menu');if(!menu)return;
-      const controls=Array.from(menu.querySelectorAll('button, select, input, [tabindex]'))
+      const controls=Array.from(menu.querySelectorAll('button, select, input, summary, [tabindex]'))
         .filter(element=>!element.disabled&&!element.hidden&&(!element.getClientRects||element.getClientRects().length));
       const first=controls[0],last=controls[controls.length-1];
       if(!first){event.preventDefault();menu.focus({preventScroll:true});return;}
@@ -877,7 +894,7 @@
       restoreBackground();
       const id=options.getWorkspaceId(),changed=id!==workspaceId;workspaceId=id;stop();
       if(changed){directBusy=false;directStale=false;}
-      if(changed||!savingFov)camera.fov=savedFov();
+      if(changed||!savingFov){camera.fov=savedFov();crosshair=savedCrosshair();}
       if(changed){workspaceRevision++;leaveImmersive();fallbackOffered=false;mapVisible=true;selectedId=null;search='';message='';camera.eye=standingEye=1.7;motion=walk.createMotion();walkSpeed=speed=1.4;flySpeed=5;crouchToggle=false;colorMode='assignments';details=true;}
       if(changed&&options.initialView&&['assignments','usage','demand'].includes(options.initialView.colorMode))colorMode=options.initialView.colorMode;
       if(changed)workMode=canEdit()&&options.initialView&&options.initialView.workMode==='editor'?'editor':'analysis';
@@ -895,13 +912,13 @@
         '<label class="wh-walk-speed">'+esc(t.speed)+'<span><input type="range" data-walk-speed-range aria-label="'+esc(t.speed)+'" min="0.1" max="20" step="0.1" value="'+speed+'"><input type="number" data-walk-speed aria-label="'+esc(t.speed)+'" min="0.1" max="20" step="0.1" value="'+speed+'"></span><output data-walk-speed-value></output></label>'+
         '<label>'+esc(t.eye)+'<input type="number" data-walk-eye min="1000" max="2200" step="50" value="'+Math.round(standingEye*1000)+'"></label>'+
         '<div class="wh-walk-motion-actions"><button type="button" data-walk-action="jump">'+esc(t.jump)+'</button><button type="button" data-walk-action="crouch" aria-pressed="'+crouchToggle+'">'+esc(t.crouch)+'</button></div></fieldset>'+
-        '<fieldset><legend>'+esc(t.viewSettings)+'</legend><label class="wh-walk-fov">'+esc(t.fov)+'<span><input type="range" data-walk-fov min="'+walk.MIN_FOV+'" max="'+walk.MAX_FOV+'" step="1" value="'+camera.fov+'"><output data-walk-fov-value>'+camera.fov+'°</output></span></label><button type="button" data-walk-action="fov-reset">'+esc(t.fovReset)+'</button>'+
+        '<fieldset><legend>'+esc(t.viewSettings)+'</legend><label class="wh-walk-fov">'+esc(t.fov)+'<span><input type="range" data-walk-fov min="'+walk.MIN_FOV+'" max="'+walk.MAX_FOV+'" step="1" value="'+camera.fov+'"><output data-walk-fov-value>'+camera.fov+'°</output></span></label><button type="button" data-walk-action="fov-reset">'+esc(t.fovReset)+'</button>'+crosshairControls()+
         '<label>'+esc(t.colors)+'<select data-walk-colors>'+['assignments','usage','demand'].map(key=>'<option value="'+key+'"'+(key===colorMode?' selected':'')+'>'+esc(t[key])+'</option>').join('')+'</select></label>'+
         '<button type="button" data-walk-action="map" aria-pressed="'+mapVisible+'">'+esc(t.toggleMap)+'</button><button type="button" data-walk-action="details" aria-expanded="'+details+'">'+esc(t.info)+'</button></fieldset>'+
         '<fieldset><legend>'+esc(t.navigationSettings)+'</legend><label>'+esc(t.search)+'<input type="search" data-walk-search maxlength="80" value="'+esc(search)+'"></label><button type="button" data-walk-action="find">'+esc(t.find)+'</button><button type="button" data-walk-action="reset">'+esc(t.reset)+'</button>'+
         (options.refreshSnapshot?'<button type="button" data-walk-action="refresh-window">'+esc(t.refresh)+'</button>':'')+'</fieldset></div>'+
         '<footer class="wh-walk-menu-actions"><div class="wh-walk-discard" data-walk-discard role="group" hidden></div><button type="button" data-walk-action="resume">'+esc(t.resume)+'</button><button type="button" data-walk-action="exit-fullscreen">'+esc(options.standalone?t.closeWindow:t.exitFullscreen)+'</button><p>'+esc(t.menuHint)+'</p><p role="status" data-walk-immersive-message></p></footer></section>'+
-        '<div class="wh-walk-body"><div class="wh-walk-viewport"><div class="wh-walk-labels"></div><div class="wh-walk-handles" data-walk-handles hidden></div><div class="wh-walk-direct-status" data-walk-direct-status hidden></div><div class="wh-walk-map-wrap"><small>'+esc(t.map)+'</small></div><span class="wh-walk-crosshair" aria-hidden="true">+</span><span class="wh-walk-interact-hint" data-walk-interact-hint hidden></span></div><aside class="wh-walk-inspector wh-card"></aside></div></div>'+
+        '<div class="wh-walk-body"><div class="wh-walk-viewport"><div class="wh-walk-labels"></div><div class="wh-walk-handles" data-walk-handles hidden></div><div class="wh-walk-direct-status" data-walk-direct-status hidden></div><div class="wh-walk-map-wrap"><small>'+esc(t.map)+'</small></div><span class="wh-walk-crosshair" aria-hidden="true"></span><span class="wh-walk-interact-hint" data-walk-interact-hint hidden></span></div><aside class="wh-walk-inspector wh-card"></aside></div></div>'+
         '<div class="wh-walk-immersive-controls" role="group" aria-label="'+esc(t.controls)+'"><span data-walk-work-label></span><span class="wh-walk-front-key" data-walk-front-key hidden></span><button type="button" data-walk-action="controls" aria-expanded="false">'+esc(t.menu)+'</button><small>'+esc(motion.mode==='fly'?t.flightHint:t.walkHint)+'</small><small data-walk-hud-position></small></div>'+
         '<div class="wh-walk-footer"><p id="warehouse-walk-hint">'+esc(motion.mode==='fly'?t.flightHint:t.walkHint)+' · '+esc(t.menuHint)+'</p><output data-walk-position></output><p class="wh-legend">'+esc(colorMode==='demand'?t.demandLegend:colorMode==='usage'?[t.unassigned,t.picking,t.reserve].join(' · '):[t.matched,t.coded,t.empty].join(' · '))+'</p><p role="status" aria-live="polite" data-walk-message></p></div>'+
         '<div class="wh-walk-interaction" role="dialog" aria-modal="true" aria-labelledby="warehouse-walk-interaction-title" tabindex="-1" hidden></div>';
@@ -912,13 +929,14 @@
       else if(!options.startWindow&&!root.requestFullscreen)message=t.fullscreenFailed;
       fallbackOffered=fallbackOffered||!options.startWindow&&!root.requestFullscreen;
       const fullButton=root.querySelector('[data-walk-action="fullscreen"]');if(fullButton)fullButton.disabled=!root.requestFullscreen||!renderer||!renderer.available();
-      renderObjects();updatePanel();syncFovControls();syncMotionControls();active=options.isVisible();renderInteraction();syncImmersive();paint(0);schedule();
+      renderObjects();updatePanel();syncCrosshair();syncFovControls();syncMotionControls();active=options.isVisible();renderInteraction();syncImmersive();paint(0);schedule();
     }
     function find(){const slot=info.slots.find(s=>search.trim()&&s.code===search.trim());if(!slot){tell(text().notFound);return;}select(slot.slotId);}
     root.addEventListener('input',event=>{if(event.target.hasAttribute('data-walk-search'))search=event.target.value;
       if(event.target.hasAttribute('data-walk-object-search')){objectSearch=event.target.value;renderObjects();}
       if(event.target.hasAttribute('data-walk-speed-range'))changeSpeed(event.target.value);
       if(event.target.hasAttribute('data-walk-speed')&&Number(event.target.value)>=.1&&Number(event.target.value)<=20)changeSpeed(event.target.value,true);
+      if(event.target.hasAttribute('data-walk-crosshair'))previewCrosshair(event.target);
       if(event.target.hasAttribute('data-walk-fov')&&!savingFov)previewFov(event.target.value);});
     async function changeWorkMode(value){
       if(switchingWorkMode)return;if(requestDirectDiscard(()=>changeWorkMode(value))){syncImmersive();return;}pauseImmersive();switchingWorkMode=true;syncImmersive();
@@ -926,6 +944,7 @@
       catch(_){tell(text().windowFailed);}finally{switchingWorkMode=false;syncImmersive();}
     }
     root.addEventListener('change',async function(event){
+      if(event.target.hasAttribute('data-walk-crosshair')){previewCrosshair(event.target);await saveCrosshair(crosshair);return;}
       if(event.target.hasAttribute('data-walk-work-mode')){await changeWorkMode(event.target.value);return;}
       if(event.target.hasAttribute('data-walk-interaction-article')){interactionArticleId=event.target.value;renderInteraction('[data-walk-interaction-article]');return;}
       if(event.target.hasAttribute('data-walk-fov')){await saveFov(event.target.value);return;}
@@ -958,6 +977,7 @@
       }
       else if(action==='coverage'&&options.openCoverage){stop();options.openCoverage();}
       else if(action==='details'){if(fullscreen())pauseImmersive();details=!details;button.setAttribute('aria-expanded',String(details));updatePanel();schedule();}
+      else if(action==='crosshair-reset')await saveCrosshair(walk.crosshairPreferences());
       else if(action==='fov-reset')await saveFov(walk.DEFAULT_FOV);
       else if(action==='refresh-window'&&options.refreshSnapshot){openMenu(true);
         try{await options.refreshSnapshot();tell(text().refreshed);}catch(_){tell(text().windowFailed);}}
@@ -979,7 +999,7 @@
       if(interactionSlotId){trapInteractionKeys(event);return;}
       if(event.key==='Enter'&&event.target.hasAttribute('data-walk-search')){event.preventDefault();find();return;}
       if(event.key==='Escape'){openMenu(fullscreen());tell(text().paused);return;}
-      const editable=event.target&&event.target.hasAttribute&&['data-walk-search','data-walk-speed','data-walk-speed-range','data-walk-fov','data-walk-mode','data-walk-eye','data-walk-colors','data-walk-work-mode'].some(key=>event.target.hasAttribute(key));
+      const editable=event.target&&event.target.hasAttribute&&['data-walk-search','data-walk-speed','data-walk-speed-range','data-walk-fov','data-walk-crosshair','data-walk-mode','data-walk-eye','data-walk-colors','data-walk-work-mode'].some(key=>event.target.hasAttribute(key));
       const typing=Boolean(directFieldActive&&directDraft&&directDraft.field.type==='text'&&document.pointerLockElement===canvas&&!immersivePaused)||editable||event.target&&(['INPUT','TEXTAREA','SELECT'].includes(event.target.tagName)||event.target.isContentEditable);
       if(event.code==='KeyB'&&visible()&&workMode==='editor'&&!typing&&!event.ctrlKey&&!event.altKey&&!event.metaKey){event.preventDefault();if(!event.repeat)openRecipes();return;}
       if(objectsOpen){trapObjectKeys(event);return;}
@@ -1072,7 +1092,7 @@
     }
     return {render:render,setActive:setActive,pause:function(){openMenu(true);},resume:resumeMovement,setWorkMode:setWorkMode,insertionPoint:insertionPoint,markObject:markObject,notify:tell,destroy:destroy,
       acceptSnapshot:function(){directStale=false;},
-      refreshPreferences:function(){if(!savingFov&&!disposed)previewFov(savedFov());}};
+      refreshPreferences:function(){if(!savingFov&&!disposed){crosshair=savedCrosshair();syncCrosshair();previewFov(savedFov());}}};
   }
   return {create:create,interactionHtml:interactionHtml};
 }));

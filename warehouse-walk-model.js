@@ -5,6 +5,17 @@
   'use strict';
   const CELL = 2, RADIUS = .28, FAR = 80;
   const MIN_FOV = 45, MAX_FOV = 100, DEFAULT_FOV = 60;
+  // Kept aligned with the portable workspace preference validator.
+  function crosshairPreferences(value) {
+    const input=value&&typeof value==='object'&&!Array.isArray(value)?value:{};
+    const number=(key,fallback,min,max)=>Number.isFinite(input[key])?Math.round(Math.min(max,Math.max(min,input[key]))):fallback;
+    return {shape:['cross','dot','circle'].includes(input.shape)?input.shape:'cross',size:number('size',26,12,48),thickness:number('thickness',2,1,5),color:typeof input.color==='string'&&/^#[0-9a-f]{6}$/i.test(input.color)?input.color.toLowerCase():'#ffffff',outline:typeof input.outline==='boolean'?input.outline:true};
+  }
+  function crosshairSvg(value){
+    const p=crosshairPreferences(value),element=p.shape==='circle'?'<circle vector-effect="non-scaling-stroke" cx="50" cy="50" r="38"/>':p.shape==='dot'?'<circle vector-effect="non-scaling-stroke" cx="50" cy="50" r="26"/>':'<path vector-effect="non-scaling-stroke" d="M 50 8 V 32 M 50 68 V 92 M 8 50 H 32 M 68 50 H 92"/><circle vector-effect="non-scaling-stroke" cx="50" cy="50" r="5"/>';
+    const layer=(color,width)=>'<g stroke="'+color+'" stroke-width="'+width+'" fill="'+(p.shape==='circle'?'none':color)+'" stroke-linecap="round">'+element+'</g>';
+    return '<svg viewBox="0 0 100 100" width="'+p.size+'" height="'+p.size+'" aria-hidden="true" focusable="false">'+(p.outline?layer('#000000',p.thickness+4):'')+layer(p.color,p.thickness)+'</svg>';
+  }
   function fieldOfView(camera) {
     const value = camera && camera.fov;
     return Number.isFinite(value) ? Math.min(MAX_FOV, Math.max(MIN_FOV, value)) : DEFAULT_FOV;
@@ -205,7 +216,7 @@
       pitch:Math.max(-1.3,Math.min(1.3,Math.atan2(eyeHeight-target.y,Math.hypot(target.x-position.x,target.z-position.z))))};
   }
   return {MIN_FOV:MIN_FOV,MAX_FOV:MAX_FOV,DEFAULT_FOV:DEFAULT_FOV,fieldOfView:fieldOfView,
-    createWorld:createWorld,world:world,local:local,canStand:canStand,canOccupy:canOccupy,freePosition:freePosition,move:move,
+    crosshairPreferences:crosshairPreferences,crosshairSvg:crosshairSvg,createWorld:createWorld,world:world,local:local,canStand:canStand,canOccupy:canOccupy,freePosition:freePosition,move:move,
     createMotion:createMotion,movementSpeed:movementSpeed,stepMotion:stepMotion,basis:basis,ray:ray,
     raycast:raycast,project:project,matrix:matrix,approach:approach,RADIUS:RADIUS,FAR:FAR};
 }));

@@ -5505,7 +5505,7 @@
     if (!state.activeWorkspace || state.workspaceLoading || !state.storageReady || state.files.some(function (file) { return file.reading; })) {
       throw new Error('workspace-not-ready');
     }
-    const workspaceId = state.activeWorkspace.id, proposed = workspaceModel.normalizeWalkPreferences(value);
+    const workspaceId = state.activeWorkspace.id, proposed = workspaceModel.normalizeWalkPreferences(value, state.walkPreferences);
     let committed = false;
     state.workspaceLoading = true; renderWorkspaceControls();
     try {
@@ -8865,6 +8865,7 @@
     savePreferences: async function (value) {
       await saveWarehouseWalkPreferences(value);
       if(warehouseWalk)warehouseWalk.refreshPreferences();
+      return state.walkPreferences;
     }
   });
   window.addEventListener('pagehide', function () { warehouseWalkWindow.close(); });

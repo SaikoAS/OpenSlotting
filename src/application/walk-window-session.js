@@ -1,10 +1,23 @@
 (function(root,factory){
-  const api=factory();
+  const api=factory(typeof module==='object'&&module.exports?require('../../warehouse-walk-model.js'):root.OpenSlottingWarehouseWalkModel);
   if(typeof module==='object'&&module.exports)module.exports=api;
   else root.OpenSlottingWalkWindowSession=api;
-}(typeof globalThis!=='undefined'?globalThis:this,function(){
+}(typeof globalThis!=='undefined'?globalThis:this,function(walk){
   'use strict';
   const VERSION=1;
+  function preferencePatch(value){
+    const patch={};if(value&&Object.prototype.hasOwnProperty.call(value,'fov'))patch.fov=value.fov;
+    if(value&&Object.prototype.hasOwnProperty.call(value,'crosshair'))patch.crosshair=value.crosshair;
+    return patch;
+  }
+  function validPreferences(value,partial){
+    if(!value||typeof value!=='object'||Array.isArray(value))return false;
+    if(!partial||Object.prototype.hasOwnProperty.call(value,'fov'))if(!Number.isInteger(value.fov)||value.fov<45||value.fov>100)return false;
+    if(Object.prototype.hasOwnProperty.call(value,'crosshair')){
+      const c=value.crosshair;if(!c||typeof c!=='object'||Array.isArray(c)||Object.keys(c).length!==5||!Object.entries(walk.crosshairPreferences(c)).every(([k,v])=>c[k]===v))return false;
+    }
+    return !partial||Object.prototype.hasOwnProperty.call(value,'fov')||Object.prototype.hasOwnProperty.call(value,'crosshair');
+  }
   function sessionId(crypto){return Array.from(crypto.getRandomValues(new Uint8Array(32)),b=>b.toString(16).padStart(2,'0')).join('');}
   function channelName(id){if(!/^[a-f0-9]{64}$/.test(id))throw new Error('invalid-session');return 'OpenSlottingWalk:'+id;}
   function stats(article){return article&&{article_id:article.article_id,total_quantity:article.total_quantity,
@@ -14,7 +27,7 @@
     const matches=model.matchArticles(source.layout,source.registry||[]),ids=new Set();
     matches.bySlot.forEach(assigned=>assigned.forEach(article=>ids.add(article.articleId)));
     return {version:VERSION,workspaceId:source.workspaceId,language:source.language==='de'?'de':'en',
-      layout:source.layout,view:view,preferences:{fov:source.preferences.fov},editorAvailable:source.editorAvailable===true,
+      layout:source.layout,view:view,preferences:preferencePatch(source.preferences),editorAvailable:source.editorAvailable===true,
       registry:(source.registry||[]).filter(article=>ids.has(article.article_id)).map(article=>({
         article_id:article.article_id,article_name:article.article_name,
         master_data:Object.fromEntries(['article_name','location','unit_of_measure','quantity_per_sales_unit','vat_rate']
@@ -32,7 +45,7 @@
   }
   function validSnapshot(value){return Boolean(value&&value.version===VERSION&&typeof value.workspaceId==='string'&&
     value.layout&&Array.isArray(value.layout.objects)&&Array.isArray(value.registry)&&Array.isArray(value.articles)&&
-    Array.isArray(value.customFields)&&value.preferences&&Number.isInteger(value.preferences.fov)&&value.preferences.fov>=45&&value.preferences.fov<=100);}
+    Array.isArray(value.customFields)&&value.preferences&&validPreferences(value.preferences,false));}
   async function launch(id,environment){
     const scope=environment||window;
     const capability=await scope.fetch('/walk-window',{cache:'no-store',credentials:'same-origin'});
@@ -68,7 +81,7 @@
           try {
             const data=options.getSnapshot(session.view);
             if(!validSnapshot(data)||options.getWorkspaceId()!==session.workspaceId)throw new Error('workspace-changed');
-            session.base=JSON.stringify(data.layout);
+            session.base=JSON.stringify(data.layout);session.preferences=preferencePatch(data.preferences);
             send(session,{type:'snapshot',data:data});
             session.sent=true;
           } catch(error){finish(session,error);}
@@ -93,17 +106,18 @@
             checkWorkspace();if(current!==session)return;
             const data=options.getSnapshot(session.view);
             if(!validSnapshot(data))throw new Error('edit-failed');
-            session.base=JSON.stringify(data.layout);
+            session.base=JSON.stringify(data.layout);session.preferences=preferencePatch(data.preferences);
             send(session,{type:'edit-result',requestId:message.requestId,data:data});
           }catch(failure){send(session,{type:'edit-result',requestId:message.requestId,error:failure&&failure.message||'edit-failed'});}
           finally{session.saving=false;}
         }
-        else if(message.type==='preferences'&&Number.isSafeInteger(message.requestId)&&message.requestId>0&&
-          Number.isInteger(message.fov)&&message.fov>=45&&message.fov<=100){
-          if(session.saving)return;
+        else if(message.type==='preferences'&&Number.isSafeInteger(message.requestId)&&message.requestId>0){
+          const patch=preferencePatch(message);
+          if(!validPreferences(patch,true)||session.saving){send(session,{type:'preferences-error',requestId:message.requestId});return;}
           session.saving=true;
-          try {await options.savePreferences({fov:message.fov});checkWorkspace();
-            send(session,{type:'preferences',requestId:message.requestId,fov:message.fov});
+          try {const saved=await options.savePreferences(patch);checkWorkspace();
+            const preferences=validPreferences(saved,false)?preferencePatch(saved):Object.assign({},session.preferences,patch);session.preferences=preferences;
+            send(session,{type:'preferences',requestId:message.requestId,fov:preferences.fov,preferences});
           }catch(_){send(session,{type:'preferences-error',requestId:message.requestId});}
           finally{session.saving=false;}
         }
@@ -162,7 +176,7 @@
       }
       if((message.type==='preferences'||message.type==='preferences-error')&&pending.has(message.requestId)){
         const request=pending.get(message.requestId);pending.delete(message.requestId);scope.clearTimeout(request.timer);
-        if(message.type==='preferences'&&Number.isInteger(message.fov)&&message.fov>=45&&message.fov<=100)request.resolve({fov:message.fov});
+        if(message.type==='preferences'&&validPreferences(message.preferences||{fov:message.fov},false))request.resolve(preferencePatch(message.preferences||{fov:message.fov}));
         else request.reject(new Error('preferences-failed'));
       }
     };
@@ -191,11 +205,11 @@
       },
       savePreferences:function(value){
         if(ended||!loaded)return Promise.reject(new Error('session-ended'));
-        if(!Number.isInteger(value.fov)||value.fov<45||value.fov>100||pending.size>=4)return Promise.reject(new Error('invalid-preferences'));
+        const patch=preferencePatch(value);if(!validPreferences(patch,true)||pending.size>=4)return Promise.reject(new Error('invalid-preferences'));
         const requestId=++sequence;
         return new Promise((resolve,reject)=>{
           const timer=scope.setTimeout(()=>{pending.delete(requestId);reject(new Error('window-timeout'));},18000);
-          pending.set(requestId,{resolve:resolve,reject:reject,timer:timer});channel.postMessage({type:'preferences',requestId:requestId,fov:value.fov});
+          pending.set(requestId,{resolve:resolve,reject:reject,timer:timer});channel.postMessage(Object.assign({type:'preferences',requestId:requestId},patch));
         });
       }
     };
