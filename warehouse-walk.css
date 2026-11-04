@@ -217,6 +217,7 @@ html:has(.walk-window-document), .walk-window-document { width: 100%; height: 10
 .wh-walk-handle.is-measure { width: 180px; border-radius: 2px; background: #10272ce8; }
 .wh-walk-measures .is-active .wh-walk-dimension-arrows { fill: #ffd78a; }
 .wh-walk-measures .is-target .wh-walk-dimension-arrows { fill: #73ffd1; }
+.wh-walk-measures .wh-walk-reference { fill: #10272c; stroke-width: 2; paint-order: stroke fill; }
 
 .wh-walk-crosshair svg, .wh-walk-crosshair-preview svg { display: block; overflow: visible; }
 .wh-walk-crosshair-settings { display: block; min-width: 0; }

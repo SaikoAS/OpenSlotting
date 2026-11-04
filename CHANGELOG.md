@@ -10,6 +10,8 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
+- Attach walk rack controls to marked physical reference points with short leaders. Place bay width at the first front beam and ground/upright/level fields beside their relevant parts; retain horizontal labels, scoped editing and camera-independent positions.
+
 - Keep walk editing controls upright and horizontal at fixed rack-geometry anchors when the camera moves or turns. Match picking and overlap checks to the horizontal controls while retaining physical dimension lines.
 
 - Focus walk value editing on one parameter and its measurement. Apply and save with left click/Enter, discard and return with right click, and remove projected Apply/Discard actions. Keep destructive-change confirmation, validation, scope navigation and parent-owned persistence.

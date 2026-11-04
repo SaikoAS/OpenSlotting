@@ -98,17 +98,33 @@
       const a=from.map((n,i)=>n+offset[i]),b=to.map((n,i)=>n+offset[i]),mid=a.map((n,i)=>(n+b[i])/2+(labelOffset?labelOffset[i]:0));
       field.measure={from:point(...from),to:point(...to),a:point(...a),b:point(...b),leader:Boolean(labelOffset)};field.point=point(...mid);
     }
+    // Reference points sit on the physical part. Label offsets use rack coordinates,
+    // never camera coordinates, so looking around cannot move them around the rack.
+    function attach(field,reference,offset){
+      if(!field)return;
+      field.anchor=point(...reference);field.point=point(...reference.map((n,i)=>n+offset[i]));
+    }
     const fieldIndex=new Map(fields.map(f=>[f.key,f]));
     let start=0;
     object.bays.forEach((bay,i)=>{
       start+=object.uprights[i].width;const left=start,right=start+bay.width,z=bay.depth,byKind=kind=>fieldIndex.get(kind+':'+bay.id);
-      const width=byKind('bay-width');width.shortDe='Fachbreite';width.shortEn='Bay width';measure(width,[left,150,z],[right,150,z],[0,450,180]);
+      const center=(left+right)/2,firstBeam=bay.levels[0].clearHeight+bay.levels[0].thickness/2;
+      const width=byKind('bay-width');width.shortDe='Fachbreite';width.shortEn='Bay width';measure(width,[left,firstBeam,z],[right,firstBeam,z],[0,-220,180]);
+      attach(width,[center,firstBeam,z],[0,-220,180]);
+      attach(byKind('bay-levels'),[left+bay.width*.25,firstBeam,z],[0,220,180]);
+      attach(byKind('ground-enabled'),[center,0,z],[0,350,180]);
+      attach(byKind('passage-enabled'),[left,Math.min(800,firstBeam*.5),z],[250,280,180]);
+      attach(byKind('passage-route'),[left,Math.min(800,firstBeam*.5)+400,z],[250,280,180]);
       let bottom=0;
       bay.levels.forEach(level=>{
         const top=bottom+level.clearHeight,find=kind=>fieldIndex.get(kind+':'+level.id),height=find('level-height'),beam=find('level-thickness'),deck=find('level-deckThickness');
         height.shortDe='Höhe bis Traverse';height.shortEn='Height to beam';measure(height,[left,bottom,z],[left,top,z],[220,0,180]);
         beam.shortDe='Traversenhöhe';beam.shortEn='Beam height';measure(beam,[left,top,z],[left,top+level.thickness,z],[500,0,180],[0,250,0]);
         deck.shortDe='Fachbodendicke';deck.shortEn='Deck thickness';measure(deck,[right,top+level.thickness,z],[right,top+level.thickness+level.deckThickness,z],[-450,0,180],[0,550,0]);
+        attach(height,[left,bottom+level.clearHeight/2,z],[220,0,180]);
+        attach(beam,[left+bay.width*.3,top+level.thickness/2,z],[0,200,180]);
+        attach(find('level-deck'),[left+bay.width*.65,top+level.thickness,z],[0,350,180]);
+        attach(deck,[left+bay.width*.8,top+level.thickness+level.deckThickness/2,z],[0,150,180]);
         bottom=top+level.thickness;
       });start=right;
     });
@@ -116,9 +132,12 @@
       const width=fieldIndex.get('upright-width:'+stand.id),height=fieldIndex.get('upright-height:'+stand.id);
       measure(width,[start,500,stand.depth],[start+stand.width,500,stand.depth],[0,200,180],[i===0?-300:300,200,0]);
       measure(height,[start,0,stand.depth],[start,stand.height,stand.depth],[i===0?-250:stand.width+250,0,180]);
+      attach(width,[start+stand.width/2,500,stand.depth],[i===0?-300:300,280,180]);
+      attach(height,[start+stand.width/2,stand.height/2,stand.depth],[i===0?-300:300,0,180]);
       start+=stand.width+(object.bays[i]?object.bays[i].width:0);
     });
     const depth=fieldIndex.get('rack-depth:'+object.id);measure(depth,[0,300,0],[0,300,object.bays[0].depth],[-300,0,0]);
+    attach(depth,[0,300,object.bays[0].depth/2],[-300,0,0]);
     return fields;
   }
   function structureMenu(model,layout,objectId,selection,catalog){
@@ -129,7 +148,7 @@
     if(!['bays','rack','bay','levels','level'].includes(state.view)||['bay','levels','level'].includes(state.view)&&!bay)state={view:'bays',bayId:null,levelId:null};
     if(state.view==='level'&&!bay.levels.some(l=>l.id===state.levelId)&&!(bay.ground.enabled&&bay.ground.id===state.levelId))state={view:'levels',bayId:bay.id,levelId:null};
     const point=(x,y,z)=>{const p=model.localPoint(object,x,z);return {x:p.x/1000,y:y/1000,z:p.z/1000};};
-    const action=(key,de,en,p,next)=>({key:'@structure-'+key,action:'structure',de,en,point:p,next});
+    const action=(key,de,en,p,next,anchor)=>({key:'@structure-'+key,action:'structure',de,en,point:p,next,...(anchor?{anchor}:{})});
     const bayIndex=bay?object.bays.indexOf(bay):-1,start=bay?object.bays.slice(0,bayIndex).reduce((x,b,i)=>x+object.uprights[i].width+b.width,0)+object.uprights[bayIndex].width:0;
     let controls=[],de='Fach auswählen',en='Choose bay';
     if(state.view==='bays'){
@@ -139,10 +158,11 @@
       controls=fields.filter(f=>!f.bayId&&!f.uprightId);de='Gesamtes Regal';en='Entire rack';
     }else if(state.view==='bay'){
       controls=fields.filter(f=>f.bayId===bay.id&&!f.levelId||[object.uprights[bayIndex].id,object.uprights[bayIndex+1].id].includes(f.uprightId));
-      controls.push(action('levels-'+bay.id,'Ebene auswählen','Choose level',point(start+bay.width/2,1750,bay.depth+180),{view:'levels',bayId:bay.id,levelId:null}));de='Fach '+(bayIndex+1);en='Bay '+(bayIndex+1);
+      const x=start+bay.width*.75,y=bay.levels[0].clearHeight+bay.levels[0].thickness/2;
+      controls.push(action('levels-'+bay.id,'Ebene auswählen','Choose level',point(x,y+400,bay.depth+180),{view:'levels',bayId:bay.id,levelId:null},point(x,y,bay.depth)));de='Fach '+(bayIndex+1);en='Bay '+(bayIndex+1);
     }else if(state.view==='levels'){
       let y=0;const scopes=(bay.ground.enabled?[{id:bay.ground.id,ground:true,clearHeight:0,thickness:0}]:[]).concat(bay.levels);
-      controls=scopes.map(level=>{y+=level.clearHeight+level.thickness;const i=bay.levels.indexOf(level),de=level.ground?'Bodenebene':'Ebene '+(i+1),en=level.ground?'Ground level':'Level '+(i+1);return action('level-'+level.id,de,en,point(start+bay.width/2,y+250,bay.depth+180),{view:'level',bayId:bay.id,levelId:level.id});});de='Fach '+(bayIndex+1)+' · Ebene auswählen';en='Bay '+(bayIndex+1)+' · Choose level';
+      controls=scopes.map(level=>{y+=level.clearHeight+level.thickness;const i=bay.levels.indexOf(level),de=level.ground?'Bodenebene':'Ebene '+(i+1),en=level.ground?'Ground level':'Level '+(i+1);return action('level-'+level.id,de,en,point(start+bay.width/2,y+250,bay.depth+180),{view:'level',bayId:bay.id,levelId:level.id},point(start+bay.width/2,y,bay.depth));});de='Fach '+(bayIndex+1)+' · Ebene auswählen';en='Bay '+(bayIndex+1)+' · Choose level';
     }else{
       const i=bay.levels.findIndex(l=>l.id===state.levelId);controls=fields.filter(f=>f.levelId===state.levelId||i===-1&&f.kind==='ground-enabled'&&f.bayId===bay.id);de='Fach '+(bayIndex+1)+' · '+(i===-1?'Bodenebene':'Ebene '+(i+1));en='Bay '+(bayIndex+1)+' · '+(i===-1?'Ground level':'Level '+(i+1));
     }

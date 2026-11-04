@@ -141,3 +141,17 @@ test('technical measurements use physical dimensions and rotate with the rack wi
   assert.ok(fields.find(f=>f.kind==='level-thickness').measure.leader);assert.deepEqual(value,before);
   const f=fields.find(f=>f.kind==='bay-width'),resized=direct.proposeDirect(model,value,f,f.value+150),after=direct.directFields(model,resized,value.objects[0].id).find(n=>n.key===f.key);assert.ok(Math.abs(length(after.measure)-(f.value+150))<1e-7);assert.notDeepEqual(f.measure.b,after.measure.b);
 });
+
+test('rack references touch their physical parts and nearby cards follow structural changes without saving annotations',()=>{
+  const value=fixture(),before=structuredClone(value),rack=value.objects[0],bay=rack.bays[0],left=rack.uprights[0].width;
+  const local=p=>{const a=-rack.rotation*Math.PI/180,x=p.x*1000-rack.x,z=p.z*1000-rack.z;return {x:x*Math.cos(a)-z*Math.sin(a),y:p.y*1000,z:x*Math.sin(a)+z*Math.cos(a)};};
+  const fields=direct.directFields(model,value,rack.id),width=fields.find(f=>f.kind==='bay-width'),ground=fields.find(f=>f.kind==='ground-enabled');
+  const reference=local(width.anchor);assert.ok(Math.abs(reference.x-(left+bay.width/2))<1e-7);assert.equal(reference.y,bay.levels[0].clearHeight+bay.levels[0].thickness/2);assert.ok(Math.abs(reference.z-bay.depth)<1e-7);
+  assert.equal(ground.anchor.y,0);
+  for(const f of fields.filter(f=>f.anchor))assert.ok(Math.hypot(f.point.x-f.anchor.x,f.point.y-f.anchor.y,f.point.z-f.anchor.z)<.5,f.kind);
+  const height=fields.find(f=>f.kind==='level-height'),changed=direct.proposeDirect(model,value,height,height.value+100),next=direct.directFields(model,changed,rack.id).find(f=>f.key===width.key);
+  assert.ok(Math.abs(next.anchor.y-width.anchor.y-.1)<1e-7);assert.ok(Math.abs(next.point.y-width.point.y-.1)<1e-7);
+  assert.deepEqual(changed.locations.map(s=>[s.id,s.code]),value.locations.map(s=>[s.id,s.code]));assert.doesNotMatch(JSON.stringify(changed),/"anchor"|"measure"/);assert.deepEqual(value,before);
+  const menu=direct.structureMenu(model,value,rack.id,{view:'bay',bayId:bay.id}),choose=menu.controls.find(f=>f.action);
+  assert.ok(choose.anchor);assert.ok(Math.hypot(choose.point.x-choose.anchor.x,choose.point.y-choose.anchor.y,choose.point.z-choose.anchor.z)<.5);
+});

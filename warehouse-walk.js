@@ -290,14 +290,29 @@
       return Math.abs(width/2-item.x)<=(item.field&&item.field.measure?90:120)&&Math.abs(height/2-item.y)<=15;
     }
     function measureSvg(item,width,height){
-      const m=item.field.measure;if(!m)return '';
-      const projected=[m.from,m.a,m.b,m.to,item.field.point].map(p=>walk.project(camera,p,width,height));if(projected.some(p=>!p))return '';
-      const [from,a,b,to,label]=projected,length=Math.hypot(b.x-a.x,b.y-a.y);if(length<2)return '';
-      const ux=(b.x-a.x)/length,uy=(b.y-a.y)/length,nx=-uy,ny=ux,line=(p,q)=>'<path d="M '+p.x+' '+p.y+' L '+q.x+' '+q.y+'"/>';
-      let html=line(from,a)+line(a,b)+line(b,to);
-      [a,b].forEach(p=>{html+=line({x:p.x+nx*6,y:p.y+ny*6},{x:p.x-nx*6,y:p.y-ny*6});});
-      html+='<path class="wh-walk-dimension-arrows" d="M '+a.x+' '+a.y+' l '+(ux*7+nx*3)+' '+(uy*7+ny*3)+' l '+(-nx*6)+' '+(-ny*6)+' Z M '+b.x+' '+b.y+' l '+(-ux*7+nx*3)+' '+(-uy*7+ny*3)+' l '+(-nx*6)+' '+(-ny*6)+' Z"/>';
-      if(m.leader)html+=line({x:(a.x+b.x)/2,y:(a.y+b.y)/2},label);
+      const field=item.field,m=field.measure,label={x:item.x,y:item.y},line=(p,q)=>'<path d="M '+p.x+' '+p.y+' L '+q.x+' '+q.y+'"/>';
+      let html='';
+      if(m){
+        const projected=[m.from,m.a,m.b,m.to].map(p=>walk.project(camera,p,width,height));
+        if(projected.every(Boolean)){
+          const [from,a,b,to]=projected,length=Math.hypot(b.x-a.x,b.y-a.y);
+          if(length>=2){
+            const ux=(b.x-a.x)/length,uy=(b.y-a.y)/length,nx=-uy,ny=ux;
+            html+=line(from,a)+line(a,b)+line(b,to);
+            [a,b].forEach(p=>{html+=line({x:p.x+nx*6,y:p.y+ny*6},{x:p.x-nx*6,y:p.y-ny*6});});
+            html+='<path class="wh-walk-dimension-arrows" d="M '+a.x+' '+a.y+' l '+(ux*7+nx*3)+' '+(uy*7+ny*3)+' l '+(-nx*6)+' '+(-ny*6)+' Z M '+b.x+' '+b.y+' l '+(-ux*7+nx*3)+' '+(-uy*7+ny*3)+' l '+(-nx*6)+' '+(-ny*6)+' Z"/>';
+            if(m.leader&&!field.anchor)html+=line({x:(a.x+b.x)/2,y:(a.y+b.y)/2},label);
+          }
+        }
+      }
+      const anchor=field.anchor&&walk.project(camera,field.anchor,width,height);
+      if(anchor){
+        const dx=anchor.x-label.x,dy=anchor.y-label.y,scale=Math.max(Math.abs(dx)/(m?90:120),Math.abs(dy)/15);
+        // End at the card edge, leaving the physical reference dot unobscured.
+        if(scale>1)html+=line(anchor,{x:label.x+dx/scale,y:label.y+dy/scale});
+        html+='<circle class="wh-walk-reference" cx="'+anchor.x+'" cy="'+anchor.y+'" r="4"/>';
+      }
+      if(!html)return '';
       return '<g class="'+(directFieldActive&&directDraft&&directDraft.field.key===item.field.key?'is-active':directTarget===item.field?'is-target':'')+'" data-measure-key="'+esc(item.field.key)+'">'+html+'</g>';
     }
     function visibleDirectFields(){

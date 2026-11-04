@@ -1066,7 +1066,16 @@ test('value controls keep their rack anchor across camera movement and FOV chang
   function check(){
     const html=h.nodes.get('[data-walk-handles]').innerHTML,escaped=field.key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),match=html.match(new RegExp('data-direct-field="'+escaped+'"[^>]*left:([\\d.]+)px;top:([\\d.]+)px;transform:translate\\(-50%,-50%\\)'));
     assert.ok(match,html);const projected=walk.project(h.camera,anchor,900,600);assert.ok(Math.abs(Number(match[1])-projected.x)<1e-7);assert.ok(Math.abs(Number(match[2])-projected.y)<1e-7);assert.doesNotMatch(html,/rotate\(/);
+    const reference=walk.project(h.camera,field.anchor,900,600),dot=html.match(/class="wh-walk-reference" cx="([\d.-]+)" cy="([\d.-]+)" r="4"/);
+    assert.ok(dot,html);assert.ok(Math.abs(Number(dot[1])-reference.x)<1e-7);assert.ok(Math.abs(Number(dot[2])-reference.y)<1e-7);
   }
   check();h.canvas.events.pointermove({movementX:15,movementY:8});h.frame();check();h.fov(85);h.frame();check();h.key('KeyD');for(let i=0;i<4;i++)h.frame();h.release('KeyD');h.frame();check();
   assert.deepEqual(h.field('level-height').point,anchor);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);assert.equal(h.document.pointerLockElement,h.canvas);
+});
+
+test('nonmeasurement floor controls show a physical reference and only their own leader during editing',async()=>{
+  const h=await directHarness(),before=structuredClone(h.value),field=h.choose('ground-enabled'),html=h.nodes.get('[data-walk-handles]').innerHTML;
+  assert.ok(field.anchor);assert.equal(field.measure,undefined);assert.match(html,/wh-walk-reference/);assert.ok(html.includes('data-measure-key="'+field.key+'"'));
+  assert.equal((html.match(/data-direct-field=/g)||[]).length,1);assert.equal((html.match(/wh-walk-reference/g)||[]).length,1);
+  h.wheel(-100);h.click(2);assert.deepEqual(h.value,before);assert.equal(h.saved.length,0);assert.equal(h.document.pointerLockElement,h.canvas);
 });
