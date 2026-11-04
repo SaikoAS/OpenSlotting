@@ -11,6 +11,13 @@ const renderer=require('../warehouse-walk-renderer.js');
 const walkController=require('../warehouse-walk.js');
 const directEditor=require('../warehouse-walk-editor.js');
 
+function controlPixel(html,key,x,y){
+  const tag=html.split('data-direct-field="'+key+'"')[1];assert.ok(tag,html);
+  const match=tag.match(/transform:matrix3d\(([^)]+)\)/);assert.ok(match,tag);
+  const m=match[1].split(',').map(Number),w=m[3]*x+m[7]*y+m[15];
+  return {x:(m[0]*x+m[4]*y+m[12])/w,y:(m[1]*x+m[5]*y+m[13])/w};
+}
+
 function layout(){
   const rack=model.createRack('pallet-rack',{bayCount:2,levelCount:2});rack.bays[0].levels[0].deck=true;
   let value=model.normalizeLayout({...model.createLayout(),objects:[rack]});
@@ -240,7 +247,7 @@ function harness(value,available=true,native=false,options={}){
   const h={visible:true,gpu:available,value:value,root,nodes,frames,rendered:0,worlds:0,preferences:{fov:60},fovSaves:[],calls:[],aimUpdates:[],documentListeners};
   const context=vm.createContext({document:{hidden:false,createElement(type){const n=node();if(type==='canvas')canvases.push(n);return n;},addEventListener(t,cb){documentListeners[t]=cb;}},
     window:{OpenSlottingWarehouseScene:scene,OpenSlottingWalkEditor:directEditor,OpenSlottingWarehouseWalkModel:{...walk,raycast(...args){return !args[3]&&h.aimHit!==undefined?h.aimHit:walk.raycast(...args);}},
-      OpenSlottingWarehouseWalkRenderer:{create(_canvas,_walk,callbacks){h.gpuCallbacks=callbacks;return available?{available:()=>h.gpu,setWorld(world){h.worlds++;h.world=world;},selection(){},aimObject(id){h.aimedObject=id;h.aimUpdates.push(id);},render(camera){h.rendered++;h.camera={...camera};}}:null;}},
+      OpenSlottingWarehouseWalkRenderer:{create(_canvas,_walk,callbacks){h.gpuCallbacks=callbacks;return available?{available:()=>h.gpu,setWorld(world){h.worlds++;h.world=world;},selection(){},aimObject(id){h.aimedObject=id;h.aimUpdates.push(id);},render(camera){h.rendered++;h.liveCamera=camera;h.camera={...camera};}}:null;}},
       requestAnimationFrame(cb){const id=++sequence;frames.set(id,cb);return id;},cancelAnimationFrame(id){frames.delete(id);},addEventListener(t,cb){windowListeners[t]=cb;}}
   });
   h.document=context.document;
@@ -963,10 +970,10 @@ test('code changes update assignment previews but require confirmation before co
   h.key('Enter');await settle();h.frame();assert.equal(h.value.locations.find(s=>s.id===h.saved[0].next.locations.find(s=>s.code==='NEW').id).code,'NEW');
 });
 
-test('overlapping field selection cycles without changing values until a field is activated',async()=>{
-  const h=await directHarness(),before=structuredClone(h.value);h.structureAction('@structure-rack');h.fov(100);h.frame();const name=h.field('object-name').point,lock=h.field('object-lock').point;h.look(name);h.key('KeyS');for(let i=0;i<90;i++)h.frame();h.release('KeyS');h.look({x:name.x,y:(name.y+lock.y)/2,z:name.z});const seen=new Set([h.target()]);
-  for(let i=0;i<30;i++){h.wheel(-100);seen.add(h.target());assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');}
-  assert.ok(seen.size>1);assert.deepEqual(h.value,before);assert.equal(h.saved.length,0);assert.equal(h.document.pointerLockElement,h.canvas);
+test('physically separated screens do not gain overlapping hit areas when the observer moves away',async()=>{
+  const h=await directHarness(),before=structuredClone(h.value);h.structureAction('@structure-rack');h.fov(100);h.frame();const name=h.field('object-name').point,lock=h.field('object-lock').point;h.look(name);h.key('KeyS');for(let i=0;i<90;i++)h.frame();h.release('KeyS');h.look({x:name.x,y:(name.y+lock.y)/2,z:name.z});
+  for(let i=0;i<30;i++){h.wheel(-100);assert.equal(h.target(),undefined);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');}
+  assert.deepEqual(h.value,before);assert.equal(h.saved.length,0);assert.equal(h.document.pointerLockElement,h.canvas);
 });
 
 test('object removal remains bound through confirmation and clears the binding only after the write',async()=>{
@@ -979,16 +986,16 @@ test('binding starts with section choices only and values remain hidden until ex
   const h=await directHarness({chooseSection:false}),before=structuredClone(h.value),status=h.nodes.get('[data-walk-direct-status]'),handles=h.nodes.get('[data-walk-handles]');
   assert.equal(status.dataset.editorStage,'section');assert.equal(status.dataset.editorSection,'');assert.match(status.innerHTML,/Object menu/);
   assert.ok(handles.innerHTML.includes('@section-'));assert.doesNotMatch(handles.innerHTML,/data-direct-field="(?!@section-)/);
-  h.look(h.field('bay-width').point);h.click(0);h.wheel(-100);h.key('Enter');assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);
+  h.look({x:20,y:1,z:20});h.click(0);h.wheel(-100);h.key('Enter');assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);
   assert.doesNotMatch(handles.innerHTML,/data-direct-field="(?!@section-)/);
-  h.key('Digit2');h.frame();assert.equal(status.dataset.editorSection,'zones');assert.match(handles.innerHTML,/zone-usage:/);assert.doesNotMatch(handles.innerHTML,/bay-width:|location-width:/);
+  h.look(h.field('bay-width').point);h.key('Digit2');h.frame();assert.equal(status.dataset.editorSection,'zones');assert.match(handles.innerHTML,/zone-usage:/);assert.doesNotMatch(handles.innerHTML,/bay-width:|location-width:/);
   h.click(2);h.key('Digit3');h.frame();assert.equal(status.dataset.editorSection,'locations');assert.match(handles.innerHTML,/location-/);assert.doesNotMatch(handles.innerHTML,/zone-usage:|bay-width:/);
 });
 
 test('projected section controls select by left click, pause retains the section and rebinding asks again',async()=>{
   const h=await directHarness({chooseSection:false}),html=h.nodes.get('[data-walk-handles]').innerHTML;
-  const match=html.match(/data-direct-field="@section-zones"[^>]*left:([\d.]+)px;top:([\d.]+)px/);assert.ok(match);
-  const ray=walk.ray(h.camera,Number(match[1])/450-1,1-Number(match[2])/300,1.5),c=h.camera;
+  const center=controlPixel(html,'@section-zones',120,15);
+  const ray=walk.ray(h.camera,center.x/450-1,1-center.y/300,1.5),c=h.camera;
   h.look({x:c.x+ray.x*2,y:c.eye+ray.y*2,z:c.z+ray.z*2});assert.equal(h.target(),'@section-zones');h.click(0);
   assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'zones');assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');assert.equal(h.saved.length,0);
   h.key('Escape');await h.action('resume');h.frame();assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorSection,'zones');
@@ -1025,9 +1032,9 @@ test('canceling a level edit restores its context while another bay can be saved
   const h=await directHarness(),first=h.choose('level-height');h.wheel(-100);h.click(2);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStructure,'level');h.click(2);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'level-select');h.toMenu();const baseField=h.field,other=h.value.objects[0].bays[1].id;h.field=kind=>kind==='bay-width'?directEditor.directFields(model,h.current(),h.value.objects[0].id).find(f=>f.kind===kind&&f.bayId===other):baseField(kind);const second=h.choose('bay-width');h.wheel(-100);h.click(0);await settle();h.frame();assert.equal(h.saved.length,1);assert.equal(h.value.objects[0].bays[0].levels[0].clearHeight,first.value);assert.equal(h.value.objects[0].bays[1].width,second.value+50);
 });
 
-test('technical guides follow rotated geometry while controls stay horizontal with matching crosshair hits',async()=>{
+test('technical guides and fixed-plane screens follow rotated geometry with matching crosshair hits',async()=>{
   const value=layout();value.objects[0].rotation=30;const h=await directHarness({value:model.normalizeLayout(value)}),before=structuredClone(h.value),field=h.choose('bay-width'),html=h.nodes.get('[data-walk-handles]').innerHTML;
-  assert.match(html,/wh-walk-measures/);assert.ok(html.includes('data-measure-key="'+field.key+'"'));assert.doesNotMatch(html,/rotate\(/);assert.ok(html.includes('Bay width'));assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'value');
+  assert.match(html,/wh-walk-measures/);assert.ok(html.includes('data-measure-key="'+field.key+'"'));assert.match(html,/transform:matrix3d\(/);assert.ok(html.includes('Bay width'));assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'value');
   h.wheel(-100);h.click(2);assert.deepEqual(h.value,before);assert.equal(h.document.pointerLockElement,h.canvas);assert.equal(h.saved.length,0);
 });
 
@@ -1061,11 +1068,16 @@ test('canceling a destructive ground-level value restores its original level con
   h.click(2);assert.equal(status.dataset.editorStructure,'level');assert.equal(status.dataset.editorLevel,bay.ground.id);assert.equal(h.value.objects[0].bays[0].ground.enabled,true);assert.equal(status.dataset.editorStage,'object');assert.equal(h.document.pointerLockElement,h.canvas);
 });
 
-test('value controls keep their rack anchor across camera movement and FOV changes without rotating',async()=>{
+test('physical screens and reference dots project their fixed rack geometry across camera movement and FOV changes',async()=>{
   const value=layout();value.objects[0].rotation=30;const h=await directHarness({value:model.normalizeLayout(value)}),before=structuredClone(h.value),field=h.choose('level-height'),anchor={...field.point};
   function check(){
-    const html=h.nodes.get('[data-walk-handles]').innerHTML,escaped=field.key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),match=html.match(new RegExp('data-direct-field="'+escaped+'"[^>]*left:([\\d.]+)px;top:([\\d.]+)px;transform:translate\\(-50%,-50%\\)'));
-    assert.ok(match,html);const projected=walk.project(h.camera,anchor,900,600);assert.ok(Math.abs(Number(match[1])-projected.x)<1e-7);assert.ok(Math.abs(Number(match[2])-projected.y)<1e-7);assert.doesNotMatch(html,/rotate\(/);
+    const html=h.nodes.get('[data-walk-handles]').innerHTML,center=controlPixel(html,field.key,90,15),projected=walk.project(h.camera,anchor,900,600);
+    assert.ok(Math.abs(center.x-projected.x)<1e-7);assert.ok(Math.abs(center.y-projected.y)<1e-7);
+    const rack=h.value.objects[0],a=rack.rotation*Math.PI/180;
+    for(const [x,y] of [[0,0],[180,0],[180,30],[0,30]]){
+      const u=(x/180-.5)*.9,v=(.5-y/30)*.15,world={x:anchor.x+u*Math.cos(a),y:anchor.y+v,z:anchor.z+u*Math.sin(a)},expected=walk.project(h.camera,world,900,600),actual=controlPixel(html,field.key,x,y);
+      assert.ok(Math.abs(actual.x-expected.x)<1e-7);assert.ok(Math.abs(actual.y-expected.y)<1e-7);
+    }
     const reference=walk.project(h.camera,field.anchor,900,600),dot=html.match(/class="wh-walk-reference" cx="([\d.-]+)" cy="([\d.-]+)" r="4"/);
     assert.ok(dot,html);assert.ok(Math.abs(Number(dot[1])-reference.x)<1e-7);assert.ok(Math.abs(Number(dot[2])-reference.y)<1e-7);
   }
@@ -1078,4 +1090,41 @@ test('nonmeasurement floor controls show a physical reference and only their own
   assert.ok(field.anchor);assert.equal(field.measure,undefined);assert.match(html,/wh-walk-reference/);assert.ok(html.includes('data-measure-key="'+field.key+'"'));
   assert.equal((html.match(/data-direct-field=/g)||[]).length,1);assert.equal((html.match(/wh-walk-reference/g)||[]).length,1);
   h.wheel(-100);h.click(2);assert.deepEqual(h.value,before);assert.equal(h.saved.length,0);assert.equal(h.document.pointerLockElement,h.canvas);
+});
+
+
+test('fixed object screens shrink with distance, reject back/edge views and use plane hits instead of screen rectangles',()=>{
+  const point={x:0,y:1.7,z:0},camera={x:0,z:3,eye:1.7,yaw:Math.PI,pitch:0,fov:60};
+  const front=walk.controlPanel(camera,point,0,true,900,600);assert.ok(front);assert.ok(walk.controlPanelHit(camera,front,900,600));
+  const far=walk.controlPanel({...camera,z:6},point,0,true,900,600);
+  assert.ok(Math.abs((front.bounds.right-front.bounds.left)/(far.bounds.right-far.bounds.left)-2)<1e-8);
+  assert.equal(walk.controlPanel({...camera,z:-3,yaw:0},point,0,true,900,600),null);
+  assert.equal(walk.controlPanel({...camera,x:3,z:0,yaw:-Math.PI/2},point,0,true,900,600),null);
+  assert.equal(walk.controlPanelHit({...camera,z:6.1},front,900,600),null);
+  const angled={...camera,x:2,eye:2.3,yaw:Math.atan2(-2,-3),pitch:Math.atan2(.6,Math.hypot(2,3))},panel=walk.controlPanel(angled,point,0,true,900,600);
+  assert.ok(walk.controlPanelHit(angled,panel,900,600));
+  // Bounding-rectangle corners outside the perspective quadrilateral must not
+  // activate it, although they would pass an axis-aligned rectangle hit test.
+  const r=panel.bounds,hits=[[r.left+.2,r.top+.2],[r.right-.2,r.top+.2],[r.right-.2,r.bottom-.2],[r.left+.2,r.bottom-.2]].map(([x,y])=>{
+    const dir=walk.ray(angled,x/450-1,1-y/300,1.5),outside={...angled,yaw:Math.atan2(dir.x,dir.z),pitch:Math.atan2(-dir.y,Math.hypot(dir.x,dir.z))};
+    return walk.controlPanelHit(outside,panel,900,600);
+  });assert.ok(hits.some(hit=>hit===null));
+});
+
+test('Editor screens cannot be aimed from behind and become reachable again at the same front-side position',async()=>{
+  const h=await directHarness(),field=h.choose('bay-width'),before=structuredClone(h.value),c=h.camera;
+  const front={...c};Object.assign(h.liveCamera,{x:field.point.x,z:field.point.z-3});Object.assign(h.camera,h.liveCamera);h.look(field.point);
+  assert.equal(h.target(),undefined);assert.equal((h.nodes.get('[data-walk-handles]').innerHTML.match(/data-direct-field=/g)||[]).length,0);
+  Object.assign(h.liveCamera,front);Object.assign(h.camera,front);h.look(field.point);assert.equal(h.target(),field.key);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);
+});
+
+
+test('a wall covering only a screen corner hides that screen without blocking its center ray',async()=>{
+  const value=layout(),rack=value.objects[0],field=directEditor.directFields(model,value,rack.id).find(f=>f.kind==='bay-width');
+  const wall=model.createRecipe('wall');Object.assign(wall,{x:field.point.x*1000+350,z:field.point.z*1000+150,width:150,height:500,depth:50,elevation:field.point.y*1000-250});value.objects.push(wall);
+  const h=await directHarness({value:model.normalizeLayout(value)});h.structureAction('@structure-bay-'+rack.bays[0].id);
+  Object.assign(h.liveCamera,{x:field.point.x,z:field.point.z+3});Object.assign(h.camera,h.liveCamera);h.look(field.point);
+  const origin={x:h.camera.x,y:h.camera.eye,z:h.camera.z},direction=walk.ray(h.camera,0,0,1.5),distance=Math.hypot(field.point.x-origin.x,field.point.y-origin.y,field.point.z-origin.z);
+  assert.equal(walk.raycast(h.world,origin,direction,true,distance),null);
+  assert.equal(h.nodes.get('[data-walk-handles]').innerHTML.includes('data-direct-field="'+field.key+'"'),false);assert.equal(h.target(),undefined);assert.equal(h.saved.length,0);
 });

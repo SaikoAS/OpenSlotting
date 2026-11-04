@@ -199,6 +199,33 @@
       f/aspect*b.right.z,f*b.up.z,A*b.forward.z,b.forward.z,
       -f/aspect*dot(b.right),-f*dot(b.up),B-A*dot(b.forward),-dot(b.forward)]);
   }
+  // A physical screen in the object's front plane. Its size and orientation are
+  // world-space properties; the CSS homography only projects that fixed plane.
+  function controlPanel(camera,point,rotation,measured,width,height){
+    const angle=rotation*Math.PI/180,right={x:Math.cos(angle),y:0,z:Math.sin(angle)},normal={x:-Math.sin(angle),y:0,z:Math.cos(angle)};
+    const from={x:camera.x-point.x,y:camera.eye-point.y,z:camera.z-point.z};
+    if(from.x*normal.x+from.z*normal.z<=.01)return null;
+    const physicalWidth=measured ? .9 : 1.2,physicalHeight=.15,cssWidth=measured?180:240,cssHeight=30;
+    const corner=(u,v)=>({x:point.x+right.x*u,y:point.y+v,z:point.z+right.z*u});
+    const corners=[corner(-physicalWidth/2,physicalHeight/2),corner(physicalWidth/2,physicalHeight/2),corner(physicalWidth/2,-physicalHeight/2),corner(-physicalWidth/2,-physicalHeight/2)];
+    const projected=corners.map(p=>project(camera,p,width,height));if(projected.some(p=>!p))return null;
+    const b=basis(camera),scale=height/(2*Math.tan(fieldOfView(camera)*Math.PI/360)),dot=(p,v)=>p.x*v.x+p.y*v.y+p.z*v.z;
+    const origin={x:corners[0].x-camera.x,y:corners[0].y-camera.eye,z:corners[0].z-camera.z},dx={x:right.x*physicalWidth/cssWidth,y:0,z:right.z*physicalWidth/cssWidth},dy={x:0,y:-physicalHeight/cssHeight,z:0};
+    const column=p=>{const d=dot(p,b.forward);return [width/2*d+scale*dot(p,b.right),height/2*d-scale*dot(p,b.up),0,d];};
+    const o=column(origin),matrix=column(dx).concat(column(dy),[0,0,1,0],o).map(n=>n/o[3]);
+    const xs=projected.map(p=>p.x),ys=projected.map(p=>p.y);
+    return {point,right,normal,physicalWidth,physicalHeight,cssWidth,cssHeight,corners,projected,matrix,bounds:{left:Math.min(...xs),right:Math.max(...xs),top:Math.min(...ys),bottom:Math.max(...ys)}};
+  }
+  function controlPanelHit(camera,panel,width,height){
+    const direction=ray(camera,0,0,width/height),denominator=direction.x*panel.normal.x+direction.z*panel.normal.z;
+    if(denominator>=-1e-8)return null;
+    const distance=((panel.point.x-camera.x)*panel.normal.x+(panel.point.z-camera.z)*panel.normal.z)/denominator;
+    if(distance<.06||distance>6)return null;
+    const point={x:camera.x+direction.x*distance,y:camera.eye+direction.y*distance,z:camera.z+direction.z*distance};
+    const x=(point.x-panel.point.x)*panel.right.x+(point.z-panel.point.z)*panel.right.z;
+    if(Math.abs(x)>panel.physicalWidth/2||Math.abs(point.y-panel.point.y)>panel.physicalHeight/2)return null;
+    return {point,distance};
+  }
   function approach(scene, item, eyeHeight) {
     const target=world(item,item.x+item.width/2,item.y+item.height,item.z+item.depth/2);
     const front=item.box.object.bays ? item.box.object.bays[item.box.slotRef.bayIndex].depth/1000 : item.z+item.depth;
@@ -218,5 +245,5 @@
   return {MIN_FOV:MIN_FOV,MAX_FOV:MAX_FOV,DEFAULT_FOV:DEFAULT_FOV,fieldOfView:fieldOfView,
     crosshairPreferences:crosshairPreferences,crosshairSvg:crosshairSvg,createWorld:createWorld,world:world,local:local,canStand:canStand,canOccupy:canOccupy,freePosition:freePosition,move:move,
     createMotion:createMotion,movementSpeed:movementSpeed,stepMotion:stepMotion,basis:basis,ray:ray,
-    raycast:raycast,project:project,matrix:matrix,approach:approach,RADIUS:RADIUS,FAR:FAR};
+    raycast:raycast,project:project,matrix:matrix,controlPanel:controlPanel,controlPanelHit:controlPanelHit,approach:approach,RADIUS:RADIUS,FAR:FAR};
 }));

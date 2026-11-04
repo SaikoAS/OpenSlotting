@@ -45,7 +45,7 @@
 .wh-walk-interact-hint[hidden] { display: none; }
 .wh-walk-front-key { color: #ffd78a; font-size: .72rem; }
 .wh-walk-handles { position: absolute; inset: 0; z-index: 3; overflow: hidden; pointer-events: none; }
-.wh-walk-handle { position: absolute; display: flex; align-items: center; justify-content: center; width: 240px; height: 30px; padding: 3px 7px; box-sizing: border-box; transform: translate(-50%, -50%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid #78b7af; border-radius: 5px; color: #e8fff8; background: #10272cf2; font-size: 12px; }
+.wh-walk-handle { position: absolute; display: flex; align-items: center; justify-content: center; width: 240px; height: 30px; padding: 3px 7px; box-sizing: border-box; transform-origin: 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1px solid #78b7af; border-radius: 5px; color: #e8fff8; background: #10272cf2; font-size: 12px; }
 .wh-walk-handle.is-target { border: 2px solid #73ffd1; background: #215548; }
 .wh-walk-handle.is-active { border-color: #ffd78a; color: #ffe1ab; background: #49391ff2; }
 .wh-walk-handle.is-action { border-color: #73ffd1; color: #e6fff5; background: #20463ef2; }

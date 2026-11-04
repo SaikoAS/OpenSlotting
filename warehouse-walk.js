@@ -287,7 +287,7 @@
       if(renderer){renderer.setWorld(previewWorld||scene);previewApplied=Boolean(previewWorld);}
     }
     function controlHit(item,width,height){
-      return Math.abs(width/2-item.x)<=(item.field&&item.field.measure?90:120)&&Math.abs(height/2-item.y)<=15;
+      return Boolean(item.panel&&walk.controlPanelHit(camera,item.panel,width,height));
     }
     function measureSvg(item,width,height){
       const field=item.field,m=field.measure,label={x:item.x,y:item.y},line=(p,q)=>'<path d="M '+p.x+' '+p.y+' L '+q.x+' '+q.y+'"/>';
@@ -307,9 +307,8 @@
       }
       const anchor=field.anchor&&walk.project(camera,field.anchor,width,height);
       if(anchor){
-        const dx=anchor.x-label.x,dy=anchor.y-label.y,scale=Math.max(Math.abs(dx)/(m?90:120),Math.abs(dy)/15);
-        // End at the card edge, leaving the physical reference dot unobscured.
-        if(scale>1)html+=line(anchor,{x:label.x+dx/scale,y:label.y+dy/scale});
+        // The opaque projected screen covers the leader within its own outline.
+        html+=line(anchor,label);
         html+='<circle class="wh-walk-reference" cx="'+anchor.x+'" cy="'+anchor.y+'" r="4"/>';
       }
       if(!html)return '';
@@ -327,32 +326,38 @@
       if(directSection==='structure'&&!directFieldActive){const menu=structureState();directStructure=menu.selection;controls=menu.controls;}
       const object=(directDraft&&directDraft.candidate||info.layout).objects.find(item=>item.id===boundObjectId)||info.layout.objects.find(item=>item.id===boundObjectId);
       if(!directSection&&directMenuLocal&&object){
-        const point=model.localPoint(object,directMenuLocal.x*1000,directMenuLocal.z*1000);
+        const size=model.objectFootprint(object),x=model.RACK_TYPES.includes(object.type)?object.uprights[0].width+object.bays[0].width/2:size.width/2;
+        const point=model.localPoint(object,x,size.depth+180);
         controls=controls.concat(['structure','zones','locations'].map((section,i)=>({key:'@section-'+section,action:'section',sectionValue:section,
           de:(i+1)+' · '+['Struktur','Zonen','Lagerplätze'][i],en:(i+1)+' · '+['Structure','Zones','Locations'][i],
-          point:{x:point.x/1000,y:directMenuLocal.y+.9-i*.3,z:point.z/1000}})));
+          point:{x:point.x/1000,y:1.7-i*.3,z:point.z/1000}})));
       }
       if(directFieldActive&&directDraft)controls=[directFields.find(f=>f.key===directDraft.field.key)||directDraft.field];
       const candidates=controls.map(field=>({
-        field,p:walk.project(camera,field.point,width,height),halfX:field.measure?90:120,halfY:15,
+        field,p:walk.project(camera,field.point,width,height),panel:walk.controlPanel(camera,field.point,object.rotation,Boolean(field.measure),width,height),
         distance:Math.hypot(field.point.x-camera.x,field.point.y-camera.eye,field.point.z-camera.z)
       }))
-        .filter(item=>item.p&&item.distance>.001&&item.distance<=6).sort((a,b)=>Number(Boolean(b.field.action&&b.field.action!=='apply'&&b.field.action!=='discard'))-Number(Boolean(a.field.action&&a.field.action!=='apply'&&a.field.action!=='discard'))||Number(directFieldActive&&b.field.key===(directDraft&&directDraft.field.key))-Number(directFieldActive&&a.field.key===(directDraft&&directDraft.field.key))||
+        .filter(item=>item.p&&item.panel&&item.distance>.001&&item.distance<=6).sort((a,b)=>Number(Boolean(b.field.action&&b.field.action!=='apply'&&b.field.action!=='discard'))-Number(Boolean(a.field.action&&a.field.action!=='apply'&&a.field.action!=='discard'))||Number(directFieldActive&&b.field.key===(directDraft&&directDraft.field.key))-Number(directFieldActive&&a.field.key===(directDraft&&directDraft.field.key))||
           Math.hypot(a.p.x-width/2,a.p.y-height/2)-Math.hypot(b.p.x-width/2,b.p.y-height/2)||a.distance-b.distance);
       function eligible(item){
-        const p=item.p,field=item.field;if(p.x<item.halfX+5||p.x>width-item.halfX-5||p.y<Math.max(90,item.halfY+5)||p.y>height-Math.max(120,item.halfY+5))return false;
-        if(blocked.some(r=>p.x+item.halfX>r.left&&p.x-item.halfX<r.right&&p.y+item.halfY>r.top&&p.y-item.halfY<r.bottom))return false;
-        const direction={x:(field.point.x-camera.x)/item.distance,y:(field.point.y-camera.eye)/item.distance,z:(field.point.z-camera.z)/item.distance};
-        const hit=walk.raycast(world,origin(),direction,true,item.distance);return !hit||hit.distance>=item.distance-.07;
+        const r=item.panel.bounds;if(r.left<5||r.right>width-5||r.top<90||r.bottom>height-120)return false;
+        const overlaps=(a,b)=>a.right>b.left&&a.left<b.right&&a.bottom>b.top&&a.top<b.bottom;
+        if(blocked.some(b=>overlaps(r,b)))return false;
+        // Conservatively hide partially occluded screens as well as fully hidden
+        // ones. A screen must not draw through rack parts or intervening walls.
+        return [item.field.point].concat(item.panel.corners).every(point=>{
+          const distance=Math.hypot(point.x-camera.x,point.y-camera.eye,point.z-camera.z),direction={x:(point.x-camera.x)/distance,y:(point.y-camera.eye)/distance,z:(point.z-camera.z)/distance};
+          const hit=walk.raycast(world,origin(),direction,true,distance);return !hit||hit.distance>=distance-.02;
+        });
       }
-      directHoverFields=candidates.filter(item=>controlHit({field:item.field,x:item.p.x,y:item.p.y},width,height)&&eligible(item)).map(item=>item.field);
+      directHoverFields=candidates.filter(item=>controlHit(item,width,height)&&eligible(item)).map(item=>item.field);
       if(!directHoverFields.some(field=>field.key===directFocusKey))directFocusKey=null;
       if(directFocusKey&&!directFieldActive)candidates.sort((a,b)=>Number(b.field.key===directFocusKey)-Number(a.field.key===directFocusKey));
       for(const item of candidates){
         if(result.length>=24)break;
         const field=item.field,p=item.p;if(!eligible(item))continue;
-        if(occupied.some(q=>Math.abs(q.x-p.x)<q.halfX+item.halfX+4&&Math.abs(q.y-p.y)<q.halfY+item.halfY+4))continue;
-        occupied.push({x:p.x,y:p.y,halfX:item.halfX,halfY:item.halfY});result.push({field:field,x:p.x,y:p.y});
+        const r=item.panel.bounds;if(occupied.some(q=>r.left<q.right+4&&r.right>q.left-4&&r.top<q.bottom+4&&r.bottom>q.top-4))continue;
+        occupied.push(r);result.push({field:field,x:p.x,y:p.y,panel:item.panel});
       }
       return result;
     }
@@ -376,7 +381,7 @@
       directTarget=aimed&&aimed.field||null;
       overlay.innerHTML='<svg class="wh-walk-measures" viewBox="0 0 '+width+' '+height+'" aria-hidden="true">'+fields.map(item=>measureSvg(item,width,height)).join('')+'</svg>'+fields.map(function(item){
         const field=item.field,pending=directDraft&&directDraft.field.key===field.key,active=directFieldActive&&pending;
-        return '<span class="wh-walk-handle'+(field===directTarget?' is-target':'')+(active?' is-active':'')+(field.action?' is-action':'')+(field.measure?' is-measure':'')+'" data-direct-field="'+esc(field.key)+'" aria-disabled="'+Boolean(field.locked)+'" style="left:'+item.x+'px;top:'+item.y+'px;transform:translate(-50%,-50%)"><span title="'+esc(field[options.getLanguage()==='de'?'de':'en'])+'">'+esc(field[options.getLanguage()==='de'?'shortDe':'shortEn']||field[options.getLanguage()==='de'?'de':'en'])+'</span>'+(field.action?'':'<b>'+esc(directFormat(field,pending?directDraft.value:field.value,pending?directDraft.input:undefined))+(field.locked?' 🔒':'')+'</b>')+'</span>';
+        return '<span class="wh-walk-handle'+(field===directTarget?' is-target':'')+(active?' is-active':'')+(field.action?' is-action':'')+(field.measure?' is-measure':'')+'" data-direct-field="'+esc(field.key)+'" aria-disabled="'+Boolean(field.locked)+'" style="left:0;top:0;transform:matrix3d('+item.panel.matrix.join(',')+')"><span title="'+esc(field[options.getLanguage()==='de'?'de':'en'])+'">'+esc(field[options.getLanguage()==='de'?'shortDe':'shortEn']||field[options.getLanguage()==='de'?'de':'en'])+'</span>'+(field.action?'':'<b>'+esc(directFormat(field,pending?directDraft.value:field.value,pending?directDraft.input:undefined))+(field.locked?' 🔒':'')+'</b>')+'</span>';
       }).join('');
       const t=directWords(),object=info.layout.objects.find(item=>item.id===boundObjectId),draft=directDraft;
       let detail=directBusy?t.saving:directStale?t.stale:!directSection?(options.getLanguage()==='de'?'Objektmenü: Struktur, Zonen oder Lagerplätze auswählen.':'Object menu: choose Structure, Zones or Locations.'):directNotice||(options.getLanguage()==='de'?'Auswahl anvisieren und links klicken.':'Aim at a control and left click.');
