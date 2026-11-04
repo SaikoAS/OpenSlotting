@@ -287,8 +287,7 @@
       if(renderer){renderer.setWorld(previewWorld||scene);previewApplied=Boolean(previewWorld);}
     }
     function controlHit(item,width,height){
-      const angle=(item.angle||0)*Math.PI/180,dx=width/2-item.x,dy=height/2-item.y;
-      return Math.abs(dx*Math.cos(angle)+dy*Math.sin(angle))<=(item.field&&item.field.measure?90:120)&&Math.abs(-dx*Math.sin(angle)+dy*Math.cos(angle))<=15;
+      return Math.abs(width/2-item.x)<=(item.field&&item.field.measure?90:120)&&Math.abs(height/2-item.y)<=15;
     }
     function measureSvg(item,width,height){
       const m=item.field.measure;if(!m)return '';
@@ -319,12 +318,10 @@
           point:{x:point.x/1000,y:directMenuLocal.y+.9-i*.3,z:point.z/1000}})));
       }
       if(directFieldActive&&directDraft)controls=[directFields.find(f=>f.key===directDraft.field.key)||directDraft.field];
-      const candidates=controls.map(field=>{
-        const p=walk.project(camera,field.point,width,height);let angle=0;
-        if(field.measure&&!field.measure.leader){const a=walk.project(camera,field.measure.a,width,height),b=walk.project(camera,field.measure.b,width,height);if(a&&b){angle=Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI;if(angle>90)angle-=180;if(angle< -90)angle+=180;}}
-        const radians=angle*Math.PI/180,halfWidth=field.measure?90:120;
-        return {field,p,angle,halfX:Math.abs(Math.cos(radians))*halfWidth+Math.abs(Math.sin(radians))*15,halfY:Math.abs(Math.sin(radians))*halfWidth+Math.abs(Math.cos(radians))*15,distance:Math.hypot(field.point.x-camera.x,field.point.y-camera.eye,field.point.z-camera.z)};
-      })
+      const candidates=controls.map(field=>({
+        field,p:walk.project(camera,field.point,width,height),halfX:field.measure?90:120,halfY:15,
+        distance:Math.hypot(field.point.x-camera.x,field.point.y-camera.eye,field.point.z-camera.z)
+      }))
         .filter(item=>item.p&&item.distance>.001&&item.distance<=6).sort((a,b)=>Number(Boolean(b.field.action&&b.field.action!=='apply'&&b.field.action!=='discard'))-Number(Boolean(a.field.action&&a.field.action!=='apply'&&a.field.action!=='discard'))||Number(directFieldActive&&b.field.key===(directDraft&&directDraft.field.key))-Number(directFieldActive&&a.field.key===(directDraft&&directDraft.field.key))||
           Math.hypot(a.p.x-width/2,a.p.y-height/2)-Math.hypot(b.p.x-width/2,b.p.y-height/2)||a.distance-b.distance);
       function eligible(item){
@@ -333,14 +330,14 @@
         const direction={x:(field.point.x-camera.x)/item.distance,y:(field.point.y-camera.eye)/item.distance,z:(field.point.z-camera.z)/item.distance};
         const hit=walk.raycast(world,origin(),direction,true,item.distance);return !hit||hit.distance>=item.distance-.07;
       }
-      directHoverFields=candidates.filter(item=>controlHit({field:item.field,x:item.p.x,y:item.p.y,angle:item.angle},width,height)&&eligible(item)).map(item=>item.field);
+      directHoverFields=candidates.filter(item=>controlHit({field:item.field,x:item.p.x,y:item.p.y},width,height)&&eligible(item)).map(item=>item.field);
       if(!directHoverFields.some(field=>field.key===directFocusKey))directFocusKey=null;
       if(directFocusKey&&!directFieldActive)candidates.sort((a,b)=>Number(b.field.key===directFocusKey)-Number(a.field.key===directFocusKey));
       for(const item of candidates){
         if(result.length>=24)break;
         const field=item.field,p=item.p;if(!eligible(item))continue;
         if(occupied.some(q=>Math.abs(q.x-p.x)<q.halfX+item.halfX+4&&Math.abs(q.y-p.y)<q.halfY+item.halfY+4))continue;
-        occupied.push({x:p.x,y:p.y,halfX:item.halfX,halfY:item.halfY});result.push({field:field,x:p.x,y:p.y,angle:item.angle});
+        occupied.push({x:p.x,y:p.y,halfX:item.halfX,halfY:item.halfY});result.push({field:field,x:p.x,y:p.y});
       }
       return result;
     }
@@ -364,7 +361,7 @@
       directTarget=aimed&&aimed.field||null;
       overlay.innerHTML='<svg class="wh-walk-measures" viewBox="0 0 '+width+' '+height+'" aria-hidden="true">'+fields.map(item=>measureSvg(item,width,height)).join('')+'</svg>'+fields.map(function(item){
         const field=item.field,pending=directDraft&&directDraft.field.key===field.key,active=directFieldActive&&pending;
-        return '<span class="wh-walk-handle'+(field===directTarget?' is-target':'')+(active?' is-active':'')+(field.action?' is-action':'')+(field.measure?' is-measure':'')+'" data-direct-field="'+esc(field.key)+'" aria-disabled="'+Boolean(field.locked)+'" style="left:'+item.x+'px;top:'+item.y+'px;transform:translate(-50%,-50%) rotate('+(item.angle||0)+'deg)"><span title="'+esc(field[options.getLanguage()==='de'?'de':'en'])+'">'+esc(field[options.getLanguage()==='de'?'shortDe':'shortEn']||field[options.getLanguage()==='de'?'de':'en'])+'</span>'+(field.action?'':'<b>'+esc(directFormat(field,pending?directDraft.value:field.value,pending?directDraft.input:undefined))+(field.locked?' 🔒':'')+'</b>')+'</span>';
+        return '<span class="wh-walk-handle'+(field===directTarget?' is-target':'')+(active?' is-active':'')+(field.action?' is-action':'')+(field.measure?' is-measure':'')+'" data-direct-field="'+esc(field.key)+'" aria-disabled="'+Boolean(field.locked)+'" style="left:'+item.x+'px;top:'+item.y+'px;transform:translate(-50%,-50%)"><span title="'+esc(field[options.getLanguage()==='de'?'de':'en'])+'">'+esc(field[options.getLanguage()==='de'?'shortDe':'shortEn']||field[options.getLanguage()==='de'?'de':'en'])+'</span>'+(field.action?'':'<b>'+esc(directFormat(field,pending?directDraft.value:field.value,pending?directDraft.input:undefined))+(field.locked?' 🔒':'')+'</b>')+'</span>';
       }).join('');
       const t=directWords(),object=info.layout.objects.find(item=>item.id===boundObjectId),draft=directDraft;
       let detail=directBusy?t.saving:directStale?t.stale:!directSection?(options.getLanguage()==='de'?'Objektmenü: Struktur, Zonen oder Lagerplätze auswählen.':'Object menu: choose Structure, Zones or Locations.'):directNotice||(options.getLanguage()==='de'?'Auswahl anvisieren und links klicken.':'Aim at a control and left click.');

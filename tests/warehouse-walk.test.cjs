@@ -1025,9 +1025,9 @@ test('canceling a level edit restores its context while another bay can be saved
   const h=await directHarness(),first=h.choose('level-height');h.wheel(-100);h.click(2);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStructure,'level');h.click(2);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'level-select');h.toMenu();const baseField=h.field,other=h.value.objects[0].bays[1].id;h.field=kind=>kind==='bay-width'?directEditor.directFields(model,h.current(),h.value.objects[0].id).find(f=>f.kind===kind&&f.bayId===other):baseField(kind);const second=h.choose('bay-width');h.wheel(-100);h.click(0);await settle();h.frame();assert.equal(h.saved.length,1);assert.equal(h.value.objects[0].bays[0].levels[0].clearHeight,first.value);assert.equal(h.value.objects[0].bays[1].width,second.value+50);
 });
 
-test('technical dimension labels and SVG guides follow projected rotated geometry with matching crosshair hits',async()=>{
+test('technical guides follow rotated geometry while controls stay horizontal with matching crosshair hits',async()=>{
   const value=layout();value.objects[0].rotation=30;const h=await directHarness({value:model.normalizeLayout(value)}),before=structuredClone(h.value),field=h.choose('bay-width'),html=h.nodes.get('[data-walk-handles]').innerHTML;
-  assert.match(html,/wh-walk-measures/);assert.ok(html.includes('data-measure-key="'+field.key+'"'));assert.match(html,/rotate\(/);assert.ok(html.includes('Bay width'));assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'value');
+  assert.match(html,/wh-walk-measures/);assert.ok(html.includes('data-measure-key="'+field.key+'"'));assert.doesNotMatch(html,/rotate\(/);assert.ok(html.includes('Bay width'));assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'value');
   h.wheel(-100);h.click(2);assert.deepEqual(h.value,before);assert.equal(h.document.pointerLockElement,h.canvas);assert.equal(h.saved.length,0);
 });
 
@@ -1059,4 +1059,14 @@ test('canceling a destructive ground-level value restores its original level con
   h.structureAction('@structure-bay-'+bay.id);h.structureAction('@structure-levels-'+bay.id);h.structureAction('@structure-level-'+bay.ground.id);
   const field=directEditor.directFields(model,h.value,rack.id).find(f=>f.kind==='ground-enabled'&&f.bayId===bay.id);h.pick(field);h.wheel(-100);h.click(0);assert.equal(status.dataset.editorStage,'apply-confirm');assert.equal(h.saved.length,0);
   h.click(2);assert.equal(status.dataset.editorStructure,'level');assert.equal(status.dataset.editorLevel,bay.ground.id);assert.equal(h.value.objects[0].bays[0].ground.enabled,true);assert.equal(status.dataset.editorStage,'object');assert.equal(h.document.pointerLockElement,h.canvas);
+});
+
+test('value controls keep their rack anchor across camera movement and FOV changes without rotating',async()=>{
+  const value=layout();value.objects[0].rotation=30;const h=await directHarness({value:model.normalizeLayout(value)}),before=structuredClone(h.value),field=h.choose('level-height'),anchor={...field.point};
+  function check(){
+    const html=h.nodes.get('[data-walk-handles]').innerHTML,escaped=field.key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),match=html.match(new RegExp('data-direct-field="'+escaped+'"[^>]*left:([\\d.]+)px;top:([\\d.]+)px;transform:translate\\(-50%,-50%\\)'));
+    assert.ok(match,html);const projected=walk.project(h.camera,anchor,900,600);assert.ok(Math.abs(Number(match[1])-projected.x)<1e-7);assert.ok(Math.abs(Number(match[2])-projected.y)<1e-7);assert.doesNotMatch(html,/rotate\(/);
+  }
+  check();h.canvas.events.pointermove({movementX:15,movementY:8});h.frame();check();h.fov(85);h.frame();check();h.key('KeyD');for(let i=0;i<4;i++)h.frame();h.release('KeyD');h.frame();check();
+  assert.deepEqual(h.field('level-height').point,anchor);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);assert.equal(h.document.pointerLockElement,h.canvas);
 });
