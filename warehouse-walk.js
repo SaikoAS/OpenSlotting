@@ -78,6 +78,7 @@
     let directFieldActive=false;
     let directSection=null,directStructure=null,directMenuLocal=null,applyDirectPending=false;
     let directFocusKey=null,directHoverFields=[];
+    let directPage=0,directPageCount=1,directPageSignature='',directUnplaced=0;
     let discardDirectAction=null;
     let directEpoch=0,directBusy=false,directStale=false,directDirty=false,previewWorld=null,previewApplied=false,aimPreview=false;
     function showAim(id){
@@ -287,7 +288,7 @@
       if(renderer){renderer.setWorld(previewWorld||scene);previewApplied=Boolean(previewWorld);}
     }
     function controlHit(item,width,height){
-      return Boolean(item.panel&&walk.controlPanelHit(camera,item.panel,width,height));
+      return Boolean(item.reachable&&item.panel&&walk.controlScreenHit(item.panel,width/2,height/2));
     }
     function measureSvg(item,width,height){
       const field=item.field,m=field.measure,label={x:item.x,y:item.y},line=(p,q)=>'<path d="M '+p.x+' '+p.y+' L '+q.x+' '+q.y+'"/>';
@@ -316,7 +317,7 @@
     }
     function visibleDirectFields(){
       if(!boundObjectId||!scene)return [];
-      const width=canvas.clientWidth,height=canvas.clientHeight,world=previewWorld||scene,occupied=[],result=[];
+      const width=canvas.clientWidth,height=canvas.clientHeight,world=previewWorld||scene;
       const canvasRect=canvas.getBoundingClientRect(),blocked=[];
       ['[data-walk-objects]','.wh-walk-map-wrap','.wh-walk-immersive-controls','[data-walk-direct-status]'].forEach(selector=>{
         const element=root.querySelector(selector);
@@ -333,33 +334,25 @@
           point:{x:point.x/1000,y:1.7-i*.3,z:point.z/1000}})));
       }
       if(directFieldActive&&directDraft)controls=[directFields.find(f=>f.key===directDraft.field.key)||directDraft.field];
-      const candidates=controls.map(field=>({
-        field,p:walk.project(camera,field.point,width,height),panel:walk.controlPanel(camera,field.point,object.rotation,Boolean(field.measure),width,height),
-        distance:Math.hypot(field.point.x-camera.x,field.point.y-camera.eye,field.point.z-camera.z)
-      }))
-        .filter(item=>item.p&&item.panel&&item.distance>.001&&item.distance<=6).sort((a,b)=>Number(Boolean(b.field.action&&b.field.action!=='apply'&&b.field.action!=='discard'))-Number(Boolean(a.field.action&&a.field.action!=='apply'&&a.field.action!=='discard'))||Number(directFieldActive&&b.field.key===(directDraft&&directDraft.field.key))-Number(directFieldActive&&a.field.key===(directDraft&&directDraft.field.key))||
-          Math.hypot(a.p.x-width/2,a.p.y-height/2)-Math.hypot(b.p.x-width/2,b.p.y-height/2)||a.distance-b.distance);
-      function eligible(item){
-        const r=item.panel.bounds;if(r.left<5||r.right>width-5||r.top<90||r.bottom>height-120)return false;
-        const overlaps=(a,b)=>a.right>b.left&&a.left<b.right&&a.bottom>b.top&&a.top<b.bottom;
-        if(blocked.some(b=>overlaps(r,b)))return false;
-        // Conservatively hide partially occluded screens as well as fully hidden
-        // ones. A screen must not draw through rack parts or intervening walls.
-        return [item.field.point].concat(item.panel.corners).every(point=>{
-          const distance=Math.hypot(point.x-camera.x,point.y-camera.eye,point.z-camera.z),direction={x:(point.x-camera.x)/distance,y:(point.y-camera.eye)/distance,z:(point.z-camera.z)/distance};
-          const hit=walk.raycast(world,origin(),direction,true,distance);return !hit||hit.distance>=distance-.02;
-        });
-      }
-      directHoverFields=candidates.filter(item=>controlHit(item,width,height)&&eligible(item)).map(item=>item.field);
-      if(!directHoverFields.some(field=>field.key===directFocusKey))directFocusKey=null;
-      if(directFocusKey&&!directFieldActive)candidates.sort((a,b)=>Number(b.field.key===directFocusKey)-Number(a.field.key===directFocusKey));
-      for(const item of candidates){
-        if(result.length>=24)break;
-        const field=item.field,p=item.p;if(!eligible(item))continue;
-        const r=item.panel.bounds;if(occupied.some(q=>r.left<q.right+4&&r.right>q.left-4&&r.top<q.bottom+4&&r.bottom>q.top-4))continue;
-        occupied.push(r);result.push({field:field,x:p.x,y:p.y,panel:item.panel});
-      }
-      return result;
+      const signature=boundObjectId+':'+directSection+':'+JSON.stringify(directStructure)+':'+(directFieldActive&&directDraft?directDraft.field.key:'');
+      if(signature!==directPageSignature){directPageSignature=signature;directPage=0;}
+      const candidates=controls.map(field=>{
+        const p=walk.controlBearing(camera,field.point,width,height),physical=walk.controlPanel(camera,field.point,object.rotation,Boolean(field.measure),width,height);
+        const cssWidth=field.measure?180:240,cssHeight=30,r=physical&&physical.bounds;
+        const detached=!r||r.right-r.left<cssWidth*.65||r.bottom-r.top<24||r.bottom-r.top>60||r.right-r.left>300;
+        const panel=detached?{cssWidth,cssHeight,matrix:[1,0,0,0,0,1,0,0,0,0,1,0,p.x-cssWidth/2,p.y-15,0,1],bounds:{left:p.x-cssWidth/2,right:p.x+cssWidth/2,top:p.y-15,bottom:p.y+15}}:physical;
+        const distance=Math.hypot(field.point.x-camera.x,field.point.y-camera.eye,field.point.z-camera.z);
+        return {field,p,panel,detached,frontFacing:Boolean(physical),distance};
+      }).sort((a,b)=>Math.hypot(a.p.x-width/2,a.p.y-height/2)-Math.hypot(b.p.x-width/2,b.p.y-height/2)||a.field.key.localeCompare(b.field.key));
+      const area={left:8,right:width-8,top:Math.min(96,height*.15),bottom:height-Math.min(124,height*.2)};
+      const pages=walk.packControls(candidates,area,blocked);directPageCount=pages.length;directPage=((directPage%pages.length)+pages.length)%pages.length;
+      const placed=pages[directPage].map(item=>{
+        const point=item.field.point,distance=item.distance;
+        const hit=item.frontFacing&&distance>.001&&distance<=6?walk.raycast(world,origin(),{x:(point.x-camera.x)/distance,y:(point.y-camera.eye)/distance,z:(point.z-camera.z)/distance},true,distance):null;
+        return {...item,reachable:Boolean(item.frontFacing&&distance>.001&&distance<=6&&(!hit||hit.distance>=distance-.02))};
+      });directUnplaced=controls.length-pages.reduce((n,page)=>n+page.length,0);
+      directHoverFields=placed.filter(item=>controlHit(item,width,height)).map(item=>item.field);
+      return placed;
     }
     function paintDirect(){
       const overlay=root.querySelector('[data-walk-handles]'),status=root.querySelector('[data-walk-direct-status]');
@@ -381,7 +374,9 @@
       directTarget=aimed&&aimed.field||null;
       overlay.innerHTML='<svg class="wh-walk-measures" viewBox="0 0 '+width+' '+height+'" aria-hidden="true">'+fields.map(item=>measureSvg(item,width,height)).join('')+'</svg>'+fields.map(function(item){
         const field=item.field,pending=directDraft&&directDraft.field.key===field.key,active=directFieldActive&&pending;
-        return '<span class="wh-walk-handle'+(field===directTarget?' is-target':'')+(active?' is-active':'')+(field.action?' is-action':'')+(field.measure?' is-measure':'')+'" data-direct-field="'+esc(field.key)+'" aria-disabled="'+Boolean(field.locked)+'" style="left:0;top:0;transform:matrix3d('+item.panel.matrix.join(',')+')"><span title="'+esc(field[options.getLanguage()==='de'?'de':'en'])+'">'+esc(field[options.getLanguage()==='de'?'shortDe':'shortEn']||field[options.getLanguage()==='de'?'de':'en'])+'</span>'+(field.action?'':'<b>'+esc(directFormat(field,pending?directDraft.value:field.value,pending?directDraft.input:undefined))+(field.locked?' 🔒':'')+'</b>')+'</span>';
+        const arrow=item.p.depth<=0?'↶':item.p.x<0?'←':item.p.x>width?'→':item.p.y<0?'↑':item.p.y>height?'↓':'';
+        const hint=item.reachable?'':options.getLanguage()==='de'?' · Näher herangehen / Bedienseite frei anvisieren':' · Move closer / face the unobstructed access side';
+        return '<span class="wh-walk-handle'+(field===directTarget?' is-target':'')+(active?' is-active':'')+(field.action?' is-action':'')+(field.measure?' is-measure':'')+(item.detached||item.shifted?' is-detached':'')+(!item.reachable?' is-unreachable':'')+'" data-direct-field="'+esc(field.key)+'" aria-disabled="'+Boolean(field.locked||!item.reachable)+'" data-control-reachable="'+item.reachable+'" style="left:0;top:0;transform:matrix3d('+item.panel.matrix.join(',')+')">'+(arrow?'<small class="wh-walk-control-direction">'+arrow+'</small>':'')+'<span title="'+esc(field[options.getLanguage()==='de'?'de':'en']+hint)+'">'+esc(field[options.getLanguage()==='de'?'shortDe':'shortEn']||field[options.getLanguage()==='de'?'de':'en'])+'</span>'+(field.action?'':'<b>'+esc(directFormat(field,pending?directDraft.value:field.value,pending?directDraft.input:undefined))+(field.locked?' 🔒':'')+'</b>')+'</span>';
       }).join('');
       const t=directWords(),object=info.layout.objects.find(item=>item.id===boundObjectId),draft=directDraft;
       let detail=directBusy?t.saving:directStale?t.stale:!directSection?(options.getLanguage()==='de'?'Objektmenü: Struktur, Zonen oder Lagerplätze auswählen.':'Object menu: choose Structure, Zones or Locations.'):directNotice||(options.getLanguage()==='de'?'Auswahl anvisieren und links klicken.':'Aim at a control and left click.');
@@ -396,7 +391,10 @@
       if(discardDirectAction)detail=discard.question+' · '+(draft?directFormat(draft.field,draft.value,draft.input)+' · ':'')+discard.keys;
       if(applyDirectPending)detail=applyDirectQuestion()+(options.getLanguage()==='de'?' Linksklick / Enter: bestätigen · Rechtsklick: verwerfen / zurück':' Left click / Enter: confirm · Right click: discard / back');
       if(!directFieldActive&&!discardDirectAction&&!applyDirectPending)detail+=!directSection?(options.getLanguage()==='de'?' · 1 Struktur · 2 Zonen · 3 Lagerplätze · Rechtsklick: lösen':' · 1 Structure · 2 Zones · 3 Locations · Right click: release'):' · '+navigationBack();
-      if(!directFieldActive&&directHoverFields.length>1)detail+=(options.getLanguage()==='de'?' · Mausrad: überlappende Felder wählen':' · Wheel: choose overlapping fields')+' ('+(directHoverFields.findIndex(field=>directTarget&&field.key===directTarget.key)+1)+'/'+directHoverFields.length+')';
+      if(directPageCount>1)detail+=(options.getLanguage()==='de'?' · Seite ':' · Page ')+(directPage+1)+'/'+directPageCount+(options.getLanguage()==='de'?' · Mausrad: blättern':' · Wheel: change page');
+      if(fields.length&&!fields.some(item=>item.reachable))detail+=(options.getLanguage()==='de'?' · Hinweise bleiben sichtbar. Zum Bearbeiten näher an die freie Bedienseite gehen.':' · Controls stay visible. To edit, approach the unobstructed access side.');
+      if(directUnplaced)detail+=(options.getLanguage()==='de'?' · Fenster vergrößern: ':' · Enlarge window: ')+directUnplaced+(options.getLanguage()==='de'?' weitere Felder':' more controls');
+      status.dataset.editorPage=String(directPage+1);status.dataset.editorPages=String(directPageCount);
       status.classList.toggle('is-confirming',Boolean(discardDirectAction||applyDirectPending));
       status.classList.toggle('is-invalid',Boolean(draft&&(draft.error||draft.saveError||draft.blocked)||directStale));
       const structure=directSection==='structure'&&structureState().selection;
@@ -1057,7 +1055,7 @@
     canvas.addEventListener('wheel',function(event){
       if(document.pointerLockElement!==canvas||immersivePaused||!boundObjectId||discardDirectAction||applyDirectPending||directBusy||event.ctrlKey||event.metaKey||event.altKey||!event.deltaY)return;
       if(!directFieldActive){
-        paintDirect();if(directHoverFields.length>1){event.preventDefault();const index=directHoverFields.findIndex(field=>directTarget&&field.key===directTarget.key);directFocusKey=directHoverFields[(index+(event.deltaY<0?1:-1)+directHoverFields.length)%directHoverFields.length].key;schedule();}return;
+        paintDirect();if(directPageCount>1){event.preventDefault();directPage=(directPage+(event.deltaY>0?1:-1)+directPageCount)%directPageCount;schedule();}return;
       }
       if(!directDraft||directStale)return;
       event.preventDefault();adjustDirect(event.deltaY<0?1:-1,event.shiftKey);

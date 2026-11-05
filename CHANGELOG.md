@@ -10,7 +10,7 @@ entry remains historical development work, not an additional published release.
 
 ## Unreleased
 
-- Render walk editing controls as fixed physical screens at the object front, with constant world size and object orientation. Project their perspective corners, intersect the real surface for clicks, and hide rear-facing or occluded screens. Keep the object menu at a fixed front-side position.
+- Keep walk control cards visible when looking away or moving out of range. Retain physical reference points, use readable edge cards and direction arrows when needed, move overlapping cards into free space, and expose overflow through explicit mouse-wheel pages. Match clicks to the displayed surface while preserving access-side, range and obstruction checks for editing.
 
 - Attach walk rack controls to marked physical reference points with short leaders. Place bay width at the first front beam and ground/upright/level fields beside their relevant parts; retain scoped editing and camera-independent world positions.
 

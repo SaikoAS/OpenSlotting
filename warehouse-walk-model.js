@@ -226,6 +226,53 @@
     if(Math.abs(x)>panel.physicalWidth/2||Math.abs(point.y-panel.point.y)>panel.physicalHeight/2)return null;
     return {point,distance};
   }
+  function controlBearing(camera,point,width,height){
+    const projected=project(camera,point,width,height);if(projected)return projected;
+    const b=basis(camera),p={x:point.x-camera.x,y:point.y-camera.eye,z:point.z-camera.z},dot=v=>p.x*v.x+p.y*v.y+p.z*v.z;
+    const side=dot(b.right),depth=dot(b.forward),up=dot(b.up);
+    return {x:width/2+(side<0?-1:1)*width,y:height/2-Math.atan2(up,Math.hypot(side,depth))*height,depth};
+  }
+  // Place every card without overlap. Spill into explicit pages rather than
+  // silently dropping controls when a small viewport cannot hold them all.
+  function packControls(items,area,blockers){
+    const gap=5,clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+    function subtract(rect,cut){
+      const l=Math.max(rect.left,cut.left),r=Math.min(rect.right,cut.right),t=Math.max(rect.top,cut.top),b=Math.min(rect.bottom,cut.bottom);
+      if(l>=r||t>=b)return [rect];
+      return [{left:rect.left,right:rect.right,top:rect.top,bottom:t},{left:rect.left,right:rect.right,top:b,bottom:rect.bottom},
+        {left:rect.left,right:l,top:t,bottom:b},{left:r,right:rect.right,top:t,bottom:b}].filter(r=>r.right-r.left>=1&&r.bottom-r.top>=1);
+    }
+    let base=[area];for(const b of blockers||[])base=base.flatMap(r=>subtract(r,b));
+    const pages=[[]];let free=base.slice();
+    for(let item of items){
+      const bounds=item.panel.bounds,w=bounds.right-bounds.left,h=bounds.bottom-bounds.top;
+      function find(){let best=null;for(const r of free){if(r.right-r.left<w||r.bottom-r.top<h)continue;
+        const left=clamp(bounds.left,r.left,r.right-w),top=clamp(bounds.top,r.top,r.bottom-h),score=(left-bounds.left)**2+(top-bounds.top)**2;
+        if(!best||score<best.score)best={left,top,right:left+w,bottom:top+h,score};}return best;}
+      let placed=find();if(!placed&&pages[pages.length-1].length){pages.push([]);free=base.slice();placed=find();}
+      if(!placed){
+        // A narrow free strip may fit a compact card even when its preferred
+        // perspective screen does not. The caller can expose an empty-area hint.
+        const r=free.filter(r=>r.right-r.left>=100&&r.bottom-r.top>=30).sort((a,b)=>(b.right-b.left)*(b.bottom-b.top)-(a.right-a.left)*(a.bottom-a.top))[0];
+        if(!r)continue;
+        const cardWidth=Math.min(item.panel.cssWidth,r.right-r.left),scale=cardWidth/item.panel.cssWidth;
+        item={...item,panel:{...item.panel,matrix:[scale,0,0,0,0,1,0,0,0,0,1,0,r.left,r.top,0,1],bounds:{left:r.left,right:r.left+cardWidth,top:r.top,bottom:r.top+30}},detached:true};
+        placed={...item.panel.bounds};
+      }
+      const dx=placed.left-item.panel.bounds.left,dy=placed.top-item.panel.bounds.top,m=item.panel.matrix.slice();
+      for(let i=0;i<16;i+=4){m[i]+=dx*m[i+3];m[i+1]+=dy*m[i+3];}
+      const panel={...item.panel,matrix:m,bounds:placed};
+      pages[pages.length-1].push({...item,panel,x:(placed.left+placed.right)/2,y:(placed.top+placed.bottom)/2,shifted:Math.abs(dx)+Math.abs(dy)>.1});
+      free=free.flatMap(r=>subtract(r,{left:placed.left-gap,right:placed.right+gap,top:placed.top-gap,bottom:placed.bottom+gap}));
+    }
+    return pages;
+  }
+  function controlScreenHit(panel,x,y){
+    const m=panel.matrix,points=[[0,0],[panel.cssWidth,0],[panel.cssWidth,panel.cssHeight],[0,panel.cssHeight]].map(([u,v])=>{
+      const w=m[3]*u+m[7]*v+m[15];return {x:(m[0]*u+m[4]*v+m[12])/w,y:(m[1]*u+m[5]*v+m[13])/w};
+    });let sign=0;
+    for(let i=0;i<4;i++){const a=points[i],b=points[(i+1)%4],cross=(b.x-a.x)*(y-a.y)-(b.y-a.y)*(x-a.x);if(Math.abs(cross)<1e-7)continue;if(sign&&Math.sign(cross)!==sign)return false;sign=Math.sign(cross);}return true;
+  }
   function approach(scene, item, eyeHeight) {
     const target=world(item,item.x+item.width/2,item.y+item.height,item.z+item.depth/2);
     const front=item.box.object.bays ? item.box.object.bays[item.box.slotRef.bayIndex].depth/1000 : item.z+item.depth;
@@ -245,5 +292,5 @@
   return {MIN_FOV:MIN_FOV,MAX_FOV:MAX_FOV,DEFAULT_FOV:DEFAULT_FOV,fieldOfView:fieldOfView,
     crosshairPreferences:crosshairPreferences,crosshairSvg:crosshairSvg,createWorld:createWorld,world:world,local:local,canStand:canStand,canOccupy:canOccupy,freePosition:freePosition,move:move,
     createMotion:createMotion,movementSpeed:movementSpeed,stepMotion:stepMotion,basis:basis,ray:ray,
-    raycast:raycast,project:project,matrix:matrix,controlPanel:controlPanel,controlPanelHit:controlPanelHit,approach:approach,RADIUS:RADIUS,FAR:FAR};
+    raycast:raycast,project:project,matrix:matrix,controlPanel:controlPanel,controlPanelHit:controlPanelHit,controlBearing:controlBearing,packControls:packControls,controlScreenHit:controlScreenHit,approach:approach,RADIUS:RADIUS,FAR:FAR};
 }));

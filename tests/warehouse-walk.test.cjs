@@ -18,6 +18,15 @@ function controlPixel(html,key,x,y){
   return {x:(m[0]*x+m[4]*y+m[12])/w,y:(m[1]*x+m[5]*y+m[13])/w};
 }
 
+function assertSeparated(html){
+  const tags=[...html.matchAll(/data-direct-field="([^"]+)"/g)],rects=tags.map(match=>{
+    const key=match[1],tag=html.slice(html.lastIndexOf('<span class="wh-walk-handle',match.index),match.index),w=tag.includes('is-measure')?180:240;
+    const points=[[0,0],[w,0],[w,30],[0,30]].map(([x,y])=>controlPixel(html,key,x,y));
+    return {left:Math.min(...points.map(p=>p.x)),right:Math.max(...points.map(p=>p.x)),top:Math.min(...points.map(p=>p.y)),bottom:Math.max(...points.map(p=>p.y))};
+  });
+  for(let i=0;i<rects.length;i++){const a=rects[i];assert.ok(a.left>=7.9&&a.right<=892.1&&a.top>=89.9&&a.bottom<=480.1);for(let j=0;j<i;j++){const b=rects[j];assert.ok(a.right<=b.left+.01||a.left>=b.right-.01||a.bottom<=b.top+.01||a.top>=b.bottom-.01);}}
+}
+
 function layout(){
   const rack=model.createRack('pallet-rack',{bayCount:2,levelCount:2});rack.bays[0].levels[0].deck=true;
   let value=model.normalizeLayout({...model.createLayout(),objects:[rack]});
@@ -768,7 +777,12 @@ async function directHarness(settings={}){
   h.field=kind=>directEditor.directFields(model,h.value,h.value.objects[0].id).find(f=>f.kind===kind);
   h.target=()=>{const html=h.nodes.get('[data-walk-handles]').innerHTML;return (html.match(/class="[^"]*is-target[^"]*" data-direct-field="([^"]+)"/)||[])[1];};
   h.current=()=>({...h.value,objects:h.value.objects.map(o=>h.world.entries.find(e=>e.box.object.id===o.id)?.box.object||o)});
-  h.pick=f=>{h.look(f.point);for(let i=0;i<100&&h.target()!==f.key;i++)h.wheel(-100);assert.equal(h.target(),f.key,f.key);h.click(0);};
+  h.pick=f=>{h.look(f.point);for(let i=0;i<100&&h.target()!==f.key;i++){
+    const html=h.nodes.get('[data-walk-handles]').innerHTML;
+    if(!html.includes('data-direct-field="'+f.key+'"')){h.wheel(100);continue;}
+    const p=controlPixel(html,f.key,f.measure?90:120,15),c=h.camera,ray=walk.ray(c,p.x/450-1,1-p.y/300,1.5);
+    h.look({x:c.x+ray.x*3,y:c.eye+ray.y*3,z:c.z+ray.z*3});
+  }assert.equal(h.target(),f.key,f.key);h.click(0);};
   h.toMenu=()=>{for(let i=0;i<8&&h.nodes.get('[data-walk-direct-status]').dataset.editorSection;i++)h.click(2);};
   h.structureAction=key=>{const status=h.nodes.get('[data-walk-direct-status]'),menu=directEditor.structureMenu(model,h.current(),h.value.objects[0].id,{view:status.dataset.editorStructure||'bays',bayId:status.dataset.editorBay,levelId:status.dataset.editorLevel});const item=menu.controls.find(f=>f.key===key);assert.ok(item,key);h.pick(item);};
   h.choose=kind=>{
@@ -781,7 +795,7 @@ async function directHarness(settings={}){
       else{const bayId=f.bayId||h.value.objects[0].bays[0].id;h.structureAction('@structure-bay-'+bayId);if(f.levelId){h.structureAction('@structure-levels-'+bayId);h.structureAction('@structure-level-'+f.levelId);}}
     }
     const projected=directEditor.directFields(model,h.current(),h.value.objects[0].id).find(item=>item.key===f.key)||f;
-    h.look(projected.point);for(let i=0;i<100&&h.target()!==f.key;i++)h.wheel(-100);assert.equal(h.target(),f.key,kind);assert.match(h.nodes.get('[data-walk-interact-hint]').textContent,f.locked?/Object locked/:/Edit value/);h.click(0);return f;
+    h.pick(projected);return f;
   };
   h.number=value=>{for(const char of String(value))h.event({code:'Digit'+char,key:char});h.frame();};
   await h.change('work-mode','editor');await h.action('resume');h.frame();
@@ -970,9 +984,9 @@ test('code changes update assignment previews but require confirmation before co
   h.key('Enter');await settle();h.frame();assert.equal(h.value.locations.find(s=>s.id===h.saved[0].next.locations.find(s=>s.code==='NEW').id).code,'NEW');
 });
 
-test('physically separated screens do not gain overlapping hit areas when the observer moves away',async()=>{
+test('readable displaced screens remain separate when the observer moves away',async()=>{
   const h=await directHarness(),before=structuredClone(h.value);h.structureAction('@structure-rack');h.fov(100);h.frame();const name=h.field('object-name').point,lock=h.field('object-lock').point;h.look(name);h.key('KeyS');for(let i=0;i<90;i++)h.frame();h.release('KeyS');h.look({x:name.x,y:(name.y+lock.y)/2,z:name.z});
-  for(let i=0;i<30;i++){h.wheel(-100);assert.equal(h.target(),undefined);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');}
+  for(let i=0;i<3;i++){h.wheel(100);assertSeparated(h.nodes.get('[data-walk-handles]').innerHTML);assert.equal(h.nodes.get('[data-walk-direct-status]').dataset.editorStage,'object');}
   assert.deepEqual(h.value,before);assert.equal(h.saved.length,0);assert.equal(h.document.pointerLockElement,h.canvas);
 });
 
@@ -1068,15 +1082,15 @@ test('canceling a destructive ground-level value restores its original level con
   h.click(2);assert.equal(status.dataset.editorStructure,'level');assert.equal(status.dataset.editorLevel,bay.ground.id);assert.equal(h.value.objects[0].bays[0].ground.enabled,true);assert.equal(status.dataset.editorStage,'object');assert.equal(h.document.pointerLockElement,h.canvas);
 });
 
-test('physical screens and reference dots project their fixed rack geometry across camera movement and FOV changes',async()=>{
+test('readable cards preserve world references across camera movement and FOV changes',async()=>{
   const value=layout();value.objects[0].rotation=30;const h=await directHarness({value:model.normalizeLayout(value)}),before=structuredClone(h.value),field=h.choose('level-height'),anchor={...field.point};
   function check(){
     const html=h.nodes.get('[data-walk-handles]').innerHTML,center=controlPixel(html,field.key,90,15),projected=walk.project(h.camera,anchor,900,600);
     assert.ok(Math.abs(center.x-projected.x)<1e-7);assert.ok(Math.abs(center.y-projected.y)<1e-7);
-    const rack=h.value.objects[0],a=rack.rotation*Math.PI/180;
+    const rack=h.value.objects[0],a=rack.rotation*Math.PI/180,physical=walk.controlPanel(h.camera,anchor,rack.rotation,true,900,600),r=physical&&physical.bounds,kept=r&&r.right-r.left>=117&&r.bottom-r.top>=24&&r.bottom-r.top<=60&&r.right-r.left<=300;
     for(const [x,y] of [[0,0],[180,0],[180,30],[0,30]]){
       const u=(x/180-.5)*.9,v=(.5-y/30)*.15,world={x:anchor.x+u*Math.cos(a),y:anchor.y+v,z:anchor.z+u*Math.sin(a)},expected=walk.project(h.camera,world,900,600),actual=controlPixel(html,field.key,x,y);
-      assert.ok(Math.abs(actual.x-expected.x)<1e-7);assert.ok(Math.abs(actual.y-expected.y)<1e-7);
+      assert.ok(Math.abs(actual.x-(kept?expected.x:projected.x+x-90))<1e-7);assert.ok(Math.abs(actual.y-(kept?expected.y:projected.y+y-15))<1e-7);
     }
     const reference=walk.project(h.camera,field.anchor,900,600),dot=html.match(/class="wh-walk-reference" cx="([\d.-]+)" cy="([\d.-]+)" r="4"/);
     assert.ok(dot,html);assert.ok(Math.abs(Number(dot[1])-reference.x)<1e-7);assert.ok(Math.abs(Number(dot[2])-reference.y)<1e-7);
@@ -1111,20 +1125,56 @@ test('fixed object screens shrink with distance, reject back/edge views and use 
   });assert.ok(hits.some(hit=>hit===null));
 });
 
-test('Editor screens cannot be aimed from behind and become reachable again at the same front-side position',async()=>{
+test('Editor cards remain visible but unavailable behind the object and become reachable again at its front',async()=>{
   const h=await directHarness(),field=h.choose('bay-width'),before=structuredClone(h.value),c=h.camera;
   const front={...c};Object.assign(h.liveCamera,{x:field.point.x,z:field.point.z-3});Object.assign(h.camera,h.liveCamera);h.look(field.point);
-  assert.equal(h.target(),undefined);assert.equal((h.nodes.get('[data-walk-handles]').innerHTML.match(/data-direct-field=/g)||[]).length,0);
+  assert.equal(h.target(),undefined);assert.equal((h.nodes.get('[data-walk-handles]').innerHTML.match(/data-direct-field=/g)||[]).length,1);assert.match(h.nodes.get('[data-walk-handles]').innerHTML,/data-control-reachable="false"/);
   Object.assign(h.liveCamera,front);Object.assign(h.camera,front);h.look(field.point);assert.equal(h.target(),field.key);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);
 });
 
 
-test('a wall covering only a screen corner hides that screen without blocking its center ray',async()=>{
+test('a partially occluded screen remains visible and its unobstructed reference can still be selected',async()=>{
   const value=layout(),rack=value.objects[0],field=directEditor.directFields(model,value,rack.id).find(f=>f.kind==='bay-width');
   const wall=model.createRecipe('wall');Object.assign(wall,{x:field.point.x*1000+350,z:field.point.z*1000+150,width:150,height:500,depth:50,elevation:field.point.y*1000-250});value.objects.push(wall);
   const h=await directHarness({value:model.normalizeLayout(value)});h.structureAction('@structure-bay-'+rack.bays[0].id);
   Object.assign(h.liveCamera,{x:field.point.x,z:field.point.z+3});Object.assign(h.camera,h.liveCamera);h.look(field.point);
   const origin={x:h.camera.x,y:h.camera.eye,z:h.camera.z},direction=walk.ray(h.camera,0,0,1.5),distance=Math.hypot(field.point.x-origin.x,field.point.y-origin.y,field.point.z-origin.z);
   assert.equal(walk.raycast(h.world,origin,direction,true,distance),null);
-  assert.equal(h.nodes.get('[data-walk-handles]').innerHTML.includes('data-direct-field="'+field.key+'"'),false);assert.equal(h.target(),undefined);assert.equal(h.saved.length,0);
+  assert.equal(h.nodes.get('[data-walk-handles]').innerHTML.includes('data-direct-field="'+field.key+'"'),true);assert.equal(h.target(),field.key);assert.equal(h.saved.length,0);
+});
+
+
+test('turning away keeps the complete chosen bay visible, separated and unchanged',async()=>{
+  const h=await directHarness(),rack=h.value.objects[0],before=structuredClone(h.value);h.structureAction('@structure-bay-'+rack.bays[0].id);
+  const keys=()=>[...h.nodes.get('[data-walk-handles]').innerHTML.matchAll(/data-direct-field="([^"]+)"/g)].map(m=>m[1]).sort();
+  const expected=keys();assert.ok(expected.length>5);
+  h.canvas.events.pointermove({movementX:Math.PI/.004,movementY:0});h.frame();assert.deepEqual(keys(),expected);assertSeparated(h.nodes.get('[data-walk-handles]').innerHTML);assert.match(h.nodes.get('[data-walk-handles]').innerHTML,/wh-walk-control-direction/);assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);assert.equal(h.document.pointerLockElement,h.canvas);
+});
+
+test('explicit control pages expose every location field and wheel paging does not change values',async()=>{
+  const h=await directHarness({chooseSection:false}),before=structuredClone(h.value);h.key('Digit3');h.frame();
+  const expected=directEditor.directFields(model,h.value,h.value.objects[0].id).filter(f=>f.section==='locations'||f.sections?.includes('locations')).map(f=>f.key).sort();
+  const status=h.nodes.get('[data-walk-direct-status]'),pages=Number(status.dataset.editorPages),seen=new Set();assert.ok(pages>1);
+  for(let i=0;i<pages;i++){const html=h.nodes.get('[data-walk-handles]').innerHTML;for(const m of html.matchAll(/data-direct-field="([^"]+)"/g))seen.add(m[1]);assertSeparated(html);h.wheel(100);}
+  assert.deepEqual([...seen].sort(),expected);assert.equal(status.dataset.editorPage,'1');assert.equal(h.saved.length,0);assert.deepEqual(h.value,before);assert.equal(h.document.pointerLockElement,h.canvas);
+});
+
+
+test('packing many coincident controls preserves every key on explicit pages without overlap or HUD collisions',()=>{
+  const area={left:8,right:892,top:90,bottom:480},blocked=[{left:8,right:270,top:90,bottom:450}],items=Array.from({length:120},(_,i)=>({field:{key:'SYN-'+i},panel:{cssWidth:240,cssHeight:30,matrix:[1,0,0,0,0,1,0,0,0,0,1,0,330,285,0,1],bounds:{left:330,right:570,top:285,bottom:315}}})),before=structuredClone(items);
+  const pages=walk.packControls(items,area,blocked);assert.ok(pages.length>1);assert.deepEqual(pages.flat().map(n=>n.field.key),items.map(n=>n.field.key));assert.deepEqual(items,before);assert.deepEqual(walk.packControls(items,area,blocked),pages);
+  for(const page of pages)for(let i=0;i<page.length;i++){
+    const a=page[i].panel.bounds;assert.ok(a.left>=area.left&&a.right<=area.right&&a.top>=area.top&&a.bottom<=area.bottom);
+    for(const b of blocked.concat(page.slice(0,i).map(n=>n.panel.bounds)))assert.ok(a.right<=b.left||a.left>=b.right||a.bottom<=b.top||a.top>=b.bottom);
+    const m=page[i].panel.matrix,w=m[3]*120+m[7]*15+m[15],x=(m[0]*120+m[4]*15+m[12])/w,y=(m[1]*120+m[5]*15+m[13])/w;
+    assert.equal(walk.controlScreenHit(page[i].panel,x,y),true);assert.equal(walk.controlScreenHit(page[i].panel,a.right+1,a.bottom+1),false);
+  }
+});
+
+test('offscreen bearings stay finite when looking behind, above or directly through the reference',()=>{
+  const point={x:0,y:1.7,z:0},before=structuredClone(point);
+  for(const yaw of [0,Math.PI/2,Math.PI,-Math.PI/2])for(const pitch of [-1.35,0,1.35]){
+    const p=walk.controlBearing({x:0,z:3,eye:1.7,yaw,pitch,fov:100},point,900,600);assert.ok(Object.values(p).every(Number.isFinite));
+  }
+  assert.ok(Object.values(walk.controlBearing({x:0,z:0,eye:1.7,yaw:0,pitch:0},point,900,600)).every(Number.isFinite));assert.deepEqual(point,before);
 });
